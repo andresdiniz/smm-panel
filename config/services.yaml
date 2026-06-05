@@ -1,0 +1,44 @@
+parameters:
+    pagbank_token:    '%env(PAGBANK_TOKEN)%'
+    pagbank_base_url: '%env(PAGBANK_BASE_URL)%'
+    asaas_api_key:    '%env(ASSAS_API_KEY)%'
+    asaas_base_url:   '%env(ASSAS_BASE_URL)%'
+    peakerr_api_key:  '%env(PEAKERR_API_KEY)%'
+    peakerr_base_url: '%env(PEAKERR_BASE_URL)%'
+    jap_api_key:      '%env(JUSTANOTHERPANEL_API_KEY)%'
+    jap_base_url:     '%env(JUSTANOTHERPANEL_BASE_URL)%'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    # SMM Providers (tagged para SmmProviderRegistry)
+    App\Smm\Provider\PeakerrProvider:
+        arguments:
+            $apiKey:  '%peakerr_api_key%'
+            $baseUrl: '%peakerr_base_url%'
+        tags: ['app.smm_provider']
+
+    App\Smm\Provider\JustAnotherPanelProvider:
+        arguments:
+            $apiKey:  '%jap_api_key%'
+            $baseUrl: '%jap_base_url%'
+        tags: ['app.smm_provider']
+
+    App\Smm\Provider\SmmProviderRegistry:
+        arguments:
+            $providers: !tagged_iterator app.smm_provider
+
+    # Billing
+    App\Billing\Service\AsaasPaymentService:
+        arguments:
+            $apiKey:  '%asaas_api_key%'
+            $baseUrl: '%asaas_base_url%'

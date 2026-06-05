@@ -1,0 +1,31 @@
+{% extends 'emails/layout.html.twig' %}
+
+{% block title %}Pedido #{{ order.id }} concluído! ✓{% endblock %}
+
+{% block content %}
+<h1 style="color:#16a34a;font-size:22px;margin-bottom:16px">
+    ✓ Pedido concluído!
+</h1>
+<p style="color:#555;line-height:1.6">
+    Olá, <strong>{{ order.user.name }}</strong>! Seu pedido
+    <strong>#{{ order.id }}</strong> foi concluído com sucesso.
+</p>
+<table style="width:100%;border-collapse:collapse;margin:24px 0">
+    <tr style="background:#f0fdf4">
+        <td style="padding:10px 16px;font-weight:600">Serviço</td>
+        <td style="padding:10px 16px">{{ order.service.name }}</td>
+    </tr>
+    <tr>
+        <td style="padding:10px 16px;font-weight:600">Entregues</td>
+        <td style="padding:10px 16px">{{ order.deliveredCount|number_format(0, ',', '.') }}</td>
+    </tr>
+    <tr style="background:#f0fdf4">
+        <td style="padding:10px 16px;font-weight:600">Concluído em</td>
+        <td style="padding:10px 16px">{{ order.completedAt|date('d/m/Y H:i') }}</td>
+    </tr>
+</table>
+<a href="{{ url('app_dashboard') }}"
+   style="display:inline-block;background:#16a34a;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600">
+    Fazer novo pedido
+</a>
+{% endblock %}

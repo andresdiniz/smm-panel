@@ -1,0 +1,60 @@
+framework:
+    messenger:
+        failure_transport: failed
+
+        transports:
+            orders_high:
+                dsn: '%env(REDIS_DSN)%'
+                options:
+                    stream: orders_high
+                    group: smm_workers
+                    redeliver_timeout: 3600
+                retry_strategy:
+                    max_retries: 5
+                    delay: 2000
+                    multiplier: 2
+                    max_delay: 60000
+
+            orders_medium:
+                dsn: '%env(REDIS_DSN)%'
+                options:
+                    stream: orders_medium
+                    group: smm_workers
+                    redeliver_timeout: 3600
+                retry_strategy:
+                    max_retries: 10
+                    delay: 5000
+                    multiplier: 2
+                    max_delay: 300000
+
+            orders_low:
+                dsn: '%env(REDIS_DSN)%'
+                options:
+                    stream: orders_low
+                    group: smm_workers
+                retry_strategy:
+                    max_retries: 3
+                    delay: 10000
+                    multiplier: 2
+
+            failed:
+                dsn: 'doctrine://default?queue_name=failed'
+
+        buses:
+            messenger.bus.default:
+                middleware:
+                    - dispatch_after_current_bus
+                    - doctrine_transaction
+                    - App\Messenger\Middleware\AuditMiddleware
+
+        routing:
+            App\Message\Order\DispatchOrderToProviderMessage:  orders_high
+            App\Message\Order\SyncOrderStatusMessage:          orders_medium
+            App\Message\Order\OrderNotificationMessage:        orders_low
+            App\Message\Billing\ProcessPaymentWebhookMessage:  orders_high
+            App\Message\Billing\ReconcilePaymentMessage:       orders_low
+            App\Message\Crm\CrmSyncMessage:                    orders_low
+            App\Message\Scheduler\SyncProviderBalanceMessage:  orders_low
+            App\Message\Scheduler\DailyFinanceReportMessage:   orders_low
+            App\Message\Scheduler\RemarketingEmailsMessage:    orders_low
+            App\Message\Scheduler\CleanupExpiredTokensMessage: orders_low

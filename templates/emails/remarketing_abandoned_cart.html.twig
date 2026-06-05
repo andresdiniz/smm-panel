@@ -1,0 +1,21 @@
+{% extends 'emails/layout.html.twig' %}
+
+{% block title %}Você esqueceu algo no carrinho 👀{% endblock %}
+
+{% block content %}
+<h1 style="color:#1a1a2e;font-size:22px;margin-bottom:8px">Olá, {{ user.name }}!</h1>
+<p style="color:#555;line-height:1.6">
+    Vimos que você iniciou um pedido mas não concluiu. Ainda dá tempo!
+</p>
+<p style="color:#555">
+    Serviço: <strong>{{ service_name }}</strong><br>
+    Valor: <strong>R$ {{ price }}</strong>
+</p>
+<a href="{{ checkout_url }}"
+   style="display:inline-block;background:#f59e0b;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:16px">
+    Concluir pedido agora
+</a>
+<p style="color:#9ca3af;font-size:12px;margin-top:24px">
+    <a href="{{ unsubscribe_url }}" style="color:#9ca3af">Cancelar recebimento deste tipo de e-mail</a>
+</p>
+{% endblock %}
