@@ -1,0 +1,67 @@
+{% extends 'dashboard/layout.html.twig' %}
+
+{% block page_title %}Aguardando pagamento Pix{% endblock %}
+
+{% block dashboard_body %}
+<div class="pix-page">
+    <div class="card pix-card">
+        <div class="card__header">
+            <h2>⚡ Pague via Pix</h2>
+            <span id="pixTimer" class="pix-timer">Expira em <strong id="countdown">15:00</strong></span>
+        </div>
+        <div class="card__body">
+            <p class="pix-amount">R$ {{ (payment.amountCents / 100)|number_format(2, ',', '.') }}</p>
+
+            {% if payment.pixQrCodeUrl %}
+            <div class="pix-qr">
+                <img src="{{ payment.pixQrCodeUrl }}" alt="QR Code Pix" width="200" height="200">
+            </div>
+            {% endif %}
+
+            <div class="pix-copy">
+                <label>Pix Copia e Cola</label>
+                <div class="pix-copy__row">
+                    <input type="text" readonly value="{{ payment.pixPayload }}" id="pixCode" class="form-control font-mono">
+                    <button onclick="navigator.clipboard.writeText(document.getElementById('pixCode').value);this.textContent='Copiado!'" class="btn btn-primary">Copiar</button>
+                </div>
+            </div>
+
+            <div class="pix-steps">
+                <p><strong>Como pagar:</strong></p>
+                <ol>
+                    <li>Abra o app do seu banco</li>
+                    <li>Escolha pagar via Pix</li>
+                    <li>Escaneie o QR code ou cole o código</li>
+                    <li>Confirme o pagamento</li>
+                </ol>
+            </div>
+
+            <div class="pix-status" id="pixStatus">
+                <span class="spinner"></span> Aguardando pagamento…
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+// Countdown
+let exp = new Date('{{ payment.pixExpiresAt|date('c') }}').getTime();
+const cd = document.getElementById('countdown');
+setInterval(() => {
+    const rem = Math.max(0, Math.floor((exp - Date.now()) / 1000));
+    cd.textContent = String(Math.floor(rem/60)).padStart(2,'0') + ':' + String(rem%60).padStart(2,'0');
+}, 1000);
+// Poll payment status
+setInterval(async () => {
+    const r = await fetch('{{ path('api_payment_status', {id: payment.id}) }}');
+    const d = await r.json();
+    if (d.status === 'confirmed') {
+        document.getElementById('pixStatus').innerHTML = '✅ Pagamento confirmado! Redirecionando…';
+        setTimeout(() => location.href = '{{ path('app_wallet_index') }}', 1500);
+    }
+}, 5000);
+</script>
+{% endblock %}

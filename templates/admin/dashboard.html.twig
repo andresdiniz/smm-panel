@@ -1,0 +1,136 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Dashboard Admin{% endblock %}
+
+{% block main %}
+<div class="admin-dashboard">
+
+    {# KPIs ROW #}
+    <div class="admin-kpis">
+        <div class="admin-kpi-card">
+            <span class="admin-kpi-card__icon">💰</span>
+            <div>
+                <p class="admin-kpi-card__label">GMV hoje</p>
+                <p class="admin-kpi-card__value">R$ {{ finance.gmvToday|number_format(2, ',', '.') }}</p>
+                <p class="admin-kpi-card__delta {{ finance.gmvDelta >= 0 ? 'text-success' : 'text-error' }}">
+                    {{ finance.gmvDelta >= 0 ? '▲' : '▼' }} {{ finance.gmvDelta|abs|number_format(1) }}% vs ontem
+                </p>
+            </div>
+        </div>
+        <div class="admin-kpi-card">
+            <span class="admin-kpi-card__icon">📦</span>
+            <div>
+                <p class="admin-kpi-card__label">Pedidos hoje</p>
+                <p class="admin-kpi-card__value">{{ finance.ordersToday }}</p>
+            </div>
+        </div>
+        <div class="admin-kpi-card">
+            <span class="admin-kpi-card__icon">📈</span>
+            <div>
+                <p class="admin-kpi-card__label">Margem bruta</p>
+                <p class="admin-kpi-card__value">{{ finance.grossMarginPct|number_format(1) }}%</p>
+            </div>
+        </div>
+        <div class="admin-kpi-card">
+            <span class="admin-kpi-card__icon">👤</span>
+            <div>
+                <p class="admin-kpi-card__label">Novos usuários hoje</p>
+                <p class="admin-kpi-card__value">{{ finance.newUsersToday }}</p>
+            </div>
+        </div>
+        <div class="admin-kpi-card">
+            <span class="admin-kpi-card__icon">⚠️</span>
+            <div>
+                <p class="admin-kpi-card__label">Pedidos com falha</p>
+                <p class="admin-kpi-card__value text-error">{{ finance.failedOrders }}</p>
+            </div>
+        </div>
+        <div class="admin-kpi-card">
+            <span class="admin-kpi-card__icon">💳</span>
+            <div>
+                <p class="admin-kpi-card__label">Taxa gateway (hoje)</p>
+                <p class="admin-kpi-card__value">R$ {{ finance.gatewayFeesToday|number_format(2, ',', '.') }}</p>
+            </div>
+        </div>
+    </div>
+
+    {# CHARTS #}
+    <div class="admin-charts">
+        <div class="admin-chart-card">
+            <h3>Receita dos últimos 30 dias</h3>
+            <canvas id="revenueChart" height="200"></canvas>
+        </div>
+        <div class="admin-chart-card">
+            <h3>Pedidos por status</h3>
+            <canvas id="statusChart" height="200"></canvas>
+        </div>
+    </div>
+
+    {# FINANCIAL BREAKDOWN #}
+    <div class="admin-finance-table card">
+        <div class="card__header"><h3>Resumo financeiro — mês atual</h3></div>
+        <div class="card__body p-0">
+            <table class="table">
+                <thead><tr><th>Categoria</th><th class="text-right">Valor</th></tr></thead>
+                <tbody>
+                    <tr><td>Entradas (pagamentos confirmados)</td><td class="text-right text-success">R$ {{ finance.inflows|number_format(2, ',', '.') }}</td></tr>
+                    <tr><td>Saídas (custo providers)</td><td class="text-right text-error">- R$ {{ finance.providerCosts|number_format(2, ',', '.') }}</td></tr>
+                    <tr><td>Taxas de gateway</td><td class="text-right text-error">- R$ {{ finance.gatewayFees|number_format(2, ',', '.') }}</td></tr>
+                    <tr><td>Estornos / chargebacks</td><td class="text-right text-error">- R$ {{ finance.chargebacks|number_format(2, ',', '.') }}</td></tr>
+                    <tr class="table__row--strong"><td><strong>Lucro líquido estimado</strong></td><td class="text-right"><strong>R$ {{ finance.netProfit|number_format(2, ',', '.') }}</strong></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {# REMARKETING PIPELINE #}
+    <div class="admin-crm card">
+        <div class="card__header"><h3>Pipeline CRM</h3></div>
+        <div class="card__body">
+            <div class="crm-pipeline">
+                {% for stage in crmPipeline %}
+                <div class="crm-stage">
+                    <span class="crm-stage__label">{{ stage.label }}</span>
+                    <span class="crm-stage__count">{{ stage.count }}</span>
+                </div>
+                {% if not loop.last %}<div class="crm-arrow">→</div>{% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+new Chart(revenueCtx, {
+    type: 'line',
+    data: {
+        labels: {{ finance.revenueDays|json_encode|raw }},
+        datasets: [{
+            label: 'Receita (R$)',
+            data: {{ finance.revenueValues|json_encode|raw }},
+            borderColor: '#4f46e5',
+            backgroundColor: 'rgba(79,70,229,.08)',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 3
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+});
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ finance.statusLabels|json_encode|raw }},
+        datasets: [{ data: {{ finance.statusValues|json_encode|raw }}, backgroundColor: ['#4f46e5','#16a34a','#dc2626','#f59e0b','#6b7280'] }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'right' } } }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends 'dashboard/layout.html.twig' %}
+
+{% block page_title %}Carteira{% endblock %}
+
+{% block dashboard_body %}
+<div class="wallet-page">
+    {# BALANCE CARD #}
+    <div class="balance-card">
+        <span class="balance-card__label">Saldo disponível</span>
+        <span class="balance-card__amount">R$ {{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}</span>
+        <a href="{{ path('app_wallet_deposit') }}" class="btn btn-primary">+ Adicionar saldo</a>
+    </div>
+
+    {# TRANSACTIONS #}
+    <div class="card mt-6">
+        <div class="card__header">
+            <h2>Extrato</h2>
+            <span class="text-muted">Últimas {{ transactions|length }} transações</span>
+        </div>
+        <div class="card__body p-0">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Descrição</th>
+                        <th>Tipo</th>
+                        <th class="text-right">Valor</th>
+                        <th class="text-right">Saldo após</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for tx in transactions %}
+                <tr>
+                    <td>{{ tx.createdAt|date('d/m/Y H:i') }}</td>
+                    <td>{{ tx.description }}</td>
+                    <td>
+                        <span class="badge badge--{{ tx.type == 'credit' ? 'success' : 'error' }}">
+                            {{ tx.type == 'credit' ? 'Entrada' : 'Saída' }}
+                        </span>
+                    </td>
+                    <td class="text-right {{ tx.type == 'credit' ? 'text-success' : 'text-error' }}">
+                        {{ tx.type == 'credit' ? '+' : '-' }}R$ {{ (tx.amountCents / 100)|number_format(2, ',', '.') }}
+                    </td>
+                    <td class="text-right font-mono">R$ {{ (tx.balanceAfterCents / 100)|number_format(2, ',', '.') }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted">Nenhuma transação ainda.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

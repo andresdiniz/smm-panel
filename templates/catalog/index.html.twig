@@ -1,0 +1,74 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Catálogo de Serviços — SMM Panel{% endblock %}
+
+{% block body %}
+<div class="container catalog-page">
+    <div class="catalog-header">
+        <h1>Catálogo de Serviços</h1>
+        <div class="catalog-search">
+            <input type="search" id="catalogSearch" placeholder="Pesquisar serviço…" class="form-control" autocomplete="off">
+        </div>
+    </div>
+
+    <div class="catalog-layout">
+        {# FILTERS #}
+        <aside class="catalog-filters">
+            <h3>Categoria</h3>
+            <ul class="filter-list">
+                <li><a href="{{ path('app_catalog') }}" class="{% if not currentCategory %}is-active{% endif %}">Todas</a></li>
+                {% for cat in categories %}
+                <li>
+                    <a href="{{ path('app_catalog', {category: cat.slug}) }}"
+                       class="{% if currentCategory == cat.slug %}is-active{% endif %}">
+                        {{ cat.icon }} {{ cat.name }}
+                        <span class="filter-count">{{ cat.servicesCount }}</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </aside>
+
+        {# SERVICES GRID #}
+        <div class="catalog-grid" id="servicesGrid">
+            {% for service in services %}
+            <div class="service-card" data-name="{{ service.name|lower }}">
+                <div class="service-card__top">
+                    <span class="service-card__category">{{ service.category.icon }} {{ service.category.name }}</span>
+                    {% if service.isFeatured %}<span class="badge badge--gold">Destaque</span>{% endif %}
+                </div>
+                <h3 class="service-card__title">{{ service.name }}</h3>
+                <p class="service-card__desc">{{ service.description|default('Entrega rápida e garantida.')|slice(0,80) }}</p>
+                <div class="service-card__meta">
+                    <span>Min: {{ service.minQuantity|number_format(0, ',', '.') }}</span>
+                    <span>Max: {{ service.maxQuantity|number_format(0, ',', '.') }}</span>
+                </div>
+                <div class="service-card__footer">
+                    <div class="service-card__price">
+                        <span class="price-value">R$ {{ (service.pricePerThousandCents / 100)|number_format(2, ',', '.') }}</span>
+                        <span class="price-unit">/1000</span>
+                    </div>
+                    <a href="{{ path('app_order_new', {service: service.id}) }}" class="btn btn-primary btn-sm">Pedir</a>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>Nenhum serviço encontrado.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+const search = document.getElementById('catalogSearch');
+const cards  = document.querySelectorAll('.service-card');
+search.addEventListener('input', () => {
+    const q = search.value.toLowerCase();
+    cards.forEach(c => c.style.display = c.dataset.name.includes(q) ? '' : 'none');
+});
+</script>
+{% endblock %}

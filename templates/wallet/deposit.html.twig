@@ -1,0 +1,61 @@
+{% extends 'dashboard/layout.html.twig' %}
+
+{% block page_title %}Adicionar Saldo{% endblock %}
+
+{% block dashboard_body %}
+<div class="deposit-page">
+    <div class="card" style="max-width:520px">
+        <div class="card__header"><h2>Adicionar saldo</h2></div>
+        <div class="card__body">
+            <form method="post" action="{{ path('app_wallet_deposit') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('deposit') }}">
+
+                <div class="form-group">
+                    <label for="amount">Valor (R$)</label>
+                    <input type="number" id="amount" name="amount" class="form-control form-control--lg"
+                           min="10" max="10000" step="1" placeholder="50" required autofocus>
+                    <p class="form-hint">Mínimo R$ 10,00</p>
+                </div>
+
+                <div class="form-group">
+                    <label>Método de pagamento</label>
+                    <div class="payment-methods">
+                        <label class="payment-option">
+                            <input type="radio" name="method" value="pix" checked>
+                            <span class="payment-option__label">
+                                <span class="payment-option__icon">⚡</span>
+                                <span>
+                                    <strong>Pix</strong>
+                                    <small>Aprovação imediata</small>
+                                </span>
+                            </span>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="method" value="credit_card">
+                            <span class="payment-option__label">
+                                <span class="payment-option__icon">💳</span>
+                                <span>
+                                    <strong>Cartão de crédito</strong>
+                                    <small>Parcelamento disponível</small>
+                                </span>
+                            </span>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="method" value="debit_card">
+                            <span class="payment-option__label">
+                                <span class="payment-option__icon">🏦</span>
+                                <span>
+                                    <strong>Cartão de débito</strong>
+                                    <small>Aprovação imediata</small>
+                                </span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg btn-block">Continuar</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

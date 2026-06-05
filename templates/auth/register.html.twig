@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Criar conta — SMM Panel{% endblock %}
+
+{% block body %}
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-card__header">
+            <svg width="40" height="40" viewBox="0 0 32 32" fill="none">
+                <rect width="32" height="32" rx="8" fill="#4f46e5"/>
+                <path d="M8 22 L14 10 L20 18 L23 14 L28 22" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+            <h1>Criar conta</h1>
+            <p>Comece a usar em segundos</p>
+        </div>
+
+        {{ form_start(form, {attr: {class: 'auth-form'}}) }}
+            <div class="form-group">
+                {{ form_label(form.name, 'Nome completo') }}
+                {{ form_widget(form.name, {attr: {class: 'form-control', autofocus: true}}) }}
+                {{ form_errors(form.name) }}
+            </div>
+            <div class="form-group">
+                {{ form_label(form.email, 'E-mail') }}
+                {{ form_widget(form.email, {attr: {class: 'form-control'}}) }}
+                {{ form_errors(form.email) }}
+            </div>
+            <div class="form-group">
+                {{ form_label(form.plainPassword.first, 'Senha') }}
+                {{ form_widget(form.plainPassword.first, {attr: {class: 'form-control'}}) }}
+                {{ form_errors(form.plainPassword.first) }}
+            </div>
+            <div class="form-group">
+                {{ form_label(form.plainPassword.second, 'Confirmar senha') }}
+                {{ form_widget(form.plainPassword.second, {attr: {class: 'form-control'}}) }}
+                {{ form_errors(form.plainPassword.second) }}
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Criar conta grátis</button>
+        {{ form_end(form) }}
+
+        <p class="auth-card__footer">
+            Já tem conta? <a href="{{ path('app_login') }}">Entrar</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

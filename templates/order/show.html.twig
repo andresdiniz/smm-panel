@@ -1,0 +1,70 @@
+{% extends 'dashboard/layout.html.twig' %}
+
+{% block page_title %}Pedido #{{ order.id }}{% endblock %}
+
+{% block dashboard_body %}
+<div class="order-detail">
+    <div class="card">
+        <div class="card__header">
+            <h2>Pedido #{{ order.id }}</h2>
+            <span class="badge badge--{{ order.status.cssClass() }} badge--lg">{{ order.status.label() }}</span>
+        </div>
+        <div class="card__body">
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-item__label">Serviço</span>
+                    <span class="detail-item__value">{{ order.service.name }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-item__label">Link alvo</span>
+                    <a href="{{ order.targetUrl }}" target="_blank" rel="noopener" class="detail-item__value link-truncate">{{ order.targetUrl }}</a>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-item__label">Quantidade</span>
+                    <span class="detail-item__value">{{ order.quantity|number_format(0, ',', '.') }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-item__label">Valor pago</span>
+                    <span class="detail-item__value">R$ {{ (order.priceCents / 100)|number_format(2, ',', '.') }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-item__label">Provider</span>
+                    <span class="detail-item__value">{{ order.providerName }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-item__label">ID externo</span>
+                    <span class="detail-item__value font-mono">{{ order.externalId|default('—') }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-item__label">Criado em</span>
+                    <span class="detail-item__value">{{ order.createdAt|date('d/m/Y H:i:s') }}</span>
+                </div>
+                {% if order.completedAt %}
+                <div class="detail-item">
+                    <span class="detail-item__label">Concluído em</span>
+                    <span class="detail-item__value">{{ order.completedAt|date('d/m/Y H:i:s') }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            {# PROGRESS BAR #}
+            {% if order.status.value not in ['pending','failed','cancelled'] %}
+            <div class="order-progress">
+                <div class="order-progress__header">
+                    <span>Progresso de entrega</span>
+                    <span>{{ order.deliveredCount|number_format(0, ',', '.') }} / {{ order.quantity|number_format(0, ',', '.') }}</span>
+                </div>
+                <div class="progress progress--lg">
+                    <div class="progress__bar" style="width:{{ order.progressPercent }}%"></div>
+                </div>
+                <p class="order-progress__pct">{{ order.progressPercent }}% concluído</p>
+            </div>
+            {% endif %}
+
+            {% if order.failReason %}
+            <div class="alert alert--error">{{ order.failReason }}</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

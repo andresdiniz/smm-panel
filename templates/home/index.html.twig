@@ -1,0 +1,89 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}SMM Panel — Serviços de Redes Sociais{% endblock %}
+
+{% block body %}
+{# HERO #}
+<section class="hero">
+    <div class="container hero__inner">
+        <div class="hero__text">
+            <span class="badge badge--indigo">Novo: suporte a Threads e TikTok</span>
+            <h1>Cresça suas redes<br>com quem entende do negócio</h1>
+            <p>Seguidores, curtidas, visualizações e muito mais — entrega rápida, painel simples, suporte real.</p>
+            <div class="hero__cta">
+                <a href="{{ path('app_register') }}" class="btn btn-primary btn-lg">Começar agora</a>
+                <a href="{{ path('app_catalog') }}" class="btn btn-ghost btn-lg">Ver serviços</a>
+            </div>
+            <ul class="hero__social-proof">
+                <li>✓ Mais de 10.000 pedidos entregues</li>
+                <li>✓ Pagamento via Pix ou cartão</li>
+                <li>✓ Suporte 24h</li>
+            </ul>
+        </div>
+        <div class="hero__visual">
+            <div class="stats-card">
+                <div class="stats-card__row">
+                    <span class="stats-card__label">Seguidores entregues hoje</span>
+                    <span class="stats-card__value" data-count="48320">0</span>
+                </div>
+                <div class="stats-card__row">
+                    <span class="stats-card__label">Pedidos em andamento</span>
+                    <span class="stats-card__value" data-count="124">0</span>
+                </div>
+                <div class="stats-card__row">
+                    <span class="stats-card__label">Usuários ativos</span>
+                    <span class="stats-card__value" data-count="3210">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# CATEGORIES #}
+<section class="section">
+    <div class="container">
+        <h2 class="section__title">Escolha a rede social</h2>
+        <div class="categories-grid">
+            {% for category in categories %}
+            <a href="{{ path('app_catalog', {category: category.slug}) }}" class="category-card">
+                <span class="category-card__icon">{{ category.icon }}</span>
+                <span class="category-card__name">{{ category.name }}</span>
+                <span class="category-card__count">{{ category.servicesCount }} serviços</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+{# HOW IT WORKS #}
+<section class="section section--offset">
+    <div class="container">
+        <h2 class="section__title">Como funciona</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step__number">1</div>
+                <h3>Crie sua conta</h3>
+                <p>Cadastro rápido com e-mail. Sem documentos.</p>
+            </div>
+            <div class="step__arrow">→</div>
+            <div class="step">
+                <div class="step__number">2</div>
+                <h3>Adicione saldo</h3>
+                <p>Pix ou cartão de crédito/débito. Instantâneo.</p>
+            </div>
+            <div class="step__arrow">→</div>
+            <div class="step">
+                <div class="step__number">3</div>
+                <h3>Faça seu pedido</h3>
+                <p>Escolha o serviço, informe o link e confirme.</p>
+            </div>
+            <div class="step__arrow">→</div>
+            <div class="step">
+                <div class="step__number">4</div>
+                <h3>Acompanhe</h3>
+                <p>Progresso em tempo real no seu painel.</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

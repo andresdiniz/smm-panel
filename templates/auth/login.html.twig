@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Entrar — SMM Panel{% endblock %}
+
+{% block body %}
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-card__header">
+            <svg width="40" height="40" viewBox="0 0 32 32" fill="none">
+                <rect width="32" height="32" rx="8" fill="#4f46e5"/>
+                <path d="M8 22 L14 10 L20 18 L23 14 L28 22" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+            <h1>Entrar</h1>
+            <p>Bem-vindo de volta!</p>
+        </div>
+
+        {% if error %}
+        <div class="alert alert--error">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+        {% endif %}
+
+        <form method="post" action="{{ path('app_login') }}" class="auth-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" name="email" class="form-control"
+                       value="{{ last_username }}" required autofocus autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label for="password">
+                    Senha
+                    <a href="{{ path('app_forgot_password') }}" class="form-label-link">Esqueci a senha</a>
+                </label>
+                <input type="password" id="password" name="password" class="form-control"
+                       required autocomplete="current-password">
+            </div>
+            <label class="checkbox-label">
+                <input type="checkbox" name="_remember_me"> Lembrar de mim
+            </label>
+            <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+        </form>
+
+        <p class="auth-card__footer">
+            Não tem conta? <a href="{{ path('app_register') }}">Criar conta grátis</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
