@@ -1,31 +1,53 @@
-{% extends 'emails/layout.html.twig' %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Pedido concluído</title>
+<style>
+  body{margin:0;padding:0;background:#f4f4f0;font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a}
+  .wrap{max-width:600px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.07)}
+  .header{background:#437a22;padding:36px 40px;text-align:center}
+  .header h1{color:#fff;margin:0;font-size:26px}
+  .body{padding:40px}
+  .body h2{font-size:20px;margin:0 0 12px}
+  .body p{line-height:1.7;color:#444;margin:0 0 16px}
+  .order-box{background:#f4f9f0;border:2px solid #437a22;border-radius:14px;padding:24px;margin:24px 0}
+  .order-box .title{font-size:18px;font-weight:800;color:#437a22;margin-bottom:10px}
+  .meta{background:#f9f9f7;border-radius:10px;padding:16px 20px;font-size:13px;color:#555;margin-bottom:24px}
+  .meta div{padding:4px 0;border-bottom:1px solid #eee}
+  .meta div:last-child{border:none}
+  .btn{display:inline-block;background:#437a22;color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-weight:700;font-size:15px}
+  .footer{background:#f4f4f0;padding:24px 40px;text-align:center;font-size:12px;color:#999}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>🎉 Pedido Concluído!</h1>
+  </div>
+  <div class="body">
+    <h2>Olá, {{ user.name }}!</h2>
+    <p>Seu pedido foi processado com sucesso. Confira os detalhes abaixo.</p>
 
-{% block title %}Pedido #{{ order.id }} concluído! ✓{% endblock %}
+    <div class="order-box">
+      <div class="title">Pedido #{{ order.id }}</div>
+      <strong>{{ order.service.name }}</strong><br>
+      <span style="color:#666;font-size:14px">{{ order.service.category }}</span>
+    </div>
 
-{% block content %}
-<h1 style="color:#16a34a;font-size:22px;margin-bottom:16px">
-    ✓ Pedido concluído!
-</h1>
-<p style="color:#555;line-height:1.6">
-    Olá, <strong>{{ order.user.name }}</strong>! Seu pedido
-    <strong>#{{ order.id }}</strong> foi concluído com sucesso.
-</p>
-<table style="width:100%;border-collapse:collapse;margin:24px 0">
-    <tr style="background:#f0fdf4">
-        <td style="padding:10px 16px;font-weight:600">Serviço</td>
-        <td style="padding:10px 16px">{{ order.service.name }}</td>
-    </tr>
-    <tr>
-        <td style="padding:10px 16px;font-weight:600">Entregues</td>
-        <td style="padding:10px 16px">{{ order.deliveredCount|number_format(0, ',', '.') }}</td>
-    </tr>
-    <tr style="background:#f0fdf4">
-        <td style="padding:10px 16px;font-weight:600">Concluído em</td>
-        <td style="padding:10px 16px">{{ order.completedAt|date('d/m/Y H:i') }}</td>
-    </tr>
-</table>
-<a href="{{ url('app_dashboard') }}"
-   style="display:inline-block;background:#16a34a;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600">
-    Fazer novo pedido
-</a>
-{% endblock %}
+    <div class="meta">
+      <div><strong>Quantidade:</strong> {{ order.quantity|number_format(0, ',', '.') }}</div>
+      <div><strong>URL alvo:</strong> {{ order.targetUrl }}</div>
+      <div><strong>Valor cobrado:</strong> R$ {{ (order.amountCents / 100)|number_format(2, ',', '.') }}</div>
+      <div><strong>Status:</strong> Concluído</div>
+      <div><strong>Data:</strong> {{ order.updatedAt ? order.updatedAt|date('d/m/Y H:i') : order.createdAt|date('d/m/Y H:i') }}</div>
+    </div>
+
+    <a href="{{ url('app_dashboard') }}" class="btn">Ver meu painel</a>
+  </div>
+  <div class="footer">
+    &copy; {{ 'now'|date('Y') }} PulseSMM
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,91 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Novo pedido — PulseSMM{% endblock %}
+
+{% block body %}
+<section class="wallet-page">
+  <div class="container">
+    <div class="panel-card" data-reveal style="max-width:760px;margin:0 auto">
+      <div class="panel-card__head">
+        <h1 style="font-size:clamp(1.4rem,4vw,2rem)">Novo pedido</h1>
+        <span class="pill pill--soft">Catálogo</span>
+      </div>
+
+      <form method="post" action="{{ path('app_order_create') }}" class="quick-form" id="orderForm">
+        <input type="hidden" name="_token" value="{{ csrf_token('order_create') }}">
+
+        <label class="field">
+          <span>Serviço</span>
+          <select name="service_id" class="control" id="serviceSelect" required>
+            <option value="">Selecione um serviço...</option>
+            {% for category, services in servicesGrouped %}
+              <optgroup label="{{ category }}">
+                {% for service in services %}
+                  <option
+                    value="{{ service.id }}"
+                    data-min="{{ service.minQty }}"
+                    data-max="{{ service.maxQty }}"
+                    data-price="{{ service.pricePerThousandCents }}"
+                  >
+                    {{ service.name }}
+                  </option>
+                {% endfor %}
+              </optgroup>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label class="field">
+          <span>URL alvo</span>
+          <input type="url" name="target_url" class="control" placeholder="https://instagram.com/seuperfil" required>
+        </label>
+
+        <label class="field">
+          <span>Quantidade</span>
+          <input type="number" name="quantity" id="qtyInput" class="control" min="1" required>
+          <small id="qtyHint" style="color:var(--muted);font-size:.85rem">Selecione um serviço para ver o intervalo permitido.</small>
+        </label>
+
+        <div class="glass-card" id="pricePreview" style="display:none">
+          <span>Valor estimado</span>
+          <strong id="priceValue">R$ 0,00</strong>
+        </div>
+
+        <button type="submit" class="btn btn--primary btn--lg btn--block">Criar pedido</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  const sel   = document.getElementById('serviceSelect');
+  const qty   = document.getElementById('qtyInput');
+  const hint  = document.getElementById('qtyHint');
+  const box   = document.getElementById('pricePreview');
+  const price = document.getElementById('priceValue');
+
+  function updatePrice() {
+    const opt  = sel.options[sel.selectedIndex];
+    const min  = parseInt(opt.dataset.min || 0);
+    const max  = parseInt(opt.dataset.max || 0);
+    const ppt  = parseInt(opt.dataset.price || 0); // centavos por 1000
+    const q    = parseInt(qty.value || 0);
+
+    if (!min) { box.style.display = 'none'; return; }
+
+    qty.min = min;
+    qty.max = max;
+    if (!qty.value) qty.value = min;
+    hint.textContent = `Mínimo: ${min.toLocaleString('pt-BR')} | Máximo: ${max.toLocaleString('pt-BR')}`;
+
+    const cents = Math.ceil(ppt * q / 1000);
+    price.textContent = 'R$ ' + (cents / 100).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+    box.style.display = 'block';
+  }
+
+  sel.addEventListener('change', updatePrice);
+  qty.addEventListener('input', updatePrice);
+})();
+</script>
+{% endblock %}
