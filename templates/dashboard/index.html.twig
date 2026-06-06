@@ -3,7 +3,7 @@
 {% block title %}Dashboard — PulseSMM{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
-{% block body %}
+{% block content %}
 <div class="container">
 
   {# ── KPIs ────────────────────────────────────────────── #}
@@ -16,7 +16,7 @@
         <span>Saldo disponível</span>
         <strong>R$ {{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}</strong>
       </div>
-      <a href="{{ path('app_wallet') }}" class="kpi-card__action">Recarregar →</a>
+      <a href="{{ path('app_wallet_deposit') }}" class="kpi-card__action">Recarregar →</a>
     </div>
 
     <div class="kpi-card">
@@ -57,11 +57,11 @@
       <i data-lucide="plus-circle" width="22" height="22"></i>
       <span>Novo pedido</span>
     </a>
-    <a href="{{ path('app_wallet') }}" class="quick-action">
+    <a href="{{ path('app_wallet_deposit') }}" class="quick-action">
       <i data-lucide="banknote" width="22" height="22"></i>
       <span>Recarregar</span>
     </a>
-    <a href="#" class="quick-action">
+    <a href="{{ path('app_wallet_index') }}" class="quick-action">
       <i data-lucide="receipt-text" width="22" height="22"></i>
       <span>Histórico</span>
     </a>
