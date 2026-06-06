@@ -4,32 +4,42 @@ declare(strict_types=1);
 
 namespace App\Smm\Provider;
 
+use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
+
 final class SmmProviderRegistry
 {
     /** @var array<string, SmmProviderInterface> */
-    private array $providers = [];
+    private array $map = [];
 
-    /** Tagged service injection via DI */
-    public function __construct(iterable $providers)
-    {
+    public function __construct(
+        #[AutowireIterator('smm.provider')]
+        iterable $providers,
+    ) {
         foreach ($providers as $provider) {
-            $this->providers[$provider->getSlug()] = $provider;
+            $this->map[$provider->getSlug()] = $provider;
         }
     }
 
     public function get(string $slug): SmmProviderInterface
     {
-        return $this->providers[$slug]
-            ?? throw new \InvalidArgumentException("SMM Provider '{$slug}' not registered.");
+        return $this->map[$slug]
+            ?? throw new \InvalidArgumentException("SMM Provider '{$slug}' not found.");
     }
 
+    /** @return array<string, SmmProviderInterface> */
     public function all(): array
     {
-        return $this->providers;
+        return $this->map;
     }
 
+    /** @return string[] */
     public function slugs(): array
     {
-        return array_keys($this->providers);
+        return array_keys($this->map);
+    }
+
+    public function has(string $slug): bool
+    {
+        return isset($this->map[$slug]);
     }
 }
