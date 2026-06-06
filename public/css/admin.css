@@ -5,56 +5,20 @@
 @import url('https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,600,700,800&display=swap');
 
 /* ────────────────────────────────────────────────────
-   0. SVG GLOBAL RESET
-   O EasyAdmin faz  svg { display:block; max-width:100% }
-   que estica o avatar e outros SVGs sem tamanho declarado.
-   Este bloco limita todos os SVGs dentro do admin a no
-   máximo seu tamanho natural e travamos os contêineres
-   conhecidos com tamanhos explícitos.
+   0. SVG CIRURGICO
+   Apenas os SVGs dos nossos proprios componentes.
+   NAO tocar em SVGs do EasyAdmin (resolvido via JS).
    ──────────────────────────────────────────────────── */
-
-/* Trava TODOS os SVGs do admin: max-width não pode ser maior que o width declarado */
-.ea-wrapper svg,
-.sidebar svg,
-.main-header svg,
-.content-wrapper svg {
-  max-width: none !important;
-  /* height: auto é o culpado quando width não está definido */
-}
-
-/* Avatar do usuário na topbar (SVG de círculo sem width/height) */
-.user-avatar svg,
-.user-avatar-wrapper svg,
-.header-avatar svg,
-[class*="avatar"] svg,
-[class*="user-icon"] svg,
-.ea-user-menu svg,
-.user-menu svg {
-  width: 32px !important;
-  height: 32px !important;
-  max-width: 32px !important;
+.adm-kpi__icon svg,
+.fin-card__icon svg {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+  flex-shrink: 0 !important;
   display: block !important;
-  flex-shrink: 0 !important;
-}
-
-/* Ícones na sidebar e topbar (qualquer SVG sem classe específica) */
-.main-header svg:not([style*="width"]) {
-  width: 20px !important;
-  height: 20px !important;
-  max-width: 20px !important;
-}
-.sidebar svg:not([style*="width"]) {
-  width: 16px !important;
-  height: 16px !important;
-  max-width: 16px !important;
-}
-
-/* Garante que SVGs com style inline (nossos ícones no Twig) não sejam sobrescritos */
-svg[style*="width:16px"] {
-  width: 16px !important;
-  height: 16px !important;
-  max-width: 16px !important;
-  flex-shrink: 0 !important;
 }
 
 
@@ -371,18 +335,6 @@ body,
 .adm-kpi__icon--gold  { background: var(--ea-gold-hi);    color: var(--ea-gold); }
 .adm-kpi__icon--error { background: var(--ea-error-hi);   color: var(--ea-error); }
 
-/* SVG dentro do ícone KPI: travado em 16x16 de todas as formas */
-.adm-kpi__icon > svg {
-  width: 16px !important;
-  height: 16px !important;
-  min-width: 16px !important;
-  min-height: 16px !important;
-  max-width: 16px !important;
-  max-height: 16px !important;
-  display: block !important;
-  flex-shrink: 0 !important;
-}
-
 .adm-kpi__label {
   font-size: var(--label-size);
   font-weight: var(--label-weight);
@@ -471,18 +423,6 @@ body,
 .fin-card__icon--green { background: var(--ea-success-hi); color: var(--ea-success); }
 .fin-card__icon--red   { background: var(--ea-error-hi);   color: var(--ea-error); }
 .fin-card__icon--gold  { background: var(--ea-gold-hi);    color: var(--ea-gold); }
-
-/* SVG dentro do ícone fin-card: travado em 16x16 de todas as formas */
-.fin-card__icon > svg {
-  width: 16px !important;
-  height: 16px !important;
-  min-width: 16px !important;
-  min-height: 16px !important;
-  max-width: 16px !important;
-  max-height: 16px !important;
-  display: block !important;
-  flex-shrink: 0 !important;
-}
 
 .fin-card__label {
   font-size: var(--label-size);
