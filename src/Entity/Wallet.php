@@ -5,52 +5,51 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\WalletRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: WalletRepository::class)]
 #[ORM\Table(name: 'wallets')]
+#[ORM\HasLifecycleCallbacks]
 class Wallet
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column(type: Types::INTEGER)]
-    private int $id;
+    #[ORM\Column]
+    private ?int $id = null;
 
-    #[ORM\OneToOne(targetEntity: User::class, inversedBy: 'wallet')]
+    #[ORM\OneToOne(inversedBy: 'wallet')]
     #[ORM\JoinColumn(nullable: false)]
     private User $user;
 
-    // Saldo em centavos
-    #[ORM\Column(type: Types::INTEGER, options: ['default' => 0])]
+    #[ORM\Column(type: 'bigint', options: ['default' => 0])]
     private int $balanceCents = 0;
 
-    #[ORM\OneToMany(targetEntity: WalletTransaction::class, mappedBy: 'wallet')]
-    private Collection $transactions;
+    #[ORM\Column]
+    private \DateTimeImmutable $createdAt;
 
-    public function __construct()
-    {
-        $this->transactions = new ArrayCollection();
-    }
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $updatedAt = null;
 
-    public function credit(int $cents): void
-    {
-        $this->balanceCents += $cents;
-    }
+    #[ORM\PrePersist]
+    public function onPrePersist(): void { $this->createdAt = new \DateTimeImmutable(); }
 
-    public function debit(int $cents): void
+    #[ORM\PreUpdate]
+    public function onPreUpdate(): void { $this->updatedAt = new \DateTimeImmutable(); }
+
+    public function getId(): ?int { return $this->id; }
+    public function getUser(): User { return $this->user; }
+    public function setUser(User $user): static { $this->user = $user; return $this; }
+    public function getBalanceCents(): int { return $this->balanceCents; }
+    public function setBalanceCents(int $cents): static { $this->balanceCents = $cents; return $this; }
+    public function credit(int $cents): static { $this->balanceCents += $cents; return $this; }
+    public function debit(int $cents): static
     {
-        if ($this->balanceCents < $cents) {
+        if ($cents > $this->balanceCents) {
             throw new \DomainException('Saldo insuficiente.');
         }
         $this->balanceCents -= $cents;
+        return $this;
     }
-
-    public function getId(): int { return $this->id; }
-    public function getUser(): User { return $this->user; }
-    public function setUser(User $u): self { $this->user = $u; return $this; }
-    public function getBalanceCents(): int { return $this->balanceCents; }
-    public function getTransactions(): Collection { return $this->transactions; }
+    public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
+    public function getUpdatedAt(): ?\DateTimeImmutable { return $this->updatedAt; }
 }
