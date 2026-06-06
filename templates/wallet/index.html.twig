@@ -3,6 +3,10 @@
 {% block title %}Carteira — PulseSMM{% endblock %}
 {% block page_title %}Carteira{% endblock %}
 
+{% block stylesheets %}
+  <link rel="stylesheet" href="{{ asset('css/wallet.css') }}">
+{% endblock %}
+
 {% block content %}
 
 {# ── HERO SALDO ── #}
@@ -25,7 +29,7 @@
   </div>
 </div>
 
-{# ── STATS ── #}
+{# ── STATS KPIs ── #}
 {% set total_depositado = 0 %}
 {% for tx in transactions %}
   {% if tx.status == 'approved' %}{% set total_depositado = total_depositado + tx.amountCents %}{% endif %}
