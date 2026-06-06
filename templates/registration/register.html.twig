@@ -1,0 +1,68 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Criar conta — PulseSMM{% endblock %}
+
+{% block body %}
+<div class="auth-page">
+  <div class="auth-card" data-reveal>
+
+    <div class="auth-card__brand">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-label="PulseSMM" xmlns="http://www.w3.org/2000/svg">
+        <rect width="36" height="36" rx="10" fill="var(--color-primary)"/>
+        <path d="M8 24 L14 12 L18 20 L22 16 L28 24" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <circle cx="28" cy="14" r="3" fill="white" opacity=".8"/>
+      </svg>
+      <span>PulseSMM</span>
+    </div>
+
+    <h1 class="auth-card__title">Criar sua conta</h1>
+    <p class="auth-card__sub">Preencha os dados abaixo para começar</p>
+
+    {% for msg in app.flashes('success') %}
+      <div class="alert alert--success">{{ msg }}</div>
+    {% endfor %}
+    {% for msg in app.flashes('error') %}
+      <div class="alert alert--error">{{ msg }}</div>
+    {% endfor %}
+
+    {{ form_start(registrationForm, {attr: {class: 'quick-form', novalidate: 'novalidate'}}) }}
+
+      <label class="field">
+        {{ form_label(registrationForm.name) }}
+        {{ form_widget(registrationForm.name, {attr: {class: 'control', placeholder: 'Seu nome completo'}}) }}
+        {{ form_errors(registrationForm.name) }}
+      </label>
+
+      <label class="field">
+        {{ form_label(registrationForm.email) }}
+        {{ form_widget(registrationForm.email, {attr: {class: 'control', placeholder: 'seu@email.com'}}) }}
+        {{ form_errors(registrationForm.email) }}
+      </label>
+
+      <label class="field">
+        {{ form_label(registrationForm.plainPassword.first) }}
+        {{ form_widget(registrationForm.plainPassword.first, {attr: {class: 'control', placeholder: 'Mínimo 8 caracteres'}}) }}
+        {{ form_errors(registrationForm.plainPassword.first) }}
+      </label>
+
+      <label class="field">
+        {{ form_label(registrationForm.plainPassword.second) }}
+        {{ form_widget(registrationForm.plainPassword.second, {attr: {class: 'control', placeholder: 'Repita a senha'}}) }}
+        {{ form_errors(registrationForm.plainPassword.second) }}
+      </label>
+
+      <label class="field field--inline">
+        {{ form_widget(registrationForm.agreeTerms) }}
+        <span>Aceito os <a href="/termos" target="_blank">termos de uso</a> e <a href="/privacidade" target="_blank">política de privacidade</a></span>
+        {{ form_errors(registrationForm.agreeTerms) }}
+      </label>
+
+      <button type="submit" class="btn btn--primary btn--lg btn--block">Criar minha conta</button>
+    {{ form_end(registrationForm) }}
+
+    <p class="auth-card__footer">
+      Já tem conta? <a href="{{ path('app_login') }}">Entrar</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
