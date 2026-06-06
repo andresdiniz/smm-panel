@@ -1,136 +1,180 @@
-{% extends 'dashboard/layout.html.twig' %}
+{% extends 'base.html.twig' %}
 
-{% block page_title %}Dashboard{% endblock %}
+{% block title %}Dashboard — PulseSMM{% endblock %}
 
-{% block dashboard_body %}
-{# KPIs #}
-<div class="kpi-grid">
-    <div class="kpi-card">
-        <span class="kpi-card__label">Saldo disponível</span>
-        <span class="kpi-card__value">R$ {{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}</span>
-        <a href="{{ path('app_wallet_deposit') }}" class="kpi-card__action">+ Adicionar saldo</a>
-    </div>
-    <div class="kpi-card">
-        <span class="kpi-card__label">Pedidos este mês</span>
-        <span class="kpi-card__value">{{ stats.ordersThisMonth }}</span>
-        <span class="kpi-card__sub">{{ stats.ordersTotal }} no total</span>
-    </div>
-    <div class="kpi-card">
-        <span class="kpi-card__label">Gasto este mês</span>
-        <span class="kpi-card__value">R$ {{ (stats.spentThisMonth / 100)|number_format(2, ',', '.') }}</span>
-    </div>
-    <div class="kpi-card">
-        <span class="kpi-card__label">Pedidos em andamento</span>
-        <span class="kpi-card__value kpi-card__value--active">{{ stats.ordersActive }}</span>
-    </div>
-</div>
+{% block body %}
+<div class="app-shell">
+    <aside class="app-sidebar" id="sidebar" aria-label="Menu lateral">
+        <div class="app-sidebar__brand">
+            <strong>PulseSMM</strong>
+            <button class="icon-btn d-mobile" id="closeSidebar" aria-label="Fechar menu">×</button>
+        </div>
 
-{# QUICK ORDER #}
-<div class="card mt-8">
-    <div class="card__header">
-        <h2>Novo pedido rápido</h2>
-    </div>
-    <div class="card__body">
-        <form method="post" action="{{ path('app_order_new') }}" class="quick-order-form">
-            <input type="hidden" name="_token" value="{{ csrf_token('new_order') }}">
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="service_id">Serviço</label>
-                    <select id="service_id" name="service_id" class="form-control" required>
-                        <option value="">Selecione…</option>
-                        {% for category, services in servicesGrouped %}
-                        <optgroup label="{{ category }}">
-                            {% for service in services %}
-                            <option value="{{ service.id }}"
-                                    data-min="{{ service.minQuantity }}"
-                                    data-max="{{ service.maxQuantity }}"
-                                    data-price="{{ service.pricePerThousandCents }}">
-                                {{ service.name }} — R$ {{ (service.pricePerThousandCents / 100)|number_format(2, ',', '.') }}/1k
-                            </option>
-                            {% endfor %}
-                        </optgroup>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="target_url">Link alvo</label>
-                    <input type="url" id="target_url" name="target_url" class="form-control"
-                           placeholder="https://instagram.com/seuperfil" required>
-                </div>
-                <div class="form-group form-group--sm">
-                    <label for="quantity">Quantidade</label>
-                    <input type="number" id="quantity" name="quantity" class="form-control"
-                           min="100" max="100000" step="100" value="1000" required>
-                </div>
-                <div class="form-group form-group--sm">
-                    <label>Total estimado</label>
-                    <div class="price-preview" id="pricePreview">R$ —</div>
-                </div>
+        <nav class="app-menu">
+            <a href="{{ path('app_dashboard') }}" class="is-active" aria-current="page">Dashboard</a>
+            <a href="{{ path('app_catalog') }}">Catálogo</a>
+            <a href="{{ path('app_order_index') }}">Pedidos</a>
+            <a href="{{ path('app_wallet_index') }}">Carteira</a>
+            <a href="{{ path('app_profile') }}">Perfil</a>
+            <a href="{{ path('app_support') }}">Suporte</a>
+        </nav>
+
+        <div class="app-sidebar__footer">
+            <a href="{{ path('app_logout') }}" class="btn btn--ghost btn--block">Sair</a>
+        </div>
+    </aside>
+
+    <div class="app-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
+    <section class="app-main">
+        <header class="app-topbar glass">
+            <button class="icon-btn" id="openSidebar" aria-label="Abrir menu lateral">☰</button>
+            <div>
+                <small class="muted">Bom dia, {{ app.user.name }}</small>
+                <h1>Seu painel</h1>
             </div>
-            <button type="submit" class="btn btn-primary">Fazer pedido</button>
-        </form>
-    </div>
-</div>
+            <a href="{{ path('app_wallet_deposit') }}" class="btn btn--primary btn--sm">+ Saldo</a>
+        </header>
 
-{# RECENT ORDERS #}
-<div class="card mt-6">
-    <div class="card__header">
-        <h2>Pedidos recentes</h2>
-        <a href="{{ path('app_order_index') }}" class="btn btn-sm btn-ghost">Ver todos</a>
-    </div>
-    <div class="card__body p-0">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Serviço</th>
-                    <th>Qtd</th>
-                    <th>Status</th>
-                    <th>Progresso</th>
-                    <th>Data</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for order in recentOrders %}
-            <tr>
-                <td><a href="{{ path('app_order_show', {id: order.id}) }}">{{ order.id }}</a></td>
-                <td>{{ order.service.name }}</td>
-                <td>{{ order.quantity|number_format(0, ',', '.') }}</td>
-                <td><span class="badge badge--{{ order.status.cssClass() }}">{{ order.status.label() }}</span></td>
-                <td>
-                    <div class="progress">
-                        <div class="progress__bar" style="width:{{ order.progressPercent }}%"></div>
+        <div class="app-content">
+
+            <div class="kpi-grid">
+                <article class="kpi-card kpi-card--gradient" data-reveal>
+                    <span>Saldo disponível</span>
+                    <strong>R$ {{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}</strong>
+                    <small>Pronto para novos pedidos</small>
+                </article>
+                <article class="kpi-card" data-reveal>
+                    <span>Pedidos hoje</span>
+                    <strong>{{ stats.ordersToday }}</strong>
+                    <small>{{ stats.ordersActive }} em andamento</small>
+                </article>
+                <article class="kpi-card" data-reveal>
+                    <span>Gasto no mês</span>
+                    <strong>R$ {{ (stats.spentThisMonth / 100)|number_format(2, ',', '.') }}</strong>
+                    <small>Incluindo taxas</small>
+                </article>
+            </div>
+
+            <section class="panel-card" data-reveal>
+                <div class="panel-card__head">
+                    <h2>Pedido rápido</h2>
+                    <span class="pill pill--soft">Atualização instantânea</span>
+                </div>
+
+                <form method="post" action="{{ path('app_order_new') }}" class="quick-form">
+                    <input type="hidden" name="_token" value="{{ csrf_token('new_order') }}">
+
+                    <label class="field">
+                        <span>Serviço</span>
+                        <select name="service_id" class="control" required>
+                            <option value="">Selecione um serviço</option>
+                            {% for category, services in servicesGrouped %}
+                                <optgroup label="{{ category }}">
+                                    {% for service in services %}
+                                        <option value="{{ service.id }}"
+                                                data-price="{{ service.pricePerUnit }}"
+                                                data-min="{{ service.minQuantity }}"
+                                                data-max="{{ service.maxQuantity }}">
+                                            {{ service.name }}
+                                        </option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select>
+                    </label>
+
+                    <label class="field">
+                        <span>Link alvo</span>
+                        <input type="url" name="target_url" class="control"
+                               placeholder="https://instagram.com/perfil" required autocomplete="off">
+                    </label>
+
+                    <div class="field-row">
+                        <label class="field">
+                            <span>Quantidade</span>
+                            <input type="number" name="quantity" id="qty" class="control"
+                                   min="100" step="100" value="1000" required>
+                        </label>
+
+                        <div class="field price-box">
+                            <span>Total estimado</span>
+                            <strong id="pricePreview">R$ 0,00</strong>
+                        </div>
                     </div>
-                    <small>{{ order.deliveredCount }}/{{ order.quantity }}</small>
-                </td>
-                <td>{{ order.createdAt|date('d/m/Y H:i') }}</td>
-            </tr>
-            {% else %}
-            <tr><td colspan="6" class="text-center text-muted">Nenhum pedido ainda. <a href="{{ path('app_catalog') }}">Faça seu primeiro!</a></td></tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% endblock %}
 
-{% block javascripts %}
-{{ parent() }}
+                    <button type="submit" class="btn btn--primary btn--lg btn--block">Confirmar pedido</button>
+                </form>
+            </section>
+
+            <section class="panel-card" data-reveal>
+                <div class="panel-card__head">
+                    <h2>Pedidos recentes</h2>
+                    <a href="{{ path('app_order_index') }}" class="link-more">Ver todos →</a>
+                </div>
+
+                <div class="orders-list">
+                    {% for order in recentOrders %}
+                        <article class="order-item">
+                            <div class="order-item__top">
+                                <div>
+                                    <strong>#{{ order.id }}</strong>
+                                    <p>{{ order.service.name }}</p>
+                                </div>
+                                <span class="badge badge--{{ order.status.cssClass() }}">{{ order.status.label() }}</span>
+                            </div>
+                            <div class="order-item__meta">
+                                <span>{{ order.quantity|number_format(0, ',', '.') }} unidades</span>
+                                <span>{{ order.createdAt|date('d/m/Y H:i') }}</span>
+                            </div>
+                            <div class="progress" role="progressbar"
+                                 aria-valuenow="{{ order.progressPercent }}"
+                                 aria-valuemin="0" aria-valuemax="100">
+                                <div class="progress__bar" style="width:{{ order.progressPercent }}%"></div>
+                            </div>
+                        </article>
+                    {% else %}
+                        <div class="empty-box">Nenhum pedido ainda. Que tal fazer o primeiro?</div>
+                    {% endfor %}
+                </div>
+            </section>
+
+        </div>
+    </section>
+</div>
+
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const sel = document.getElementById('service_id');
-    const qty = document.getElementById('quantity');
+(() => {
+    const open  = document.getElementById('openSidebar');
+    const close = document.getElementById('closeSidebar');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+
+    const show = () => { sidebar.classList.add('is-open'); overlay.classList.add('is-open'); };
+    const hide = () => { sidebar.classList.remove('is-open'); overlay.classList.remove('is-open'); };
+
+    open?.addEventListener('click', show);
+    close?.addEventListener('click', hide);
+    overlay?.addEventListener('click', hide);
+
+    const sel = document.querySelector('select[name="service_id"]');
+    const qty = document.getElementById('qty');
     const preview = document.getElementById('pricePreview');
+
     function updatePrice() {
-        const opt = sel.selectedOptions[0];
-        if (!opt || !opt.dataset.price) { preview.textContent = 'R$ —'; return; }
-        const price = (parseInt(opt.dataset.price) * parseInt(qty.value || 0)) / 100000;
-        preview.textContent = 'R$ ' + price.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        qty.min = opt.dataset.min;
-        qty.max = opt.dataset.max;
+        const opt = sel?.options[sel.selectedIndex];
+        const price = parseFloat(opt?.dataset.price ?? 0);
+        const q = parseInt(qty?.value ?? 0, 10);
+        if (price && q) {
+            const total = (price * q / 1000).toFixed(2).replace('.', ',');
+            preview.textContent = 'R$ ' + total.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        } else {
+            preview.textContent = 'R$ 0,00';
+        }
     }
-    sel.addEventListener('change', updatePrice);
-    qty.addEventListener('input', updatePrice);
-});
+
+    sel?.addEventListener('change', updatePrice);
+    qty?.addEventListener('input', updatePrice);
+})();
 </script>
 {% endblock %}

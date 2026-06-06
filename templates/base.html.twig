@@ -3,96 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}SMM Panel{% endblock %}</title>
-    <meta name="description" content="{% block description %}Painel SMM com os melhores serviços de redes sociais{% endblock %}">
+    <title>{% block title %}PulseSMM{% endblock %}</title>
+    <meta name="description" content="{% block description %}Painel SMM com UX moderna, mobile-first e pagamentos rápidos.{% endblock %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     {% block stylesheets %}{% endblock %}
 </head>
-<body>
+<body class="site-shell">
+<a href="#content" class="skip-link">Pular para conteúdo</a>
 
-{% block navbar %}
-<nav class="navbar">
-    <div class="container navbar__inner">
-        <a href="{{ path('app_home') }}" class="navbar__logo">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-label="SMM Panel">
-                <rect width="32" height="32" rx="8" fill="#4f46e5"/>
-                <path d="M8 22 L14 10 L20 18 L23 14 L28 22" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            </svg>
-            <span>SMM Panel</span>
+<header class="topbar glass">
+    <div class="container topbar__inner">
+        <a href="{{ path('app_home') }}" class="brand">
+            <span class="brand__logo">
+                <svg width="34" height="34" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+                    <rect width="40" height="40" rx="12" fill="url(#g1)"/>
+                    <path d="M9 26L16 13L23 21L29 14L32 26" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="g1" x1="0" y1="0" x2="40" y2="40">
+                            <stop stop-color="#6D5DF6"/>
+                            <stop offset="1" stop-color="#00C2A8"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </span>
+            <span class="brand__text">PulseSMM</span>
         </a>
-        <div class="navbar__links">
+
+        <nav class="topbar__nav" id="mainNav" role="navigation" aria-label="Menu principal">
             <a href="{{ path('app_catalog') }}">Serviços</a>
             <a href="{{ path('app_pricing') }}">Preços</a>
             <a href="{{ path('app_faq') }}">FAQ</a>
-        </div>
-        <div class="navbar__actions">
+            <a href="{{ path('app_contact') }}">Contato</a>
+        </nav>
+
+        <div class="topbar__actions">
+            <button type="button" class="icon-btn" data-theme-toggle aria-label="Alternar tema">
+                <span class="theme-dot"></span>
+            </button>
+
             {% if app.user %}
-                <a href="{{ path('app_dashboard') }}" class="btn btn-sm btn-ghost">Dashboard</a>
+                <a href="{{ path('app_dashboard') }}" class="btn btn--ghost">Dashboard</a>
             {% else %}
-                <a href="{{ path('app_login') }}" class="btn btn-sm btn-ghost">Entrar</a>
-                <a href="{{ path('app_register') }}" class="btn btn-sm btn-primary">Criar conta</a>
+                <a href="{{ path('app_login') }}" class="btn btn--ghost">Entrar</a>
+                <a href="{{ path('app_register') }}" class="btn btn--primary">Criar conta</a>
             {% endif %}
-            <button data-theme-toggle aria-label="Alternar tema" class="btn btn-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+
+            <button type="button" class="menu-btn" id="menuToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="mainNav">
+                <span></span><span></span><span></span>
             </button>
         </div>
-        <button class="navbar__toggle" id="menuToggle" aria-label="Menu">
-            <span></span><span></span><span></span>
-        </button>
     </div>
-</nav>
-{% endblock %}
+</header>
 
 {% for flash_type, messages in app.flashes(['success','error','warning','info']) %}
     {% for message in messages %}
-        <div class="flash flash--{{ flash_type }}">
-            {{ message }}
-            <button onclick="this.parentElement.remove()" class="flash__close">&times;</button>
+        <div class="flash flash--{{ flash_type }}" data-flash role="alert">
+            <span>{{ message }}</span>
+            <button type="button" aria-label="Fechar" onclick="this.parentElement.remove()">×</button>
         </div>
     {% endfor %}
 {% endfor %}
 
-<main class="main">{% block body %}{% endblock %}</main>
+<main id="content">
+    {% block body %}{% endblock %}
+</main>
 
-{% block footer %}
-<footer class="footer">
-    <div class="container footer__inner">
-        <div class="footer__brand">
-            <strong>SMM Panel</strong>
-            <p>Os melhores serviços de redes sociais com entrega rápida e suporte 24h.</p>
+<footer class="site-footer">
+    <div class="container footer-grid">
+        <div>
+            <h3>PulseSMM</h3>
+            <p>Painel SMM com foco em performance, automação e experiência fluida em qualquer dispositivo.</p>
         </div>
-        <div class="footer__col">
-            <h4>Serviços</h4>
+        <div>
+            <h4>Plataforma</h4>
             <a href="{{ path('app_catalog') }}">Catálogo</a>
             <a href="{{ path('app_pricing') }}">Preços</a>
+            <a href="{{ path('app_dashboard') }}">Área do cliente</a>
         </div>
-        <div class="footer__col">
-            <h4>Empresa</h4>
-            <a href="{{ path('app_terms') }}">Termos de uso</a>
+        <div>
+            <h4>Legal</h4>
+            <a href="{{ path('app_terms') }}">Termos</a>
             <a href="{{ path('app_privacy') }}">Privacidade</a>
-            <a href="{{ path('app_contact') }}">Contato</a>
         </div>
-        <div class="footer__col">
-            <h4>Conta</h4>
-            {% if app.user %}
-                <a href="{{ path('app_dashboard') }}">Dashboard</a>
-                <a href="{{ path('app_logout') }}">Sair</a>
-            {% else %}
-                <a href="{{ path('app_login') }}">Entrar</a>
-                <a href="{{ path('app_register') }}">Criar conta</a>
-            {% endif %}
-        </div>
-    </div>
-    <div class="footer__bottom">
-        <p>&copy; {{ 'now'|date('Y') }} SMM Panel. Todos os direitos reservados.</p>
     </div>
 </footer>
-{% endblock %}
 
-<script src="{{ asset('js/app.js') }}" defer></script>
+<script>
+(() => {
+    const root = document.documentElement;
+    const toggle = document.querySelector('[data-theme-toggle]');
+    let theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    root.setAttribute('data-theme', theme);
+
+    toggle?.addEventListener('click', () => {
+        theme = theme === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', theme);
+        toggle.setAttribute('aria-label', theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro');
+    });
+
+    const menuBtn = document.getElementById('menuToggle');
+    const nav = document.getElementById('mainNav');
+    menuBtn?.addEventListener('click', () => {
+        const open = nav.classList.toggle('is-open');
+        menuBtn.setAttribute('aria-expanded', open);
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry, i) => {
+            if (entry.isIntersecting) {
+                setTimeout(() => entry.target.classList.add('in-view'), i * 80);
+            }
+        });
+    }, { threshold: 0.10 });
+    document.querySelectorAll('[data-reveal]').forEach(el => observer.observe(el));
+
+    document.querySelectorAll('[data-counter]').forEach(el => {
+        const observer2 = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                const target = parseInt(el.dataset.counter, 10);
+                let current = 0;
+                const step = Math.max(1, Math.ceil(target / 72));
+                const tick = () => {
+                    current = Math.min(current + step, target);
+                    el.textContent = current.toLocaleString('pt-BR');
+                    if (current < target) requestAnimationFrame(tick);
+                };
+                tick();
+                observer2.disconnect();
+            }
+        }, { threshold: 0.5 });
+        observer2.observe(el);
+    });
+
+    setTimeout(() => {
+        document.querySelectorAll('[data-flash]').forEach(el => el.classList.add('is-visible'));
+    }, 120);
+})();
+</script>
+
 {% block javascripts %}{% endblock %}
 </body>
 </html>
