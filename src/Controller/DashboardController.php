@@ -4,46 +4,57 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Repository\OrderRepository;
-use App\Repository\ServiceRepository;
-use App\Repository\WalletRepository;
+use App\Entity\Order;
+use App\Entity\Wallet;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[IsGranted('ROLE_USER')]
-#[Route('/dashboard', name: 'app_dashboard')]
 class DashboardController extends AbstractController
 {
-    public function __construct(
-        private readonly OrderRepository   $orderRepository,
-        private readonly ServiceRepository $serviceRepository,
-        private readonly WalletRepository  $walletRepository,
-    ) {}
-
-    public function __invoke(): Response
+    #[Route('/', name: 'app_dashboard')]
+    public function index(EntityManagerInterface $em): Response
     {
         $user   = $this->getUser();
-        $wallet = $this->walletRepository->findOneByUser($user);
+        $since  = new \DateTimeImmutable('-30 days');
 
-        $today  = new \DateTimeImmutable('today');
-        $month  = new \DateTimeImmutable('first day of this month');
+        $wallet = $em->getRepository(Wallet::class)->findOneBy(['user' => $user])
+            ?? (new Wallet())->setBalanceCents(0);
 
-        $stats = [
-            'ordersToday'    => $this->orderRepository->countByUserSince($user, $today),
-            'ordersActive'   => $this->orderRepository->countActiveByUser($user),
-            'spentThisMonth' => $this->orderRepository->sumSpentByUserSince($user, $month),
-        ];
+        // Pedidos dos últimos 30 dias
+        $orders = $em->createQueryBuilder()
+            ->select('o')
+            ->from(Order::class, 'o')
+            ->join('o.service', 's')
+            ->where('o.user = :user')
+            ->andWhere('o.createdAt >= :since')
+            ->setParameter('user', $user)
+            ->setParameter('since', $since)
+            ->orderBy('o.createdAt', 'DESC')
+            ->setMaxResults(20)
+            ->getQuery()
+            ->getResult();
 
-        $recentOrders    = $this->orderRepository->findRecentByUser($user, 10);
-        $servicesGrouped = $this->serviceRepository->findAllGroupedByCategory();
+        $ordersCount    = count($orders);
+        $completedCount = 0;
+        $totalSpent     = 0;
+
+        foreach ($orders as $order) {
+            if ($order->getStatus() === Order::STATUS_COMPLETED) {
+                $completedCount++;
+            }
+            $totalSpent += $order->getAmountCents();
+        }
 
         return $this->render('dashboard/index.html.twig', [
             'wallet'          => $wallet,
-            'stats'           => $stats,
-            'recentOrders'    => $recentOrders,
-            'servicesGrouped' => $servicesGrouped,
+            'recentOrders'    => $orders,
+            'ordersCount'     => $ordersCount,
+            'completedCount'  => $completedCount,
+            'totalSpentCents' => $totalSpent,
         ]);
     }
 }

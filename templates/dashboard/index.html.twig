@@ -1,180 +1,187 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Dashboard — PulseSMM{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
 
 {% block body %}
-<div class="app-shell">
-    <aside class="app-sidebar" id="sidebar" aria-label="Menu lateral">
-        <div class="app-sidebar__brand">
-            <strong>PulseSMM</strong>
-            <button class="icon-btn d-mobile" id="closeSidebar" aria-label="Fechar menu">×</button>
-        </div>
+<div class="container">
 
-        <nav class="app-menu">
-            <a href="{{ path('app_dashboard') }}" class="is-active" aria-current="page">Dashboard</a>
-            <a href="{{ path('app_catalog') }}">Catálogo</a>
-            <a href="{{ path('app_order_index') }}">Pedidos</a>
-            <a href="{{ path('app_wallet_index') }}">Carteira</a>
-            <a href="{{ path('app_profile') }}">Perfil</a>
-            <a href="{{ path('app_support') }}">Suporte</a>
-        </nav>
+  {# ── KPIs ────────────────────────────────────────────── #}
+  <div class="kpi-row" data-reveal>
+    <div class="kpi-card">
+      <div class="kpi-card__icon kpi-card__icon--primary">
+        <i data-lucide="wallet" width="20" height="20"></i>
+      </div>
+      <div class="kpi-card__body">
+        <span>Saldo disponível</span>
+        <strong>R$ {{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}</strong>
+      </div>
+      <a href="{{ path('app_wallet') }}" class="kpi-card__action">Recarregar →</a>
+    </div>
 
-        <div class="app-sidebar__footer">
-            <a href="{{ path('app_logout') }}" class="btn btn--ghost btn--block">Sair</a>
-        </div>
-    </aside>
+    <div class="kpi-card">
+      <div class="kpi-card__icon kpi-card__icon--blue">
+        <i data-lucide="shopping-cart" width="20" height="20"></i>
+      </div>
+      <div class="kpi-card__body">
+        <span>Pedidos (30d)</span>
+        <strong>{{ ordersCount }}</strong>
+      </div>
+      <a href="{{ path('app_order_new') }}" class="kpi-card__action">Novo pedido →</a>
+    </div>
 
-    <div class="app-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+    <div class="kpi-card">
+      <div class="kpi-card__icon kpi-card__icon--success">
+        <i data-lucide="check-circle" width="20" height="20"></i>
+      </div>
+      <div class="kpi-card__body">
+        <span>Pedidos concluídos</span>
+        <strong>{{ completedCount }}</strong>
+      </div>
+    </div>
 
-    <section class="app-main">
-        <header class="app-topbar glass">
-            <button class="icon-btn" id="openSidebar" aria-label="Abrir menu lateral">☰</button>
-            <div>
-                <small class="muted">Bom dia, {{ app.user.name }}</small>
-                <h1>Seu painel</h1>
-            </div>
-            <a href="{{ path('app_wallet_deposit') }}" class="btn btn--primary btn--sm">+ Saldo</a>
-        </header>
+    <div class="kpi-card">
+      <div class="kpi-card__icon kpi-card__icon--gold">
+        <i data-lucide="trending-up" width="20" height="20"></i>
+      </div>
+      <div class="kpi-card__body">
+        <span>Total gasto (30d)</span>
+        <strong>R$ {{ (totalSpentCents / 100)|number_format(2, ',', '.') }}</strong>
+      </div>
+    </div>
+  </div>
 
-        <div class="app-content">
+  {# ── QUICK ACTIONS ──────────────────────────────────────── #}
+  <div class="quick-actions" data-reveal style="transition-delay:.05s">
+    <a href="{{ path('app_order_new') }}" class="quick-action">
+      <i data-lucide="plus-circle" width="22" height="22"></i>
+      <span>Novo pedido</span>
+    </a>
+    <a href="{{ path('app_wallet') }}" class="quick-action">
+      <i data-lucide="banknote" width="22" height="22"></i>
+      <span>Recarregar</span>
+    </a>
+    <a href="#" class="quick-action">
+      <i data-lucide="receipt-text" width="22" height="22"></i>
+      <span>Histórico</span>
+    </a>
+    <a href="#" class="quick-action">
+      <i data-lucide="headset" width="22" height="22"></i>
+      <span>Suporte</span>
+    </a>
+  </div>
 
-            <div class="kpi-grid">
-                <article class="kpi-card kpi-card--gradient" data-reveal>
-                    <span>Saldo disponível</span>
-                    <strong>R$ {{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}</strong>
-                    <small>Pronto para novos pedidos</small>
-                </article>
-                <article class="kpi-card" data-reveal>
-                    <span>Pedidos hoje</span>
-                    <strong>{{ stats.ordersToday }}</strong>
-                    <small>{{ stats.ordersActive }} em andamento</small>
-                </article>
-                <article class="kpi-card" data-reveal>
-                    <span>Gasto no mês</span>
-                    <strong>R$ {{ (stats.spentThisMonth / 100)|number_format(2, ',', '.') }}</strong>
-                    <small>Incluindo taxas</small>
-                </article>
-            </div>
+  {# ── PEDIDOS RECENTES ─────────────────────────────────────── #}
+  <div class="panel-card" data-reveal style="transition-delay:.1s;margin-top:var(--sp6)">
+    <div class="panel-card__head">
+      <h2>Pedidos recentes</h2>
+      <a href="{{ path('app_order_new') }}" class="btn btn--primary" style="font-size:var(--text-xs);padding:6px 16px">+ Novo</a>
+    </div>
 
-            <section class="panel-card" data-reveal>
-                <div class="panel-card__head">
-                    <h2>Pedido rápido</h2>
-                    <span class="pill pill--soft">Atualização instantânea</span>
-                </div>
+    {% if recentOrders|length > 0 %}
+    <div style="overflow-x:auto">
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Serviço</th>
+            <th>URL</th>
+            <th>Qtd</th>
+            <th>Valor</th>
+            <th>Status</th>
+            <th>Data</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in recentOrders %}
+          <tr>
+            <td style="color:var(--muted);font-size:var(--text-xs)">{{ order.id }}</td>
+            <td>
+              <div style="font-weight:600;font-size:var(--text-sm)">{{ order.service.name|length > 35 ? order.service.name|slice(0,35) ~ '…' : order.service.name }}</div>
+              <div style="font-size:var(--text-xs);color:var(--muted)">{{ order.service.category }}</div>
+            </td>
+            <td style="font-size:var(--text-xs);color:var(--muted);max-width:160px">
+              <a href="{{ order.targetUrl }}" target="_blank" rel="noopener"
+                 style="color:var(--primary);text-decoration:none;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                {{ order.targetUrl }}
+              </a>
+            </td>
+            <td style="font-size:var(--text-sm);font-variant-numeric:tabular-nums">{{ order.quantity|number_format(0,',','.') }}</td>
+            <td style="font-size:var(--text-sm);font-variant-numeric:tabular-nums;white-space:nowrap">R$ {{ (order.amountCents/100)|number_format(2,',','.') }}</td>
+            <td>
+              <span class="badge badge--{{ order.status == 'completed' ? 'completed' : (order.status == 'cancelled' ? 'cancelled' : (order.status == 'pending' ? 'pending' : 'processing')) }}">
+                {{ order.status|replace({'_': ' '})|capitalize }}
+              </span>
+            </td>
+            <td style="font-size:var(--text-xs);color:var(--muted);white-space:nowrap">{{ order.createdAt|date('d/m/Y') }}</td>
+            <td>
+              <a href="{{ path('app_order_show', {id: order.id}) }}" class="btn btn--ghost" style="padding:4px 10px;font-size:var(--text-xs)">Ver</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i data-lucide="inbox" width="40" height="40"></i>
+      <h3>Nenhum pedido ainda</h3>
+      <p>Crie seu primeiro pedido e acompanhe o resultado aqui.</p>
+      <a href="{{ path('app_order_new') }}" class="btn btn--primary">Criar pedido</a>
+    </div>
+    {% endif %}
+  </div>
 
-                <form method="post" action="{{ path('app_order_new') }}" class="quick-form">
-                    <input type="hidden" name="_token" value="{{ csrf_token('new_order') }}">
-
-                    <label class="field">
-                        <span>Serviço</span>
-                        <select name="service_id" class="control" required>
-                            <option value="">Selecione um serviço</option>
-                            {% for category, services in servicesGrouped %}
-                                <optgroup label="{{ category }}">
-                                    {% for service in services %}
-                                        <option value="{{ service.id }}"
-                                                data-price="{{ service.pricePerUnit }}"
-                                                data-min="{{ service.minQuantity }}"
-                                                data-max="{{ service.maxQuantity }}">
-                                            {{ service.name }}
-                                        </option>
-                                    {% endfor %}
-                                </optgroup>
-                            {% endfor %}
-                        </select>
-                    </label>
-
-                    <label class="field">
-                        <span>Link alvo</span>
-                        <input type="url" name="target_url" class="control"
-                               placeholder="https://instagram.com/perfil" required autocomplete="off">
-                    </label>
-
-                    <div class="field-row">
-                        <label class="field">
-                            <span>Quantidade</span>
-                            <input type="number" name="quantity" id="qty" class="control"
-                                   min="100" step="100" value="1000" required>
-                        </label>
-
-                        <div class="field price-box">
-                            <span>Total estimado</span>
-                            <strong id="pricePreview">R$ 0,00</strong>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn--primary btn--lg btn--block">Confirmar pedido</button>
-                </form>
-            </section>
-
-            <section class="panel-card" data-reveal>
-                <div class="panel-card__head">
-                    <h2>Pedidos recentes</h2>
-                    <a href="{{ path('app_order_index') }}" class="link-more">Ver todos →</a>
-                </div>
-
-                <div class="orders-list">
-                    {% for order in recentOrders %}
-                        <article class="order-item">
-                            <div class="order-item__top">
-                                <div>
-                                    <strong>#{{ order.id }}</strong>
-                                    <p>{{ order.service.name }}</p>
-                                </div>
-                                <span class="badge badge--{{ order.status.cssClass() }}">{{ order.status.label() }}</span>
-                            </div>
-                            <div class="order-item__meta">
-                                <span>{{ order.quantity|number_format(0, ',', '.') }} unidades</span>
-                                <span>{{ order.createdAt|date('d/m/Y H:i') }}</span>
-                            </div>
-                            <div class="progress" role="progressbar"
-                                 aria-valuenow="{{ order.progressPercent }}"
-                                 aria-valuemin="0" aria-valuemax="100">
-                                <div class="progress__bar" style="width:{{ order.progressPercent }}%"></div>
-                            </div>
-                        </article>
-                    {% else %}
-                        <div class="empty-box">Nenhum pedido ainda. Que tal fazer o primeiro?</div>
-                    {% endfor %}
-                </div>
-            </section>
-
-        </div>
-    </section>
 </div>
 
-<script>
-(() => {
-    const open  = document.getElementById('openSidebar');
-    const close = document.getElementById('closeSidebar');
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
+<style>
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:var(--sp4);margin-bottom:var(--sp6)}
+.kpi-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-xl);padding:var(--sp4) var(--sp5);
+  box-shadow:var(--sh-sm);display:flex;flex-direction:column;gap:var(--sp2);
+  transition:box-shadow var(--transition),transform var(--transition);
+}
+.kpi-card:hover{box-shadow:var(--sh-md);transform:translateY(-2px)}
+.kpi-card__icon{
+  width:40px;height:40px;border-radius:var(--r-lg);
+  display:flex;align-items:center;justify-content:center;
+}
+.kpi-card__icon--primary{background:var(--primary-hi);color:var(--primary-h)}
+.kpi-card__icon--blue{background:#c6d8e4;color:#006494}
+.kpi-card__icon--success{background:#d4dfcc;color:var(--success-h)}
+.kpi-card__icon--gold{background:#e9e0c6;color:#8a5b00}
+.kpi-card__body span{font-size:var(--text-xs);color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.kpi-card__body strong{display:block;font-size:var(--text-xl);font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi-card__action{font-size:var(--text-xs);color:var(--primary);font-weight:600;text-decoration:none;margin-top:auto}
+.kpi-card__action:hover{text-decoration:underline}
 
-    const show = () => { sidebar.classList.add('is-open'); overlay.classList.add('is-open'); };
-    const hide = () => { sidebar.classList.remove('is-open'); overlay.classList.remove('is-open'); };
+.quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp3);margin-bottom:var(--sp6)}
+.quick-action{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:var(--sp2);padding:var(--sp4);background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r-xl);
+  color:var(--text);text-decoration:none;font-size:var(--text-xs);font-weight:600;
+  transition:all var(--transition);box-shadow:var(--sh-sm);
+}
+.quick-action:hover{background:var(--primary-hi);color:var(--primary-h);border-color:var(--primary);box-shadow:var(--sh-md)}
+.quick-action i{color:var(--muted)}
+.quick-action:hover i{color:var(--primary-h)}
 
-    open?.addEventListener('click', show);
-    close?.addEventListener('click', hide);
-    overlay?.addEventListener('click', hide);
+.orders-table{width:100%;border-collapse:collapse}
+.orders-table th{text-align:left;font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:var(--sp2) var(--sp3);border-bottom:1px solid var(--border)}
+.orders-table td{padding:var(--sp3);border-bottom:1px solid oklch(from var(--text) l c h/.05);vertical-align:middle}
+.orders-table tr:last-child td{border-bottom:none}
+.orders-table tbody tr:hover{background:var(--surface-off)}
 
-    const sel = document.querySelector('select[name="service_id"]');
-    const qty = document.getElementById('qty');
-    const preview = document.getElementById('pricePreview');
+.empty-state{display:flex;flex-direction:column;align-items:center;text-align:center;padding:var(--sp12) var(--sp8);color:var(--muted);gap:var(--sp3)}
+.empty-state i{color:var(--faint)}
+.empty-state h3{color:var(--text);font-size:var(--text-lg)}
+.empty-state p{max-width:36ch;color:var(--muted)}
 
-    function updatePrice() {
-        const opt = sel?.options[sel.selectedIndex];
-        const price = parseFloat(opt?.dataset.price ?? 0);
-        const q = parseInt(qty?.value ?? 0, 10);
-        if (price && q) {
-            const total = (price * q / 1000).toFixed(2).replace('.', ',');
-            preview.textContent = 'R$ ' + total.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-        } else {
-            preview.textContent = 'R$ 0,00';
-        }
-    }
-
-    sel?.addEventListener('change', updatePrice);
-    qty?.addEventListener('input', updatePrice);
-})();
-</script>
+@media(max-width:600px){
+  .quick-actions{grid-template-columns:repeat(2,1fr)}
+}
+</style>
 {% endblock %}

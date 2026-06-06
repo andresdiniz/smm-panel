@@ -1,0 +1,115 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Entrar — PulseSMM{% endblock %}
+
+{% block body %}
+<div class="auth-page">
+  <div class="auth-card" data-reveal>
+
+    <a href="/" class="auth-card__brand" style="text-decoration:none">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-label="PulseSMM" xmlns="http://www.w3.org/2000/svg">
+        <rect width="36" height="36" rx="10" fill="var(--primary)"/>
+        <path d="M8 24 L14 12 L18 20 L22 16 L28 24" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <circle cx="28" cy="14" r="3" fill="white" opacity=".8"/>
+      </svg>
+      <span>PulseSMM</span>
+    </a>
+
+    <h1 class="auth-card__title">Bem-vindo de volta</h1>
+    <p class="auth-card__sub">Acesse sua conta para continuar</p>
+
+    {% if error %}
+      <div class="alert alert--error">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+    {% endif %}
+
+    {% for msg in app.flashes('success') %}
+      <div class="alert alert--success">{{ msg }}</div>
+    {% endfor %}
+
+    <form method="post" action="{{ path('app_login') }}" class="quick-form">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+      <label class="field">
+        <span>E-mail</span>
+        <input
+          type="email"
+          name="_username"
+          value="{{ last_username }}"
+          class="control"
+          placeholder="seu@email.com"
+          autocomplete="email"
+          autofocus
+          required
+        >
+      </label>
+
+      <label class="field">
+        <span>Senha</span>
+        <div style="position:relative">
+          <input
+            type="password"
+            name="_password"
+            id="passwordInput"
+            class="control"
+            placeholder="Sua senha"
+            autocomplete="current-password"
+            required
+            style="padding-right:3rem"
+          >
+          <button
+            type="button"
+            id="togglePwd"
+            aria-label="Mostrar senha"
+            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);background:none;border:none;cursor:pointer;padding:4px"
+          >
+            <i data-lucide="eye" width="18" height="18"></i>
+          </button>
+        </div>
+      </label>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:-8px">
+        <a href="#" style="font-size:var(--text-xs);color:var(--primary);text-decoration:none;font-weight:600">
+          Esqueci minha senha
+        </a>
+      </div>
+
+      <button type="submit" class="btn btn--primary btn--lg btn--block" style="margin-top:4px">
+        Entrar
+      </button>
+    </form>
+
+    <p class="auth-card__footer">
+      Não tem conta? <a href="{{ path('app_register') }}">Criar conta grátis</a>
+    </p>
+
+    {# Dark mode toggle na tela de auth #}
+    <div style="text-align:center;margin-top:var(--sp4)">
+      <button
+        data-theme-toggle
+        style="color:var(--muted);font-size:var(--text-xs);background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px"
+        aria-label="Alternar tema"
+      >
+        <i data-lucide="moon" width="14" height="14"></i> Modo escuro
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const btn   = document.getElementById('togglePwd');
+  const input = document.getElementById('passwordInput');
+  if (btn && input) {
+    btn.addEventListener('click', () => {
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+      btn.innerHTML = show
+        ? '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+        : '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    });
+  }
+});
+</script>
+{% endblock %}
