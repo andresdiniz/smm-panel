@@ -1,8 +1,9 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Novo pedido — PulseSMM{% endblock %}
+{% block page_title %}Novo pedido{% endblock %}
 
-{% block body %}
+{% block content %}
 <section class="wallet-page">
   <div class="container">
     <div class="panel-card" data-reveal style="max-width:760px;margin:0 auto">
@@ -43,7 +44,7 @@
         <label class="field">
           <span>Quantidade</span>
           <input type="number" name="quantity" id="qtyInput" class="control" min="1" required>
-          <small id="qtyHint" style="color:var(--muted);font-size:.85rem">Selecione um serviço para ver o intervalo permitido.</small>
+          <small id="qtyHint" style="color:var(--color-text-muted);font-size:var(--text-xs)">Selecione um serviço para ver o intervalo permitido.</small>
         </label>
 
         <div class="glass-card" id="pricePreview" style="display:none">
@@ -57,6 +58,8 @@
   </div>
 </section>
 
+{% block javascripts %}
+{{ parent() }}
 <script>
 (function(){
   const sel   = document.getElementById('serviceSelect');
@@ -69,7 +72,7 @@
     const opt  = sel.options[sel.selectedIndex];
     const min  = parseInt(opt.dataset.min || 0);
     const max  = parseInt(opt.dataset.max || 0);
-    const ppt  = parseInt(opt.dataset.price || 0); // centavos por 1000
+    const ppt  = parseInt(opt.dataset.price || 0);
     const q    = parseInt(qty.value || 0);
 
     if (!min) { box.style.display = 'none'; return; }
@@ -77,7 +80,7 @@
     qty.min = min;
     qty.max = max;
     if (!qty.value) qty.value = min;
-    hint.textContent = `Mínimo: ${min.toLocaleString('pt-BR')} | Máximo: ${max.toLocaleString('pt-BR')}`;
+    hint.textContent = 'Mínimo: ' + min.toLocaleString('pt-BR') + ' | Máximo: ' + max.toLocaleString('pt-BR');
 
     const cents = Math.ceil(ppt * q / 1000);
     price.textContent = 'R$ ' + (cents / 100).toLocaleString('pt-BR', {minimumFractionDigits: 2});
@@ -88,4 +91,5 @@
   qty.addEventListener('input', updatePrice);
 })();
 </script>
+{% endblock %}
 {% endblock %}

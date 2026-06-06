@@ -1,8 +1,9 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Pedido #{{ order.id }} — PulseSMM{% endblock %}
+{% block page_title %}Pedido #{{ order.id }}{% endblock %}
 
-{% block body %}
+{% block content %}
 <section class="wallet-page">
   <div class="container">
     <div class="panel-card" data-reveal style="max-width:680px;margin:0 auto">
@@ -60,7 +61,7 @@
         {% endif %}
       </div>
 
-      <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap">
+      <div style="margin-top:var(--space-6);display:flex;gap:var(--space-3);flex-wrap:wrap">
         <a href="{{ path('app_dashboard') }}" class="btn btn--ghost">← Voltar ao painel</a>
         <a href="{{ path('app_order_new') }}" class="btn btn--primary">Novo pedido</a>
       </div>
