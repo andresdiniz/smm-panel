@@ -1,100 +1,151 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Histórico — PulseSMM{% endblock %}
-{% block page_title %}Histórico{% endblock %}
+{% block page_title %}Histórico de transações{% endblock %}
 
 {% block content %}
-<div class="tx-page">
 
-  {# ── KPIs ── #}
-  <div class="kpi-grid" data-reveal>
-    <div class="kpi">
-      <div class="kpi__icon kpi__icon--teal"><i data-lucide="repeat" width="18" height="18"></i></div>
-      <div class="kpi__label">Total</div>
-      <div class="kpi__value">{{ transactions|length }}</div>
+{# ── KPIs ── #}
+{% set total_entradas = 0 %}
+{% set total_saidas   = 0 %}
+{% for t in transactions %}
+  {% if t.type.value == 'credit' %}
+    {% set total_entradas = total_entradas + t.amountCents %}
+  {% else %}
+    {% set total_saidas = total_saidas + t.amountCents %}
+  {% endif %}
+{% endfor %}
+
+<div class="kpi-grid" data-reveal>
+
+  <div class="kpi">
+    <div class="kpi__icon kpi__icon--teal">
+      <i data-lucide="repeat" width="18" height="18"></i>
     </div>
-    <div class="kpi">
-      <div class="kpi__icon kpi__icon--green"><i data-lucide="arrow-down-left" width="18" height="18"></i></div>
-      <div class="kpi__label">Entradas</div>
-      <div class="kpi__value">{{ transactions|filter(t => t.type.value == 'credit')|length }}</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi__icon kpi__icon--error"><i data-lucide="arrow-up-right" width="18" height="18"></i></div>
-      <div class="kpi__label">Saídas</div>
-      <div class="kpi__value">{{ transactions|filter(t => t.type.value == 'debit')|length }}</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi__icon kpi__icon--blue"><i data-lucide="wallet" width="18" height="18"></i></div>
-      <div class="kpi__label">Saldo atual</div>
-      <div class="kpi__value">
-        {% if wallet %}R$ {{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}{% else %}R$ 0,00{% endif %}
-      </div>
-    </div>
+    <div class="kpi__label">Total de registros</div>
+    <div class="kpi__value">{{ transactions|length }}</div>
   </div>
 
-  {# ── TABELA ── #}
-  <div class="wtable-wrap" data-reveal>
-    <div class="wtable-header">
-      <h2 class="wtable-title">Transações</h2>
-      <span class="wtable-count">{{ transactions|length }} registro(s)</span>
+  <div class="kpi">
+    <div class="kpi__icon kpi__icon--green">
+      <i data-lucide="arrow-down-left" width="18" height="18"></i>
     </div>
-    <div class="wtable-scroll">
-      <table class="wtable">
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>Descrição</th>
-            <th>Tipo</th>
-            <th class="text-right">Valor</th>
-            <th class="text-right">Saldo após</th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for t in transactions %}
-          <tr>
-            <td class="wt-date">
-              {{ t.createdAt|date('d/m/Y') }}
-              <small>{{ t.createdAt|date('H:i') }}</small>
-            </td>
-            <td>{{ t.description }}</td>
-            <td>
-              {% if t.type.value == 'credit' %}
-                <span class="wbadge wbadge--success">
-                  <i data-lucide="arrow-down-left" width="12" height="12"></i> Entrada
-                </span>
-              {% elseif t.type.value == 'debit' %}
-                <span class="wbadge wbadge--error">
-                  <i data-lucide="arrow-up-right" width="12" height="12"></i> Saída
-                </span>
-              {% else %}
-                <span class="wbadge wbadge--neutral">{{ t.type.value }}</span>
-              {% endif %}
-            </td>
-            <td class="text-right wt-amount {{ t.type.value == 'credit' ? 'wt-amount--credit' : 'wt-amount--debit' }}">
-              {{ t.type.value == 'credit' ? '+' : '-' }}R$ {{ (t.amountCents / 100)|number_format(2, ',', '.') }}
-            </td>
-            <td class="text-right wt-amount">
-              R$ {{ (t.balanceAfterCents / 100)|number_format(2, ',', '.') }}
-            </td>
-          </tr>
-        {% else %}
-          <tr>
-            <td colspan="5">
-              <div class="wtable-empty">
-                <i data-lucide="inbox" width="40" height="40"></i>
-                <p>Nenhuma transação encontrada.</p>
-              </div>
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
+    <div class="kpi__label">Total entradas</div>
+    <div class="kpi__value" style="color:var(--success)">
+      R$&nbsp;{{ (total_entradas / 100)|number_format(2, ',', '.') }}
+    </div>
+    <div class="kpi__delta">{{ transactions|filter(t => t.type.value == 'credit')|length }} transações</div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpi__icon kpi__icon--error">
+      <i data-lucide="arrow-up-right" width="18" height="18"></i>
+    </div>
+    <div class="kpi__label">Total saídas</div>
+    <div class="kpi__value" style="color:var(--error)">
+      R$&nbsp;{{ (total_saidas / 100)|number_format(2, ',', '.') }}
+    </div>
+    <div class="kpi__delta">{{ transactions|filter(t => t.type.value == 'debit')|length }} transações</div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpi__icon kpi__icon--blue">
+      <i data-lucide="wallet" width="18" height="18"></i>
+    </div>
+    <div class="kpi__label">Saldo atual</div>
+    <div class="kpi__value">
+      {% if wallet %}R$&nbsp;{{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}{% else %}R$&nbsp;0,00{% endif %}
     </div>
   </div>
 
 </div>
 
+{# ── TABELA ── #}
+<div class="card tx-table-card" data-reveal>
+
+  <div class="card__head">
+    <h2>Transações</h2>
+    <span class="badge badge--pending">{{ transactions|length }} registro(s)</span>
+    <a href="{{ path('app_wallet_deposit') }}" class="btn btn--primary btn--sm" style="margin-left:auto">
+      <i data-lucide="plus" width="14" height="14"></i>
+      Adicionar saldo
+    </a>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Descrição</th>
+          <th>Tipo</th>
+          <th style="text-align:right">Valor</th>
+          <th style="text-align:right">Saldo após</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for t in transactions %}
+        <tr>
+          <td class="cell-muted cell-mono" style="white-space:nowrap">
+            {{ t.createdAt|date('d/m/Y') }}
+            <br><small>{{ t.createdAt|date('H:i') }}</small>
+          </td>
+          <td>{{ t.description }}</td>
+          <td>
+            {% if t.type.value == 'credit' %}
+              <span class="badge badge--completed">
+                <i data-lucide="arrow-down-left" width="11" height="11"></i>
+                Entrada
+              </span>
+            {% elseif t.type.value == 'debit' %}
+              <span class="badge badge--cancelled">
+                <i data-lucide="arrow-up-right" width="11" height="11"></i>
+                Saída
+              </span>
+            {% else %}
+              <span class="badge badge--pending">{{ t.type.value }}</span>
+            {% endif %}
+          </td>
+          <td style="text-align:right" class="cell-mono tx-amount {{ t.type.value == 'credit' ? 'tx-amount--credit' : 'tx-amount--debit' }}">
+            {{ t.type.value == 'credit' ? '+' : '−' }}R$&nbsp;{{ (t.amountCents / 100)|number_format(2, ',', '.') }}
+          </td>
+          <td style="text-align:right" class="cell-muted cell-mono">
+            R$&nbsp;{{ (t.balanceAfterCents / 100)|number_format(2, ',', '.') }}
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="5">
+            <div class="empty-state">
+              <i data-lucide="inbox" width="40" height="40"></i>
+              <h3>Nenhuma transação ainda</h3>
+              <p>Seu histórico de entradas e saídas aparecerá aqui.</p>
+              <a href="{{ path('app_wallet_deposit') }}" class="btn btn--ghost btn--sm">Fazer primeiro depósito</a>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
 <style>
-.tx-page { display: flex; flex-direction: column; gap: var(--sp6); max-width: 1000px; }
+/* Estilos locais — valores monétarios da tabela */
+.tx-table-card { overflow: hidden; }
+.tx-table-card .card__head {
+  padding: var(--sp5) var(--sp6);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+}
+.tx-table-card .table-wrap { padding: 0; }
+.tx-amount {
+  font-weight: 800;
+  white-space: nowrap;
+}
+.tx-amount--credit { color: var(--success); }
+.tx-amount--debit  { color: var(--error); }
 </style>
+
 {% endblock %}
