@@ -1,44 +1,53 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Pix pendente — PulseSMM{% endblock %}
+{% block page_title %}Aguardando pagamento Pix{% endblock %}
 
-{% block body %}
+{% block content %}
 <section class="wallet-page wallet-page--narrow">
-    <div class="container">
-        <div class="pix-card panel-card" data-reveal>
-            <div class="pix-card__head">
-                <span class="pill">Pagamento aguardando</span>
-                <h1>Conclua sua recarga via Pix</h1>
-                <p>Escaneie o QR Code ou copie o código abaixo para finalizar o pagamento.</p>
+  <div class="container">
+    <div class="panel-card pix-card" data-reveal>
+
+      <div class="panel-card__head">
+        <h1>Conclua sua recarga via Pix</h1>
+        <span class="pill">Aguardando pagamento</span>
+      </div>
+      <p class="text-muted" style="margin-bottom:var(--space-6)">
+        Escaneie o QR Code ou copie o código abaixo para finalizar o pagamento.
+      </p>
+
+      <div class="pix-card__grid">
+        <div class="pix-card__qr glass-card">
+          {% if qrCodeBase64 is defined and qrCodeBase64 %}
+            <img src="data:image/png;base64,{{ qrCodeBase64 }}" alt="QR Code Pix" class="pix-card__image">
+          {% else %}
+            <div class="pix-card__placeholder">
+              <i data-lucide="qr-code" width="48" height="48"></i>
+              <span>QR Code indisponível</span>
             </div>
-
-            <div class="pix-card__grid">
-                <div class="pix-card__qr glass-card">
-                    {% if qrCodeBase64 is defined and qrCodeBase64 %}
-                        <img src="data:image/png;base64,{{ qrCodeBase64 }}" alt="QR Code Pix" class="pix-card__image">
-                    {% else %}
-                        <div class="pix-card__placeholder">QR Code indisponível</div>
-                    {% endif %}
-                </div>
-
-                <div class="pix-card__info">
-                    <div class="glass-card">
-                        <span>Valor</span>
-                        <strong>R$ {{ (payment.amountCents / 100)|number_format(2, ',', '.') }}</strong>
-                    </div>
-
-                    <div class="field">
-                        <span>Copia e cola Pix</span>
-                        <textarea class="control control--textarea" id="pixCode" readonly>{{ payment.pixCode }}</textarea>
-                    </div>
-
-                    <div class="pix-card__actions">
-                        <button type="button" class="btn btn--primary" onclick="navigator.clipboard.writeText(document.getElementById('pixCode').value)">Copiar código</button>
-                        <a href="{{ path('app_wallet_index') }}" class="btn btn--ghost">Voltar para carteira</a>
-                    </div>
-                </div>
-            </div>
+          {% endif %}
         </div>
+
+        <div class="pix-card__info">
+          <div class="glass-card">
+            <span>Valor</span>
+            <strong>R$ {{ (payment.amountCents / 100)|number_format(2, ',', '.') }}</strong>
+          </div>
+          <label class="field">
+            <span>Copia e cola Pix</span>
+            <textarea class="control control--textarea" id="pixCode" readonly rows="4">{{ payment.pixCode }}</textarea>
+          </label>
+          <div class="pix-card__actions">
+            <button type="button" class="btn btn--primary" id="copyPixBtn"
+              onclick="navigator.clipboard.writeText(document.getElementById('pixCode').value).then(function(){ var b=document.getElementById('copyPixBtn'); b.textContent='Copiado!'; setTimeout(function(){ b.textContent='Copiar código'; },2000); })">
+              Copiar código
+            </button>
+            <a href="{{ path('app_wallet_index') }}" class="btn btn--ghost">Voltar para carteira</a>
+          </div>
+        </div>
+      </div>
+
     </div>
+  </div>
 </section>
 {% endblock %}

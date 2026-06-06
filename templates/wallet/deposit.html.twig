@@ -1,55 +1,53 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Adicionar saldo — PulseSMM{% endblock %}
+{% block page_title %}Adicionar saldo{% endblock %}
 
-{% block body %}
+{% block content %}
 <section class="wallet-page">
-    <div class="container wallet-grid">
-        <div class="wallet-side" data-reveal>
-            <span class="pill">Carteira</span>
-            <h1>Adicione saldo com rapidez</h1>
-            <p>
-                Escolha Pix ou cartão, acompanhe o status da cobrança e mantenha sua operação sempre abastecida.
-            </p>
+  <div class="container wallet-grid">
 
-            <div class="wallet-side__stats">
-                <div class="glass-card">
-                    <span>Saldo atual</span>
-                    <strong>R$ {{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}</strong>
-                </div>
-                <div class="glass-card">
-                    <span>Última recarga</span>
-                    <strong>{{ lastDeposit ? lastDeposit.createdAt|date('d/m/Y H:i') : '—' }}</strong>
-                </div>
-            </div>
+    <div class="wallet-side" data-reveal>
+      <span class="pill">Carteira</span>
+      <h1>Adicione saldo com rapidez</h1>
+      <p>
+        Escolha Pix ou cartão, acompanhe o status da cobrança e mantenha sua operação sempre abastecida.
+      </p>
+      <div class="wallet-side__stats">
+        <div class="glass-card">
+          <span>Saldo atual</span>
+          <strong>R$ {{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}</strong>
         </div>
-
-        <div class="panel-card wallet-panel" data-reveal>
-            <div class="panel-card__head">
-                <h2>Nova recarga</h2>
-                <span class="pill pill--soft">Pix ou cartão</span>
-            </div>
-
-            <form method="post" class="quick-form">
-                <input type="hidden" name="_token" value="{{ csrf_token('wallet_deposit') }}">
-
-                <label class="field">
-                    <span>Valor</span>
-                    <input type="number" name="amount" class="control" min="10" step="0.01" value="50" required>
-                </label>
-
-                <label class="field">
-                    <span>Método de pagamento</span>
-                    <select name="method" class="control" required>
-                        <option value="pix">Pix</option>
-                        <option value="credit_card">Cartão de crédito</option>
-                        <option value="debit_card">Cartão de débito</option>
-                    </select>
-                </label>
-
-                <button type="submit" class="btn btn--primary btn--lg btn--block">Gerar cobrança</button>
-            </form>
+        <div class="glass-card">
+          <span>Última recarga</span>
+          <strong>{{ lastDeposit ? lastDeposit.createdAt|date('d/m/Y H:i') : '—' }}</strong>
         </div>
+      </div>
     </div>
+
+    <div class="panel-card wallet-panel" data-reveal>
+      <div class="panel-card__head">
+        <h2>Nova recarga</h2>
+        <span class="pill pill--soft">Pix ou cartão</span>
+      </div>
+      <form method="post" class="quick-form">
+        <input type="hidden" name="_token" value="{{ csrf_token('wallet_deposit') }}">
+        <label class="field">
+          <span>Valor</span>
+          <input type="number" name="amount" class="control" min="10" step="0.01" value="50" required>
+        </label>
+        <label class="field">
+          <span>Método de pagamento</span>
+          <select name="method" class="control" required>
+            <option value="pix">Pix</option>
+            <option value="credit_card">Cartão de crédito</option>
+            <option value="debit_card">Cartão de débito</option>
+          </select>
+        </label>
+        <button type="submit" class="btn btn--primary btn--lg btn--block">Gerar cobrança</button>
+      </form>
+    </div>
+
+  </div>
 </section>
 {% endblock %}
