@@ -1,0 +1,65 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Perfil — PulseSMM{% endblock %}
+{% block page_title %}Meu perfil{% endblock %}
+
+{% block content %}
+<div style="max-width:600px;margin:0 auto">
+
+  <div class="panel-card" data-reveal>
+    <div class="panel-card__head">
+      <h2>Dados da conta</h2>
+      <span class="pill pill--soft">Perfil</span>
+    </div>
+
+    {# Avatar inicial #}
+    <div style="display:flex;align-items:center;gap:var(--space-4);margin-bottom:var(--space-6)">
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--color-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--text-xl);font-weight:700;flex-shrink:0">
+        {{ user.name|first|upper }}
+      </div>
+      <div>
+        <strong style="font-size:var(--text-lg)">{{ user.name }}</strong><br>
+        <span class="text-muted" style="font-size:var(--text-sm)">{{ user.email }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-grid" style="margin-bottom:var(--space-6)">
+      <div class="kpi">
+        <div class="kpi__label">Membro desde</div>
+        <div class="kpi__value" style="font-size:var(--text-base)">{{ user.createdAt|date('d/m/Y') }}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi__label">Saldo</div>
+        <div class="kpi__value" style="font-size:var(--text-base)">
+          R$ {{ user.wallet ? (user.wallet.balanceCents / 100)|number_format(2, ',', '.') : '0,00' }}
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi__label">Função</div>
+        <div class="kpi__value" style="font-size:var(--text-base)">
+          {% if is_granted('ROLE_ADMIN') %}
+            <span class="badge badge--processing">Admin</span>
+          {% else %}
+            <span class="badge badge--soft">Usuário</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <form method="post" class="quick-form">
+      <input type="hidden" name="_token" value="{{ csrf_token('profile_edit') }}">
+      <label class="field">
+        <span>Nome completo</span>
+        <input type="text" name="name" class="control" value="{{ user.name }}" required minlength="2">
+      </label>
+      <label class="field">
+        <span>E-mail</span>
+        <input type="email" class="control" value="{{ user.email }}" disabled title="O e-mail não pode ser alterado aqui.">
+        <small class="text-muted">Para alterar o e-mail entre em contato com o suporte.</small>
+      </label>
+      <button type="submit" class="btn btn--primary">Salvar alterações</button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

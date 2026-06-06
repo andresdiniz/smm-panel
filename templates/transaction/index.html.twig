@@ -1,0 +1,106 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Histórico — PulseSMM{% endblock %}
+{% block page_title %}Histórico de transações{% endblock %}
+
+{% block content %}
+<div class="wallet-page">
+
+  {# SALDO #}
+  {% if wallet %}
+  <div class="wallet-hero" data-reveal>
+    <div class="wallet-hero__info">
+      <span class="wallet-hero__label">Saldo disponível</span>
+      <span class="wallet-hero__amount">
+        R$ {{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}
+      </span>
+    </div>
+    <a href="{{ path('app_wallet_deposit') }}" class="btn btn--primary">
+      <i data-lucide="plus" width="16" height="16"></i>
+      Adicionar saldo
+    </a>
+  </div>
+  {% endif %}
+
+  {# STATS #}
+  <div class="kpi-grid" data-reveal>
+    <div class="kpi">
+      <div class="kpi__label">Total de transações</div>
+      <div class="kpi__value">{{ transactions|length }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__label">Aprovadas</div>
+      <div class="kpi__value">{{ transactions|filter(t => t.status == 'approved')|length }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__label">Pendentes</div>
+      <div class="kpi__value">{{ transactions|filter(t => t.status == 'pending')|length }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__label">Volume aprovado</div>
+      <div class="kpi__value">
+        {% set vol = 0 %}
+        {% for t in transactions %}{% if t.status == 'approved' %}{% set vol = vol + t.amountCents %}{% endif %}{% endfor %}
+        R$ {{ (vol / 100)|number_format(2, ',', '.') }}
+      </div>
+    </div>
+  </div>
+
+  {# TABELA #}
+  <div class="card" data-reveal>
+    <div class="card__head">
+      <h2 class="card__title">Extrato completo</h2>
+      <a href="{{ path('app_wallet_deposit') }}" class="btn btn--primary btn--sm">
+        <i data-lucide="plus" width="14" height="14"></i>
+        Depositar
+      </a>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Descrição</th>
+            <th>Gateway</th>
+            <th>Método</th>
+            <th>Status</th>
+            <th class="text-right">Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for tx in transactions %}
+          <tr>
+            <td>
+              <span class="text-sm">{{ tx.createdAt|date('d/m/Y') }}</span><br>
+              <span class="text-xs text-muted">{{ tx.createdAt|date('H:i') }}</span>
+            </td>
+            <td>{{ tx.description ?? 'Depósito' }}</td>
+            <td>{{ tx.gateway ?? '—' }}</td>
+            <td>{{ tx.method ?? '—' }}</td>
+            <td>
+              <span class="badge badge--{{ tx.status == 'approved' ? 'completed' : (tx.status == 'pending' ? 'pending' : 'cancelled') }}">
+                {{ tx.status == 'approved' ? 'Aprovado' : (tx.status == 'pending' ? 'Pendente' : (tx.status == 'cancelled' ? 'Cancelado' : tx.status)) }}
+              </span>
+            </td>
+            <td class="text-right tabular-nums {{ tx.status == 'approved' ? 'text-success' : '' }}">
+              +R$ {{ (tx.amountCents / 100)|number_format(2, ',', '.') }}
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <i data-lucide="receipt" width="32" height="32"></i>
+                <p>Nenhuma transação encontrada.</p>
+                <a href="{{ path('app_wallet_deposit') }}" class="btn btn--ghost btn--sm">Fazer primeiro depósito</a>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

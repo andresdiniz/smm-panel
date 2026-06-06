@@ -7,10 +7,7 @@
   <title>{% block title %}PulseSMM{% endblock %}</title>
   <link rel="icon" href="/favicon.ico">
 
-  {# CSS externo — sistema de design completo #}
   <link rel="stylesheet" href="{{ asset('css/app.css') }}">
-
-  {# Lucide Icons #}
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
 
   {% block stylesheets %}{% endblock %}
@@ -23,17 +20,13 @@
 {%- set isAuth = route in ['app_login', 'app_register'] -%}
 
 {% if isAuth or not app.user %}
-{# ── PÁGINAS DE AUTH ─────────────────────────────────── #}
 {% block auth_body %}{% endblock %}
 
 {% else %}
-{# ── APP SHELL (usuário logado) ──────────────────────── #}
 <div class="app-shell" id="appShell">
 
-  {# Overlay mobile #}
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-  {# ── SIDEBAR ────────────────────────────────────────── #}
   <aside class="sidebar" id="sidebar">
 
     <a href="{{ path('app_dashboard') }}" class="sidebar__brand">
@@ -74,7 +67,7 @@
         {% endif %}
       </a>
 
-      <a href="#"
+      <a href="{{ path('app_transaction_index') }}"
          class="sidebar__link {% if route starts with 'app_transaction' %}is-active{% endif %}">
         <i data-lucide="receipt-text" width="18" height="18" aria-hidden="true"></i>
         <span class="sidebar__link-label">Histórico</span>
@@ -82,13 +75,13 @@
 
       <div class="sidebar__section">Conta</div>
 
-      <a href="#"
+      <a href="{{ path('app_profile') }}"
          class="sidebar__link {% if route starts with 'app_profile' %}is-active{% endif %}">
         <i data-lucide="user" width="18" height="18" aria-hidden="true"></i>
         <span class="sidebar__link-label">Perfil</span>
       </a>
 
-      <a href="#"
+      <a href="{{ path('app_settings') }}"
          class="sidebar__link {% if route starts with 'app_settings' %}is-active{% endif %}">
         <i data-lucide="settings" width="18" height="18" aria-hidden="true"></i>
         <span class="sidebar__link-label">Configurações</span>
@@ -119,7 +112,6 @@
 
   </aside>
 
-  {# ── TOPBAR ──────────────────────────────────────────── #}
   <header class="topbar" role="banner">
     <button class="topbar__toggle" id="sidebarToggle"
             aria-label="Alternar menu lateral" aria-expanded="false" aria-controls="sidebar">
@@ -143,10 +135,8 @@
     </div>
   </header>
 
-  {# ── MAIN ────────────────────────────────────────────── #}
   <main class="main-content" id="main">
 
-    {# Flash messages #}
     {% set flashes = app.flashes(['success','error','warning','info']) %}
     {% if flashes|length > 0 %}
     <div class="flash-bag" role="status" aria-live="polite">
@@ -167,15 +157,13 @@
     </div>
   </main>
 
-</div>{# /app-shell #}
+</div>
 {% endif %}
 
-{% endblock %}{# /body #}
+{% endblock %}
 
-{# ── SCRIPTS ─────────────────────────────────────────── #}
 <script>
 (function(){
-  // ── Theme toggle
   const html    = document.documentElement;
   const stored  = sessionStorage.getItem('pulse-theme');
   const sysDark = matchMedia('(prefers-color-scheme:dark)').matches;
@@ -193,7 +181,6 @@
     lucide.createIcons();
     updateIcon(html.getAttribute('data-theme'));
 
-    // Theme toggle
     const btn = document.getElementById('themeToggle');
     if(btn) btn.addEventListener('click', function(){
       const cur  = html.getAttribute('data-theme');
@@ -203,7 +190,6 @@
       updateIcon(next);
     });
 
-    // Sidebar collapse (desktop)
     const shell   = document.getElementById('appShell');
     const toggle  = document.getElementById('sidebarToggle');
     const overlay = document.getElementById('sidebarOverlay');
@@ -225,7 +211,6 @@
       toggle.setAttribute('aria-expanded', 'false');
     });
 
-    // Reveal animation (Intersection Observer)
     const reveals = document.querySelectorAll('[data-reveal]');
     if('IntersectionObserver' in window && reveals.length){
       const io = new IntersectionObserver(function(entries){

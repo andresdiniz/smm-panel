@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Configurações — PulseSMM{% endblock %}
+{% block page_title %}Configurações{% endblock %}
+
+{% block content %}
+<div style="max-width:600px;margin:0 auto">
+
+  <div class="panel-card" data-reveal>
+    <div class="panel-card__head">
+      <h2>Alterar senha</h2>
+      <span class="pill pill--soft">Segurança</span>
+    </div>
+
+    {% if error %}
+    <div class="flash flash--error" style="margin-bottom:var(--space-4)">
+      <i data-lucide="x-circle" width="16" height="16"></i>
+      <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <form method="post" class="quick-form">
+      <input type="hidden" name="_token" value="{{ csrf_token('settings_password') }}">
+      <label class="field">
+        <span>Senha atual</span>
+        <input type="password" name="current_password" class="control" required autocomplete="current-password">
+      </label>
+      <label class="field">
+        <span>Nova senha</span>
+        <input type="password" name="new_password" class="control" required minlength="8" autocomplete="new-password">
+        <small class="text-muted">Mínimo 8 caracteres.</small>
+      </label>
+      <label class="field">
+        <span>Confirmar nova senha</span>
+        <input type="password" name="confirm_password" class="control" required autocomplete="new-password">
+      </label>
+      <button type="submit" class="btn btn--primary">Alterar senha</button>
+    </form>
+  </div>
+
+  <div class="panel-card" data-reveal style="margin-top:var(--space-4)">
+    <div class="panel-card__head">
+      <h2>Preferências</h2>
+      <span class="pill pill--soft">Interface</span>
+    </div>
+    <div class="quick-form">
+      <div class="field">
+        <span style="font-size:var(--text-sm);font-weight:600">Tema</span>
+        <div style="display:flex;gap:var(--space-3);margin-top:var(--space-2)">
+          <button class="btn btn--ghost btn--sm" onclick="document.documentElement.setAttribute('data-theme','light');sessionStorage.setItem('pulse-theme','light')">
+            <i data-lucide="sun" width="14" height="14"></i> Claro
+          </button>
+          <button class="btn btn--ghost btn--sm" onclick="document.documentElement.setAttribute('data-theme','dark');sessionStorage.setItem('pulse-theme','dark')">
+            <i data-lucide="moon" width="14" height="14"></i> Escuro
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
