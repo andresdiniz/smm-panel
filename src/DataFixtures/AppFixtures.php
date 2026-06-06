@@ -4,9 +4,16 @@ declare(strict_types=1);
 
 namespace App\DataFixtures;
 
+use App\Entity\Contact;
+use App\Entity\CrmContact;
+use App\Entity\Order;
+use App\Entity\Payment;
 use App\Entity\ProviderCredential;
+use App\Entity\Service;
+use App\Entity\ServiceCategory;
 use App\Entity\User;
 use App\Entity\Wallet;
+use App\Entity\WalletTransaction;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -17,86 +24,179 @@ class AppFixtures extends Fixture
         private readonly UserPasswordHasherInterface $hasher,
     ) {}
 
-    public function load(ObjectManager $manager): void
+    public function load(ObjectManager $em): void
     {
-        // ── Admin ──────────────────────────────────────────────────────────
+        // ── Categorias ─────────────────────────────────────────────────────
+        $catIG = new ServiceCategory();
+        $catIG->setName('Instagram')->setSlug('instagram')->setSortOrder(1)->setIsActive(true);
+        $em->persist($catIG);
+
+        $catTT = new ServiceCategory();
+        $catTT->setName('TikTok')->setSlug('tiktok')->setSortOrder(2)->setIsActive(true);
+        $em->persist($catTT);
+
+        // ── Credenciais de Providers ────────────────────────────────────────
+        $credJAP = new ProviderCredential();
+        $credJAP->setProviderSlug('justanotherpanel')
+            ->setLabel('JustAnotherPanel Principal')
+            ->setApiKey('DEMO_KEY_JAP_000000')
+            ->setBaseUrl('https://justanotherpanel.com/api/v2')
+            ->setBalanceCents(0)
+            ->setIsActive(true);
+        $em->persist($credJAP);
+
+        $credPEA = new ProviderCredential();
+        $credPEA->setProviderSlug('peakerr')
+            ->setLabel('Peakerr Principal')
+            ->setApiKey('DEMO_KEY_PEAKERR_000')
+            ->setBaseUrl('https://peakerr.com/api/v2')
+            ->setBalanceCents(0)
+            ->setIsActive(true);
+        $em->persist($credPEA);
+
+        // ── Serviços ────────────────────────────────────────────────────────
+        $s1 = new Service();
+        $s1->setCategory($catIG)->setName('Seguidores Instagram – BR')
+            ->setDescription('Seguidores brasileiros de alta qualidade.')
+            ->setProviderSlug('justanotherpanel')->setExternalServiceId('1001')
+            ->setPriceCents(150)->setMinQuantity(100)->setMaxQuantity(50000)->setIsActive(true);
+        $em->persist($s1);
+
+        $s2 = new Service();
+        $s2->setCategory($catIG)->setName('Curtidas Instagram')
+            ->setDescription('Curtidas instantâneas.')
+            ->setProviderSlug('justanotherpanel')->setExternalServiceId('1002')
+            ->setPriceCents(50)->setMinQuantity(50)->setMaxQuantity(100000)->setIsActive(true);
+        $em->persist($s2);
+
+        $s3 = new Service();
+        $s3->setCategory($catTT)->setName('Seguidores TikTok')
+            ->setDescription('Seguidores TikTok mundiais.')
+            ->setProviderSlug('peakerr')->setExternalServiceId('2001')
+            ->setPriceCents(200)->setMinQuantity(100)->setMaxQuantity(100000)->setIsActive(true);
+        $em->persist($s3);
+
+        $s4 = new Service();
+        $s4->setCategory($catTT)->setName('Views TikTok')
+            ->setDescription('Visualizações rápidas.')
+            ->setProviderSlug('peakerr')->setExternalServiceId('2002')
+            ->setPriceCents(10)->setMinQuantity(1000)->setMaxQuantity(1000000)->setIsActive(true);
+        $em->persist($s4);
+
+        // ── Usuários ────────────────────────────────────────────────────────
         $admin = new User();
-        $admin->setName('Administrador');
-        $admin->setEmail('admin@pulsesmm.com.br');
-        $admin->setRoles(['ROLE_ADMIN']);
+        $admin->setEmail('admin@pulsesmm.com.br')
+            ->setName('Administrador')
+            ->setRoles(['ROLE_ADMIN', 'ROLE_USER'])
+            ->setIsActive(true);
         $admin->setPassword($this->hasher->hashPassword($admin, 'Admin@1234'));
-        $admin->setActive(true);
-        $manager->persist($admin);
+        $em->persist($admin);
+        $this->createWallet($em, $admin, 50000_00);
+        $this->createCrmContact($em, $admin, ['admin', 'new_user'], 'direct', null, null);
 
-        $adminWallet = new Wallet();
-        $adminWallet->setUser($admin);
-        $adminWallet->setBalanceCents(0);
-        $manager->persist($adminWallet);
+        $users = [
+            ['João Silva', 'joao@exemplo.com.br', 'User@1234', 15000_00, ['buyer', 'new_user'], 'google', 'smm_campaign_q1', 'cpc'],
+            ['Maria Santos', 'maria@exemplo.com.br', 'User@1234', 8500_00,  ['buyer', 'abandoned_cart'], 'instagram', null, 'social'],
+            ['Pedro Costa', 'pedro@exemplo.com.br', 'User@1234', 500_00,   ['new_user'], null, null, null],
+        ];
 
-        // ── Usuário demo ───────────────────────────────────────────────────
-        $demo = new User();
-        $demo->setName('Demo User');
-        $demo->setEmail('demo@pulsesmm.com.br');
-        $demo->setRoles(['ROLE_USER']);
-        $demo->setPassword($this->hasher->hashPassword($demo, 'Demo@1234'));
-        $demo->setActive(true);
-        $manager->persist($demo);
+        $userEntities = [];
+        foreach ($users as [$name, $email, $pass, $balance, $tags, $src, $camp, $med]) {
+            $u = new User();
+            $u->setEmail($email)->setName($name)->setRoles(['ROLE_USER'])->setIsActive(true);
+            $u->setPassword($this->hasher->hashPassword($u, $pass));
+            $em->persist($u);
+            $this->createWallet($em, $u, $balance);
+            $this->createCrmContact($em, $u, $tags, $src, $camp, $med);
+            $userEntities[] = $u;
+        }
 
-        $demoWallet = new Wallet();
-        $demoWallet->setUser($demo);
-        $demoWallet->setBalanceCents(5000_00); // R$ 5.000,00 para testes
-        $manager->persist($demoWallet);
+        $em->flush(); // flush para ter IDs
 
-        // ── Gateway: Asaas Sandbox ─────────────────────────────────────────
-        $asaas = new ProviderCredential();
-        $asaas->setType(ProviderCredential::TYPE_PAYMENT);
-        $asaas->setSlug('asaas');
-        $asaas->setBaseUrl('https://sandbox.asaas.com/api/v3');
-        $asaas->setApiKey('$aact_SANDBOX_TROQUE_PELA_SUA_CHAVE');
-        $asaas->setSecretToken('webhook-secret-sandbox-troque');
-        $asaas->setActive(true);
-        $manager->persist($asaas);
+        // ── Pedidos ──────────────────────────────────────────────────────────
+        $ordersData = [
+            [$userEntities[0], $s1, 'https://instagram.com/joaosilva', 1000, 'completed'],
+            [$userEntities[0], $s2, 'https://instagram.com/p/abc123',   500,  'processing'],
+            [$userEntities[1], $s1, 'https://instagram.com/mariasantos', 2000, 'completed'],
+            [$userEntities[1], $s3, 'https://tiktok.com/@mariasantos',   1000, 'pending'],
+            [$userEntities[2], $s4, 'https://tiktok.com/@pedrocosta',   10000, 'pending'],
+            [$admin,           $s1, 'https://instagram.com/admintest',   500,  'completed'],
+        ];
 
-        // ── Gateway: MercadoPago Sandbox ───────────────────────────────────
-        $mp = new ProviderCredential();
-        $mp->setType(ProviderCredential::TYPE_PAYMENT);
-        $mp->setSlug('mercadopago');
-        $mp->setBaseUrl('https://api.mercadopago.com');
-        $mp->setApiKey('TEST-TROQUE-PELO-SEU-ACCESS-TOKEN');
-        $mp->setSecretToken('webhook-secret-mp-troque');
-        $mp->setActive(false); // desativado até configurar
-        $manager->persist($mp);
+        foreach ($ordersData as [$user, $service, $link, $qty, $status]) {
+            $order = new Order();
+            $order->setUser($user)
+                ->setService($service)
+                ->setLink($link)
+                ->setQuantity($qty)
+                ->setAmountCents((int) ($service->getPriceCents() * $qty / 1000))
+                ->setStatus($status)
+                ->setProviderSlug($service->getProviderSlug())
+                ->setExternalOrderId($status !== 'pending' ? 'EXT-' . random_int(10000, 99999) : null);
+            $em->persist($order);
+        }
 
-        // ── Gateway: PagBank Sandbox ───────────────────────────────────────
-        $pagbank = new ProviderCredential();
-        $pagbank->setType(ProviderCredential::TYPE_PAYMENT);
-        $pagbank->setSlug('pagbank');
-        $pagbank->setBaseUrl('https://sandbox.api.pagseguro.com');
-        $pagbank->setApiKey('TROQUE-PELO-SEU-TOKEN-PAGBANK');
-        $pagbank->setSecretToken(null);
-        $pagbank->setActive(false);
-        $manager->persist($pagbank);
+        // ── Pagamentos ────────────────────────────────────────────────────────
+        $paymentsData = [
+            [$userEntities[0], 'asaas', 'pix',         15000_00, 45_00,  'paid',    now()],
+            [$userEntities[1], 'asaas', 'credit_card',  8500_00, 297_50, 'paid',    now()],
+            [$userEntities[2], 'asaas', 'pix',           500_00,  1_50,  'pending', null],
+        ];
 
-        // ── SMM Provider: JustAnotherPanel (demo) ──────────────────────────
-        $jap = new ProviderCredential();
-        $jap->setType(ProviderCredential::TYPE_SMM);
-        $jap->setSlug('justanother');
-        $jap->setBaseUrl('https://justanotherpanel.com/api/v2');
-        $jap->setApiKey('SUA_CHAVE_JAP_AQUI');
-        $jap->setSecretToken(null);
-        $jap->setActive(true);
-        $manager->persist($jap);
+        foreach ($paymentsData as [$user, $gw, $method, $amount, $fee, $status, $paidAt]) {
+            $p = new Payment();
+            $p->setUser($user)->setGateway($gw)->setMethod($method)
+                ->setAmountCents($amount)->setFeeCents($fee)
+                ->setStatus($status)->setExternalId('PAY-' . random_int(100000, 999999));
+            if ($paidAt) { $p->setPaidAt($paidAt); }
+            $em->persist($p);
+        }
 
-        // ── SMM Provider: SMMKings (desativado até configurar) ─────────────
-        $smmkings = new ProviderCredential();
-        $smmkings->setType(ProviderCredential::TYPE_SMM);
-        $smmkings->setSlug('smmkings');
-        $smmkings->setBaseUrl('https://smmkings.com/api/v2');
-        $smmkings->setApiKey('SUA_CHAVE_SMMKINGS_AQUI');
-        $smmkings->setSecretToken(null);
-        $smmkings->setActive(false);
-        $manager->persist($smmkings);
+        // ── Tickets de suporte ────────────────────────────────────────────────
+        $ticket = new Contact();
+        $ticket->setUser($userEntities[0])
+            ->setName($userEntities[0]->getName())
+            ->setEmail($userEntities[0]->getEmail())
+            ->setSubject('Meu pedido não foi processado')
+            ->setMessage('Fiz um pedido há 2 horas e ainda não foi iniciado.')
+            ->setStatus('open');
+        $em->persist($ticket);
 
-        $manager->flush();
+        $em->flush();
+    }
+
+    private function createWallet(ObjectManager $em, User $user, int $balanceCents): void
+    {
+        $wallet = new Wallet();
+        $wallet->setUser($user)->setBalanceCents($balanceCents);
+        $em->persist($wallet);
+
+        if ($balanceCents > 0) {
+            $tx = new WalletTransaction();
+            $tx->setWallet($wallet)
+                ->setAmountCents($balanceCents)
+                ->setType('credit')
+                ->setDescription('Saldo inicial (seed)');
+            $em->persist($tx);
+        }
+    }
+
+    private function createCrmContact(
+        ObjectManager $em,
+        User $user,
+        array $tags,
+        ?string $src,
+        ?string $camp,
+        ?string $med,
+    ): void {
+        $c = new CrmContact($user);
+        foreach ($tags as $tag) { $c->addTag($tag); }
+        if ($src)  { $c->setUtmSource($src); }
+        if ($camp) { $c->setUtmCampaign($camp); }
+        if ($med)  { $c->setUtmMedium($med); }
+        $c->addEvent('user.registered', ['ip' => '127.0.0.1', 'seed' => true]);
+        $em->persist($c);
     }
 }
+
+function now(): \DateTimeImmutable { return new \DateTimeImmutable(); }
