@@ -18,20 +18,20 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class WalletController extends AbstractController
 {
     public function __construct(
-        private readonly WalletRepository    $walletRepository,
-        private readonly PaymentRepository   $paymentRepository,
+        private readonly WalletRepository     $walletRepository,
+        private readonly PaymentRepository    $paymentRepository,
         private readonly DynamicGatewayLoader $gatewayLoader,
     ) {}
 
     #[Route('', name: 'index')]
     public function index(): Response
     {
-        $wallet   = $this->walletRepository->findOneByUser($this->getUser());
-        $payments = $this->paymentRepository->findRecentByUser($this->getUser(), 20);
+        $wallet       = $this->walletRepository->findOneByUser($this->getUser());
+        $transactions = $this->paymentRepository->findRecentByUser($this->getUser(), 20);
 
         return $this->render('wallet/index.html.twig', [
-            'wallet'   => $wallet,
-            'payments' => $payments,
+            'wallet'       => $wallet,
+            'transactions' => $transactions,
         ]);
     }
 
@@ -59,15 +59,11 @@ class WalletController extends AbstractController
                 return $this->redirectToRoute('app_wallet_deposit');
             }
 
-            // Resolve o gateway pelo método escolhido:
-            // 'pix' e 'credit_card' usam o gateway configurado no banco (asaas|pagbank|mercadopago).
-            // O slug ativo é lido de um parâmetro oculto ou da configuração padrão.
             $gatewaySlug = $request->request->get('gateway', $_ENV['DEFAULT_PAYMENT_GATEWAY'] ?? 'stub');
 
             try {
                 $gateway = $this->gatewayLoader->load($gatewaySlug);
             } catch (\RuntimeException $e) {
-                // Credencial ausente no banco — bloqueia o depósito com mensagem clara
                 $this->addFlash('error', 'Gateway de pagamento não configurado. Contate o administrador.');
                 return $this->redirectToRoute('app_wallet_deposit');
             }

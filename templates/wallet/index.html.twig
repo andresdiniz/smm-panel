@@ -11,7 +11,7 @@
         <a href="{{ path('app_wallet_deposit') }}" class="btn btn-primary">+ Adicionar saldo</a>
     </div>
 
-    {# TRANSACTIONS #}
+    {# EXTRATO (Payment entities) #}
     <div class="card mt-6">
         <div class="card__header">
             <h2>Extrato</h2>
@@ -22,29 +22,30 @@
                 <thead>
                     <tr>
                         <th>Data</th>
-                        <th>Descrição</th>
-                        <th>Tipo</th>
+                        <th>Descrição / Gateway</th>
+                        <th>Status</th>
                         <th class="text-right">Valor</th>
-                        <th class="text-right">Saldo após</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for tx in transactions %}
                 <tr>
                     <td>{{ tx.createdAt|date('d/m/Y H:i') }}</td>
-                    <td>{{ tx.description }}</td>
+                    <td>{{ tx.gateway ?? '—' }}</td>
                     <td>
-                        <span class="badge badge--{{ tx.type == 'credit' ? 'success' : 'error' }}">
-                            {{ tx.type == 'credit' ? 'Entrada' : 'Saída' }}
+                        <span class="badge badge--{{ tx.status == 'approved' ? 'success' : (tx.status == 'pending' ? 'warning' : 'error') }}">
+                            {% if tx.status == 'approved' %}Aprovado
+                            {% elseif tx.status == 'pending' %}Pendente
+                            {% else %}{{ tx.status|capitalize }}
+                            {% endif %}
                         </span>
                     </td>
-                    <td class="text-right {{ tx.type == 'credit' ? 'text-success' : 'text-error' }}">
-                        {{ tx.type == 'credit' ? '+' : '-' }}R$ {{ (tx.amountCents / 100)|number_format(2, ',', '.') }}
+                    <td class="text-right {{ tx.status == 'approved' ? 'text-success' : 'text-muted' }}">
+                        +R$ {{ (tx.amountCents / 100)|number_format(2, ',', '.') }}
                     </td>
-                    <td class="text-right font-mono">R$ {{ (tx.balanceAfterCents / 100)|number_format(2, ',', '.') }}</td>
                 </tr>
                 {% else %}
-                <tr><td colspan="5" class="text-center text-muted">Nenhuma transação ainda.</td></tr>
+                <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma transação ainda.</td></tr>
                 {% endfor %}
                 </tbody>
             </table>
