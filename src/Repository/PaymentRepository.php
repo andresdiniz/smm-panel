@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Payment;
-use App\Enum\PaymentStatus;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -19,40 +19,67 @@ class PaymentRepository extends ServiceEntityRepository
         parent::__construct($registry, Payment::class);
     }
 
-    /** Pagamentos Pix pendentes criados há mais de $minutes sem confirmação */
-    public function findExpiredPix(int $minutes = 30): array
+    public function findRecentByUser(User $user, int $limit = 20): array
     {
-        $threshold = new \DateTimeImmutable("-{$minutes} minutes");
-
         return $this->createQueryBuilder('p')
-            ->where('p.status = :status')
-            ->andWhere('p.method = :method')
-            ->andWhere('p.createdAt < :threshold')
-            ->setParameter('status', PaymentStatus::PENDING)
-            ->setParameter('method', 'pix')
-            ->setParameter('threshold', $threshold)
+            ->andWhere('p.user = :user')
+            ->setParameter('user', $user)
+            ->orderBy('p.createdAt', 'DESC')
+            ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
     }
 
-    /** Relatório de taxas por gateway no período */
-    public function feeReportByGateway(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    public function findLastDepositByUser(User $user): ?Payment
     {
         return $this->createQueryBuilder('p')
-            ->select(
-                'p.gateway',
-                'COUNT(p.id) AS total_transactions',
-                'SUM(p.amountCents) AS total_amount',
-                'SUM(p.feeCents) AS total_fees',
-                'SUM(p.netCents) AS total_net'
-            )
-            ->where('p.status = :status')
-            ->andWhere('p.paidAt BETWEEN :from AND :to')
-            ->setParameter('status', PaymentStatus::PAID)
-            ->setParameter('from', $from)
-            ->setParameter('to', $to)
-            ->groupBy('p.gateway')
+            ->andWhere('p.user = :user')
+            ->andWhere('p.type = :type')
+            ->setParameter('user', $user)
+            ->setParameter('type', 'deposit')
+            ->orderBy('p.createdAt', 'DESC')
+            ->setMaxResults(1)
             ->getQuery()
-            ->getResult();
+            ->getOneOrNullResult();
+    }
+
+    public function sumApprovedSince(\DateTimeImmutable $since): int
+    {
+        return (int) $this->createQueryBuilder('p')
+            ->select('SUM(p.amountCents)')
+            ->andWhere('p.status = :status')
+            ->andWhere('p.type = :type')
+            ->andWhere('p.createdAt >= :since')
+            ->setParameter('status', 'approved')
+            ->setParameter('type', 'deposit')
+            ->setParameter('since', $since)
+            ->getQuery()
+            ->getSingleScalarResult() ?? 0;
+    }
+
+    public function sumExpensesSince(\DateTimeImmutable $since): int
+    {
+        return (int) $this->createQueryBuilder('p')
+            ->select('SUM(p.amountCents)')
+            ->andWhere('p.type = :type')
+            ->andWhere('p.status = :status')
+            ->andWhere('p.createdAt >= :since')
+            ->setParameter('type', 'expense')
+            ->setParameter('status', 'approved')
+            ->setParameter('since', $since)
+            ->getQuery()
+            ->getSingleScalarResult() ?? 0;
+    }
+
+    public function sumFeesSince(\DateTimeImmutable $since): int
+    {
+        return (int) $this->createQueryBuilder('p')
+            ->select('SUM(p.feeCents)')
+            ->andWhere('p.createdAt >= :since')
+            ->andWhere('p.status = :status')
+            ->setParameter('status', 'approved')
+            ->setParameter('since', $since)
+            ->getQuery()
+            ->getSingleScalarResult() ?? 0;
     }
 }

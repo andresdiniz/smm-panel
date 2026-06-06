@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Order;
-use App\Enum\OrderStatus;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -19,62 +19,52 @@ class OrderRepository extends ServiceEntityRepository
         parent::__construct($registry, Order::class);
     }
 
-    /** Pedidos pagos ainda não despachados para o provider */
-    public function findPaidNotDispatched(): array
+    public function findRecentByUser(User $user, int $limit = 10): array
     {
         return $this->createQueryBuilder('o')
-            ->where('o.status = :status')
-            ->setParameter('status', OrderStatus::PAID)
-            ->orderBy('o.createdAt', 'ASC')
-            ->getQuery()
-            ->getResult();
-    }
-
-    /** Pedidos em processamento sem atualização há mais de $minutes minutos */
-    public function findStale(int $minutes = 30): array
-    {
-        $threshold = new \DateTimeImmutable("-{$minutes} minutes");
-
-        return $this->createQueryBuilder('o')
-            ->where('o.status IN (:statuses)')
-            ->andWhere('o.updatedAt < :threshold')
-            ->setParameter('statuses', [OrderStatus::QUEUED, OrderStatus::PROCESSING])
-            ->setParameter('threshold', $threshold)
-            ->orderBy('o.updatedAt', 'ASC')
-            ->getQuery()
-            ->getResult();
-    }
-
-    /** Resumo financeiro por período */
-    public function financialSummary(\DateTimeImmutable $from, \DateTimeImmutable $to): array
-    {
-        return $this->createQueryBuilder('o')
-            ->select(
-                'COUNT(o.id) AS total_orders',
-                'SUM(o.priceCents) AS total_revenue',
-                'SUM(o.costCents) AS total_cost',
-                'SUM(o.priceCents - o.costCents) AS total_profit'
-            )
-            ->where('o.status = :status')
-            ->andWhere('o.createdAt BETWEEN :from AND :to')
-            ->setParameter('status', OrderStatus::COMPLETED)
-            ->setParameter('from', $from)
-            ->setParameter('to', $to)
-            ->getQuery()
-            ->getSingleResult();
-    }
-
-    /** Pedidos por usuário com paginação */
-    public function findByUserPaginated(int $userId, int $page = 1, int $limit = 20): array
-    {
-        return $this->createQueryBuilder('o')
-            ->join('o.user', 'u')
-            ->where('u.id = :userId')
-            ->setParameter('userId', $userId)
+            ->andWhere('o.user = :user')
+            ->setParameter('user', $user)
             ->orderBy('o.createdAt', 'DESC')
-            ->setFirstResult(($page - 1) * $limit)
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
+    }
+
+    public function countByUserSince(User $user, \DateTimeImmutable $since): int
+    {
+        return (int) $this->createQueryBuilder('o')
+            ->select('COUNT(o.id)')
+            ->andWhere('o.user = :user')
+            ->andWhere('o.createdAt >= :since')
+            ->setParameter('user', $user)
+            ->setParameter('since', $since)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function countActiveByUser(User $user): int
+    {
+        return (int) $this->createQueryBuilder('o')
+            ->select('COUNT(o.id)')
+            ->andWhere('o.user = :user')
+            ->andWhere('o.status IN (:statuses)')
+            ->setParameter('user', $user)
+            ->setParameter('statuses', ['pending', 'processing'])
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function sumSpentByUserSince(User $user, \DateTimeImmutable $since): int
+    {
+        return (int) $this->createQueryBuilder('o')
+            ->select('SUM(o.amountCents)')
+            ->andWhere('o.user = :user')
+            ->andWhere('o.createdAt >= :since')
+            ->andWhere('o.status != :cancelled')
+            ->setParameter('user', $user)
+            ->setParameter('since', $since)
+            ->setParameter('cancelled', 'cancelled')
+            ->getQuery()
+            ->getSingleScalarResult() ?? 0;
     }
 }
