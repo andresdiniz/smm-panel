@@ -1,51 +1,92 @@
-/* ═══════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════
    PulseSMM — Admin (EasyAdmin override)
-   admin.css — tema para o painel administrativo
-   ═══════════════════════════════════════════════════════ */
+   Auditado e consolidado — sem tokens indefinidos,
+   sem inline-styles no Twig, responsivo em 3 breakpoints
+   ════════════════════════════════════════════════════════ */
 
 @import url('https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,600,700,800&display=swap');
 
+/* ────────────────────────────────────────────────────
+   1. TOKENS
+   ──────────────────────────────────────────────────── */
 :root {
+  /* Tipografia */
   --ea-font: 'Satoshi', 'Inter', system-ui, sans-serif;
-  --ea-primary: #01696f;
-  --ea-primary-h: #0b4e54;
+
+  /* Paleta */
+  --ea-primary:    #01696f;
+  --ea-primary-h:  #0b4e54;
   --ea-primary-hi: #d0dedd;
-  --ea-bg: #f5f4f0;
-  --ea-surface: #fafaf8;
-  --ea-surface-off: #f0eeea;
-  --ea-border: #d2cfc9;
-  --ea-text: #1e1c18;
-  --ea-muted: #74726d;
-  --ea-faint: #b5b3ae;
-  --ea-success: #3d7320;
+  --ea-bg:         #f5f4f0;
+  --ea-surface:    #fafaf8;
+  --ea-surface-off:#f0eeea;
+  --ea-border:     #d2cfc9;
+  --ea-text:       #1e1c18;
+  --ea-muted:      #74726d;
+  --ea-faint:      #b5b3ae;
+  --ea-success:    #3d7320;
   --ea-success-hi: #d0dfcb;
-  --ea-error: #a12c7b;
-  --ea-error-hi: #e2d0d8;
-  --ea-gold: #c89200;
-  --ea-gold-hi: #ede3c4;
-  --ea-blue: #0064a0;
-  --ea-blue-hi: #c4d8e8;
-  --ea-sh-sm: 0 1px 2px oklch(0.2 0.01 80 / 0.05), 0 1px 3px oklch(0.2 0.01 80 / 0.04);
-  --ea-sh-md: 0 2px 8px oklch(0.2 0.01 80 / 0.07), 0 4px 16px oklch(0.2 0.01 80 / 0.05);
+  --ea-error:      #a12c7b;
+  --ea-error-hi:   #e2d0d8;
+  --ea-gold:       #c89200;
+  --ea-gold-hi:    #ede3c4;
+  --ea-blue:       #0064a0;
+  --ea-blue-hi:    #c4d8e8;
+
+  /* Sombras */
+  --ea-sh-sm: 0 1px 2px oklch(0.2 0.01 80 / 0.05),
+              0 1px 3px oklch(0.2 0.01 80 / 0.04);
+  --ea-sh-md: 0 2px 8px oklch(0.2 0.01 80 / 0.07),
+              0 4px 16px oklch(0.2 0.01 80 / 0.05);
+
+  /* Raios */
+  --ea-r-sm: 0.375rem;
+  --ea-r-md: 0.5rem;
   --ea-r-lg: 0.75rem;
   --ea-r-xl: 1rem;
+
+  /* Transição */
   --ea-t: 160ms cubic-bezier(0.16, 1, 0.3, 1);
-  --sp2: 0.5rem; --sp3: 0.75rem; --sp4: 1rem;
-  --sp5: 1.25rem; --sp6: 1.5rem; --sp8: 2rem;
-  --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
-  --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
-  --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
-  --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
-  --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
+
+  /* Escala de espaços — completa e sem lacunas */
+  --sp1: 0.25rem;  /*  4px */
+  --sp2: 0.5rem;   /*  8px */
+  --sp3: 0.75rem;  /* 12px */
+  --sp4: 1rem;     /* 16px */
+  --sp5: 1.25rem;  /* 20px */
+  --sp6: 1.5rem;   /* 24px */
+  --sp8: 2rem;     /* 32px */
+  --sp10: 2.5rem;  /* 40px */
+  --sp12: 3rem;    /* 48px */
+
+  /* Tipografia fluida */
+  --text-xs:   clamp(0.75rem,  0.7rem  + 0.25vw, 0.875rem);
+  --text-sm:   clamp(0.875rem, 0.8rem  + 0.35vw, 1rem);
+  --text-base: clamp(1rem,     0.95rem + 0.25vw, 1.125rem);
+  --text-lg:   clamp(1.125rem, 1rem    + 0.75vw, 1.5rem);
+  --text-xl:   clamp(1.5rem,   1.2rem  + 1.25vw, 2.25rem);
+
+  /* Utilitario label uppercase reutilizável */
+  --label-size:    0.65rem;
+  --label-weight:  700;
+  --label-spacing: 0.1em;
 }
 
-/* ── RESET BASE ──────────────────────────────────────── */
-body, .ea-content-width-full, .content-panel {
+
+/* ────────────────────────────────────────────────────
+   2. BASE
+   ──────────────────────────────────────────────────── */
+body,
+.ea-content-width-full,
+.content-panel {
   font-family: var(--ea-font) !important;
   -webkit-font-smoothing: antialiased !important;
 }
 
-/* ── SIDEBAR ─────────────────────────────────────────── */
+
+/* ────────────────────────────────────────────────────
+   3. SIDEBAR
+   ──────────────────────────────────────────────────── */
 .sidebar {
   background: var(--ea-surface) !important;
   border-right: 1px solid var(--ea-border) !important;
@@ -65,9 +106,9 @@ body, .ea-content-width-full, .content-panel {
   color: var(--ea-muted) !important;
   font-size: 0.875rem !important;
   font-weight: 500 !important;
-  border-radius: 0.625rem !important;
+  border-radius: var(--ea-r-lg) !important;
   margin: 1px 8px !important;
-  transition: all var(--ea-t) !important;
+  transition: background var(--ea-t), color var(--ea-t) !important;
 }
 .sidebar .sidebar-menu .menu-item > a:hover {
   background: color-mix(in oklab, var(--ea-primary) 8%, var(--ea-surface)) !important;
@@ -79,15 +120,18 @@ body, .ea-content-width-full, .content-panel {
   font-weight: 700 !important;
 }
 .sidebar .sidebar-menu .menu-category {
-  font-size: 0.65rem !important;
-  font-weight: 700 !important;
+  font-size: var(--label-size) !important;
+  font-weight: var(--label-weight) !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.1em !important;
+  letter-spacing: var(--label-spacing) !important;
   color: var(--ea-faint) !important;
-  padding: 1rem 1rem 0.25rem !important;
+  padding: var(--sp4) var(--sp4) var(--sp1) !important;
 }
 
-/* ── TOPBAR / NAVBAR ─────────────────────────────────── */
+
+/* ────────────────────────────────────────────────────
+   4. TOPBAR
+   ──────────────────────────────────────────────────── */
 .content-top .main-header {
   background: color-mix(in oklab, var(--ea-surface) 88%, transparent) !important;
   backdrop-filter: blur(16px) !important;
@@ -96,8 +140,12 @@ body, .ea-content-width-full, .content-panel {
   font-family: var(--ea-font) !important;
 }
 
-/* ── PAGE CONTENT ─────────────────────────────────────── */
-.content-wrapper, .ea-content-width-full {
+
+/* ────────────────────────────────────────────────────
+   5. PAGE CONTENT
+   ──────────────────────────────────────────────────── */
+.content-wrapper,
+.ea-content-width-full {
   background: var(--ea-bg) !important;
 }
 .content-panel {
@@ -108,7 +156,10 @@ body, .ea-content-width-full, .content-panel {
   padding: var(--sp6) !important;
 }
 
-/* ── TABLES ───────────────────────────────────────────── */
+
+/* ────────────────────────────────────────────────────
+   6. TABELAS EASYADMIN (datagrid)
+   ──────────────────────────────────────────────────── */
 .datagrid table {
   font-family: var(--ea-font) !important;
   font-size: var(--text-sm) !important;
@@ -116,11 +167,12 @@ body, .ea-content-width-full, .content-panel {
 .datagrid thead th {
   background: var(--ea-surface-off) !important;
   color: var(--ea-muted) !important;
-  font-size: 0.68rem !important;
-  font-weight: 700 !important;
+  font-size: var(--label-size) !important;
+  font-weight: var(--label-weight) !important;
   text-transform: uppercase !important;
   letter-spacing: 0.08em !important;
   border-bottom: 1px solid var(--ea-border) !important;
+  padding: var(--sp2) var(--sp3) !important;
 }
 .datagrid tbody tr {
   border-bottom: 1px solid oklch(from var(--ea-text) l c h / 0.05) !important;
@@ -129,17 +181,27 @@ body, .ea-content-width-full, .content-panel {
 .datagrid tbody tr:hover {
   background: var(--ea-surface-off) !important;
 }
+.datagrid tbody td {
+  padding: var(--sp2) var(--sp3) !important;
+  vertical-align: middle !important;
+  color: var(--ea-text) !important;
+  font-size: var(--text-sm) !important;
+}
 
-/* ── BUTTONS ──────────────────────────────────────────── */
+
+/* ────────────────────────────────────────────────────
+   7. BOTÕES
+   ──────────────────────────────────────────────────── */
 .btn-primary,
 .action-new .btn {
   background: var(--ea-primary) !important;
   border-color: var(--ea-primary) !important;
-  color: white !important;
+  color: #fff !important;
   font-family: var(--ea-font) !important;
   font-weight: 700 !important;
   border-radius: 9999px !important;
-  transition: all var(--ea-t) !important;
+  transition: background var(--ea-t), border-color var(--ea-t),
+              box-shadow var(--ea-t) !important;
 }
 .btn-primary:hover,
 .action-new .btn:hover {
@@ -149,11 +211,12 @@ body, .ea-content-width-full, .content-panel {
 }
 .btn-secondary {
   background: transparent !important;
-  border-color: var(--ea-border) !important;
+  border: 1px solid var(--ea-border) !important;
   color: var(--ea-text) !important;
   font-family: var(--ea-font) !important;
   font-weight: 600 !important;
   border-radius: 9999px !important;
+  transition: background var(--ea-t), border-color var(--ea-t) !important;
 }
 .btn-secondary:hover {
   background: var(--ea-surface-off) !important;
@@ -162,39 +225,61 @@ body, .ea-content-width-full, .content-panel {
 .btn-danger {
   background: var(--ea-error) !important;
   border-color: var(--ea-error) !important;
-  color: white !important;
+  color: #fff !important;
   border-radius: 9999px !important;
+  font-family: var(--ea-font) !important;
+  font-weight: 700 !important;
+  transition: background var(--ea-t) !important;
+}
+.btn-danger:hover {
+  background: color-mix(in oklab, var(--ea-error) 80%, black) !important;
+  border-color: color-mix(in oklab, var(--ea-error) 80%, black) !important;
 }
 
-/* ── FORMS ────────────────────────────────────────────── */
-.form-control, .form-select {
+
+/* ────────────────────────────────────────────────────
+   8. FORMULÁRIOS
+   ──────────────────────────────────────────────────── */
+.form-control,
+.form-select {
   font-family: var(--ea-font) !important;
   border-color: var(--ea-border) !important;
-  border-radius: 0.5rem !important;
+  border-radius: var(--ea-r-md) !important;
   color: var(--ea-text) !important;
   background: var(--ea-surface) !important;
   transition: border-color var(--ea-t), box-shadow var(--ea-t) !important;
 }
-.form-control:focus, .form-select:focus {
+.form-control:focus,
+.form-select:focus {
   border-color: var(--ea-primary) !important;
   box-shadow: 0 0 0 3px oklch(from var(--ea-primary) l c h / 0.15) !important;
+  outline: none !important;
 }
+.form-control::placeholder { color: var(--ea-faint) !important; }
 
-/* ── BADGES / LABELS ──────────────────────────────────── */
+
+/* ────────────────────────────────────────────────────
+   9. BADGES (EasyAdmin)
+   ──────────────────────────────────────────────────── */
 .badge {
   font-family: var(--ea-font) !important;
   font-weight: 700 !important;
   border-radius: 9999px !important;
   font-size: var(--text-xs) !important;
+  padding: 2px 8px !important;
 }
 
-/* ── ADMIN DASHBOARD CUSTOM ───────────────────────────── */
+
+/* ────────────────────────────────────────────────────
+   10. KPIs DO DASHBOARD
+   ──────────────────────────────────────────────────── */
 .adm-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
   gap: var(--sp4);
   margin-bottom: var(--sp8);
 }
+
 .adm-kpi {
   background: var(--ea-surface);
   border: 1px solid var(--ea-border);
@@ -206,7 +291,11 @@ body, .ea-content-width-full, .content-panel {
   gap: var(--sp2);
   transition: box-shadow var(--ea-t), transform var(--ea-t);
 }
-.adm-kpi:hover { box-shadow: var(--ea-sh-md); transform: translateY(-2px); }
+.adm-kpi:hover {
+  box-shadow: var(--ea-sh-md);
+  transform: translateY(-2px);
+}
+
 .adm-kpi__icon {
   width: 38px;
   height: 38px;
@@ -214,18 +303,21 @@ body, .ea-content-width-full, .content-panel {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 .adm-kpi__icon--teal  { background: var(--ea-primary-hi); color: var(--ea-primary-h); }
 .adm-kpi__icon--blue  { background: var(--ea-blue-hi);    color: var(--ea-blue); }
 .adm-kpi__icon--green { background: var(--ea-success-hi); color: var(--ea-success); }
 .adm-kpi__icon--gold  { background: var(--ea-gold-hi);    color: #6e4800; }
 .adm-kpi__icon--error { background: var(--ea-error-hi);   color: var(--ea-error); }
+
 .adm-kpi__label {
-  font-size: 0.65rem;
-  font-weight: 700;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--label-spacing);
   color: var(--ea-muted);
+  margin-top: var(--sp1);
 }
 .adm-kpi__value {
   font-size: var(--text-xl);
@@ -233,18 +325,24 @@ body, .ea-content-width-full, .content-panel {
   font-variant-numeric: tabular-nums;
   line-height: 1.05;
   letter-spacing: -0.02em;
+  color: var(--ea-text);
 }
 .adm-kpi__delta {
   font-size: var(--text-xs);
   color: var(--ea-muted);
   margin-top: auto;
+  padding-top: var(--sp1);
 }
 
+
+/* ────────────────────────────────────────────────────
+   11. SECTION LABEL (divisor)
+   ──────────────────────────────────────────────────── */
 .adm-section-label {
-  font-size: 0.65rem;
-  font-weight: 700;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--label-spacing);
   color: var(--ea-muted);
   margin-bottom: var(--sp4);
   display: flex;
@@ -258,86 +356,19 @@ body, .ea-content-width-full, .content-panel {
   background: var(--ea-border);
 }
 
-.adm-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--sp6);
-  margin-bottom: var(--sp8);
-}
-@media (max-width: 900px) { .adm-row { grid-template-columns: 1fr; } }
 
-.adm-card {
-  background: var(--ea-surface);
-  border: 1px solid var(--ea-border);
-  border-radius: var(--ea-r-xl);
-  padding: var(--sp6);
-  box-shadow: var(--ea-sh-sm);
-}
-.adm-card__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--sp4);
-}
-.adm-card__head h3 {
-  font-size: var(--text-sm);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-.adm-card__head a {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--ea-primary);
-  text-decoration: none;
-}
-.adm-card__head a:hover { text-decoration: underline; }
-
-.adm-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-}
-.adm-table th {
-  text-align: left;
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ea-muted);
-  padding: var(--sp2) var(--sp3);
-  border-bottom: 1px solid var(--ea-border);
-}
-.adm-table td {
-  padding: var(--sp2) var(--sp3);
-  border-bottom: 1px solid oklch(from var(--ea-text) l c h / 0.05);
-  vertical-align: middle;
-  color: var(--ea-text);
-}
-.adm-table tr:last-child td { border-bottom: none; }
-.adm-table tbody tr { transition: background var(--ea-t); }
-.adm-table tbody tr:hover { background: var(--ea-surface-off); }
-
-.adm-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  font-size: var(--text-xs);
-  font-weight: 700;
-}
-.adm-badge--green { background: var(--ea-success-hi); color: var(--ea-success); }
-.adm-badge--blue  { background: var(--ea-blue-hi);    color: var(--ea-blue); }
-.adm-badge--grey  { background: var(--ea-surface-off); color: var(--ea-muted); }
-.adm-badge--red   { background: var(--ea-error-hi);   color: var(--ea-error); }
-.adm-badge--gold  { background: var(--ea-gold-hi);    color: #7a5800; }
-
+/* ────────────────────────────────────────────────────
+   12. CARDS FINANCEIROS (fin-grid)
+   ──────────────────────────────────────────────────── */
 .fin-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--sp4);
   margin-bottom: var(--sp8);
 }
-@media (max-width: 700px) { .fin-grid { grid-template-columns: 1fr; } }
+@media (max-width: 800px) { .fin-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 540px) { .fin-grid { grid-template-columns: 1fr; } }
+
 .fin-card {
   background: var(--ea-surface);
   border: 1px solid var(--ea-border);
@@ -347,7 +378,13 @@ body, .ea-content-width-full, .content-panel {
   display: flex;
   flex-direction: column;
   gap: var(--sp2);
+  transition: box-shadow var(--ea-t), transform var(--ea-t);
 }
+.fin-card:hover {
+  box-shadow: var(--ea-sh-md);
+  transform: translateY(-1px);
+}
+
 .fin-card__icon {
   width: 36px;
   height: 36px;
@@ -355,14 +392,19 @@ body, .ea-content-width-full, .content-panel {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: var(--sp1);
+  /* cores definidas via modificadores abaixo, não inline */
 }
+.fin-card__icon--green { background: var(--ea-success-hi); color: var(--ea-success); }
+.fin-card__icon--red   { background: var(--ea-error-hi);   color: var(--ea-error); }
+.fin-card__icon--gold  { background: var(--ea-gold-hi);    color: #7a5800; }
+
 .fin-card__label {
-  font-size: 0.65rem;
-  font-weight: 700;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--ea-muted);
+  margin-top: var(--sp1);
 }
 .fin-card__value {
   font-size: var(--text-xl);
@@ -375,6 +417,10 @@ body, .ea-content-width-full, .content-panel {
 .fin-card__value--red   { color: var(--ea-error); }
 .fin-card__value--gold  { color: var(--ea-gold); }
 
+
+/* ────────────────────────────────────────────────────
+   13. PROVIDERS
+   ──────────────────────────────────────────────────── */
 .provider-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -390,16 +436,141 @@ body, .ea-content-width-full, .content-panel {
   display: flex;
   align-items: center;
   gap: var(--sp3);
-  transition: box-shadow var(--ea-t);
+  transition: box-shadow var(--ea-t), transform var(--ea-t);
 }
-.provider-card:hover { box-shadow: var(--ea-sh-md); }
+.provider-card:hover {
+  box-shadow: var(--ea-sh-md);
+  transform: translateY(-1px);
+}
 .provider-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-.provider-dot--on  { background: var(--ea-success); box-shadow: 0 0 0 3px var(--ea-success-hi); }
+.provider-dot--on {
+  background: var(--ea-success);
+  box-shadow: 0 0 0 3px var(--ea-success-hi);
+}
 .provider-dot--off { background: var(--ea-faint); }
-.provider-info strong { display: block; font-size: var(--text-sm); font-weight: 700; }
-.provider-info span   { font-size: var(--text-xs); color: var(--ea-muted); }
+.provider-info strong {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ea-text);
+}
+.provider-info span {
+  font-size: var(--text-xs);
+  color: var(--ea-muted);
+}
+
+
+/* ────────────────────────────────────────────────────
+   14. CARDS DE LISTAGEM (pedidos / usuários)
+   ──────────────────────────────────────────────────── */
+.adm-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp6);
+  margin-bottom: var(--sp8);
+}
+@media (max-width: 960px) { .adm-row { grid-template-columns: 1fr; } }
+
+.adm-card {
+  background: var(--ea-surface);
+  border: 1px solid var(--ea-border);
+  border-radius: var(--ea-r-xl);
+  overflow: hidden;
+  box-shadow: var(--ea-sh-sm);
+}
+.adm-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp4) var(--sp5);
+  border-bottom: 1px solid var(--ea-border);
+}
+.adm-card__head h3 {
+  font-size: var(--text-sm);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ea-text);
+}
+.adm-card__head a {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ea-primary);
+  text-decoration: none;
+  transition: color var(--ea-t);
+}
+.adm-card__head a:hover {
+  color: var(--ea-primary-h);
+  text-decoration: underline;
+}
+
+
+/* ────────────────────────────────────────────────────
+   15. TABELA INTERNA DOS CARDS (adm-table)
+   ──────────────────────────────────────────────────── */
+.adm-table-wrap { overflow-x: auto; }
+.adm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+.adm-table th {
+  text-align: left;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ea-muted);
+  padding: var(--sp2) var(--sp4);
+  border-bottom: 1px solid var(--ea-border);
+  background: var(--ea-surface-off);
+  white-space: nowrap;
+}
+.adm-table td {
+  padding: var(--sp2) var(--sp4);
+  border-bottom: 1px solid oklch(from var(--ea-text) l c h / 0.05);
+  vertical-align: middle;
+  color: var(--ea-text);
+}
+.adm-table tr:last-child td { border-bottom: none; }
+.adm-table tbody tr { transition: background var(--ea-t); }
+.adm-table tbody tr:hover { background: var(--ea-surface-off); }
+
+/* Utilitários de célula */
+.adm-table .cell-id    { color: var(--ea-muted); font-size: var(--text-xs); }
+.adm-table .cell-name  { font-weight: 700; }
+.adm-table .cell-muted { color: var(--ea-muted); font-size: var(--text-xs); }
+.adm-table .cell-mono  {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.adm-table .cell-truncate {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* ────────────────────────────────────────────────────
+   16. BADGES DO DASHBOARD (adm-badge)
+   ──────────────────────────────────────────────────── */
+.adm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp1);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.adm-badge--green { background: var(--ea-success-hi); color: var(--ea-success); }
+.adm-badge--blue  { background: var(--ea-blue-hi);    color: var(--ea-blue); }
+.adm-badge--grey  { background: var(--ea-surface-off); color: var(--ea-muted); }
+.adm-badge--red   { background: var(--ea-error-hi);   color: var(--ea-error); }
+.adm-badge--gold  { background: var(--ea-gold-hi);    color: #7a5800; }
