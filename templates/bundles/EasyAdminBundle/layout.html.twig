@@ -1,135 +1,47 @@
 {% extends '@!EasyAdmin/layout.html.twig' %}
 
 {#
-  Override do layout do EasyAdmin para corrigir os ícones SVG gigantes
-  no dropdown do usuário (topbar).
-  Os SVGs do EasyAdmin não têm width/height inline e o reset CSS
-  não consegue atingi-los antes do browser renderizar.
-  Solução: sobrescrever o bloco user_menu com HTML limpo sem SVG.
+  Fix SVG gigante: o EasyAdmin injeta um <svg> sprite invisivel no topo do body.
+  CSS externo chega tarde demais. Este <style> no <head> garante que o browser
+  receba a regra ANTES de renderizar o body.
 #}
+{% block head_stylesheets %}
+  {{ parent() }}
+  <style>
+    /* Esconde o sprite SVG que o EasyAdmin injeta no body */
+    body > svg:first-of-type,
+    body > svg[style*="display:none"],
+    body > svg[aria-hidden] {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      position: absolute !important;
+      overflow: hidden !important;
+    }
 
-{% block user_menu %}
-<div class="user-menu-wrapper" style="position:relative">
-  <button
-    type="button"
-    class="ea-user-menu-btn"
-    aria-haspopup="true"
-    aria-expanded="false"
-    onclick="this.setAttribute('aria-expanded', this.getAttribute('aria-expanded')==='true'?'false':'true'); this.nextElementSibling.classList.toggle('ea-user-menu--open')"
-    style="
-      display:flex; align-items:center; gap:6px;
-      background:none; border:none; cursor:pointer;
-      font-family:var(--ea-font,inherit); font-size:0.875rem;
-      color:var(--ea-text,#1e1c18); font-weight:600;
-      padding:4px 8px; border-radius:6px;
-      transition:background 160ms;
-    "
-    onmouseenter="this.style.background='var(--ea-surface-off,#f0eeea)'"
-    onmouseleave="this.style.background='transparent'"
-  >
-    {# Avatar: círculo com inicial do usuário, sem SVG #}
-    <span style="
-      width:28px; height:28px; border-radius:50%;
-      background:var(--ea-primary-hi,#d0dedd);
-      color:var(--ea-primary-h,#0b4e54);
-      display:flex; align-items:center; justify-content:center;
-      font-size:0.75rem; font-weight:800; flex-shrink:0;
-      line-height:1;
-    ">
-      {{ ea.user is not null ? (ea.user.username ?? ea.user.userIdentifier ?? 'A')|first|upper : 'A' }}
-    </span>
-    <span style="max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
-      {{ ea.user is not null ? (ea.user.username ?? ea.user.userIdentifier) : 'Admin' }}
-    </span>
-    {# Chevron down — SVG pequeno inline #}
-    <svg style="width:12px;height:12px;flex-shrink:0;opacity:.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-  </button>
+    /* Qualquer SVG sem width/height declarado: cap em 20px */
+    svg:not([width]):not([style*="width"]) {
+      max-width: 20px !important;
+      max-height: 20px !important;
+      width: 20px !important;
+      height: 20px !important;
+    }
 
-  <div class="ea-user-menu" style="
-    display:none; position:absolute; right:0; top:calc(100% + 6px);
-    background:var(--ea-surface,#fafaf8);
-    border:1px solid var(--ea-border,#d2cfc9);
-    border-radius:10px;
-    box-shadow:0 4px 16px oklch(0.2 0.01 80 / 0.1);
-    min-width:200px; z-index:9999;
-    padding:4px 0;
-    font-family:var(--ea-font,inherit);
-  ">
-    {# Email do usuário #}
-    <div style="padding:8px 14px 6px; border-bottom:1px solid var(--ea-border,#d2cfc9); margin-bottom:4px">
-      <span style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--ea-muted,#74726d)">Logado como</span><br>
-      <span style="font-size:0.8rem; font-weight:600; color:var(--ea-text,#1e1c18)">
-        {{ ea.user is not null ? (ea.user.username ?? ea.user.userIdentifier) : '' }}
-      </span>
-    </div>
+    /* Excecoes: SVGs com width inline (nossos icones) */
+    svg[style*="width:12px"] { width:12px !important; height:12px !important; max-width:12px !important; max-height:12px !important; }
+    svg[style*="width:16px"] { width:16px !important; height:16px !important; max-width:16px !important; max-height:16px !important; }
+    svg[style*="width:24px"] { width:24px !important; height:24px !important; max-width:24px !important; max-height:24px !important; }
+    svg[style*="width:28px"] { width:28px !important; height:28px !important; max-width:28px !important; max-height:28px !important; }
+    svg[style*="width:32px"] { width:32px !important; height:32px !important; max-width:32px !important; max-height:32px !important; }
 
-    {# Aparência #}
-    <div style="padding:4px 8px; border-bottom:1px solid var(--ea-border,#d2cfc9); margin-bottom:4px">
-      <span style="display:block; padding:4px 6px; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--ea-muted,#74726d)">Aparência</span>
-      <div style="display:flex; gap:4px; padding:2px 6px 6px">
-        {% for scheme in ['light','dark','auto'] %}
-        <button
-          type="button"
-          data-ea-color-scheme="{{ scheme }}"
-          onclick="document.documentElement.setAttribute('data-ea-dark-scheme', '{{ scheme }}'); localStorage.setItem('eaColorScheme','{{ scheme }}')"
-          style="
-            flex:1; padding:4px 2px; border-radius:6px; border:1px solid var(--ea-border,#d2cfc9);
-            background:none; cursor:pointer; font-family:var(--ea-font,inherit);
-            font-size:0.7rem; font-weight:600; color:var(--ea-muted,#74726d);
-            transition:all 160ms;
-          "
-          onmouseenter="this.style.background='var(--ea-primary-hi)'; this.style.color='var(--ea-primary-h)'; this.style.borderColor='var(--ea-primary-hi)'"
-          onmouseleave="this.style.background='none'; this.style.color='var(--ea-muted)'; this.style.borderColor='var(--ea-border)'"
-        >
-          {{ scheme|capitalize }}
-        </button>
-        {% endfor %}
-      </div>
-    </div>
-
-    {# Links do menu #}
-    {% if ea.menuItems is defined %}
-      {% for item in ea.menuItems %}
-        <a href="{{ item.linkUrl }}" style="
-          display:block; padding:7px 14px;
-          font-size:0.875rem; font-weight:500;
-          color:var(--ea-text,#1e1c18); text-decoration:none;
-          transition:background 120ms;
-        "
-        onmouseenter="this.style.background='var(--ea-surface-off)'"
-        onmouseleave="this.style.background='transparent'"
-        >{{ item.label }}</a>
-      {% endfor %}
-    {% endif %}
-
-    {# Sign out #}
-    <div style="padding:4px 0 0; border-top:1px solid var(--ea-border,#d2cfc9); margin-top:4px">
-      <a href="{{ path('app_logout') }}" style="
-        display:block; padding:7px 14px;
-        font-size:0.875rem; font-weight:600;
-        color:var(--ea-error,#a12c7b); text-decoration:none;
-        transition:background 120ms;
-      "
-      onmouseenter="this.style.background='var(--ea-error-hi)'"
-      onmouseleave="this.style.background='transparent'"
-      >Sair</a>
-    </div>
-  </div>
-</div>
-
-{# Fecha o dropdown ao clicar fora #}
-<script>
-document.addEventListener('click', function(e) {
-  var btn = document.querySelector('.ea-user-menu-btn');
-  var menu = document.querySelector('.ea-user-menu');
-  if (!btn || !menu) return;
-  if (!btn.contains(e.target)) {
-    btn.setAttribute('aria-expanded','false');
-    menu.classList.remove('ea-user-menu--open');
-  }
-});
-</script>
-<style>
-.ea-user-menu--open { display:block !important; }
-</style>
+    /* Dropdown do usuario: icones pequenos */
+    .dropdown-menu svg,
+    [class*="user"] svg,
+    [class*="avatar"] svg {
+      width: 16px !important;
+      height: 16px !important;
+      max-width: 16px !important;
+      max-height: 16px !important;
+    }
+  </style>
 {% endblock %}
