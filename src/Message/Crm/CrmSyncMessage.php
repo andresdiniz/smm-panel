@@ -9,6 +9,7 @@ final readonly class CrmSyncMessage
     public function __construct(
         public int    $userId,
         public string $event,
+        /** @var array<string,mixed> */
         public array  $payload = [],
     ) {}
 }
