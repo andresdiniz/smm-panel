@@ -13,6 +13,38 @@ services:
             - '../src/Entity/'
             - '../src/Kernel.php'
 
-    # Bind da interface do gateway — trocar por AsaasGateway ou PagBankGateway em produção
+    # ─── Asaas ────────────────────────────────────────────────────────────────
+    App\Billing\AsaasGateway:
+        arguments:
+            $apiKey:       '%env(ASAAS_API_KEY)%'
+            $baseUrl:      '%env(ASAAS_BASE_URL)%'
+            $webhookToken: '%env(ASAAS_WEBHOOK_TOKEN)%'
+        tags:
+            - { name: app.payment_gateway, alias: asaas }
+
+    # ─── Mercado Pago ─────────────────────────────────────────────────────────
+    App\Billing\MercadoPagoGateway:
+        arguments:
+            $accessToken:  '%env(MP_ACCESS_TOKEN)%'
+            $baseUrl:      '%env(MP_BASE_URL)%'
+            $webhookSecret:'%env(MP_WEBHOOK_SECRET)%'
+        tags:
+            - { name: app.payment_gateway, alias: mercadopago }
+
+    # ─── PagBank ──────────────────────────────────────────────────────────────
+    App\Billing\PagBankGateway:
+        arguments:
+            $token:        '%env(PAGBANK_TOKEN)%'
+            $baseUrl:      '%env(PAGBANK_BASE_URL)%'
+            $webhookToken: '%env(PAGBANK_WEBHOOK_TOKEN)%'
+        tags:
+            - { name: app.payment_gateway, alias: pagbank }
+
+    # ─── Gateway padrão para injeção via interface (ex: WalletController) ─────
     App\Billing\PaymentGatewayInterface:
-        alias: App\Billing\StubPaymentGateway
+        alias: App\Billing\AsaasGateway # trocar conforme o gateway principal
+
+    # ─── Registry dinâmico para WebhookController ─────────────────────────────
+    App\Billing\GatewayRegistry:
+        arguments:
+            - !tagged_iterator { tag: app.payment_gateway, index_by: alias }
