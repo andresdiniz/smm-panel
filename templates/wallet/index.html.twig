@@ -4,25 +4,56 @@
 
 {% block dashboard_body %}
 <div class="wallet-page">
-    {# BALANCE CARD #}
-    <div class="balance-card">
-        <span class="balance-card__label">Saldo disponível</span>
-        <span class="balance-card__amount">R$ {{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}</span>
-        <a href="{{ path('app_wallet_deposit') }}" class="btn btn-primary">+ Adicionar saldo</a>
+
+    {# ── TOPO: SALDO + AÇÃO ── #}
+    <div class="wallet-hero">
+        <div class="wallet-hero__info">
+            <span class="wallet-hero__label">Saldo disponível</span>
+            <span class="wallet-hero__amount">
+                R$ {{ wallet ? (wallet.balanceCents / 100)|number_format(2, ',', '.') : '0,00' }}
+            </span>
+        </div>
+        <a href="{{ path('app_wallet_deposit') }}" class="wbtn wbtn--primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar saldo
+        </a>
     </div>
 
-    {# EXTRATO (Payment entities) #}
-    <div class="card mt-6">
-        <div class="card__header">
-            <h2>Extrato</h2>
-            <span class="text-muted">Últimas {{ transactions|length }} transações</span>
+    {# ── RESUMO RÁPIDO ── #}
+    <div class="wallet-stats">
+        <div class="wallet-stat">
+            <span class="wallet-stat__label">Total depositado</span>
+            <span class="wallet-stat__value">
+                {% set total = 0 %}
+                {% for tx in transactions %}{% if tx.status == 'approved' %}{% set total = total + tx.amountCents %}{% endif %}{% endfor %}
+                R$ {{ (total / 100)|number_format(2, ',', '.') }}
+            </span>
         </div>
-        <div class="card__body p-0">
-            <table class="table">
+        <div class="wallet-stat">
+            <span class="wallet-stat__label">Transações</span>
+            <span class="wallet-stat__value">{{ transactions|length }}</span>
+        </div>
+        <div class="wallet-stat">
+            <span class="wallet-stat__label">Pendentes</span>
+            <span class="wallet-stat__value">
+                {{ transactions|filter(t => t.status == 'pending')|length }}
+            </span>
+        </div>
+    </div>
+
+    {# ── EXTRATO ── #}
+    <div class="wtable-wrap">
+        <div class="wtable-header">
+            <h2 class="wtable-title">Extrato</h2>
+            <span class="wtable-count">{{ transactions|length }} registro(s)</span>
+        </div>
+        <div class="wtable-scroll">
+            <table class="wtable">
                 <thead>
                     <tr>
                         <th>Data</th>
-                        <th>Descrição / Gateway</th>
+                        <th>Gateway</th>
+                        <th>Método</th>
                         <th>Status</th>
                         <th class="text-right">Valor</th>
                     </tr>
@@ -30,26 +61,35 @@
                 <tbody>
                 {% for tx in transactions %}
                 <tr>
-                    <td>{{ tx.createdAt|date('d/m/Y H:i') }}</td>
+                    <td class="wt-date">{{ tx.createdAt|date('d/m/Y') }}<br><small>{{ tx.createdAt|date('H:i') }}</small></td>
                     <td>{{ tx.gateway ?? '—' }}</td>
+                    <td>{{ tx.method ?? '—' }}</td>
                     <td>
-                        <span class="badge badge--{{ tx.status == 'approved' ? 'success' : (tx.status == 'pending' ? 'warning' : 'error') }}">
-                            {% if tx.status == 'approved' %}Aprovado
-                            {% elseif tx.status == 'pending' %}Pendente
-                            {% else %}{{ tx.status|capitalize }}
+                        <span class="wbadge wbadge--{{ tx.status == 'approved' ? 'success' : (tx.status == 'pending' ? 'warning' : 'error') }}">
+                            {% if tx.status == 'approved' %}✓ Aprovado
+                            {% elseif tx.status == 'pending' %}⏳ Pendente
+                            {% elseif tx.status == 'cancelled' %}✕ Cancelado
+                            {% else %}{{ tx.status }}
                             {% endif %}
                         </span>
                     </td>
-                    <td class="text-right {{ tx.status == 'approved' ? 'text-success' : 'text-muted' }}">
+                    <td class="text-right wt-amount {{ tx.status == 'approved' ? 'wt-amount--credit' : '' }}">
                         +R$ {{ (tx.amountCents / 100)|number_format(2, ',', '.') }}
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma transação ainda.</td></tr>
+                <tr>
+                    <td colspan="5" class="wtable-empty">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                        <p>Nenhuma transação ainda.</p>
+                        <a href="{{ path('app_wallet_deposit') }}" class="wbtn wbtn--ghost">Fazer primeiro depósito</a>
+                    </td>
+                </tr>
                 {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+
 </div>
 {% endblock %}

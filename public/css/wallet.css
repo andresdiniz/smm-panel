@@ -1,0 +1,195 @@
+/* =====================================================
+   WALLET PAGE — SMM Panel
+   ===================================================== */
+
+/* Page wrapper */
+.wallet-page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 8px 0 48px;
+    max-width: 960px;
+    width: 100%;
+}
+
+/* ── HERO (saldo + botão) ── */
+.wallet-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: linear-gradient(135deg, #1a1b2e 0%, #16213e 60%, #0f3460 100%);
+    border-radius: 20px;
+    padding: 32px 36px;
+    flex-wrap: wrap;
+}
+.wallet-hero__label {
+    display: block;
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.55);
+    margin-bottom: 8px;
+}
+.wallet-hero__amount {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -.03em;
+    line-height: 1;
+}
+
+/* ── STATS ROW ── */
+.wallet-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+}
+.wallet-stat {
+    background: var(--surface, #1e1e2e);
+    border: 1px solid var(--border, rgba(255,255,255,.08));
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.wallet-stat__label {
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--muted, rgba(255,255,255,.45));
+}
+.wallet-stat__value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text, #e2e8f0);
+    letter-spacing: -.02em;
+}
+
+/* ── BOTÕES ── */
+.wbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border-radius: 12px;
+    font-size: .9rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: filter .18s ease, transform .12s ease;
+    white-space: nowrap;
+}
+.wbtn:hover  { filter: brightness(1.12); }
+.wbtn:active { transform: scale(.97); }
+.wbtn--primary {
+    background: #4f46e5;
+    color: #fff;
+    box-shadow: 0 4px 18px rgba(79,70,229,.4);
+}
+.wbtn--ghost {
+    background: transparent;
+    color: var(--primary, #4f46e5);
+    border: 1.5px solid var(--primary, #4f46e5);
+    padding: 8px 18px;
+    font-size: .85rem;
+}
+
+/* ── TABELA EXTRATO ── */
+.wtable-wrap {
+    background: var(--surface, #1e1e2e);
+    border: 1px solid var(--border, rgba(255,255,255,.08));
+    border-radius: 18px;
+    overflow: hidden;
+}
+.wtable-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border, rgba(255,255,255,.06));
+}
+.wtable-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text, #e2e8f0);
+    margin: 0;
+}
+.wtable-count {
+    font-size: .8rem;
+    color: var(--muted, rgba(255,255,255,.4));
+}
+.wtable-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.wtable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .875rem;
+}
+.wtable thead th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--muted, rgba(255,255,255,.4));
+    background: rgba(255,255,255,.02);
+    border-bottom: 1px solid var(--border, rgba(255,255,255,.06));
+    white-space: nowrap;
+}
+.wtable tbody tr {
+    border-bottom: 1px solid var(--border, rgba(255,255,255,.04));
+    transition: background .15s ease;
+}
+.wtable tbody tr:last-child { border-bottom: none; }
+.wtable tbody tr:hover { background: rgba(255,255,255,.03); }
+.wtable td {
+    padding: 14px 16px;
+    color: var(--text, #e2e8f0);
+    vertical-align: middle;
+}
+.wt-date { color: var(--muted, rgba(255,255,255,.55)); }
+.wt-date small { font-size: .72rem; opacity: .7; display: block; margin-top: 2px; }
+.text-right { text-align: right; }
+.wt-amount { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted, rgba(255,255,255,.5)); }
+.wt-amount--credit { color: #22c55e; }
+
+/* ── BADGES ── */
+.wbadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .03em;
+    white-space: nowrap;
+}
+.wbadge--success { background: rgba(34,197,94,.15);  color: #22c55e; }
+.wbadge--warning { background: rgba(234,179,8,.15);   color: #eab308; }
+.wbadge--error   { background: rgba(239,68,68,.15);   color: #ef4444; }
+
+/* ── EMPTY STATE ── */
+.wtable-empty {
+    text-align: center;
+    padding: 48px 16px;
+    color: var(--muted, rgba(255,255,255,.4));
+}
+.wtable-empty svg { margin: 0 auto 12px; opacity: .3; }
+.wtable-empty p { margin-bottom: 16px; font-size: .9rem; }
+
+/* ── MOBILE ── */
+@media (max-width: 640px) {
+    .wallet-hero { padding: 24px 20px; }
+    .wallet-hero__amount { font-size: 2rem; }
+    .wtable thead th:nth-child(3) { display: none; } /* esconde col Método em mobile */
+    .wtable td:nth-child(3) { display: none; }
+}
