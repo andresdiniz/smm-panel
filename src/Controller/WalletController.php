@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Billing\PaymentGatewayInterface;
+use App\Billing\DynamicGatewayLoader;
 use App\Repository\PaymentRepository;
 use App\Repository\WalletRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,9 +18,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class WalletController extends AbstractController
 {
     public function __construct(
-        private readonly WalletRepository        $walletRepository,
-        private readonly PaymentRepository       $paymentRepository,
-        private readonly PaymentGatewayInterface $paymentGateway,
+        private readonly WalletRepository    $walletRepository,
+        private readonly PaymentRepository   $paymentRepository,
+        private readonly DynamicGatewayLoader $gatewayLoader,
     ) {}
 
     #[Route('', name: 'index')]
@@ -59,7 +59,20 @@ class WalletController extends AbstractController
                 return $this->redirectToRoute('app_wallet_deposit');
             }
 
-            $payment = $this->paymentGateway->createDeposit($user, $amountCents, $method);
+            // Resolve o gateway pelo método escolhido:
+            // 'pix' e 'credit_card' usam o gateway configurado no banco (asaas|pagbank|mercadopago).
+            // O slug ativo é lido de um parâmetro oculto ou da configuração padrão.
+            $gatewaySlug = $request->request->get('gateway', $_ENV['DEFAULT_PAYMENT_GATEWAY'] ?? 'stub');
+
+            try {
+                $gateway = $this->gatewayLoader->load($gatewaySlug);
+            } catch (\RuntimeException $e) {
+                // Credencial ausente no banco — bloqueia o depósito com mensagem clara
+                $this->addFlash('error', 'Gateway de pagamento não configurado. Contate o administrador.');
+                return $this->redirectToRoute('app_wallet_deposit');
+            }
+
+            $payment = $gateway->createDeposit($user, $amountCents, $method);
 
             if ($method === 'pix') {
                 return $this->redirectToRoute('app_wallet_pix_pending', [
@@ -86,8 +99,8 @@ class WalletController extends AbstractController
         }
 
         return $this->render('wallet/pix_pending.html.twig', [
-            'payment'       => $payment,
-            'qrCodeBase64'  => $payment->getQrCodeBase64(),
+            'payment'      => $payment,
+            'qrCodeBase64' => $payment->getQrCodeBase64(),
         ]);
     }
 }
