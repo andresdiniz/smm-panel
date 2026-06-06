@@ -1,167 +1,155 @@
 {% extends '@EasyAdmin/page/content.html.twig' %}
-
-{% block page_title %}Dashboard Administrativo{% endblock %}
-
+{% block page_title %}Dashboard{% endblock %}
 {% block head_stylesheets %}
   {{ parent() }}
   <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
 {% endblock %}
 
-{# Macro: SVG com tamanho travado #}
-{% macro icon(path, viewBox) %}
-  <svg style="width:14px;height:14px;display:block;flex-shrink:0" viewBox="{{ viewBox|default('0 0 24 24') }}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ path|raw }}</svg>
-{% endmacro %}
-{% import _self as icons %}
+{# Inline SVG helper — size always 11×11 #}
+{% macro svg(d) %}<svg style="width:11px;height:11px;display:block;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ d|raw }}</svg>{% endmacro %}
+{% import _self as ic %}
 
 {% block main %}
 
-{# ── KPIs ── #}
-<div class="adm-grid">
+{# ── Page header ─────────────────────────────── #}
+<div class="adm-page-header">
+  <div>
+    <h1 class="adm-page-header__title">Dashboard administrativo</h1>
+    <div class="adm-page-header__sub">Visão geral · {{ 'now'|date('d/m/Y') }}</div>
+  </div>
+</div>
+
+{# ── KPIs ─────────────────────────────────────── #}
+<div class="adm-kpi-grid">
 
   <div class="adm-kpi adm-kpi--teal">
-    <div class="adm-kpi__icon adm-kpi__icon--teal">
-      {{ icons.icon('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>') }}
+    <div class="adm-kpi__top">
+      <span class="adm-kpi__label">Usuários</span>
+      <span class="adm-kpi__badge adm-kpi__badge--teal">{{ ic.svg('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>') }}</span>
     </div>
-    <div class="adm-kpi__label">Usuários totais</div>
     <div class="adm-kpi__value">{{ usersCount }}</div>
     <div class="adm-kpi__delta">+{{ newUsersToday }} hoje</div>
   </div>
 
   <div class="adm-kpi adm-kpi--blue">
-    <div class="adm-kpi__icon adm-kpi__icon--blue">
-      {{ icons.icon('<path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>') }}
+    <div class="adm-kpi__top">
+      <span class="adm-kpi__label">Pedidos (30d)</span>
+      <span class="adm-kpi__badge adm-kpi__badge--blue">{{ ic.svg('<path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>') }}</span>
     </div>
-    <div class="adm-kpi__label">Pedidos (30d)</div>
     <div class="adm-kpi__value">{{ ordersTotal }}</div>
     <div class="adm-kpi__delta">{{ ordersToday }} hoje</div>
   </div>
 
   <div class="adm-kpi adm-kpi--green">
-    <div class="adm-kpi__icon adm-kpi__icon--green">
-      {{ icons.icon('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>') }}
+    <div class="adm-kpi__top">
+      <span class="adm-kpi__label">Receita (30d)</span>
+      <span class="adm-kpi__badge adm-kpi__badge--green">{{ ic.svg('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>') }}</span>
     </div>
-    <div class="adm-kpi__label">Receita (30d)</div>
-    <div class="adm-kpi__value adm-kpi__value--green">R$ {{ (revenueCents / 100)|number_format(2, ',', '.') }}</div>
-    <div class="adm-kpi__delta">R$ {{ (revenueToday / 100)|number_format(2, ',', '.') }} hoje</div>
+    <div class="adm-kpi__value adm-kpi__value--green">R$&nbsp;{{ (revenueCents / 100)|number_format(2, ',', '.') }}</div>
+    <div class="adm-kpi__delta">R$&nbsp;{{ (revenueToday / 100)|number_format(2, ',', '.') }} hoje</div>
   </div>
 
   <div class="adm-kpi adm-kpi--gold">
-    <div class="adm-kpi__icon adm-kpi__icon--gold">
-      {{ icons.icon('<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>') }}
+    <div class="adm-kpi__top">
+      <span class="adm-kpi__label">Lucro líquido</span>
+      <span class="adm-kpi__badge adm-kpi__badge--gold">{{ ic.svg('<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>') }}</span>
     </div>
-    <div class="adm-kpi__label">Lucro líquido (30d)</div>
-    <div class="adm-kpi__value adm-kpi__value--gold">R$ {{ (netProfitCents / 100)|number_format(2, ',', '.') }}</div>
+    <div class="adm-kpi__value adm-kpi__value--gold">R$&nbsp;{{ (netProfitCents / 100)|number_format(2, ',', '.') }}</div>
     <div class="adm-kpi__delta">Após taxas e custos</div>
   </div>
 
 </div>
 
-{# ── Análise financeira ── #}
-<div class="adm-section-label">Análise financeira — últimos 30 dias</div>
+{# ── Análise financeira ───────────────────────── #}
+<div class="adm-divider">Análise financeira — últimos 30 dias</div>
 <div class="fin-grid">
 
-  <div class="fin-card">
-    <div class="fin-card__icon fin-card__icon--green">
-      {{ icons.icon('<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>') }}
-    </div>
-    <div class="fin-card__body">
-      <div class="fin-card__label">Entradas (depósitos)</div>
-      <div class="fin-card__value fin-card__value--green">R$ {{ (revenueCents / 100)|number_format(2, ',', '.') }}</div>
-    </div>
+  <div class="fin-card fin-card--green">
+    <div class="fin-card__label">Entradas (depósitos)</div>
+    <div class="fin-card__value fin-card__value--green">R$&nbsp;{{ (revenueCents / 100)|number_format(2, ',', '.') }}</div>
   </div>
 
-  <div class="fin-card">
-    <div class="fin-card__icon fin-card__icon--red">
-      {{ icons.icon('<polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/>') }}
-    </div>
-    <div class="fin-card__body">
-      <div class="fin-card__label">Saídas (custo providers)</div>
-      <div class="fin-card__value fin-card__value--red">R$ {{ (expensesCents / 100)|number_format(2, ',', '.') }}</div>
-    </div>
+  <div class="fin-card fin-card--red">
+    <div class="fin-card__label">Saídas (custo providers)</div>
+    <div class="fin-card__value fin-card__value--red">R$&nbsp;{{ (expensesCents / 100)|number_format(2, ',', '.') }}</div>
   </div>
 
-  <div class="fin-card">
-    <div class="fin-card__icon fin-card__icon--gold">
-      {{ icons.icon('<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>') }}
-    </div>
-    <div class="fin-card__body">
-      <div class="fin-card__label">Taxas (gateways)</div>
-      <div class="fin-card__value fin-card__value--gold">R$ {{ (feesCents / 100)|number_format(2, ',', '.') }}</div>
-    </div>
+  <div class="fin-card fin-card--gold">
+    <div class="fin-card__label">Taxas (gateways)</div>
+    <div class="fin-card__value fin-card__value--gold">R$&nbsp;{{ (feesCents / 100)|number_format(2, ',', '.') }}</div>
   </div>
 
 </div>
 
-{# ── Providers ── #}
-<div class="adm-section-label">Providers &amp; Gateways</div>
+{# ── Providers ────────────────────────────────── #}
+<div class="adm-divider">Providers &amp; Gateways</div>
 <div class="provider-grid">
   {% for cred in credentials %}
-  <div class="provider-card">
-    <div class="provider-dot provider-dot--{{ cred.active ? 'on' : 'off' }}"></div>
-    <div class="provider-info">
-      <strong>{{ cred.slug|upper }}</strong>
-      <span>{{ cred.type == 'payment_gateway' ? 'Gateway' : 'SMM' }} &mdash; {{ cred.active ? 'Ativo' : 'Inativo' }}</span>
-    </div>
+  <div class="provider-pill">
+    <span class="provider-dot provider-dot--{{ cred.active ? 'on' : 'off' }}"></span>
+    <span class="provider-pill__name">{{ cred.slug|upper }}</span>
+    <span class="provider-pill__type">{{ cred.type == 'payment_gateway' ? 'Gateway' : 'SMM' }}</span>
   </div>
   {% else %}
-  <p class="adm-empty">Nenhuma credencial cadastrada.</p>
+  <p class="adm-empty">Nenhuma credencial.</p>
   {% endfor %}
 </div>
 
-{# ── Pedidos + Usuários recentes ── #}
-<div class="adm-row">
+{# ── Tabelas ──────────────────────────────────── #}
+<div class="adm-pair">
 
   <div class="adm-card">
     <div class="adm-card__head">
-      <h3>Pedidos recentes</h3>
-      <a href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').generateUrl() }}">Ver todos →</a>
+      <span class="adm-card__head-title">Pedidos recentes</span>
+      <a class="adm-card__head-link" href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').generateUrl() }}">Ver todos →</a>
     </div>
     {% if recentOrders|length > 0 %}
     <div class="adm-table-wrap">
       <table class="adm-table">
         <thead><tr><th>#</th><th>Usuário</th><th>Serviço</th><th>Valor</th><th>Status</th></tr></thead>
         <tbody>
-          {% for order in recentOrders %}
+          {% for o in recentOrders %}
           <tr>
-            <td class="cell-id">{{ order.id }}</td>
-            <td class="cell-name">{{ order.user.name }}</td>
-            <td class="cell-muted cell-truncate">{{ order.service.name }}</td>
-            <td class="cell-mono">R$ {{ (order.amountCents / 100)|number_format(2, ',', '.') }}</td>
-            <td><span class="adm-badge adm-badge--{{ order.status == 'completed' ? 'green' : (order.status == 'cancelled' ? 'red' : (order.status == 'pending' ? 'grey' : 'blue')) }}">{{ order.status|replace({'_': ' '})|capitalize }}</span></td>
+            <td class="c-id">{{ o.id }}</td>
+            <td class="c-bold">{{ o.user.name }}</td>
+            <td class="c-muted c-clip">{{ o.service.name }}</td>
+            <td class="c-mono">R$&nbsp;{{ (o.amountCents/100)|number_format(2,',','.') }}</td>
+            <td>
+              {% set s = o.status %}
+              <span class="adm-badge adm-badge--{{ s=='completed'?'green':(s=='cancelled'?'red':(s=='processing'?'blue':'grey')) }}">
+                {{ s|replace({'_':' '})|capitalize }}
+              </span>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    {% else %}
-    <p class="adm-empty">Nenhum pedido ainda.</p>
-    {% endif %}
+    {% else %}<p class="adm-empty">Nenhum pedido ainda.</p>{% endif %}
   </div>
 
   <div class="adm-card">
     <div class="adm-card__head">
-      <h3>Usuários recentes</h3>
-      <a href="{{ ea_url().setController('App\\Controller\\Admin\\UserCrudController').generateUrl() }}">Ver todos →</a>
+      <span class="adm-card__head-title">Usuários recentes</span>
+      <a class="adm-card__head-link" href="{{ ea_url().setController('App\\Controller\\Admin\\UserCrudController').generateUrl() }}">Ver todos →</a>
     </div>
     {% if recentUsers|length > 0 %}
     <div class="adm-table-wrap">
       <table class="adm-table">
         <thead><tr><th>Nome</th><th>E-mail</th><th>Saldo</th><th>Desde</th></tr></thead>
         <tbody>
-          {% for user in recentUsers %}
+          {% for u in recentUsers %}
           <tr>
-            <td class="cell-name">{{ user.name }}</td>
-            <td class="cell-muted">{{ user.email }}</td>
-            <td class="cell-mono">R$ {{ user.wallet ? (user.wallet.balanceCents / 100)|number_format(2, ',', '.') : '0,00' }}</td>
-            <td class="cell-muted cell-mono">{{ user.createdAt|date('d/m/Y') }}</td>
+            <td class="c-bold">{{ u.name }}</td>
+            <td class="c-muted">{{ u.email }}</td>
+            <td class="c-mono">R$&nbsp;{{ u.wallet ? (u.wallet.balanceCents/100)|number_format(2,',','.') : '0,00' }}</td>
+            <td class="c-muted c-mono">{{ u.createdAt|date('d/m/Y') }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    {% else %}
-    <p class="adm-empty">Nenhum usuário ainda.</p>
-    {% endif %}
+    {% else %}<p class="adm-empty">Nenhum usuário ainda.</p>{% endif %}
   </div>
 
 </div>
