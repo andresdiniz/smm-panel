@@ -13,7 +13,7 @@ services:
             - '../src/Entity/'
             - '../src/Kernel.php'
 
-    # ─── Asaas ────────────────────────────────────────────────────────────────
+    # ─── Gateways de Pagamento ────────────────────────────────────────────────────
     App\Billing\AsaasGateway:
         arguments:
             $apiKey:       '%env(ASAAS_API_KEY)%'
@@ -22,7 +22,6 @@ services:
         tags:
             - { name: app.payment_gateway, alias: asaas }
 
-    # ─── Mercado Pago ─────────────────────────────────────────────────────────
     App\Billing\MercadoPagoGateway:
         arguments:
             $accessToken:  '%env(MP_ACCESS_TOKEN)%'
@@ -31,7 +30,6 @@ services:
         tags:
             - { name: app.payment_gateway, alias: mercadopago }
 
-    # ─── PagBank ──────────────────────────────────────────────────────────────
     App\Billing\PagBankGateway:
         arguments:
             $token:        '%env(PAGBANK_TOKEN)%'
@@ -40,11 +38,42 @@ services:
         tags:
             - { name: app.payment_gateway, alias: pagbank }
 
-    # ─── Gateway padrão para injeção via interface (ex: WalletController) ─────
     App\Billing\PaymentGatewayInterface:
-        alias: App\Billing\AsaasGateway # trocar conforme o gateway principal
+        alias: App\Billing\AsaasGateway
 
-    # ─── Registry dinâmico para WebhookController ─────────────────────────────
     App\Billing\GatewayRegistry:
         arguments:
             - !tagged_iterator { tag: app.payment_gateway, index_by: alias }
+
+    # ─── Providers SMM externos ──────────────────────────────────────────────────────
+    app.smm_provider.smmkings:
+        class: App\Smm\GenericSmmProvider
+        arguments:
+            $slug:    'smmkings'
+            $baseUrl: '%env(SMMKINGS_URL)%'
+            $apiKey:  '%env(SMMKINGS_API_KEY)%'
+        tags:
+            - { name: app.smm_provider, alias: smmkings }
+
+    app.smm_provider.justanother:
+        class: App\Smm\GenericSmmProvider
+        arguments:
+            $slug:    'justanother'
+            $baseUrl: '%env(JUSTANOTHER_URL)%'
+            $apiKey:  '%env(JUSTANOTHER_API_KEY)%'
+        tags:
+            - { name: app.smm_provider, alias: justanother }
+
+    app.smm_provider.peakerr:
+        class: App\Smm\GenericSmmProvider
+        arguments:
+            $slug:    'peakerr'
+            $baseUrl: '%env(PEAKERR_URL)%'
+            $apiKey:  '%env(PEAKERR_API_KEY)%'
+        tags:
+            - { name: app.smm_provider, alias: peakerr }
+
+    # ─── Registry de Providers SMM ───────────────────────────────────────────────────
+    App\Smm\SmmProviderRegistry:
+        arguments:
+            - !tagged_iterator { tag: app.smm_provider, index_by: alias }
