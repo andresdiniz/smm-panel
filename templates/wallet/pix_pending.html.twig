@@ -1,67 +1,44 @@
-{% extends 'dashboard/layout.html.twig' %}
+{% extends 'base.html.twig' %}
 
-{% block page_title %}Aguardando pagamento Pix{% endblock %}
+{% block title %}Pix pendente — PulseSMM{% endblock %}
 
-{% block dashboard_body %}
-<div class="pix-page">
-    <div class="card pix-card">
-        <div class="card__header">
-            <h2>⚡ Pague via Pix</h2>
-            <span id="pixTimer" class="pix-timer">Expira em <strong id="countdown">15:00</strong></span>
-        </div>
-        <div class="card__body">
-            <p class="pix-amount">R$ {{ (payment.amountCents / 100)|number_format(2, ',', '.') }}</p>
-
-            {% if payment.pixQrCodeUrl %}
-            <div class="pix-qr">
-                <img src="{{ payment.pixQrCodeUrl }}" alt="QR Code Pix" width="200" height="200">
+{% block body %}
+<section class="wallet-page wallet-page--narrow">
+    <div class="container">
+        <div class="pix-card panel-card" data-reveal>
+            <div class="pix-card__head">
+                <span class="pill">Pagamento aguardando</span>
+                <h1>Conclua sua recarga via Pix</h1>
+                <p>Escaneie o QR Code ou copie o código abaixo para finalizar o pagamento.</p>
             </div>
-            {% endif %}
 
-            <div class="pix-copy">
-                <label>Pix Copia e Cola</label>
-                <div class="pix-copy__row">
-                    <input type="text" readonly value="{{ payment.pixPayload }}" id="pixCode" class="form-control font-mono">
-                    <button onclick="navigator.clipboard.writeText(document.getElementById('pixCode').value);this.textContent='Copiado!'" class="btn btn-primary">Copiar</button>
+            <div class="pix-card__grid">
+                <div class="pix-card__qr glass-card">
+                    {% if qrCodeBase64 is defined and qrCodeBase64 %}
+                        <img src="data:image/png;base64,{{ qrCodeBase64 }}" alt="QR Code Pix" class="pix-card__image">
+                    {% else %}
+                        <div class="pix-card__placeholder">QR Code indisponível</div>
+                    {% endif %}
                 </div>
-            </div>
 
-            <div class="pix-steps">
-                <p><strong>Como pagar:</strong></p>
-                <ol>
-                    <li>Abra o app do seu banco</li>
-                    <li>Escolha pagar via Pix</li>
-                    <li>Escaneie o QR code ou cole o código</li>
-                    <li>Confirme o pagamento</li>
-                </ol>
-            </div>
+                <div class="pix-card__info">
+                    <div class="glass-card">
+                        <span>Valor</span>
+                        <strong>R$ {{ (payment.amountCents / 100)|number_format(2, ',', '.') }}</strong>
+                    </div>
 
-            <div class="pix-status" id="pixStatus">
-                <span class="spinner"></span> Aguardando pagamento…
+                    <div class="field">
+                        <span>Copia e cola Pix</span>
+                        <textarea class="control control--textarea" id="pixCode" readonly>{{ payment.pixCode }}</textarea>
+                    </div>
+
+                    <div class="pix-card__actions">
+                        <button type="button" class="btn btn--primary" onclick="navigator.clipboard.writeText(document.getElementById('pixCode').value)">Copiar código</button>
+                        <a href="{{ path('app_wallet_index') }}" class="btn btn--ghost">Voltar para carteira</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
-
-{% block javascripts %}
-{{ parent() }}
-<script>
-// Countdown
-let exp = new Date('{{ payment.pixExpiresAt|date('c') }}').getTime();
-const cd = document.getElementById('countdown');
-setInterval(() => {
-    const rem = Math.max(0, Math.floor((exp - Date.now()) / 1000));
-    cd.textContent = String(Math.floor(rem/60)).padStart(2,'0') + ':' + String(rem%60).padStart(2,'0');
-}, 1000);
-// Poll payment status
-setInterval(async () => {
-    const r = await fetch('{{ path('api_payment_status', {id: payment.id}) }}');
-    const d = await r.json();
-    if (d.status === 'confirmed') {
-        document.getElementById('pixStatus').innerHTML = '✅ Pagamento confirmado! Redirecionando…';
-        setTimeout(() => location.href = '{{ path('app_wallet_index') }}', 1500);
-    }
-}, 5000);
-</script>
+</section>
 {% endblock %}

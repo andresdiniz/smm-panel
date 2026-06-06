@@ -1,0 +1,87 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}CRM Admin — PulseSMM{% endblock %}
+
+{% block body %}
+<section class="admin-page">
+    <div class="container admin-grid">
+        <aside class="admin-nav panel-card" data-reveal>
+            <h2>CRM</h2>
+            <nav class="app-menu">
+                <a href="#overview" class="is-active">Visão geral</a>
+                <a href="#contacts">Contatos</a>
+                <a href="#pipeline">Pipeline</a>
+                <a href="#campaigns">Campanhas</a>
+                <a href="#finance">Financeiro</a>
+            </nav>
+        </aside>
+
+        <div class="admin-content">
+            <section id="overview" class="kpi-grid">
+                <article class="kpi-card kpi-card--gradient" data-reveal>
+                    <span>Receita do mês</span>
+                    <strong>R$ {{ (stats.revenueMonthCents / 100)|number_format(2, ',', '.') }}</strong>
+                    <small>Entradas confirmadas</small>
+                </article>
+                <article class="kpi-card" data-reveal>
+                    <span>Saídas</span>
+                    <strong>R$ {{ (stats.expensesMonthCents / 100)|number_format(2, ',', '.') }}</strong>
+                    <small>Custos e operações</small>
+                </article>
+                <article class="kpi-card" data-reveal>
+                    <span>Taxas</span>
+                    <strong>R$ {{ (stats.feesMonthCents / 100)|number_format(2, ',', '.') }}</strong>
+                    <small>Gateways e descontos</small>
+                </article>
+            </section>
+
+            <section id="contacts" class="panel-card" data-reveal>
+                <div class="panel-card__head">
+                    <h2>Contatos recentes</h2>
+                    <span class="pill pill--soft">CRM</span>
+                </div>
+                <div class="admin-table">
+                    {% for contact in recentContacts %}
+                        <article class="order-item">
+                            <div class="order-item__top">
+                                <div>
+                                    <strong>{{ contact.name }}</strong>
+                                    <p>{{ contact.email }}</p>
+                                </div>
+                                <span class="badge badge--processing">{{ contact.status }}</span>
+                            </div>
+                            <div class="order-item__meta">
+                                <span>{{ contact.source }}</span>
+                                <span>{{ contact.createdAt|date('d/m/Y H:i') }}</span>
+                            </div>
+                        </article>
+                    {% else %}
+                        <div class="empty-box">Nenhum contato recente.</div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section id="pipeline" class="panel-card" data-reveal>
+                <div class="panel-card__head">
+                    <h2>Pipeline</h2>
+                    <span class="pill pill--soft">Tracking</span>
+                </div>
+                <div class="crm-columns">
+                    <div class="crm-column">
+                        <h3>Novos</h3>
+                        <p>{{ stats.newLeads }} leads</p>
+                    </div>
+                    <div class="crm-column">
+                        <h3>Em contato</h3>
+                        <p>{{ stats.inContact }} leads</p>
+                    </div>
+                    <div class="crm-column">
+                        <h3>Convertidos</h3>
+                        <p>{{ stats.converted }} clientes</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</section>
+{% endblock %}
