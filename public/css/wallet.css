@@ -3,20 +3,22 @@
    Depende de app.css (tokens + componentes base)
    ═══════════════════════════════════════════════════════ */
 
-/* ── HERO ────────────────────────────────────────────── */
+/* ── HERO ────────────────────────────────────────── */
 .wallet-hero {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--sp4);
-  background: linear-gradient(135deg,
-    color-mix(in oklab, var(--primary) 14%, var(--surface)) 0%,
-    var(--surface) 100%);
+  gap: var(--sp5);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--primary) 12%, var(--surface)) 0%,
+    var(--surface) 60%
+  );
   border: 1px solid var(--border);
   border-radius: var(--r-2xl);
-  padding: var(--sp8) var(--sp8);
-  margin-bottom: var(--sp6);
+  padding: var(--sp8) var(--sp10);
+  margin-bottom: var(--sp8);
   box-shadow: var(--sh-md);
 }
 
@@ -46,18 +48,82 @@
   flex-wrap: wrap;
 }
 
-/* ── AJUSTES RESPONSIVOS ─────────────────────────────── */
+/* ── KPIs ────────────────────────────────────────── */
+/* Reduz margin-bottom do kpi-grid nesta página */
+.wallet-kpis {
+  margin-bottom: var(--sp8);
+}
+
+/* Valor médio: usa --text-lg em vez do --text-xl do kpi padrão */
+.kpi__value--md {
+  font-size: var(--text-lg) !important;
+}
+
+/* Cor verde para o kpi de aprovadas */
+.kpi__value--success {
+  color: var(--success);
+}
+
+/* ── CARD DA TABELA ───────────────────────────────── */
+.wallet-table-card {
+  overflow: hidden; /* garante que o table-wrap não vaze do border-radius */
+}
+
+/* card__head com padding próprio (sem inline style no twig) */
+.wallet-table-card .card__head {
+  padding: var(--sp5) var(--sp6);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0; /* remove o margin-bottom padrão do card__head */
+}
+
+/* table-wrap sem padding extra — a tabela cuida dos espaços internos */
+.wallet-table-card .table-wrap {
+  padding: 0;
+}
+
+/* Última linha sem border para não "flutuar" no fim do card */
+.wallet-table-card .data-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Colunas de valor alinhadas à direita */
+.cell-right {
+  text-align: right;
+}
+
+/* Valor em crédito (depósito aprovado) */
+.wt-amount {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.wt-amount--credit {
+  color: var(--success);
+}
+
+/* ── RESPONSIVO ─────────────────────────────────── */
 @media (max-width: 600px) {
   .wallet-hero {
     flex-direction: column;
     align-items: flex-start;
     padding: var(--sp6) var(--sp5);
+    gap: var(--sp4);
+    margin-bottom: var(--sp6);
   }
+
   .wallet-hero__actions {
     width: 100%;
   }
+
   .wallet-hero__actions .btn {
     flex: 1;
     justify-content: center;
+  }
+
+  .wallet-kpis {
+    margin-bottom: var(--sp6);
+  }
+
+  .wallet-table-card .card__head {
+    padding: var(--sp4) var(--sp4);
   }
 }
