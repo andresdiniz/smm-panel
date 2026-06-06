@@ -8,46 +8,58 @@
 
   {# ── HERO SALDO ── #}
   <div class="wallet-hero" data-reveal>
-    <div class="wallet-hero__info">
+    <div>
       <span class="wallet-hero__label">Saldo disponível</span>
-      <span class="wallet-hero__amount">
+      <div class="wallet-hero__amount">
         R$ {{ wallet ? (wallet.balanceCents / 100)|number_format(2, ',', '.') : '0,00' }}
-      </span>
+      </div>
     </div>
-    <a href="{{ path('app_wallet_deposit') }}" class="btn btn--primary">
-      <i data-lucide="plus" width="16" height="16"></i>
-      Adicionar saldo
-    </a>
+    <div class="wallet-hero__actions">
+      <a href="{{ path('app_wallet_deposit') }}" class="wbtn wbtn--primary">
+        <i data-lucide="plus" width="16" height="16"></i>
+        Adicionar saldo
+      </a>
+      <a href="{{ path('app_transaction_index') }}" class="wbtn wbtn--ghost">
+        <i data-lucide="clock" width="16" height="16"></i>
+        Histórico completo
+      </a>
+    </div>
   </div>
 
   {# ── STATS ── #}
-  <div class="kpi-grid" data-reveal>
-    <div class="kpi">
-      <div class="kpi__label">Total depositado</div>
-      <div class="kpi__value">
+  <div class="wallet-stats" data-reveal>
+    <div class="wallet-stat">
+      <div class="wallet-stat__label">Total depositado</div>
+      <div class="wallet-stat__value">
         {% set total = 0 %}
         {% for tx in transactions %}{% if tx.status == 'approved' %}{% set total = total + tx.amountCents %}{% endif %}{% endfor %}
         R$ {{ (total / 100)|number_format(2, ',', '.') }}
       </div>
     </div>
-    <div class="kpi">
-      <div class="kpi__label">Transações</div>
-      <div class="kpi__value">{{ transactions|length }}</div>
+    <div class="wallet-stat">
+      <div class="wallet-stat__label">Transações</div>
+      <div class="wallet-stat__value">{{ transactions|length }}</div>
     </div>
-    <div class="kpi">
-      <div class="kpi__label">Pendentes</div>
-      <div class="kpi__value">{{ transactions|filter(t => t.status == 'pending')|length }}</div>
+    <div class="wallet-stat">
+      <div class="wallet-stat__label">Pendentes</div>
+      <div class="wallet-stat__value">{{ transactions|filter(t => t.status == 'pending')|length }}</div>
+    </div>
+    <div class="wallet-stat">
+      <div class="wallet-stat__label">Aprovadas</div>
+      <div class="wallet-stat__value wallet-stat__value--credit">
+        {{ transactions|filter(t => t.status == 'approved')|length }}
+      </div>
     </div>
   </div>
 
   {# ── EXTRATO ── #}
-  <div class="card" data-reveal>
-    <div class="card__head">
-      <h2 class="card__title">Extrato</h2>
-      <span class="badge badge--soft">{{ transactions|length }} registro(s)</span>
+  <div class="wtable-wrap" data-reveal>
+    <div class="wtable-header">
+      <h2 class="wtable-title">Extrato</h2>
+      <span class="wtable-count">{{ transactions|length }} registro(s)</span>
     </div>
-    <div class="table-wrap">
-      <table class="data-table">
+    <div class="wtable-scroll">
+      <table class="wtable">
         <thead>
           <tr>
             <th>Data</th>
@@ -60,26 +72,26 @@
         <tbody>
         {% for tx in transactions %}
           <tr>
-            <td>
-              <span class="text-sm">{{ tx.createdAt|date('d/m/Y') }}</span><br>
-              <span class="text-xs text-muted">{{ tx.createdAt|date('H:i') }}</span>
+            <td class="wt-date">
+              {{ tx.createdAt|date('d/m/Y') }}
+              <small>{{ tx.createdAt|date('H:i') }}</small>
             </td>
             <td>{{ tx.gateway ?? '—' }}</td>
             <td>{{ tx.method ?? '—' }}</td>
             <td>
-              <span class="badge badge--{{ tx.status == 'approved' ? 'completed' : (tx.status == 'pending' ? 'pending' : 'cancelled') }}">
+              <span class="wbadge wbadge--{{ tx.status == 'approved' ? 'success' : (tx.status == 'pending' ? 'warning' : 'error') }}">
                 {{ tx.status == 'approved' ? 'Aprovado' : (tx.status == 'pending' ? 'Pendente' : (tx.status == 'cancelled' ? 'Cancelado' : tx.status)) }}
               </span>
             </td>
-            <td class="text-right tabular-nums {{ tx.status == 'approved' ? 'text-success' : '' }}">
+            <td class="text-right wt-amount {{ tx.status == 'approved' ? 'wt-amount--credit' : '' }}">
               +R$ {{ (tx.amountCents / 100)|number_format(2, ',', '.') }}
             </td>
           </tr>
         {% else %}
           <tr>
             <td colspan="5">
-              <div class="empty-state">
-                <i data-lucide="credit-card" width="32" height="32"></i>
+              <div class="wtable-empty">
+                <i data-lucide="credit-card" width="40" height="40"></i>
                 <p>Nenhuma transação ainda.</p>
                 <a href="{{ path('app_wallet_deposit') }}" class="btn btn--ghost btn--sm">Fazer primeiro depósito</a>
               </div>

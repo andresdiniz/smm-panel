@@ -4,62 +4,120 @@
 {% block page_title %}Meu perfil{% endblock %}
 
 {% block content %}
-<div style="max-width:600px;margin:0 auto">
+<div class="profile-layout">
 
-  <div class="panel-card" data-reveal>
-    <div class="panel-card__head">
-      <h2>Dados da conta</h2>
-      <span class="pill pill--soft">Perfil</span>
+  {# ── SIDEBAR PERFIL ── #}
+  <div class="profile-side" data-reveal>
+    <div class="profile-avatar">{{ user.name|first|upper }}</div>
+    <div class="profile-side__name">{{ user.name }}</div>
+    <div class="profile-side__email">{{ user.email }}</div>
+    <div class="profile-side__role">
+      {% if is_granted('ROLE_ADMIN') %}
+        <span class="badge badge--admin">Admin</span>
+      {% else %}
+        <span class="badge badge--pending">Usuário</span>
+      {% endif %}
     </div>
 
-    {# Avatar inicial #}
-    <div style="display:flex;align-items:center;gap:var(--space-4);margin-bottom:var(--space-6)">
-      <div style="width:64px;height:64px;border-radius:50%;background:var(--color-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--text-xl);font-weight:700;flex-shrink:0">
-        {{ user.name|first|upper }}
+    <div class="profile-side__stats">
+      <div class="profile-stat">
+        <span class="profile-stat__label">Membro desde</span>
+        <span class="profile-stat__value">{{ user.createdAt|date('d/m/Y') }}</span>
       </div>
-      <div>
-        <strong style="font-size:var(--text-lg)">{{ user.name }}</strong><br>
-        <span class="text-muted" style="font-size:var(--text-sm)">{{ user.email }}</span>
-      </div>
-    </div>
-
-    <div class="kpi-grid" style="margin-bottom:var(--space-6)">
-      <div class="kpi">
-        <div class="kpi__label">Membro desde</div>
-        <div class="kpi__value" style="font-size:var(--text-base)">{{ user.createdAt|date('d/m/Y') }}</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi__label">Saldo</div>
-        <div class="kpi__value" style="font-size:var(--text-base)">
+      <div class="profile-stat">
+        <span class="profile-stat__label">Saldo</span>
+        <span class="profile-stat__value">
           R$ {{ user.wallet ? (user.wallet.balanceCents / 100)|number_format(2, ',', '.') : '0,00' }}
-        </div>
-      </div>
-      <div class="kpi">
-        <div class="kpi__label">Função</div>
-        <div class="kpi__value" style="font-size:var(--text-base)">
-          {% if is_granted('ROLE_ADMIN') %}
-            <span class="badge badge--processing">Admin</span>
-          {% else %}
-            <span class="badge badge--soft">Usuário</span>
-          {% endif %}
-        </div>
+        </span>
       </div>
     </div>
+  </div>
 
-    <form method="post" class="quick-form">
+  {# ── FORMULÁRIO ── #}
+  <div class="card card--padded" data-reveal>
+    <h2 class="profile-form__title">Dados da conta</h2>
+    <p class="profile-form__sub">Atualize seu nome de exibição.</p>
+
+    <form method="post" class="form-grid" style="margin-top: var(--sp5)">
       <input type="hidden" name="_token" value="{{ csrf_token('profile_edit') }}">
-      <label class="field">
-        <span>Nome completo</span>
-        <input type="text" name="name" class="control" value="{{ user.name }}" required minlength="2">
-      </label>
-      <label class="field">
-        <span>E-mail</span>
-        <input type="email" class="control" value="{{ user.email }}" disabled title="O e-mail não pode ser alterado aqui.">
-        <small class="text-muted">Para alterar o e-mail entre em contato com o suporte.</small>
-      </label>
-      <button type="submit" class="btn btn--primary">Salvar alterações</button>
+
+      <div class="field">
+        <label for="profile_name">Nome completo <span class="required">*</span></label>
+        <input type="text" id="profile_name" name="name" class="control"
+               value="{{ user.name }}" required minlength="2">
+      </div>
+
+      <div class="field">
+        <label>E-mail</label>
+        <input type="email" class="control" value="{{ user.email }}" disabled>
+        <span class="field-hint">Para alterar o e-mail entre em contato com o suporte.</span>
+      </div>
+
+      <button type="submit" class="btn btn--primary">
+        <i data-lucide="save" width="16" height="16"></i>
+        Salvar alterações
+      </button>
     </form>
   </div>
 
 </div>
+
+<style>
+.profile-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: var(--sp6);
+  max-width: 860px;
+  align-items: start;
+}
+.profile-side {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--sp6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--sp2);
+  box-shadow: var(--sh-sm);
+}
+.profile-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--r-full);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-h) 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xl);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  margin-bottom: var(--sp2);
+  box-shadow: var(--sh-md);
+}
+.profile-side__name { font-size: var(--text-base); font-weight: 800; letter-spacing: -0.02em; }
+.profile-side__email { font-size: var(--text-xs); color: var(--muted); }
+.profile-side__role { margin: var(--sp1) 0 var(--sp4); }
+.profile-side__stats {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp2);
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp4);
+  margin-top: var(--sp2);
+}
+.profile-stat { display: flex; justify-content: space-between; align-items: center; font-size: var(--text-xs); }
+.profile-stat__label { color: var(--muted); font-weight: 600; }
+.profile-stat__value { font-weight: 800; font-variant-numeric: tabular-nums; }
+.profile-form__title { font-size: var(--text-lg); font-weight: 900; letter-spacing: -0.02em; }
+.profile-form__sub { font-size: var(--text-sm); color: var(--muted); margin-top: 4px; }
+@media (max-width: 680px) {
+  .profile-layout { grid-template-columns: 1fr; }
+  .profile-side { flex-direction: row; text-align: left; flex-wrap: wrap; }
+  .profile-avatar { width: 52px; height: 52px; font-size: var(--text-base); }
+}
+</style>
 {% endblock %}

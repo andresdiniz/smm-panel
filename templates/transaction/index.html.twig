@@ -1,124 +1,100 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Histórico de Transações{% endblock %}
-
+{% block title %}Histórico — PulseSMM{% endblock %}
 {% block page_title %}Histórico{% endblock %}
 
 {% block content %}
-<div class="page-transactions">
+<div class="tx-page">
 
-  {# KPIs #}
-  <div class="kpi-grid">
+  {# ── KPIs ── #}
+  <div class="kpi-grid" data-reveal>
     <div class="kpi">
-      <div class="kpi__label">Total de transações</div>
+      <div class="kpi__icon kpi__icon--teal"><i data-lucide="repeat" width="18" height="18"></i></div>
+      <div class="kpi__label">Total</div>
       <div class="kpi__value">{{ transactions|length }}</div>
     </div>
     <div class="kpi">
+      <div class="kpi__icon kpi__icon--green"><i data-lucide="arrow-down-left" width="18" height="18"></i></div>
       <div class="kpi__label">Entradas</div>
-      <div class="kpi__value">
-        {{ transactions|filter(t => t.type.value == 'credit')|length }}
-      </div>
+      <div class="kpi__value">{{ transactions|filter(t => t.type.value == 'credit')|length }}</div>
     </div>
     <div class="kpi">
+      <div class="kpi__icon kpi__icon--error"><i data-lucide="arrow-up-right" width="18" height="18"></i></div>
       <div class="kpi__label">Saídas</div>
-      <div class="kpi__value">
-        {{ transactions|filter(t => t.type.value == 'debit')|length }}
-      </div>
+      <div class="kpi__value">{{ transactions|filter(t => t.type.value == 'debit')|length }}</div>
     </div>
-    <div class="kpi kpi--balance">
+    <div class="kpi">
+      <div class="kpi__icon kpi__icon--blue"><i data-lucide="wallet" width="18" height="18"></i></div>
       <div class="kpi__label">Saldo atual</div>
       <div class="kpi__value">
-        {% if wallet %}
-          R$ {{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}
-        {% else %}
-          R$ 0,00
-        {% endif %}
+        {% if wallet %}R$ {{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}{% else %}R$ 0,00{% endif %}
       </div>
     </div>
   </div>
 
-  {# Tabela #}
-  <div class="table-card">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Descrição</th>
-          <th>Tipo</th>
-          <th>Valor</th>
-          <th>Saldo após</th>
-        </tr>
-      </thead>
-      <tbody>
+  {# ── TABELA ── #}
+  <div class="wtable-wrap" data-reveal>
+    <div class="wtable-header">
+      <h2 class="wtable-title">Transações</h2>
+      <span class="wtable-count">{{ transactions|length }} registro(s)</span>
+    </div>
+    <div class="wtable-scroll">
+      <table class="wtable">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Descrição</th>
+            <th>Tipo</th>
+            <th class="text-right">Valor</th>
+            <th class="text-right">Saldo após</th>
+          </tr>
+        </thead>
+        <tbody>
         {% for t in transactions %}
-        <tr>
-          <td class="td-date">{{ t.createdAt|date('d/m/Y H:i') }}</td>
-          <td>{{ t.description }}</td>
-          <td>
-            {% if t.type.value == 'credit' %}
-              <span class="badge badge--success">Entrada</span>
-            {% elseif t.type.value == 'debit' %}
-              <span class="badge badge--error">Saída</span>
-            {% else %}
-              <span class="badge badge--neutral">{{ t.type.value }}</span>
-            {% endif %}
-          </td>
-          <td class="td-amount {{ t.type.value == 'credit' ? 'amount--in' : 'amount--out' }}">
-            {{ t.type.value == 'credit' ? '+' : '-' }}
-            R$ {{ (t.amountCents / 100)|number_format(2, ',', '.') }}
-          </td>
-          <td class="td-balance">
-            R$ {{ (t.balanceAfterCents / 100)|number_format(2, ',', '.') }}
-          </td>
-        </tr>
+          <tr>
+            <td class="wt-date">
+              {{ t.createdAt|date('d/m/Y') }}
+              <small>{{ t.createdAt|date('H:i') }}</small>
+            </td>
+            <td>{{ t.description }}</td>
+            <td>
+              {% if t.type.value == 'credit' %}
+                <span class="wbadge wbadge--success">
+                  <i data-lucide="arrow-down-left" width="12" height="12"></i> Entrada
+                </span>
+              {% elseif t.type.value == 'debit' %}
+                <span class="wbadge wbadge--error">
+                  <i data-lucide="arrow-up-right" width="12" height="12"></i> Saída
+                </span>
+              {% else %}
+                <span class="wbadge wbadge--neutral">{{ t.type.value }}</span>
+              {% endif %}
+            </td>
+            <td class="text-right wt-amount {{ t.type.value == 'credit' ? 'wt-amount--credit' : 'wt-amount--debit' }}">
+              {{ t.type.value == 'credit' ? '+' : '-' }}R$ {{ (t.amountCents / 100)|number_format(2, ',', '.') }}
+            </td>
+            <td class="text-right wt-amount">
+              R$ {{ (t.balanceAfterCents / 100)|number_format(2, ',', '.') }}
+            </td>
+          </tr>
         {% else %}
-        <tr>
-          <td colspan="5" class="empty-state">
-            <span>Nenhuma transação encontrada.</span>
-          </td>
-        </tr>
+          <tr>
+            <td colspan="5">
+              <div class="wtable-empty">
+                <i data-lucide="inbox" width="40" height="40"></i>
+                <p>Nenhuma transação encontrada.</p>
+              </div>
+            </td>
+          </tr>
         {% endfor %}
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   </div>
 
 </div>
 
 <style>
-.page-transactions { padding: var(--space-6) var(--space-4); max-width: var(--content-wide); margin: 0 auto; }
-
-.kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6); }
-.kpi { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); }
-.kpi--balance { border-color: var(--color-primary); }
-.kpi__label { font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: var(--space-1); }
-.kpi__value { font-size: var(--text-xl); font-weight: 700; color: var(--color-text); }
-.kpi--balance .kpi__value { color: var(--color-primary); }
-
-.table-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
-.table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
-.table thead th { background: var(--color-surface-offset); padding: var(--space-3) var(--space-4); text-align: left; font-weight: 600; color: var(--color-text-muted); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--color-border); }
-.table tbody tr { border-bottom: 1px solid var(--color-divider); transition: background var(--transition-interactive); }
-.table tbody tr:last-child { border-bottom: none; }
-.table tbody tr:hover { background: var(--color-surface-offset); }
-.table td { padding: var(--space-3) var(--space-4); vertical-align: middle; color: var(--color-text); }
-.td-date { color: var(--color-text-muted); white-space: nowrap; }
-.td-amount { font-weight: 600; white-space: nowrap; }
-.amount--in { color: var(--color-success); }
-.amount--out { color: var(--color-error); }
-.td-balance { color: var(--color-text-muted); white-space: nowrap; }
-
-.badge { display: inline-block; padding: 2px var(--space-2); border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: 600; }
-.badge--success { background: var(--color-success-highlight); color: var(--color-success); }
-.badge--error { background: var(--color-error-highlight); color: var(--color-error); }
-.badge--neutral { background: var(--color-surface-offset); color: var(--color-text-muted); }
-
-.empty-state { text-align: center; padding: var(--space-12); color: var(--color-text-muted); }
-
-@media (max-width: 640px) {
-  .table thead { display: none; }
-  .table tbody tr { display: block; padding: var(--space-3); margin-bottom: var(--space-2); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
-  .table td { display: flex; justify-content: space-between; padding: var(--space-1) 0; border: none; }
-  .table td::before { content: attr(data-label); color: var(--color-text-muted); font-size: var(--text-xs); }
-}
+.tx-page { display: flex; flex-direction: column; gap: var(--sp6); max-width: 1000px; }
 </style>
 {% endblock %}
