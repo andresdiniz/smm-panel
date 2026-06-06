@@ -26,7 +26,7 @@ class AppFixtures extends Fixture
 
     public function load(ObjectManager $em): void
     {
-        // ── Categorias ───────────────────────────────────────────────────────
+        // ── Categorias ────────────────────────────────────────────────────
         $catIG = (new ServiceCategory())
             ->setName('Instagram')->setSlug('instagram')->setSortOrder(1)->setIsActive(true);
         $em->persist($catIG);
@@ -35,14 +35,13 @@ class AppFixtures extends Fixture
             ->setName('TikTok')->setSlug('tiktok')->setSortOrder(2)->setIsActive(true);
         $em->persist($catTT);
 
-        // ── Credenciais de Providers ─────────────────────────────────────────
+        // ── Providers ──────────────────────────────────────────────────
         $credJAP = (new ProviderCredential())
             ->setProviderSlug('justanotherpanel')
             ->setLabel('JustAnotherPanel Principal')
             ->setApiKey('DEMO_KEY_JAP_000000')
             ->setBaseUrl('https://justanotherpanel.com/api/v2')
-            ->setBalanceCents(0)
-            ->setIsActive(true);
+            ->setBalanceCents(0)->setIsActive(true);
         $em->persist($credJAP);
 
         $credPEA = (new ProviderCredential())
@@ -50,11 +49,10 @@ class AppFixtures extends Fixture
             ->setLabel('Peakerr Principal')
             ->setApiKey('DEMO_KEY_PEAKERR_000')
             ->setBaseUrl('https://peakerr.com/api/v2')
-            ->setBalanceCents(0)
-            ->setIsActive(true);
+            ->setBalanceCents(0)->setIsActive(true);
         $em->persist($credPEA);
 
-        // ── Serviços ─────────────────────────────────────────────────────────
+        // ── Serviços ────────────────────────────────────────────────────
         $s1 = (new Service())
             ->setCategory($catIG)->setName('Seguidores Instagram – BR')
             ->setDescription('Seguidores brasileiros de alta qualidade.')
@@ -83,7 +81,7 @@ class AppFixtures extends Fixture
             ->setPriceCents(10)->setMinQuantity(1000)->setMaxQuantity(1000000)->setIsActive(true);
         $em->persist($s4);
 
-        // ── Usuários ──────────────────────────────────────────────────────────
+        // ── Usuários ────────────────────────────────────────────────────
         $admin = new User();
         $admin->setEmail('admin@pulsesmm.com.br')
             ->setName('Administrador')
@@ -91,16 +89,16 @@ class AppFixtures extends Fixture
             ->setIsActive(true);
         $admin->setPassword($this->hasher->hashPassword($admin, 'Admin@1234'));
         $em->persist($admin);
-        $this->createWallet($em, $admin, 50000_00);
-        $this->createCrmContact($em, $admin, ['admin', 'new_user'], 'direct', null, null);
+        $this->createWallet($em, $admin, 50_000_00);
+        $this->createCrmContact($em, $admin, ['admin'], 'direct', null, null);
 
         $userData = [
-            ['João Silva',    'joao@exemplo.com.br',  'User@1234', 15000_00, ['buyer', 'new_user'],        'google',    'smm_campaign_q1', 'cpc'],
-            ['Maria Santos',  'maria@exemplo.com.br', 'User@1234',  8500_00, ['buyer', 'abandoned_cart'], 'instagram', null,               'social'],
-            ['Pedro Costa',   'pedro@exemplo.com.br', 'User@1234',   500_00, ['new_user'],                null,        null,               null],
+            ['João Silva',  'joao@exemplo.com.br',  'User@1234', 15_000_00, ['buyer','new_user'],        'google',    'smm_q1', 'cpc'],
+            ['Maria Santos','maria@exemplo.com.br', 'User@1234',  8_500_00, ['buyer','abandoned_cart'], 'instagram', null,     'social'],
+            ['Pedro Costa', 'pedro@exemplo.com.br', 'User@1234',    500_00, ['new_user'],               null,        null,     null],
         ];
 
-        $userEntities = [];
+        $users = [];
         foreach ($userData as [$name, $email, $pass, $balance, $tags, $src, $camp, $med]) {
             $u = new User();
             $u->setEmail($email)->setName($name)->setRoles(['ROLE_USER'])->setIsActive(true);
@@ -108,57 +106,48 @@ class AppFixtures extends Fixture
             $em->persist($u);
             $this->createWallet($em, $u, $balance);
             $this->createCrmContact($em, $u, $tags, $src, $camp, $med);
-            $userEntities[] = $u;
+            $users[] = $u;
         }
 
-        $em->flush(); // flush para gerar IDs
+        $em->flush(); // IDs gerados aqui
 
-        // ── Pedidos ───────────────────────────────────────────────────────────
-        $ordersData = [
-            [$userEntities[0], $s1, 'https://instagram.com/joaosilva',   1000,  'completed'],
-            [$userEntities[0], $s2, 'https://instagram.com/p/abc123',     500,  'processing'],
-            [$userEntities[1], $s1, 'https://instagram.com/mariasantos', 2000,  'completed'],
-            [$userEntities[1], $s3, 'https://tiktok.com/@mariasantos',   1000,  'pending'],
-            [$userEntities[2], $s4, 'https://tiktok.com/@pedrocosta',   10000,  'pending'],
-            [$admin,           $s1, 'https://instagram.com/admintest',    500,  'completed'],
-        ];
-
-        foreach ($ordersData as [$user, $service, $link, $qty, $status]) {
-            $order = new Order();
-            $order->setUser($user)
-                ->setService($service)
-                ->setLink($link)
-                ->setQuantity($qty)
-                ->setAmountCents((int) ($service->getPriceCents() * $qty / 1000))
+        // ── Pedidos ─────────────────────────────────────────────────────────
+        foreach ([
+            [$users[0], $s1, 'https://instagram.com/joaosilva',    1000, Order::STATUS_COMPLETED],
+            [$users[0], $s2, 'https://instagram.com/p/abc123',      500, Order::STATUS_PROCESSING],
+            [$users[1], $s1, 'https://instagram.com/mariasantos',  2000, Order::STATUS_COMPLETED],
+            [$users[1], $s3, 'https://tiktok.com/@mariasantos',    1000, Order::STATUS_PENDING],
+            [$users[2], $s4, 'https://tiktok.com/@pedrocosta',    10000, Order::STATUS_PENDING],
+            [$admin,    $s1, 'https://instagram.com/admintest',     500, Order::STATUS_COMPLETED],
+        ] as [$user, $svc, $url, $qty, $status]) {
+            $o = new Order();
+            $o->setUser($user)->setService($svc)
+                ->setTargetUrl($url)->setQuantity($qty)
+                ->setAmountCents((int) ($svc->getPriceCents() * $qty / 1000))
                 ->setStatus($status)
-                ->setProviderSlug($service->getProviderSlug())
-                ->setExternalOrderId($status !== 'pending' ? 'EXT-' . random_int(10000, 99999) : null);
-            $em->persist($order);
+                ->setExternalOrderId($status !== Order::STATUS_PENDING ? 'EXT-'.random_int(10000, 99999) : null);
+            $em->persist($o);
         }
 
-        // ── Pagamentos ────────────────────────────────────────────────────────
+        // ── Pagamentos ──────────────────────────────────────────────────────
         $now = new \DateTimeImmutable();
-        $paymentsData = [
-            [$userEntities[0], 'asaas', 'pix',          15000_00,  45_00, 'paid',    $now],
-            [$userEntities[1], 'asaas', 'credit_card',   8500_00, 297_50, 'paid',    $now],
-            [$userEntities[2], 'asaas', 'pix',            500_00,   1_50, 'pending', null],
-        ];
-
-        foreach ($paymentsData as [$user, $gw, $method, $amount, $fee, $status, $paidAt]) {
+        foreach ([
+            [$users[0], Payment::TYPE_DEPOSIT, Payment::METHOD_PIX,         15_000_00,     45_00, Payment::STATUS_APPROVED, $now],
+            [$users[1], Payment::TYPE_DEPOSIT, Payment::METHOD_CREDIT_CARD,  8_500_00,    297_50, Payment::STATUS_APPROVED, $now],
+            [$users[2], Payment::TYPE_DEPOSIT, Payment::METHOD_PIX,            500_00,      1_50, Payment::STATUS_PENDING,  null],
+        ] as [$user, $type, $method, $amount, $fee, $status, $paidAt]) {
             $p = new Payment();
-            $p->setUser($user)->setGateway($gw)->setMethod($method)
+            $p->setUser($user)->setType($type)->setMethod($method)
                 ->setAmountCents($amount)->setFeeCents($fee)
-                ->setStatus($status)->setExternalId('PAY-' . random_int(100000, 999999));
-            if ($paidAt instanceof \DateTimeImmutable) {
-                $p->setPaidAt($paidAt);
-            }
+                ->setStatus($status)->setExternalId('PAY-'.random_int(100000, 999999));
+            if ($paidAt) { $p->setPaidAt($paidAt); }
             $em->persist($p);
         }
 
-        // ── Ticket de suporte (entidade Contact = CRM lead/suporte) ───────────
-        $ticket = new Contact();
-        $ticket->setName($userEntities[0]->getName())
-            ->setEmail($userEntities[0]->getEmail())
+        // ── Contato/Lead CRM ───────────────────────────────────────────────
+        $ticket = (new Contact())
+            ->setName($users[0]->getName())
+            ->setEmail($users[0]->getEmail())
             ->setSource('painel')
             ->setStatus(Contact::STATUS_NEW)
             ->setNotes('Pedido não processado após 2 horas.');
@@ -167,34 +156,27 @@ class AppFixtures extends Fixture
         $em->flush();
     }
 
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
     private function createWallet(ObjectManager $em, User $user, int $balanceCents): void
     {
-        $wallet = new Wallet();
-        $wallet->setUser($user)->setBalanceCents($balanceCents);
-        $em->persist($wallet);
+        $w = (new Wallet())->setUser($user)->setBalanceCents($balanceCents);
+        $em->persist($w);
 
         if ($balanceCents > 0) {
-            $tx = new WalletTransaction();
-            $tx->setWallet($wallet)
-                ->setAmountCents($balanceCents)
-                ->setType('credit')
-                ->setDescription('Saldo inicial (seed)');
+            $tx = (new WalletTransaction())
+                ->setWallet($w)->setAmountCents($balanceCents)
+                ->setType('credit')->setDescription('Saldo inicial (seed)');
             $em->persist($tx);
         }
     }
 
     private function createCrmContact(
-        ObjectManager $em,
-        User $user,
-        array $tags,
-        ?string $src,
-        ?string $camp,
-        ?string $med,
+        ObjectManager $em, User $user, array $tags,
+        ?string $src, ?string $camp, ?string $med,
     ): void {
         $c = new CrmContact($user);
-        foreach ($tags as $tag) {
-            $c->addTag($tag);
-        }
+        foreach ($tags as $tag) { $c->addTag($tag); }
         if ($src)  { $c->setUtmSource($src); }
         if ($camp) { $c->setUtmCampaign($camp); }
         if ($med)  { $c->setUtmMedium($med); }
