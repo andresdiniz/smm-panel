@@ -4,104 +4,122 @@
 {% block page_title %}Carteira{% endblock %}
 
 {% block content %}
-<div class="wallet-page">
 
-  {# ── HERO SALDO ── #}
-  <div class="wallet-hero" data-reveal>
-    <div>
-      <span class="wallet-hero__label">Saldo disponível</span>
-      <div class="wallet-hero__amount">
-        R$ {{ wallet ? (wallet.balanceCents / 100)|number_format(2, ',', '.') : '0,00' }}
-      </div>
-    </div>
-    <div class="wallet-hero__actions">
-      <a href="{{ path('app_wallet_deposit') }}" class="wbtn wbtn--primary">
-        <i data-lucide="plus" width="16" height="16"></i>
-        Adicionar saldo
-      </a>
-      <a href="{{ path('app_transaction_index') }}" class="wbtn wbtn--ghost">
-        <i data-lucide="clock" width="16" height="16"></i>
-        Histórico completo
-      </a>
+{# ── HERO SALDO ── #}
+<div class="wallet-hero" data-reveal>
+  <div class="wallet-hero__info">
+    <span class="wallet-hero__label">Saldo disponível</span>
+    <div class="wallet-hero__amount">
+      R$&nbsp;{{ wallet ? (wallet.balanceCents / 100)|number_format(2, ',', '.') : '0,00' }}
     </div>
   </div>
-
-  {# ── STATS ── #}
-  <div class="wallet-stats" data-reveal>
-    <div class="wallet-stat">
-      <div class="wallet-stat__label">Total depositado</div>
-      <div class="wallet-stat__value">
-        {% set total = 0 %}
-        {% for tx in transactions %}{% if tx.status == 'approved' %}{% set total = total + tx.amountCents %}{% endif %}{% endfor %}
-        R$ {{ (total / 100)|number_format(2, ',', '.') }}
-      </div>
-    </div>
-    <div class="wallet-stat">
-      <div class="wallet-stat__label">Transações</div>
-      <div class="wallet-stat__value">{{ transactions|length }}</div>
-    </div>
-    <div class="wallet-stat">
-      <div class="wallet-stat__label">Pendentes</div>
-      <div class="wallet-stat__value">{{ transactions|filter(t => t.status == 'pending')|length }}</div>
-    </div>
-    <div class="wallet-stat">
-      <div class="wallet-stat__label">Aprovadas</div>
-      <div class="wallet-stat__value wallet-stat__value--credit">
-        {{ transactions|filter(t => t.status == 'approved')|length }}
-      </div>
-    </div>
+  <div class="wallet-hero__actions">
+    <a href="{{ path('app_wallet_deposit') }}" class="btn btn--primary">
+      <i data-lucide="plus" width="16" height="16"></i>
+      Adicionar saldo
+    </a>
+    <a href="{{ path('app_transaction_index') }}" class="btn btn--ghost">
+      <i data-lucide="clock" width="16" height="16"></i>
+      Histórico completo
+    </a>
   </div>
-
-  {# ── EXTRATO ── #}
-  <div class="wtable-wrap" data-reveal>
-    <div class="wtable-header">
-      <h2 class="wtable-title">Extrato</h2>
-      <span class="wtable-count">{{ transactions|length }} registro(s)</span>
-    </div>
-    <div class="wtable-scroll">
-      <table class="wtable">
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>Gateway</th>
-            <th>Método</th>
-            <th>Status</th>
-            <th class="text-right">Valor</th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for tx in transactions %}
-          <tr>
-            <td class="wt-date">
-              {{ tx.createdAt|date('d/m/Y') }}
-              <small>{{ tx.createdAt|date('H:i') }}</small>
-            </td>
-            <td>{{ tx.gateway ?? '—' }}</td>
-            <td>{{ tx.method ?? '—' }}</td>
-            <td>
-              <span class="wbadge wbadge--{{ tx.status == 'approved' ? 'success' : (tx.status == 'pending' ? 'warning' : 'error') }}">
-                {{ tx.status == 'approved' ? 'Aprovado' : (tx.status == 'pending' ? 'Pendente' : (tx.status == 'cancelled' ? 'Cancelado' : tx.status)) }}
-              </span>
-            </td>
-            <td class="text-right wt-amount {{ tx.status == 'approved' ? 'wt-amount--credit' : '' }}">
-              +R$ {{ (tx.amountCents / 100)|number_format(2, ',', '.') }}
-            </td>
-          </tr>
-        {% else %}
-          <tr>
-            <td colspan="5">
-              <div class="wtable-empty">
-                <i data-lucide="credit-card" width="40" height="40"></i>
-                <p>Nenhuma transação ainda.</p>
-                <a href="{{ path('app_wallet_deposit') }}" class="btn btn--ghost btn--sm">Fazer primeiro depósito</a>
-              </div>
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
 </div>
+
+{# ── STATS ── #}
+{% set total_depositado = 0 %}
+{% for tx in transactions %}
+  {% if tx.status == 'approved' %}{% set total_depositado = total_depositado + tx.amountCents %}{% endif %}
+{% endfor %}
+
+<div class="kpi-grid" data-reveal>
+  <div class="kpi">
+    <div class="kpi__icon kpi__icon--teal">
+      <i data-lucide="trending-up" width="18" height="18"></i>
+    </div>
+    <div class="kpi__label">Total depositado</div>
+    <div class="kpi__value" style="font-size:var(--text-lg)">R$&nbsp;{{ (total_depositado / 100)|number_format(2, ',', '.') }}</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi__icon kpi__icon--blue">
+      <i data-lucide="layers" width="18" height="18"></i>
+    </div>
+    <div class="kpi__label">Transações</div>
+    <div class="kpi__value" style="font-size:var(--text-lg)">{{ transactions|length }}</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi__icon kpi__icon--gold">
+      <i data-lucide="clock" width="18" height="18"></i>
+    </div>
+    <div class="kpi__label">Pendentes</div>
+    <div class="kpi__value" style="font-size:var(--text-lg)">{{ transactions|filter(t => t.status == 'pending')|length }}</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi__icon kpi__icon--green">
+      <i data-lucide="check-circle" width="18" height="18"></i>
+    </div>
+    <div class="kpi__label">Aprovadas</div>
+    <div class="kpi__value" style="font-size:var(--text-lg);color:var(--success)">{{ transactions|filter(t => t.status == 'approved')|length }}</div>
+  </div>
+</div>
+
+{# ── EXTRATO ── #}
+<div class="card" data-reveal>
+  <div class="card__head" style="padding:var(--sp5) var(--sp6) 0">
+    <h2>Extrato</h2>
+    <span class="badge badge--pending">{{ transactions|length }} registro(s)</span>
+  </div>
+  <div class="table-wrap" style="padding:var(--sp3) 0 var(--sp2)">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Gateway</th>
+          <th>Método</th>
+          <th>Status</th>
+          <th style="text-align:right">Valor</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for tx in transactions %}
+        <tr>
+          <td class="cell-muted cell-mono">
+            {{ tx.createdAt|date('d/m/Y') }}<br>
+            <small>{{ tx.createdAt|date('H:i') }}</small>
+          </td>
+          <td>{{ tx.gateway ?? '—' }}</td>
+          <td>{{ tx.method ?? '—' }}</td>
+          <td>
+            {% if tx.status == 'approved' %}
+              <span class="badge badge--completed">Aprovado</span>
+            {% elseif tx.status == 'pending' %}
+              <span class="badge badge--pending">Pendente</span>
+            {% elseif tx.status == 'cancelled' %}
+              <span class="badge badge--cancelled">Cancelado</span>
+            {% else %}
+              <span class="badge badge--pending">{{ tx.status }}</span>
+            {% endif %}
+          </td>
+          <td style="text-align:right" class="cell-mono">
+            <span style="color:{{ tx.status == 'approved' ? 'var(--success)' : 'inherit' }};font-weight:700">
+              +R$&nbsp;{{ (tx.amountCents / 100)|number_format(2, ',', '.') }}
+            </span>
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="5">
+            <div class="empty-state">
+              <i data-lucide="credit-card" width="40" height="40"></i>
+              <h3>Nenhuma transação ainda</h3>
+              <p>Faça seu primeiro depósito para começar.</p>
+              <a href="{{ path('app_wallet_deposit') }}" class="btn btn--ghost btn--sm">Fazer primeiro depósito</a>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 {% endblock %}
