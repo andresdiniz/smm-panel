@@ -1,3 +1,5 @@
 easyadmin:
-    resource: '@EasyAdminBundle/Controller/AbstractCrudController.php'
-    type: annotation
+    resource:
+        path: ../src/Controller/Admin/
+        namespace: App\Controller\Admin
+    type: attribute
