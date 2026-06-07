@@ -32,4 +32,24 @@ class WalletTransactionRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Soma todos os créditos (type = 'credit') do mês corrente em centavos.
+     */
+    public function sumCreditThisMonth(): int
+    {
+        $start = new \DateTimeImmutable('first day of this month midnight');
+        $end   = new \DateTimeImmutable('first day of next month midnight');
+
+        return (int) $this->createQueryBuilder('t')
+            ->select('SUM(t.amountCents)')
+            ->andWhere('t.type = :type')
+            ->andWhere('t.createdAt >= :start')
+            ->andWhere('t.createdAt < :end')
+            ->setParameter('type', 'credit')
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->getQuery()
+            ->getSingleScalarResult() ?? 0;
+    }
 }

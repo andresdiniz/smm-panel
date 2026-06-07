@@ -67,4 +67,26 @@ class OrderRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult() ?? 0;
     }
+
+    public function countToday(): int
+    {
+        $start = new \DateTimeImmutable('today midnight');
+
+        return (int) $this->createQueryBuilder('o')
+            ->select('COUNT(o.id)')
+            ->andWhere('o.createdAt >= :start')
+            ->setParameter('start', $start)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function countByStatus(string $status): int
+    {
+        return (int) $this->createQueryBuilder('o')
+            ->select('COUNT(o.id)')
+            ->andWhere('o.status = :status')
+            ->setParameter('status', $status)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }
