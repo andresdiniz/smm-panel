@@ -32,19 +32,19 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 class ServiceImportController extends AbstractController
 {
     public function __construct(
-        private readonly HttpClientInterface             $httpClient,
-        private readonly EntityManagerInterface          $em,
-        private readonly ProviderCredentialRepository    $credentialRepo,
-        private readonly ServiceCategoryRepository       $categoryRepo,
-        private readonly ServiceRepository               $serviceRepo,
+        private readonly HttpClientInterface          $httpClient,
+        private readonly EntityManagerInterface       $em,
+        private readonly ProviderCredentialRepository $credentialRepo,
+        private readonly ServiceCategoryRepository    $categoryRepo,
+        private readonly ServiceRepository            $serviceRepo,
     ) {}
 
     /** Tela principal: lista provedores disponíveis e categorias existentes */
     #[Route('', name: '', methods: ['GET'])]
     public function index(): Response
     {
-        $providers   = $this->credentialRepo->findBy(['type' => 'smm_api'], ['slug' => 'ASC']);
-        $categories  = $this->categoryRepo->findBy(['isActive' => true], ['sortOrder' => 'ASC']);
+        $providers  = $this->credentialRepo->findBy(['type' => ProviderCredential::TYPE_SMM], ['slug' => 'ASC']);
+        $categories = $this->categoryRepo->findAllActive();
 
         return $this->render('admin/service_import/index.html.twig', [
             'providers'  => $providers,
@@ -62,7 +62,7 @@ class ServiceImportController extends AbstractController
     public function fetch(Request $request): JsonResponse
     {
         $slug       = $request->request->get('provider_slug', '');
-        $credential = $this->credentialRepo->findOneBy(['slug' => $slug, 'type' => 'smm_api']);
+        $credential = $this->credentialRepo->findOneBy(['slug' => $slug, 'type' => ProviderCredential::TYPE_SMM]);
 
         if (!$credential) {
             return $this->json(['error' => 'Provedor não encontrado.'], 404);
@@ -75,7 +75,7 @@ class ServiceImportController extends AbstractController
         }
 
         // Mapeia IDs já importados para marcar na UI
-        $existing = $this->serviceRepo->findBy(['providerSlug' => $slug]);
+        $existing    = $this->serviceRepo->findBy(['providerSlug' => $slug]);
         $existingIds = array_map(fn(Service $s) => $s->getExternalServiceId(), $existing);
 
         return $this->json([
@@ -85,24 +85,24 @@ class ServiceImportController extends AbstractController
     }
 
     /**
-     * Salva os serviços selecionados.
+     * Salva os serviços selecionados (upsert).
      *
      * POST body (JSON):
      * {
-     *   provider_slug: string,
-     *   mode: "batch" | "individual",
-     *   category_id: int|null,          // batch com categoria única
-     *   default_markup_percent: int,    // batch: margem padrão em %
+     *   provider_slug:          string,
+     *   mode:                   "batch" | "individual",
+     *   category_id:            int|null,
+     *   default_markup_percent: int,
      *   services: [
      *     {
      *       external_id:      string,
      *       name:             string,
-     *       provider_price:   float,   // preço do provedor por 1000 unidades (USD)
+     *       provider_price:   float,
      *       min_qty:          int,
      *       max_qty:          int,
-     *       category_id:      int|null, // individual override
-     *       markup_percent:   int|null, // individual override
-     *       custom_min_qty:   int|null, // sobrescreve min do provedor
+     *       category_id:      int|null,
+     *       markup_percent:   int|null,
+     *       custom_min_qty:   int|null,
      *     }
      *   ]
      * }
@@ -115,22 +115,20 @@ class ServiceImportController extends AbstractController
             return $this->json(['error' => 'Payload inválido.'], 400);
         }
 
-        $slug        = $data['provider_slug'] ?? '';
-        $mode        = $data['mode'] ?? 'batch';          // 'batch' | 'individual'
-        $defaultCatId   = $data['category_id'] ?? null;
-        $defaultMarkup  = (int) ($data['default_markup_percent'] ?? 30);
-        $servicesData   = $data['services'] ?? [];
+        $slug          = $data['provider_slug'] ?? '';
+        $mode          = $data['mode'] ?? 'batch';
+        $defaultCatId  = $data['category_id'] ?? null;
+        $defaultMarkup = (int) ($data['default_markup_percent'] ?? 30);
+        $servicesData  = $data['services'] ?? [];
 
-        $defaultCategory = $defaultCatId
-            ? $this->categoryRepo->find($defaultCatId)
-            : null;
+        $defaultCategory = $defaultCatId ? $this->categoryRepo->find($defaultCatId) : null;
 
         $saved   = 0;
         $updated = 0;
 
         foreach ($servicesData as $item) {
             $externalId    = (string) ($item['external_id'] ?? '');
-            $providerPrice = (float) ($item['provider_price'] ?? 0); // USD por 1000
+            $providerPrice = (float) ($item['provider_price'] ?? 0);
             $markup        = (int) ($item['markup_percent'] ?? $defaultMarkup);
             $catId         = $item['category_id'] ?? $defaultCatId;
 
@@ -138,16 +136,15 @@ class ServiceImportController extends AbstractController
                 continue;
             }
 
-            // Preço de venda = providerPrice * (1 + markup/100), convertido para centavos
+            // Preço de venda em centavos = providerPrice * (1 + markup/100) * 100
             $sellPriceCents = (int) round($providerPrice * (1 + $markup / 100) * 100);
 
-            // Qtd mínima: usa custom se definido, senão do provedor
             $minQty = (int) ($item['custom_min_qty'] ?? $item['min_qty'] ?? 10);
             $maxQty = (int) ($item['max_qty'] ?? 100000);
 
             $category = $catId ? $this->categoryRepo->find($catId) : $defaultCategory;
 
-            // Upsert: atualiza se já existe
+            // Upsert
             $service = $this->serviceRepo->findOneBy([
                 'providerSlug'      => $slug,
                 'externalServiceId' => $externalId,
@@ -189,12 +186,12 @@ class ServiceImportController extends AbstractController
     // -----------------------------------------------------------------------
 
     /**
-     * Faz a chamada à API do provedor e retorna array normalizado.
-     * Formato SMM standard: POST action=services, key=<api_key>
+     * Chama a API do provedor (formato SMM padrão: POST action=services).
+     * Usa getBaseUrl() + getApiKey() da entity ProviderCredential.
      */
     private function fetchServicesFromProvider(ProviderCredential $credential): array
     {
-        $apiUrl = $credential->getApiUrl();
+        $apiUrl = rtrim($credential->getBaseUrl(), '/');
         $apiKey = $credential->getApiKey();
 
         $response = $this->httpClient->request('POST', $apiUrl, [
@@ -203,15 +200,15 @@ class ServiceImportController extends AbstractController
 
         $raw = $response->toArray();
 
-        // Normaliza campos comuns de diferentes provedores
-        return array_map(function (array $item) {
+        // Normaliza campos comuns entre diferentes provedores SMM
+        return array_map(static function (array $item): array {
             return [
                 'external_id'    => (string) ($item['service'] ?? $item['id'] ?? ''),
                 'name'           => (string) ($item['name'] ?? ''),
                 'category'       => (string) ($item['category'] ?? ''),
-                'provider_price' => (float) ($item['rate'] ?? $item['price'] ?? 0),
-                'min_qty'        => (int) ($item['min'] ?? $item['min_order'] ?? 10),
-                'max_qty'        => (int) ($item['max'] ?? $item['max_order'] ?? 100000),
+                'provider_price' => (float)  ($item['rate'] ?? $item['price'] ?? 0),
+                'min_qty'        => (int)    ($item['min'] ?? $item['min_order'] ?? 10),
+                'max_qty'        => (int)    ($item['max'] ?? $item['max_order'] ?? 100000),
             ];
         }, $raw);
     }
