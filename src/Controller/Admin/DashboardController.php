@@ -4,142 +4,68 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
-use App\Entity\CrmContact;
-use App\Entity\Order;
-use App\Entity\Payment;
-use App\Entity\ProviderCredential;
-use App\Entity\Service;
-use App\Entity\ServiceCategory;
-use App\Entity\User;
-use App\Entity\WalletTransaction;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Repository\OrderRepository;
+use App\Repository\ServiceRepository;
+use App\Repository\UserRepository;
+use App\Repository\WalletTransactionRepository;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[AdminDashboard(routePath: '/admin', routeName: 'admin')]
 class DashboardController extends AbstractDashboardController
 {
     public function __construct(
-        private readonly EntityManagerInterface $em,
+        private readonly OrderRepository               $orderRepo,
+        private readonly UserRepository                $userRepo,
+        private readonly ServiceRepository             $serviceRepo,
+        private readonly WalletTransactionRepository   $walletRepo,
     ) {}
-
-    public function index(): Response
-    {
-        $since30   = new \DateTimeImmutable('-30 days');
-        $sinceDay  = new \DateTimeImmutable('today');
-
-        $usersCount = (int) $this->em->createQueryBuilder()->select('COUNT(u)')->from(User::class, 'u')->getQuery()->getSingleScalarResult();
-        $newUsersToday = (int) $this->em->createQueryBuilder()
-            ->select('COUNT(u)')->from(User::class, 'u')
-            ->where('u.createdAt >= :since')->setParameter('since', $sinceDay)
-            ->getQuery()->getSingleScalarResult();
-
-        $ordersTotal = (int) $this->em->createQueryBuilder()
-            ->select('COUNT(o)')->from(Order::class, 'o')
-            ->where('o.createdAt >= :since')->setParameter('since', $since30)
-            ->getQuery()->getSingleScalarResult();
-        $ordersToday = (int) $this->em->createQueryBuilder()
-            ->select('COUNT(o)')->from(Order::class, 'o')
-            ->where('o.createdAt >= :since')->setParameter('since', $sinceDay)
-            ->getQuery()->getSingleScalarResult();
-
-        $revenueCents = (int) ($this->em->createQueryBuilder()
-            ->select('SUM(p.amountCents)')->from(Payment::class, 'p')
-            ->where('p.status = :st')->andWhere('p.createdAt >= :since')
-            ->setParameter('st', Payment::STATUS_APPROVED)->setParameter('since', $since30)
-            ->getQuery()->getSingleScalarResult() ?? 0);
-
-        $revenueToday = (int) ($this->em->createQueryBuilder()
-            ->select('SUM(p.amountCents)')->from(Payment::class, 'p')
-            ->where('p.status = :st')->andWhere('p.createdAt >= :since')
-            ->setParameter('st', Payment::STATUS_APPROVED)->setParameter('since', $sinceDay)
-            ->getQuery()->getSingleScalarResult() ?? 0);
-
-        $expensesCents = (int) ($this->em->createQueryBuilder()
-            ->select('SUM(o.amountCents)')->from(Order::class, 'o')
-            ->where('o.createdAt >= :since')->setParameter('since', $since30)
-            ->getQuery()->getSingleScalarResult() ?? 0);
-
-        $feesCents = (int) ($this->em->createQueryBuilder()
-            ->select('SUM(p.feeCents)')->from(Payment::class, 'p')
-            ->where('p.createdAt >= :since')->setParameter('since', $since30)
-            ->getQuery()->getSingleScalarResult() ?? 0);
-
-        $netProfitCents = $revenueCents - $expensesCents - $feesCents;
-
-        $recentOrders = $this->em->createQueryBuilder()
-            ->select('o')->from(Order::class, 'o')
-            ->join('o.service', 's')->join('o.user', 'u')
-            ->orderBy('o.createdAt', 'DESC')->setMaxResults(8)
-            ->getQuery()->getResult();
-
-        $recentUsers = $this->em->createQueryBuilder()
-            ->select('u')->from(User::class, 'u')
-            ->leftJoin('u.wallet', 'w')
-            ->orderBy('u.createdAt', 'DESC')->setMaxResults(8)
-            ->getQuery()->getResult();
-
-        $credentials = $this->em->createQueryBuilder()
-            ->select('c')->from(ProviderCredential::class, 'c')
-            ->orderBy('c.type', 'ASC')->addOrderBy('c.slug', 'ASC')
-            ->getQuery()->getResult();
-
-        return $this->render('admin/dashboard.html.twig', [
-            'usersCount'     => $usersCount,
-            'newUsersToday'  => $newUsersToday,
-            'ordersTotal'    => $ordersTotal,
-            'ordersToday'    => $ordersToday,
-            'revenueCents'   => $revenueCents,
-            'revenueToday'   => $revenueToday,
-            'expensesCents'  => $expensesCents,
-            'feesCents'      => $feesCents,
-            'netProfitCents' => $netProfitCents,
-            'recentOrders'   => $recentOrders,
-            'recentUsers'    => $recentUsers,
-            'credentials'    => $credentials,
-        ]);
-    }
 
     public function configureDashboard(): Dashboard
     {
         return Dashboard::new()
-            ->setTitle('<strong>Pulse</strong>SMM')
+            ->setTitle('<span class="text-primary fw-bold">SMM Panel</span> <small class="text-muted">Admin</small>')
             ->setFaviconPath('favicon.ico')
-            ->setTranslationDomain('admin');
+            ->setTranslationDomain('admin')
+            ->renderContentMaximized()
+            ->disableDarkMode()
+            ->setLocales(['pt_BR' => '🇧🇷 Português'])
+            ->generateRelativeUrls()
+            ->setCssFile('admin.css');
+    }
+
+    #[Route('/admin', name: 'admin')]
+    public function index(): Response
+    {
+        $stats = [
+            'orders'   => $this->orderRepo->count([]),
+            'users'    => $this->userRepo->count([]),
+            'services' => $this->serviceRepo->count([]),
+            'revenue'  => $this->walletRepo->sumApprovedRevenue(),
+        ];
+
+        return $this->render('admin/dashboard.html.twig', ['stats' => $stats]);
     }
 
     public function configureMenuItems(): iterable
     {
-        yield MenuItem::linkToDashboard('Dashboard', 'fa fa-gauge');
-
-        yield MenuItem::section('Clientes');
-        yield MenuItem::linkToCrud('Usuários', 'fa fa-users', User::class);
-        yield MenuItem::linkToCrud('CRM Contacts', 'fa fa-address-book', CrmContact::class);
-
-        yield MenuItem::section('Operações');
-        yield MenuItem::linkToCrud('Pedidos', 'fa fa-shopping-cart', Order::class);
-        yield MenuItem::linkToCrud('Pagamentos', 'fa fa-credit-card', Payment::class);
-        yield MenuItem::linkToCrud('Transações de Carteira', 'fa fa-wallet', WalletTransaction::class);
-
+        yield MenuItem::linkToDashboard('Dashboard', 'fa fa-gauge-high');
+        yield MenuItem::section('Pedidos');
+        yield MenuItem::linkToCrud('Pedidos', 'fa fa-shopping-cart', \App\Entity\Order::class);
+        yield MenuItem::linkToCrud('Pagamentos', 'fa fa-credit-card', \App\Entity\Payment::class);
+        yield MenuItem::linkToCrud('Transações', 'fa fa-wallet', \App\Entity\WalletTransaction::class);
         yield MenuItem::section('Catálogo');
-        yield MenuItem::linkToCrud('Serviços', 'fa fa-list', Service::class);
-        yield MenuItem::linkToCrud('Categorias', 'fa fa-folder', ServiceCategory::class);
+        yield MenuItem::linkToCrud('Serviços', 'fa fa-layer-group', \App\Entity\Service::class);
+        yield MenuItem::linkToCrud('Categorias', 'fa fa-tags', \App\Entity\ServiceCategory::class);
         yield MenuItem::linkToRoute('Importar Serviços', 'fa fa-cloud-download', 'admin_service_import');
-
-        yield MenuItem::section('Configurações');
-        yield MenuItem::linkToCrud('Credenciais de APIs', 'fa fa-key', ProviderCredential::class);
-
-        yield MenuItem::section();
-        yield MenuItem::linkToUrl('Ver site', 'fa fa-globe', '/');
-        yield MenuItem::linkToLogout('Sair', 'fa fa-right-from-bracket');
-    }
-
-    public function configureAssets(): Assets
-    {
-        return Assets::new()->addCssFile('css/admin.css');
+        yield MenuItem::section('Usuários & CRM');
+        yield MenuItem::linkToCrud('Usuários', 'fa fa-users', \App\Entity\User::class);
+        yield MenuItem::linkToRoute('CRM', 'fa fa-comments', 'admin_crm');
+        yield MenuItem::section('Integrações');
+        yield MenuItem::linkToCrud('Provedores / APIs', 'fa fa-plug', \App\Entity\ProviderCredential::class);
     }
 }
