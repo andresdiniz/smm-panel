@@ -8,6 +8,7 @@ use App\Entity\Order;
 use App\Entity\Payment;
 use App\Entity\ProviderCredential;
 use App\Entity\Service;
+use App\Entity\ServiceCategory;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
@@ -122,15 +123,21 @@ class DashboardController extends AbstractDashboardController
     public function configureMenuItems(): iterable
     {
         yield MenuItem::linkToDashboard('Dashboard', 'fa fa-gauge');
+
         yield MenuItem::section('Clientes');
         yield MenuItem::linkToCrud('Usuários', 'fa fa-users', User::class);
+
         yield MenuItem::section('Operações');
         yield MenuItem::linkToCrud('Pedidos', 'fa fa-shopping-cart', Order::class);
         yield MenuItem::linkToCrud('Pagamentos', 'fa fa-credit-card', Payment::class);
+
         yield MenuItem::section('Catálogo');
         yield MenuItem::linkToCrud('Serviços', 'fa fa-list', Service::class);
+        yield MenuItem::linkToCrud('Categorias', 'fa fa-folder', ServiceCategory::class);
+
         yield MenuItem::section('Configurações');
         yield MenuItem::linkToCrud('Credenciais de APIs', 'fa fa-key', ProviderCredential::class);
+
         yield MenuItem::section();
         yield MenuItem::linkToUrl('Ver site', 'fa fa-globe', '/');
         yield MenuItem::linkToLogout('Sair', 'fa fa-right-from-bracket');
