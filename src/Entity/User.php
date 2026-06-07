@@ -52,6 +52,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->updatedAt = new \DateTimeImmutable();
     }
 
+    public function __toString(): string
+    {
+        return sprintf('%s (%s)', $this->name, $this->email);
+    }
+
     public function getId(): ?int { return $this->id; }
     public function getEmail(): string { return $this->email; }
     public function setEmail(string $email): static { $this->email = $email; return $this; }

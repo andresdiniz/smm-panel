@@ -49,7 +49,13 @@ class ContactCrudController extends AbstractCrudController
     {
         return [
             IdField::new('id')->hideOnForm(),
-            AssociationField::new('user', 'User'),
+            AssociationField::new('user', 'User')
+                ->setRequired(true)
+                ->autocomplete()
+                ->formatValue(static fn ($value, $entity) => $entity->getUser()
+                    ? sprintf('%s (%s)', $entity->getUser()->getName(), $entity->getUser()->getEmail())
+                    : '—'
+                ),
             ArrayField::new('tags', 'Tags')->hideOnIndex(),
             TextField::new('utmSource', 'UTM Source')->hideOnIndex(),
             TextField::new('utmCampaign', 'UTM Campaign')->hideOnIndex(),
