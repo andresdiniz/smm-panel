@@ -1,39 +1,6 @@
 {% extends '@!EasyAdmin/layout.html.twig' %}
 
-{#
-  Override minimo: apenas esconde o sprite SVG injetado pelo EasyAdmin
-  via JavaScript pos-DOM (unica forma confiavel sem quebrar o layout).
-#}
-{% block head_javascript %}
-  {{ parent() }}
-  <script>
-  // Roda imediatamente antes do body ser pintado
-  (function(){
-    // Assim que o DOM estiver pronto, mata qualquer SVG solto sem tamanho
-    document.addEventListener('DOMContentLoaded', function(){
-      // 1. SVG sprite do EasyAdmin (primeiro SVG filho direto do body)
-      var sprites = document.querySelectorAll('body > svg');
-      sprites.forEach(function(s){ s.style.cssText = 'display:none!important;width:0!important;height:0!important;position:absolute!important;overflow:hidden!important'; });
-
-      // 2. Qualquer SVG sem width/height atributo E sem style inline de width
-      // que nao seja um dos nossos icones (que tem style="width:16px...")
-      document.querySelectorAll('svg').forEach(function(s){
-        if(s.closest('body > svg')) return; // ja tratado
-        var hasWidth = s.getAttribute('width') || (s.getAttribute('style') && s.getAttribute('style').indexOf('width') !== -1);
-        if(!hasWidth){
-          var parent = s.parentElement;
-          // Se o parent nao e um dos nossos containers de icone conhecidos
-          var knownContainers = ['adm-kpi__icon','fin-card__icon'];
-          var isOurs = knownContainers.some(function(c){ return parent && parent.classList.contains(c); });
-          if(!isOurs){
-            s.style.width  = '20px';
-            s.style.height = '20px';
-            s.style.maxWidth  = '20px';
-            s.style.maxHeight = '20px';
-          }
-        }
-      });
-    });
-  })();
-  </script>
+{% block head_stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('admin.css') }}">
 {% endblock %}

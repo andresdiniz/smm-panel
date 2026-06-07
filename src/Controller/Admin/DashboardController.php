@@ -34,8 +34,7 @@ class DashboardController extends AbstractDashboardController
             ->renderContentMaximized()
             ->disableDarkMode()
             ->setLocales(['pt_BR' => '🇧🇷 Português'])
-            ->generateRelativeUrls()
-            ->setCssFile('admin.css');
+            ->generateRelativeUrls();
     }
 
     #[Route('/admin', name: 'admin')]
