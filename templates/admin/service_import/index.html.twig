@@ -1,115 +1,161 @@
 {% extends '@EasyAdmin/page/content.html.twig' %}
 
-{% block page_title %}Importar Serviços via API{% endblock %}
+{% block page_title %}
+    <i class="fa fa-cloud-download me-2"></i> Importar Serviços
+{% endblock %}
 
 {% block main %}
-<div class="container-fluid py-3">
+<div class="container-fluid px-0">
 
-    {# ---- Step 1: Selecionar provedor ---- #}
-    <div class="card mb-4">
-        <div class="card-header fw-semibold">1. Selecionar Provedor</div>
+    {# ── Step 1: Selecionar provedor ─────────────────────────────────────────── #}
+    <div class="card shadow-sm mb-4" id="card-step1">
+        <div class="card-header bg-white d-flex align-items-center gap-2 py-3">
+            <span class="badge bg-primary rounded-pill">1</span>
+            <strong>Selecionar Provedor</strong>
+        </div>
+        <div class="card-body">
+            {% if providers is empty %}
+                <div class="alert alert-warning mb-0">
+                    <i class="fa fa-triangle-exclamation me-2"></i>
+                    Nenhum provedor SMM cadastrado.
+                </div>
+            {% else %}
+                <div class="row g-3">
+                    {% for provider in providers %}
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <button type="button"
+                                class="btn btn-outline-secondary w-100 text-start provider-btn d-flex align-items-center gap-2 p-3"
+                                data-slug="{{ provider.slug }}"
+                                data-name="{{ provider.label ?? provider.slug }}">
+                                <i class="fa fa-server fa-fw text-muted"></i>
+                                <div>
+                                    <div class="fw-semibold">{{ provider.label ?? provider.slug }}</div>
+                                    <small class="text-muted">{{ provider.baseUrl|slice(0, 35) }}{% if provider.baseUrl|length > 35 %}…{% endif %}</small>
+                                </div>
+                            </button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ── Step 2: Configurações ────────────────────────────────────────────────── #}
+    <div class="card shadow-sm mb-4 d-none" id="card-step2">
+        <div class="card-header bg-white d-flex align-items-center gap-2 py-3">
+            <span class="badge bg-primary rounded-pill">2</span>
+            <strong>Configurações de Importação</strong>
+            <span class="ms-auto text-muted small" id="selected-provider-name"></span>
+        </div>
         <div class="card-body">
             <div class="row g-3 align-items-end">
                 <div class="col-md-4">
-                    <label class="form-label">Provedor</label>
-                    <select id="providerSelect" class="form-select">
-                        <option value="">-- selecione --</option>
-                        {% for p in providers %}
-                            <option value="{{ p.slug }}">{{ p.slug }} ({{ p.baseUrl }})</option>
+                    <label class="form-label fw-semibold">Categoria padrão <span class="text-muted fw-normal">(opcional)</span></label>
+                    <select class="form-select" id="default-category">
+                        <option value="">— Usar categoria do provedor —</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
                         {% endfor %}
+                    </select>
+                    <div class="form-text">Aplicada a todos os serviços sem categoria local</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Markup padrão (%)</label>
+                    <div class="input-group">
+                        <input type="number" id="default-markup" class="form-control" value="30" min="0" max="9999">
+                        <span class="input-group-text">%</span>
+                    </div>
+                    <div class="form-text">Aplicado sobre o preço do provedor</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Modo</label>
+                    <select class="form-select" id="import-mode">
+                        <option value="batch">Lote (mesma categoria/markup)</option>
+                        <option value="individual">Individual (por linha)</option>
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <button id="btnFetch" class="btn btn-primary w-100" disabled>
-                        <span id="fetchSpinner" class="spinner-border spinner-border-sm d-none me-1"></span>
-                        Buscar Serviços
+                    <button type="button" class="btn btn-primary w-100" id="btn-fetch">
+                        <i class="fa fa-search me-1"></i> Buscar Serviços
                     </button>
                 </div>
-                <div class="col-12">
-                    <div id="fetchAlert" class="alert d-none"></div>
-                </div>
             </div>
         </div>
     </div>
 
-    {# ---- Step 2: Configurações de import ---- #}
-    <div id="importConfig" class="card mb-4 d-none">
-        <div class="card-header fw-semibold">2. Configurações de Import</div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">Modo</label>
-                    <select id="importMode" class="form-select">
-                        <option value="batch">Lote (mesma categoria + margem)</option>
-                        <option value="individual">Individual (valor por serviço)</option>
-                    </select>
-                </div>
-                <div id="batchConfig" class="col-md-6 row g-2">
-                    <div class="col-md-5">
-                        <label class="form-label">Categoria padrão</label>
-                        <select id="defaultCategory" class="form-select">
-                            <option value="">-- sem categoria --</option>
-                            {% for c in categories %}
-                                <option value="{{ c.id }}">{{ c.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Margem padrão (%)</label>
-                        <input type="number" id="defaultMarkup" class="form-control" value="30" min="0" max="999">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Qtd mínima padrão</label>
-                        <input type="number" id="defaultMinQty" class="form-control" placeholder="do provedor" min="1">
-                    </div>
-                </div>
-            </div>
-        </div>
+    {# ── Loader ───────────────────────────────────────────────────────────────── #}
+    <div class="text-center py-5 d-none" id="loader">
+        <div class="spinner-border text-primary" style="width:3rem;height:3rem;"></div>
+        <div class="mt-3 text-muted">Buscando serviços da API do provedor…</div>
     </div>
 
-    {# ---- Step 3: Tabela de serviços ---- #}
-    <div id="servicesSection" class="card mb-4 d-none">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span class="fw-semibold">3. Serviços Disponíveis</span>
-            <div class="d-flex gap-2">
-                <input id="filterText" type="search" class="form-control form-control-sm" placeholder="Filtrar..." style="width:220px">
-                <button id="btnSelectAll" class="btn btn-sm btn-outline-secondary">Selec. todos</button>
-                <button id="btnDeselectAll" class="btn btn-sm btn-outline-secondary">Desm. todos</button>
+    {# ── Step 3: Tabela ───────────────────────────────────────────────────────── #}
+    <div class="card shadow-sm d-none" id="card-step3">
+        <div class="card-header bg-white d-flex align-items-center gap-3 py-3 flex-wrap">
+            <span class="badge bg-primary rounded-pill">3</span>
+            <strong>Serviços Disponíveis</strong>
+            <span class="badge bg-secondary" id="count-badge">0</span>
+            <div class="ms-auto d-flex gap-2 flex-wrap">
+                <input type="text" class="form-control form-control-sm" id="search-services"
+                    placeholder="🔍 Filtrar por nome ou categoria…" style="width:260px">
+                <select class="form-select form-select-sm" id="filter-status" style="width:160px">
+                    <option value="all">Todos</option>
+                    <option value="new">Novos</option>
+                    <option value="existing">Já importados</option>
+                </select>
             </div>
         </div>
+
         <div class="card-body p-0">
-            <div class="table-responsive" style="max-height:480px;overflow-y:auto">
-                <table class="table table-sm table-hover mb-0" id="servicesTable">
+            <div class="table-responsive" style="max-height:60vh;overflow-y:auto">
+                <table class="table table-hover table-sm align-middle mb-0" id="services-table">
                     <thead class="table-light sticky-top">
                         <tr>
-                            <th><input type="checkbox" id="chkAll"></th>
-                            <th>ID</th>
+                            <th style="width:40px">
+                                <input type="checkbox" id="check-all" class="form-check-input">
+                            </th>
+                            <th>ID Externo</th>
                             <th>Nome</th>
-                            <th>Categoria (provedor)</th>
-                            <th>Preço provedor/1000</th>
-                            <th>Min</th>
-                            <th>Max</th>
-                            <th id="colCategory" class="d-none">Categoria local</th>
-                            <th id="colMarkup" class="d-none">Margem %</th>
-                            <th id="colMinQty" class="d-none">Min custom</th>
-                            <th>Status</th>
+                            <th>Categoria do Provedor</th>
+                            <th>Preço Provedor</th>
+                            <th>Preço Venda</th>
+                            <th style="width:90px">Mín.</th>
+                            <th style="width:90px">Máx.</th>
+                            <th style="width:60px" class="text-center">Status</th>
                         </tr>
                     </thead>
-                    <tbody id="servicesBody"></tbody>
+                    <tbody id="services-tbody"></tbody>
                 </table>
             </div>
         </div>
-        <div class="card-footer d-flex justify-content-between align-items-center">
-            <span id="selectedCount">0 selecionados</span>
-            <button id="btnImport" class="btn btn-success" disabled>
-                <span id="importSpinner" class="spinner-border spinner-border-sm d-none me-1"></span>
-                Importar Selecionados
-            </button>
+
+        <div class="card-footer bg-white d-flex align-items-center justify-content-between gap-3 flex-wrap">
+            <div class="text-muted small">
+                <span id="selected-count">0</span> selecionados de <span id="total-count">0</span>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-select-new">
+                    <i class="fa fa-check-double me-1"></i> Selecionar novos
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-deselect-all">
+                    <i class="fa fa-xmark me-1"></i> Desmarcar todos
+                </button>
+                <button type="button" class="btn btn-success px-4" id="btn-save">
+                    <i class="fa fa-cloud-arrow-down me-1"></i> Importar Selecionados
+                </button>
+            </div>
         </div>
     </div>
 
-    {# ---- Resultado ---- #}
-    <div id="resultAlert" class="alert d-none"></div>
+    {# ── Toast ────────────────────────────────────────────────────────────────── #}
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:1090">
+        <div id="import-toast" class="toast align-items-center text-bg-success border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body" id="toast-message"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
 
 </div>
 {% endblock %}
@@ -118,212 +164,195 @@
 {{ parent() }}
 <script>
 (function () {
-    const categories = {{ categories | map(c => {id: c.id, name: c.name}) | json_encode | raw }};
-    let allServices  = [];
-    let existingIds  = [];
+    const FETCH_URL = '{{ path('admin_service_import_fetch') }}';
+    const SAVE_URL  = '{{ path('admin_service_import_save') }}';
 
-    const providerSelect   = document.getElementById('providerSelect');
-    const btnFetch         = document.getElementById('btnFetch');
-    const fetchSpinner     = document.getElementById('fetchSpinner');
-    const fetchAlert       = document.getElementById('fetchAlert');
-    const importConfig     = document.getElementById('importConfig');
-    const servicesSection  = document.getElementById('servicesSection');
-    const importMode       = document.getElementById('importMode');
-    const servicesBody     = document.getElementById('servicesBody');
-    const btnImport        = document.getElementById('btnImport');
-    const importSpinner    = document.getElementById('importSpinner');
-    const resultAlert      = document.getElementById('resultAlert');
-    const selectedCount    = document.getElementById('selectedCount');
-    const filterText       = document.getElementById('filterText');
-    const chkAll           = document.getElementById('chkAll');
-    const colCategory      = document.getElementById('colCategory');
-    const colMarkup        = document.getElementById('colMarkup');
-    const colMinQty        = document.getElementById('colMinQty');
+    let allServices = [];
+    let existingIds = [];
+    let currentSlug = '';
+    let currentMode = 'batch';
 
-    providerSelect.addEventListener('change', () => {
-        btnFetch.disabled = !providerSelect.value;
+    // ── Provider selection ────────────────────────────────────────────────────
+    document.querySelectorAll('.provider-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.provider-btn').forEach(b => {
+                b.classList.remove('active', 'btn-primary');
+                b.classList.add('btn-outline-secondary');
+            });
+            btn.classList.add('active', 'btn-primary');
+            btn.classList.remove('btn-outline-secondary');
+            currentSlug = btn.dataset.slug;
+            document.getElementById('selected-provider-name').textContent = btn.dataset.name;
+            document.getElementById('card-step2').classList.remove('d-none');
+            document.getElementById('card-step3').classList.add('d-none');
+        });
     });
 
-    importMode.addEventListener('change', () => {
-        const isInd = importMode.value === 'individual';
-        colCategory.classList.toggle('d-none', !isInd);
-        colMarkup.classList.toggle('d-none', !isInd);
-        colMinQty.classList.toggle('d-none', !isInd);
-    });
-
-    btnFetch.addEventListener('click', async () => {
-        setLoading(btnFetch, fetchSpinner, true);
-        fetchAlert.className = 'alert d-none';
+    // ── Fetch services ────────────────────────────────────────────────────────
+    document.getElementById('btn-fetch')?.addEventListener('click', async () => {
+        if (!currentSlug) return;
+        currentMode = document.getElementById('import-mode').value;
+        document.getElementById('loader').classList.remove('d-none');
+        document.getElementById('card-step3').classList.add('d-none');
 
         const fd = new FormData();
-        fd.append('provider_slug', providerSelect.value);
+        fd.append('provider_slug', currentSlug);
 
         try {
-            const res  = await fetch('{{ path('admin_service_import_fetch') }}', { method: 'POST', body: fd });
+            const res  = await fetch(FETCH_URL, { method: 'POST', body: fd });
             const json = await res.json();
-
             if (json.error) throw new Error(json.error);
-
             allServices = json.services;
             existingIds = json.existingIds;
             renderTable(allServices);
-            importConfig.classList.remove('d-none');
-            servicesSection.classList.remove('d-none');
-            showAlert(fetchAlert, 'success', `${allServices.length} serviços carregados.`);
         } catch (e) {
-            showAlert(fetchAlert, 'danger', e.message);
+            showToast('Erro: ' + e.message, 'danger');
         } finally {
-            setLoading(btnFetch, fetchSpinner, false);
+            document.getElementById('loader').classList.add('d-none');
         }
     });
 
-    filterText.addEventListener('input', () => {
-        const q = filterText.value.toLowerCase();
-        const filtered = allServices.filter(s =>
-            s.name.toLowerCase().includes(q) ||
-            s.category.toLowerCase().includes(q) ||
-            String(s.external_id).includes(q)
-        );
-        renderTable(filtered);
-    });
+    // ── Render table ──────────────────────────────────────────────────────────
+    function renderTable(services) {
+        const markup = parseInt(document.getElementById('default-markup').value) || 30;
+        const tbody  = document.getElementById('services-tbody');
+        tbody.innerHTML = '';
 
-    document.getElementById('btnSelectAll').addEventListener('click', () => {
-        document.querySelectorAll('.svc-chk').forEach(c => c.checked = true);
-        updateCount();
-    });
-    document.getElementById('btnDeselectAll').addEventListener('click', () => {
-        document.querySelectorAll('.svc-chk').forEach(c => c.checked = false);
-        updateCount();
-    });
-
-    chkAll.addEventListener('change', () => {
-        document.querySelectorAll('.svc-chk').forEach(c => c.checked = chkAll.checked);
-        updateCount();
-    });
-
-    btnImport.addEventListener('click', async () => {
-        const selected = getSelected();
-        if (!selected.length) return;
-
-        setLoading(btnImport, importSpinner, true);
-        resultAlert.className = 'alert d-none';
-
-        const mode          = importMode.value;
-        const defaultCatId  = document.getElementById('defaultCategory').value || null;
-        const defaultMarkup = parseInt(document.getElementById('defaultMarkup').value) || 30;
-        const defaultMinQty = parseInt(document.getElementById('defaultMinQty').value) || null;
-
-        const services = selected.map(s => {
-            const row  = document.getElementById('row-' + s.external_id);
-            const base = {
-                external_id:    s.external_id,
-                name:           s.name,
-                provider_price: s.provider_price,
-                min_qty:        s.min_qty,
-                max_qty:        s.max_qty,
-                category_name:  s.category,
-            };
-            if (mode === 'individual' && row) {
-                base.category_id    = row.querySelector('.sel-cat')?.value || null;
-                base.markup_percent = parseInt(row.querySelector('.inp-markup')?.value) || defaultMarkup;
-                base.custom_min_qty = parseInt(row.querySelector('.inp-minqty')?.value) || defaultMinQty;
-            } else {
-                base.custom_min_qty = defaultMinQty;
-            }
-            return base;
+        services.forEach(svc => {
+            const isExisting = existingIds.includes(String(svc.external_id));
+            const sellPrice  = (svc.provider_price * (1 + markup / 100)).toFixed(4);
+            const tr = document.createElement('tr');
+            tr.dataset.id       = svc.external_id;
+            tr.dataset.existing = isExisting ? '1' : '0';
+            tr.innerHTML = `
+                <td><input type="checkbox" class="form-check-input row-check" ${isExisting ? '' : 'checked'}></td>
+                <td><code class="text-muted small">${esc(String(svc.external_id))}</code></td>
+                <td class="fw-medium">${esc(svc.name)}</td>
+                <td><span class="badge bg-light text-dark border">${esc(svc.category || '—')}</span></td>
+                <td class="text-muted small">R$ ${svc.provider_price.toFixed(4)}</td>
+                <td class="text-success fw-semibold">R$ ${sellPrice}</td>
+                <td><input type="number" class="form-control form-control-sm min-input" value="${svc.min_qty}" min="1" style="width:78px"></td>
+                <td class="text-muted small">${Number(svc.max_qty).toLocaleString('pt-BR')}</td>
+                <td class="text-center">${isExisting
+                    ? '<span class="badge bg-warning text-dark" title="Já importado"><i class="fa fa-rotate"></i></span>'
+                    : '<span class="badge bg-success" title="Novo"><i class="fa fa-plus"></i></span>'}</td>
+            `;
+            tbody.appendChild(tr);
         });
 
-        const payload = {
-            provider_slug:          providerSelect.value,
-            mode,
-            category_id:            defaultCatId ? parseInt(defaultCatId) : null,
-            default_markup_percent: defaultMarkup,
-            services,
-        };
+        document.getElementById('card-step3').classList.remove('d-none');
+        document.getElementById('count-badge').textContent = services.length;
+        document.getElementById('total-count').textContent  = services.length;
+        updateCounts();
+    }
+
+    // ── Search / filter ───────────────────────────────────────────────────────
+    document.getElementById('search-services')?.addEventListener('input', applyFilters);
+    document.getElementById('filter-status')?.addEventListener('change', applyFilters);
+
+    function applyFilters() {
+        const q      = document.getElementById('search-services').value.toLowerCase();
+        const status = document.getElementById('filter-status').value;
+        document.querySelectorAll('#services-tbody tr').forEach(tr => {
+            const existing = tr.dataset.existing === '1';
+            const matchQ   = !q || tr.textContent.toLowerCase().includes(q);
+            const matchS   = status === 'all'
+                || (status === 'new'      && !existing)
+                || (status === 'existing' && existing);
+            tr.style.display = (matchQ && matchS) ? '' : 'none';
+        });
+        updateCounts();
+    }
+
+    // ── Check all ─────────────────────────────────────────────────────────────
+    document.getElementById('check-all')?.addEventListener('change', e => {
+        document.querySelectorAll('#services-tbody tr').forEach(tr => {
+            if (tr.style.display !== 'none') {
+                tr.querySelector('.row-check').checked = e.target.checked;
+            }
+        });
+        updateCounts();
+    });
+    document.addEventListener('change', e => {
+        if (e.target.classList.contains('row-check')) updateCounts();
+    });
+    document.getElementById('btn-select-new')?.addEventListener('click', () => {
+        document.querySelectorAll('#services-tbody tr').forEach(tr => {
+            if (tr.dataset.existing !== '1') tr.querySelector('.row-check').checked = true;
+        });
+        updateCounts();
+    });
+    document.getElementById('btn-deselect-all')?.addEventListener('click', () => {
+        document.querySelectorAll('.row-check').forEach(cb => cb.checked = false);
+        updateCounts();
+    });
+    function updateCounts() {
+        document.getElementById('selected-count').textContent =
+            document.querySelectorAll('.row-check:checked').length;
+    }
+
+    // ── Save ──────────────────────────────────────────────────────────────────
+    document.getElementById('btn-save')?.addEventListener('click', async () => {
+        const markup = parseInt(document.getElementById('default-markup').value) || 30;
+        const catId  = document.getElementById('default-category').value || null;
+        const rows   = document.querySelectorAll('.row-check:checked');
+
+        if (!rows.length) { alert('Selecione pelo menos um serviço.'); return; }
+
+        const selected = [];
+        rows.forEach(cb => {
+            const tr  = cb.closest('tr');
+            const svc = allServices.find(s => String(s.external_id) === String(tr.dataset.id));
+            if (!svc) return;
+            selected.push({
+                external_id:    svc.external_id,
+                name:           svc.name,
+                provider_price: svc.provider_price,
+                min_qty:        svc.min_qty,
+                max_qty:        svc.max_qty,
+                category_name:  svc.category,
+                category_id:    catId ? parseInt(catId) : null,
+                markup_percent: markup,
+                custom_min_qty: parseInt(tr.querySelector('.min-input')?.value) || null,
+            });
+        });
+
+        const btn = document.getElementById('btn-save');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Importando…';
 
         try {
-            const res  = await fetch('{{ path('admin_service_import_save') }}', {
+            const res  = await fetch(SAVE_URL, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(payload),
+                body:    JSON.stringify({
+                    provider_slug:          currentSlug,
+                    mode:                   currentMode,
+                    category_id:            catId ? parseInt(catId) : null,
+                    default_markup_percent: markup,
+                    services:               selected,
+                }),
             });
             const json = await res.json();
             if (json.error) throw new Error(json.error);
-            showAlert(resultAlert, 'success',
-                `✅ Importação concluída! ${json.saved} novos, ${json.updated} atualizados.`);
+            showToast(`✅ ${json.saved} novos, ${json.updated} atualizados — total: ${json.total} serviços.`);
         } catch (e) {
-            showAlert(resultAlert, 'danger', e.message);
+            showToast('Erro: ' + e.message, 'danger');
         } finally {
-            setLoading(btnImport, importSpinner, false);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-cloud-arrow-down me-1"></i> Importar Selecionados';
         }
     });
 
-    function renderTable(services) {
-        servicesBody.innerHTML = '';
-        services.forEach(s => {
-            const exists = existingIds.includes(String(s.external_id));
-            const tr = document.createElement('tr');
-            tr.id = 'row-' + s.external_id;
-            tr.innerHTML = `
-                <td><input type="checkbox" class="svc-chk" value="${s.external_id}" ${exists ? 'checked' : ''}></td>
-                <td>${s.external_id}</td>
-                <td>${s.name}</td>
-                <td><small class="text-muted">${s.category}</small></td>
-                <td>$${(s.provider_price).toFixed(4)}</td>
-                <td>${s.min_qty}</td>
-                <td>${s.max_qty}</td>
-                <td class="d-none col-individual">
-                    <select class="form-select form-select-sm sel-cat">
-                        <option value="">-- cat --</option>
-                        ${categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
-                    </select>
-                </td>
-                <td class="d-none col-individual">
-                    <input type="number" class="form-control form-control-sm inp-markup" value="30" min="0" style="width:70px">
-                </td>
-                <td class="d-none col-individual">
-                    <input type="number" class="form-control form-control-sm inp-minqty" placeholder="padrão" min="1" style="width:80px">
-                </td>
-                <td>${exists
-                    ? '<span class="badge bg-warning text-dark">Já importado</span>'
-                    : '<span class="badge bg-secondary">Novo</span>'
-                }</td>
-            `;
-            servicesBody.appendChild(tr);
-        });
-        servicesBody.addEventListener('change', updateCount);
-        updateCount();
-        syncIndividualCols();
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function esc(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
-
-    function syncIndividualCols() {
-        const isInd = importMode.value === 'individual';
-        document.querySelectorAll('.col-individual').forEach(el => {
-            el.classList.toggle('d-none', !isInd);
-        });
-    }
-
-    importMode.addEventListener('change', syncIndividualCols);
-
-    function getSelected() {
-        const checked = [...document.querySelectorAll('.svc-chk:checked')];
-        return checked.map(c => allServices.find(s => String(s.external_id) === c.value)).filter(Boolean);
-    }
-
-    function updateCount() {
-        const n = document.querySelectorAll('.svc-chk:checked').length;
-        selectedCount.textContent = `${n} selecionados`;
-        btnImport.disabled = n === 0;
-    }
-
-    function showAlert(el, type, msg) {
-        el.className = `alert alert-${type}`;
-        el.textContent = msg;
-    }
-
-    function setLoading(btn, spinner, loading) {
-        btn.disabled = loading;
-        spinner.classList.toggle('d-none', !loading);
+    function showToast(msg, type = 'success') {
+        const el = document.getElementById('import-toast');
+        el.className = `toast align-items-center text-bg-${type} border-0`;
+        document.getElementById('toast-message').textContent = msg;
+        bootstrap.Toast.getOrCreateInstance(el, { delay: 6000 }).show();
     }
 }());
 </script>
