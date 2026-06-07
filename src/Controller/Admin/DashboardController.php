@@ -10,6 +10,7 @@ use App\Entity\ProviderCredential;
 use App\Entity\Service;
 use App\Entity\ServiceCategory;
 use App\Entity\User;
+use App\Entity\WalletTransaction;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
@@ -33,7 +34,7 @@ class DashboardController extends AbstractDashboardController
         $sinceDay  = new \DateTimeImmutable('today');
 
         // ── Usuários
-        $usersCount   = (int) $this->em->createQueryBuilder()->select('COUNT(u)')->from(User::class, 'u')->getQuery()->getSingleScalarResult();
+        $usersCount = (int) $this->em->createQueryBuilder()->select('COUNT(u)')->from(User::class, 'u')->getQuery()->getSingleScalarResult();
         $newUsersToday = (int) $this->em->createQueryBuilder()
             ->select('COUNT(u)')->from(User::class, 'u')
             ->where('u.createdAt >= :since')->setParameter('since', $sinceDay)
@@ -49,7 +50,7 @@ class DashboardController extends AbstractDashboardController
             ->where('o.createdAt >= :since')->setParameter('since', $sinceDay)
             ->getQuery()->getSingleScalarResult();
 
-        // ── Financeiro (pagamentos aprovados = entradas)
+        // ── Financeiro
         $revenueCents = (int) ($this->em->createQueryBuilder()
             ->select('SUM(p.amountCents)')->from(Payment::class, 'p')
             ->where('p.status = :st')->andWhere('p.createdAt >= :since')
@@ -62,13 +63,11 @@ class DashboardController extends AbstractDashboardController
             ->setParameter('st', Payment::STATUS_APPROVED)->setParameter('since', $sinceDay)
             ->getQuery()->getSingleScalarResult() ?? 0);
 
-        // Saídas = soma de amountCents dos pedidos (custo dos providers)
         $expensesCents = (int) ($this->em->createQueryBuilder()
             ->select('SUM(o.amountCents)')->from(Order::class, 'o')
             ->where('o.createdAt >= :since')->setParameter('since', $since30)
             ->getQuery()->getSingleScalarResult() ?? 0);
 
-        // Taxas = soma de feeCents dos pagamentos
         $feesCents = (int) ($this->em->createQueryBuilder()
             ->select('SUM(p.feeCents)')->from(Payment::class, 'p')
             ->where('p.createdAt >= :since')->setParameter('since', $since30)
@@ -90,7 +89,7 @@ class DashboardController extends AbstractDashboardController
             ->orderBy('u.createdAt', 'DESC')->setMaxResults(8)
             ->getQuery()->getResult();
 
-        // ── Status dos providers/gateways
+        // ── Credenciais
         $credentials = $this->em->createQueryBuilder()
             ->select('c')->from(ProviderCredential::class, 'c')
             ->orderBy('c.type', 'ASC')->addOrderBy('c.slug', 'ASC')
@@ -130,6 +129,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Operações');
         yield MenuItem::linkToCrud('Pedidos', 'fa fa-shopping-cart', Order::class);
         yield MenuItem::linkToCrud('Pagamentos', 'fa fa-credit-card', Payment::class);
+        yield MenuItem::linkToCrud('Transações de Carteira', 'fa fa-wallet', WalletTransaction::class);
 
         yield MenuItem::section('Catálogo');
         yield MenuItem::linkToCrud('Serviços', 'fa fa-list', Service::class);
