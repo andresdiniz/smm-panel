@@ -7,6 +7,7 @@ namespace App\Controller\Admin;
 use App\Entity\Order;
 use App\Entity\Payment;
 use App\Entity\ProviderCredential;
+use App\Entity\Service;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
@@ -126,6 +127,8 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Operações');
         yield MenuItem::linkToCrud('Pedidos', 'fa fa-shopping-cart', Order::class);
         yield MenuItem::linkToCrud('Pagamentos', 'fa fa-credit-card', Payment::class);
+        yield MenuItem::section('Catálogo');
+        yield MenuItem::linkToCrud('Serviços', 'fa fa-list', Service::class);
         yield MenuItem::section('Configurações');
         yield MenuItem::linkToCrud('Credenciais de APIs', 'fa fa-key', ProviderCredential::class);
         yield MenuItem::section();
