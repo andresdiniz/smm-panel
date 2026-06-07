@@ -16,8 +16,9 @@ class Service
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 100)]
-    private string $category;
+    /** Categoria do serviço (nome livre ou nome da ServiceCategory) */
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $category = null;
 
     #[ORM\Column(length: 200)]
     private string $name;
@@ -46,9 +47,14 @@ class Service
     #[ORM\Column(length: 60, nullable: true)]
     private ?string $providerSlug = null;
 
+    public function __toString(): string
+    {
+        return $this->name ?? '';
+    }
+
     public function getId(): ?int { return $this->id; }
-    public function getCategory(): string { return $this->category; }
-    public function setCategory(string $cat): static { $this->category = $cat; return $this; }
+    public function getCategory(): ?string { return $this->category; }
+    public function setCategory(?string $cat): static { $this->category = $cat; return $this; }
     public function getName(): string { return $this->name; }
     public function setName(string $name): static { $this->name = $name; return $this; }
     public function getDescription(): ?string { return $this->description; }

@@ -15,7 +15,7 @@
                     <select id="providerSelect" class="form-select">
                         <option value="">-- selecione --</option>
                         {% for p in providers %}
-                            <option value="{{ p.slug }}">{{ p.slug }} ({{ p.apiUrl }})</option>
+                            <option value="{{ p.slug }}">{{ p.slug }} ({{ p.baseUrl }})</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -221,6 +221,7 @@
                 provider_price: s.provider_price,
                 min_qty:        s.min_qty,
                 max_qty:        s.max_qty,
+                category_name:  s.category,
             };
             if (mode === 'individual' && row) {
                 base.category_id    = row.querySelector('.sel-cat')?.value || null;
@@ -292,8 +293,6 @@
         });
         servicesBody.addEventListener('change', updateCount);
         updateCount();
-
-        // sincroniza colunas individuais
         syncIndividualCols();
     }
 

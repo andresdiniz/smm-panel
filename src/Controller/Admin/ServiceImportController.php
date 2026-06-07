@@ -103,6 +103,7 @@ class ServiceImportController extends AbstractController
      *       category_id:      int|null,
      *       markup_percent:   int|null,
      *       custom_min_qty:   int|null,
+     *       category_name:    string,   // nome de categoria vindo do provedor (fallback)
      *     }
      *   ]
      * }
@@ -142,9 +143,21 @@ class ServiceImportController extends AbstractController
             $minQty = (int) ($item['custom_min_qty'] ?? $item['min_qty'] ?? 10);
             $maxQty = (int) ($item['max_qty'] ?? 100000);
 
-            $category = $catId ? $this->categoryRepo->find($catId) : $defaultCategory;
+            // Resolve categoria: local selecionada → nome da categoria local → nome vindo do provedor
+            $categoryName = null;
+            if ($catId) {
+                $cat = $this->categoryRepo->find($catId);
+                $categoryName = $cat instanceof ServiceCategory ? $cat->getName() : null;
+            }
+            if (!$categoryName && $defaultCategory instanceof ServiceCategory) {
+                $categoryName = $defaultCategory->getName();
+            }
+            if (!$categoryName) {
+                // fallback: usa o nome de categoria que veio do provedor
+                $categoryName = (string) ($item['category_name'] ?? '') ?: null;
+            }
 
-            // Upsert
+            // Upsert: busca pelo externalId + providerSlug
             $service = $this->serviceRepo->findOneBy([
                 'providerSlug'      => $slug,
                 'externalServiceId' => $externalId,
@@ -154,6 +167,7 @@ class ServiceImportController extends AbstractController
                 $service = new Service();
                 $service->setProviderSlug($slug);
                 $service->setExternalServiceId($externalId);
+                $this->em->persist($service);
                 $saved++;
             } else {
                 $updated++;
@@ -164,12 +178,7 @@ class ServiceImportController extends AbstractController
             $service->setMinQty($minQty);
             $service->setMaxQty($maxQty);
             $service->setActive(true);
-
-            if ($category instanceof ServiceCategory) {
-                $service->setCategory($category->getName());
-            }
-
-            $this->em->persist($service);
+            $service->setCategory($categoryName);
         }
 
         $this->em->flush();
