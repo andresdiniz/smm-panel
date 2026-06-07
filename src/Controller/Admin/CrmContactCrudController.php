@@ -28,10 +28,12 @@ class CrmContactCrudController extends AbstractCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
+            ->setPageTitle('index', 'CRM Contacts')
             ->setEntityLabelInSingular('CRM Contact')
             ->setEntityLabelInPlural('CRM Contacts')
             ->setDefaultSort(['id' => 'DESC'])
-            ->setSearchFields(['utmSource', 'utmCampaign', 'utmMedium']);
+            ->setSearchFields(['utmSource', 'utmCampaign', 'utmMedium'])
+            ->setRouteName('admin_ea_crm_contact'); // nome único para evitar colisão com CrmController
     }
 
     public function configureActions(Actions $actions): Actions
