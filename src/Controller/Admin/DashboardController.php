@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Entity\CrmContact;
 use App\Entity\Order;
 use App\Entity\Payment;
 use App\Entity\ProviderCredential;
@@ -33,14 +34,12 @@ class DashboardController extends AbstractDashboardController
         $since30   = new \DateTimeImmutable('-30 days');
         $sinceDay  = new \DateTimeImmutable('today');
 
-        // ── Usuários
         $usersCount = (int) $this->em->createQueryBuilder()->select('COUNT(u)')->from(User::class, 'u')->getQuery()->getSingleScalarResult();
         $newUsersToday = (int) $this->em->createQueryBuilder()
             ->select('COUNT(u)')->from(User::class, 'u')
             ->where('u.createdAt >= :since')->setParameter('since', $sinceDay)
             ->getQuery()->getSingleScalarResult();
 
-        // ── Pedidos
         $ordersTotal = (int) $this->em->createQueryBuilder()
             ->select('COUNT(o)')->from(Order::class, 'o')
             ->where('o.createdAt >= :since')->setParameter('since', $since30)
@@ -50,7 +49,6 @@ class DashboardController extends AbstractDashboardController
             ->where('o.createdAt >= :since')->setParameter('since', $sinceDay)
             ->getQuery()->getSingleScalarResult();
 
-        // ── Financeiro
         $revenueCents = (int) ($this->em->createQueryBuilder()
             ->select('SUM(p.amountCents)')->from(Payment::class, 'p')
             ->where('p.status = :st')->andWhere('p.createdAt >= :since')
@@ -75,21 +73,18 @@ class DashboardController extends AbstractDashboardController
 
         $netProfitCents = $revenueCents - $expensesCents - $feesCents;
 
-        // ── Pedidos recentes
         $recentOrders = $this->em->createQueryBuilder()
             ->select('o')->from(Order::class, 'o')
             ->join('o.service', 's')->join('o.user', 'u')
             ->orderBy('o.createdAt', 'DESC')->setMaxResults(8)
             ->getQuery()->getResult();
 
-        // ── Usuários recentes
         $recentUsers = $this->em->createQueryBuilder()
             ->select('u')->from(User::class, 'u')
             ->leftJoin('u.wallet', 'w')
             ->orderBy('u.createdAt', 'DESC')->setMaxResults(8)
             ->getQuery()->getResult();
 
-        // ── Credenciais
         $credentials = $this->em->createQueryBuilder()
             ->select('c')->from(ProviderCredential::class, 'c')
             ->orderBy('c.type', 'ASC')->addOrderBy('c.slug', 'ASC')
@@ -125,6 +120,7 @@ class DashboardController extends AbstractDashboardController
 
         yield MenuItem::section('Clientes');
         yield MenuItem::linkToCrud('Usuários', 'fa fa-users', User::class);
+        yield MenuItem::linkToCrud('CRM Contacts', 'fa fa-address-book', CrmContact::class);
 
         yield MenuItem::section('Operações');
         yield MenuItem::linkToCrud('Pedidos', 'fa fa-shopping-cart', Order::class);
@@ -134,6 +130,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Catálogo');
         yield MenuItem::linkToCrud('Serviços', 'fa fa-list', Service::class);
         yield MenuItem::linkToCrud('Categorias', 'fa fa-folder', ServiceCategory::class);
+        yield MenuItem::linkToRoute('Importar Serviços', 'fa fa-cloud-download', 'admin_service_import');
 
         yield MenuItem::section('Configurações');
         yield MenuItem::linkToCrud('Credenciais de APIs', 'fa fa-key', ProviderCredential::class);

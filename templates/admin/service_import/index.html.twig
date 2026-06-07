@@ -1,0 +1,331 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Importar Serviços via API{% endblock %}
+
+{% block main %}
+<div class="container-fluid py-3">
+
+    {# ---- Step 1: Selecionar provedor ---- #}
+    <div class="card mb-4">
+        <div class="card-header fw-semibold">1. Selecionar Provedor</div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Provedor</label>
+                    <select id="providerSelect" class="form-select">
+                        <option value="">-- selecione --</option>
+                        {% for p in providers %}
+                            <option value="{{ p.slug }}">{{ p.slug }} ({{ p.apiUrl }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button id="btnFetch" class="btn btn-primary w-100" disabled>
+                        <span id="fetchSpinner" class="spinner-border spinner-border-sm d-none me-1"></span>
+                        Buscar Serviços
+                    </button>
+                </div>
+                <div class="col-12">
+                    <div id="fetchAlert" class="alert d-none"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ---- Step 2: Configurações de import ---- #}
+    <div id="importConfig" class="card mb-4 d-none">
+        <div class="card-header fw-semibold">2. Configurações de Import</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Modo</label>
+                    <select id="importMode" class="form-select">
+                        <option value="batch">Lote (mesma categoria + margem)</option>
+                        <option value="individual">Individual (valor por serviço)</option>
+                    </select>
+                </div>
+                <div id="batchConfig" class="col-md-6 row g-2">
+                    <div class="col-md-5">
+                        <label class="form-label">Categoria padrão</label>
+                        <select id="defaultCategory" class="form-select">
+                            <option value="">-- sem categoria --</option>
+                            {% for c in categories %}
+                                <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Margem padrão (%)</label>
+                        <input type="number" id="defaultMarkup" class="form-control" value="30" min="0" max="999">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Qtd mínima padrão</label>
+                        <input type="number" id="defaultMinQty" class="form-control" placeholder="do provedor" min="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ---- Step 3: Tabela de serviços ---- #}
+    <div id="servicesSection" class="card mb-4 d-none">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">3. Serviços Disponíveis</span>
+            <div class="d-flex gap-2">
+                <input id="filterText" type="search" class="form-control form-control-sm" placeholder="Filtrar..." style="width:220px">
+                <button id="btnSelectAll" class="btn btn-sm btn-outline-secondary">Selec. todos</button>
+                <button id="btnDeselectAll" class="btn btn-sm btn-outline-secondary">Desm. todos</button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height:480px;overflow-y:auto">
+                <table class="table table-sm table-hover mb-0" id="servicesTable">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th><input type="checkbox" id="chkAll"></th>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Categoria (provedor)</th>
+                            <th>Preço provedor/1000</th>
+                            <th>Min</th>
+                            <th>Max</th>
+                            <th id="colCategory" class="d-none">Categoria local</th>
+                            <th id="colMarkup" class="d-none">Margem %</th>
+                            <th id="colMinQty" class="d-none">Min custom</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="servicesBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center">
+            <span id="selectedCount">0 selecionados</span>
+            <button id="btnImport" class="btn btn-success" disabled>
+                <span id="importSpinner" class="spinner-border spinner-border-sm d-none me-1"></span>
+                Importar Selecionados
+            </button>
+        </div>
+    </div>
+
+    {# ---- Resultado ---- #}
+    <div id="resultAlert" class="alert d-none"></div>
+
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+(function () {
+    const categories = {{ categories | map(c => {id: c.id, name: c.name}) | json_encode | raw }};
+    let allServices  = [];
+    let existingIds  = [];
+
+    const providerSelect   = document.getElementById('providerSelect');
+    const btnFetch         = document.getElementById('btnFetch');
+    const fetchSpinner     = document.getElementById('fetchSpinner');
+    const fetchAlert       = document.getElementById('fetchAlert');
+    const importConfig     = document.getElementById('importConfig');
+    const servicesSection  = document.getElementById('servicesSection');
+    const importMode       = document.getElementById('importMode');
+    const servicesBody     = document.getElementById('servicesBody');
+    const btnImport        = document.getElementById('btnImport');
+    const importSpinner    = document.getElementById('importSpinner');
+    const resultAlert      = document.getElementById('resultAlert');
+    const selectedCount    = document.getElementById('selectedCount');
+    const filterText       = document.getElementById('filterText');
+    const chkAll           = document.getElementById('chkAll');
+    const colCategory      = document.getElementById('colCategory');
+    const colMarkup        = document.getElementById('colMarkup');
+    const colMinQty        = document.getElementById('colMinQty');
+
+    providerSelect.addEventListener('change', () => {
+        btnFetch.disabled = !providerSelect.value;
+    });
+
+    importMode.addEventListener('change', () => {
+        const isInd = importMode.value === 'individual';
+        colCategory.classList.toggle('d-none', !isInd);
+        colMarkup.classList.toggle('d-none', !isInd);
+        colMinQty.classList.toggle('d-none', !isInd);
+    });
+
+    btnFetch.addEventListener('click', async () => {
+        setLoading(btnFetch, fetchSpinner, true);
+        fetchAlert.className = 'alert d-none';
+
+        const fd = new FormData();
+        fd.append('provider_slug', providerSelect.value);
+
+        try {
+            const res  = await fetch('{{ path('admin_service_import_fetch') }}', { method: 'POST', body: fd });
+            const json = await res.json();
+
+            if (json.error) throw new Error(json.error);
+
+            allServices = json.services;
+            existingIds = json.existingIds;
+            renderTable(allServices);
+            importConfig.classList.remove('d-none');
+            servicesSection.classList.remove('d-none');
+            showAlert(fetchAlert, 'success', `${allServices.length} serviços carregados.`);
+        } catch (e) {
+            showAlert(fetchAlert, 'danger', e.message);
+        } finally {
+            setLoading(btnFetch, fetchSpinner, false);
+        }
+    });
+
+    filterText.addEventListener('input', () => {
+        const q = filterText.value.toLowerCase();
+        const filtered = allServices.filter(s =>
+            s.name.toLowerCase().includes(q) ||
+            s.category.toLowerCase().includes(q) ||
+            String(s.external_id).includes(q)
+        );
+        renderTable(filtered);
+    });
+
+    document.getElementById('btnSelectAll').addEventListener('click', () => {
+        document.querySelectorAll('.svc-chk').forEach(c => c.checked = true);
+        updateCount();
+    });
+    document.getElementById('btnDeselectAll').addEventListener('click', () => {
+        document.querySelectorAll('.svc-chk').forEach(c => c.checked = false);
+        updateCount();
+    });
+
+    chkAll.addEventListener('change', () => {
+        document.querySelectorAll('.svc-chk').forEach(c => c.checked = chkAll.checked);
+        updateCount();
+    });
+
+    btnImport.addEventListener('click', async () => {
+        const selected = getSelected();
+        if (!selected.length) return;
+
+        setLoading(btnImport, importSpinner, true);
+        resultAlert.className = 'alert d-none';
+
+        const mode          = importMode.value;
+        const defaultCatId  = document.getElementById('defaultCategory').value || null;
+        const defaultMarkup = parseInt(document.getElementById('defaultMarkup').value) || 30;
+        const defaultMinQty = parseInt(document.getElementById('defaultMinQty').value) || null;
+
+        const services = selected.map(s => {
+            const row  = document.getElementById('row-' + s.external_id);
+            const base = {
+                external_id:    s.external_id,
+                name:           s.name,
+                provider_price: s.provider_price,
+                min_qty:        s.min_qty,
+                max_qty:        s.max_qty,
+            };
+            if (mode === 'individual' && row) {
+                base.category_id    = row.querySelector('.sel-cat')?.value || null;
+                base.markup_percent = parseInt(row.querySelector('.inp-markup')?.value) || defaultMarkup;
+                base.custom_min_qty = parseInt(row.querySelector('.inp-minqty')?.value) || defaultMinQty;
+            } else {
+                base.custom_min_qty = defaultMinQty;
+            }
+            return base;
+        });
+
+        const payload = {
+            provider_slug:          providerSelect.value,
+            mode,
+            category_id:            defaultCatId ? parseInt(defaultCatId) : null,
+            default_markup_percent: defaultMarkup,
+            services,
+        };
+
+        try {
+            const res  = await fetch('{{ path('admin_service_import_save') }}', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(payload),
+            });
+            const json = await res.json();
+            if (json.error) throw new Error(json.error);
+            showAlert(resultAlert, 'success',
+                `✅ Importação concluída! ${json.saved} novos, ${json.updated} atualizados.`);
+        } catch (e) {
+            showAlert(resultAlert, 'danger', e.message);
+        } finally {
+            setLoading(btnImport, importSpinner, false);
+        }
+    });
+
+    function renderTable(services) {
+        servicesBody.innerHTML = '';
+        services.forEach(s => {
+            const exists = existingIds.includes(String(s.external_id));
+            const tr = document.createElement('tr');
+            tr.id = 'row-' + s.external_id;
+            tr.innerHTML = `
+                <td><input type="checkbox" class="svc-chk" value="${s.external_id}" ${exists ? 'checked' : ''}></td>
+                <td>${s.external_id}</td>
+                <td>${s.name}</td>
+                <td><small class="text-muted">${s.category}</small></td>
+                <td>$${(s.provider_price).toFixed(4)}</td>
+                <td>${s.min_qty}</td>
+                <td>${s.max_qty}</td>
+                <td class="d-none col-individual">
+                    <select class="form-select form-select-sm sel-cat">
+                        <option value="">-- cat --</option>
+                        ${categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                    </select>
+                </td>
+                <td class="d-none col-individual">
+                    <input type="number" class="form-control form-control-sm inp-markup" value="30" min="0" style="width:70px">
+                </td>
+                <td class="d-none col-individual">
+                    <input type="number" class="form-control form-control-sm inp-minqty" placeholder="padrão" min="1" style="width:80px">
+                </td>
+                <td>${exists
+                    ? '<span class="badge bg-warning text-dark">Já importado</span>'
+                    : '<span class="badge bg-secondary">Novo</span>'
+                }</td>
+            `;
+            servicesBody.appendChild(tr);
+        });
+        servicesBody.addEventListener('change', updateCount);
+        updateCount();
+
+        // sincroniza colunas individuais
+        syncIndividualCols();
+    }
+
+    function syncIndividualCols() {
+        const isInd = importMode.value === 'individual';
+        document.querySelectorAll('.col-individual').forEach(el => {
+            el.classList.toggle('d-none', !isInd);
+        });
+    }
+
+    importMode.addEventListener('change', syncIndividualCols);
+
+    function getSelected() {
+        const checked = [...document.querySelectorAll('.svc-chk:checked')];
+        return checked.map(c => allServices.find(s => String(s.external_id) === c.value)).filter(Boolean);
+    }
+
+    function updateCount() {
+        const n = document.querySelectorAll('.svc-chk:checked').length;
+        selectedCount.textContent = `${n} selecionados`;
+        btnImport.disabled = n === 0;
+    }
+
+    function showAlert(el, type, msg) {
+        el.className = `alert alert-${type}`;
+        el.textContent = msg;
+    }
+
+    function setLoading(btn, spinner, loading) {
+        btn.disabled = loading;
+        spinner.classList.toggle('d-none', !loading);
+    }
+}());
+</script>
+{% endblock %}
