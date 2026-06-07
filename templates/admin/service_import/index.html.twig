@@ -1,14 +1,14 @@
 {% extends '@EasyAdmin/page/content.html.twig' %}
 
 {% block page_title %}
-    <i class="fa fa-cloud-download me-2"></i> Importar Serviços
+    <i class="fa fa-cloud-arrow-down me-2"></i> Importar Serviços
 {% endblock %}
 
 {% block main %}
 <div class="container-fluid px-0">
 
-    {# ── Step 1: Selecionar provedor ─────────────────────────────────────────── #}
-    <div class="card shadow-sm mb-4" id="card-step1">
+    {# ── Step 1: Selecionar provedor ── #}
+    <div class="card shadow-sm mb-4">
         <div class="card-header bg-white d-flex align-items-center gap-2 py-3">
             <span class="badge bg-primary rounded-pill">1</span>
             <strong>Selecionar Provedor</strong>
@@ -17,7 +17,7 @@
             {% if providers is empty %}
                 <div class="alert alert-warning mb-0">
                     <i class="fa fa-triangle-exclamation me-2"></i>
-                    Nenhum provedor SMM cadastrado.
+                    Nenhum provedor SMM cadastrado. Cadastre um em <strong>Integrações &rarr; Provedores / APIs</strong>.
                 </div>
             {% else %}
                 <div class="row g-3">
@@ -26,11 +26,11 @@
                             <button type="button"
                                 class="btn btn-outline-secondary w-100 text-start provider-btn d-flex align-items-center gap-2 p-3"
                                 data-slug="{{ provider.slug }}"
-                                data-name="{{ provider.label ?? provider.slug }}">
+                                data-name="{{ provider.slug }}">
                                 <i class="fa fa-server fa-fw text-muted"></i>
                                 <div>
-                                    <div class="fw-semibold">{{ provider.label ?? provider.slug }}</div>
-                                    <small class="text-muted">{{ provider.baseUrl|slice(0, 35) }}{% if provider.baseUrl|length > 35 %}…{% endif %}</small>
+                                    <div class="fw-semibold text-uppercase">{{ provider.slug }}</div>
+                                    <small class="text-muted">{{ provider.baseUrl|slice(0,40) }}{% if provider.baseUrl|length > 40 %}…{% endif %}</small>
                                 </div>
                             </button>
                         </div>
@@ -40,12 +40,12 @@
         </div>
     </div>
 
-    {# ── Step 2: Configurações ────────────────────────────────────────────────── #}
+    {# ── Step 2: Configurações ── #}
     <div class="card shadow-sm mb-4 d-none" id="card-step2">
         <div class="card-header bg-white d-flex align-items-center gap-2 py-3">
             <span class="badge bg-primary rounded-pill">2</span>
-            <strong>Configurações de Importação</strong>
-            <span class="ms-auto text-muted small" id="selected-provider-name"></span>
+            <strong>Configurações</strong>
+            <span class="ms-2 badge bg-secondary" id="selected-provider-name"></span>
         </div>
         <div class="card-body">
             <div class="row g-3 align-items-end">
@@ -57,7 +57,6 @@
                             <option value="{{ cat.id }}">{{ cat.name }}</option>
                         {% endfor %}
                     </select>
-                    <div class="form-text">Aplicada a todos os serviços sem categoria local</div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Markup padrão (%)</label>
@@ -65,31 +64,37 @@
                         <input type="number" id="default-markup" class="form-control" value="30" min="0" max="9999">
                         <span class="input-group-text">%</span>
                     </div>
-                    <div class="form-text">Aplicado sobre o preço do provedor</div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Modo</label>
                     <select class="form-select" id="import-mode">
-                        <option value="batch">Lote (mesma categoria/markup)</option>
-                        <option value="individual">Individual (por linha)</option>
+                        <option value="batch">Lote</option>
+                        <option value="individual">Individual</option>
                     </select>
                 </div>
                 <div class="col-md-2">
                     <button type="button" class="btn btn-primary w-100" id="btn-fetch">
-                        <i class="fa fa-search me-1"></i> Buscar Serviços
+                        <i class="fa fa-search me-1"></i> Buscar
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    {# ── Loader ───────────────────────────────────────────────────────────────── #}
+    {# ── Loader ── #}
     <div class="text-center py-5 d-none" id="loader">
         <div class="spinner-border text-primary" style="width:3rem;height:3rem;"></div>
-        <div class="mt-3 text-muted">Buscando serviços da API do provedor…</div>
+        <p class="mt-3 text-muted">Consultando API do provedor…</p>
     </div>
 
-    {# ── Step 3: Tabela ───────────────────────────────────────────────────────── #}
+    {# ── Erro de fetch ── #}
+    <div class="alert alert-danger d-none" id="fetch-error" role="alert">
+        <strong><i class="fa fa-circle-xmark me-1"></i> Erro ao buscar serviços:</strong>
+        <span id="fetch-error-msg"></span>
+        <pre id="fetch-error-detail" class="mt-2 mb-0 small text-danger" style="white-space:pre-wrap"></pre>
+    </div>
+
+    {# ── Step 3: Tabela ── #}
     <div class="card shadow-sm d-none" id="card-step3">
         <div class="card-header bg-white d-flex align-items-center gap-3 py-3 flex-wrap">
             <span class="badge bg-primary rounded-pill">3</span>
@@ -97,61 +102,55 @@
             <span class="badge bg-secondary" id="count-badge">0</span>
             <div class="ms-auto d-flex gap-2 flex-wrap">
                 <input type="text" class="form-control form-control-sm" id="search-services"
-                    placeholder="🔍 Filtrar por nome ou categoria…" style="width:260px">
-                <select class="form-select form-select-sm" id="filter-status" style="width:160px">
+                    placeholder="Filtrar por nome ou categoria…" style="width:240px">
+                <select class="form-select form-select-sm" id="filter-status" style="width:150px">
                     <option value="all">Todos</option>
                     <option value="new">Novos</option>
                     <option value="existing">Já importados</option>
                 </select>
             </div>
         </div>
-
         <div class="card-body p-0">
-            <div class="table-responsive" style="max-height:60vh;overflow-y:auto">
-                <table class="table table-hover table-sm align-middle mb-0" id="services-table">
+            <div class="table-responsive" style="max-height:55vh;overflow-y:auto">
+                <table class="table table-hover table-sm align-middle mb-0">
                     <thead class="table-light sticky-top">
                         <tr>
-                            <th style="width:40px">
-                                <input type="checkbox" id="check-all" class="form-check-input">
-                            </th>
-                            <th>ID Externo</th>
+                            <th style="width:36px"><input type="checkbox" id="check-all" class="form-check-input"></th>
+                            <th>ID</th>
                             <th>Nome</th>
-                            <th>Categoria do Provedor</th>
+                            <th>Categoria</th>
                             <th>Preço Provedor</th>
                             <th>Preço Venda</th>
-                            <th style="width:90px">Mín.</th>
-                            <th style="width:90px">Máx.</th>
-                            <th style="width:60px" class="text-center">Status</th>
+                            <th style="width:85px">Mín.</th>
+                            <th>Máx.</th>
+                            <th style="width:55px" class="text-center">★</th>
                         </tr>
                     </thead>
                     <tbody id="services-tbody"></tbody>
                 </table>
             </div>
         </div>
-
-        <div class="card-footer bg-white d-flex align-items-center justify-content-between gap-3 flex-wrap">
-            <div class="text-muted small">
-                <span id="selected-count">0</span> selecionados de <span id="total-count">0</span>
-            </div>
+        <div class="card-footer bg-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span class="text-muted small"><span id="selected-count">0</span> selecionados de <span id="total-count">0</span></span>
             <div class="d-flex gap-2">
                 <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-select-new">
                     <i class="fa fa-check-double me-1"></i> Selecionar novos
                 </button>
                 <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-deselect-all">
-                    <i class="fa fa-xmark me-1"></i> Desmarcar todos
+                    <i class="fa fa-xmark me-1"></i> Desmarcar
                 </button>
-                <button type="button" class="btn btn-success px-4" id="btn-save">
+                <button type="button" class="btn btn-success" id="btn-save">
                     <i class="fa fa-cloud-arrow-down me-1"></i> Importar Selecionados
                 </button>
             </div>
         </div>
     </div>
 
-    {# ── Toast ────────────────────────────────────────────────────────────────── #}
+    {# ── Toast ── #}
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:1090">
-        <div id="import-toast" class="toast align-items-center text-bg-success border-0" role="alert">
+        <div id="import-toast" class="toast align-items-center border-0" role="alert">
             <div class="d-flex">
-                <div class="toast-body" id="toast-message"></div>
+                <div class="toast-body fw-semibold" id="toast-message"></div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
             </div>
         </div>
@@ -164,55 +163,77 @@
 {{ parent() }}
 <script>
 (function () {
-    const FETCH_URL = '{{ path('admin_service_import_fetch') }}';
-    const SAVE_URL  = '{{ path('admin_service_import_save') }}';
+    'use strict';
+
+    const FETCH_URL = {{ path('admin_service_import_fetch')|json_encode|raw }};
+    const SAVE_URL  = {{ path('admin_service_import_save')|json_encode|raw }};
 
     let allServices = [];
     let existingIds = [];
     let currentSlug = '';
     let currentMode = 'batch';
 
-    // ── Provider selection ────────────────────────────────────────────────────
+    // ── Selecionar provedor ───────────────────────────────────────────────
     document.querySelectorAll('.provider-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.provider-btn').forEach(b => {
-                b.classList.remove('active', 'btn-primary');
+                b.classList.remove('btn-primary');
                 b.classList.add('btn-outline-secondary');
             });
-            btn.classList.add('active', 'btn-primary');
             btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-primary');
             currentSlug = btn.dataset.slug;
             document.getElementById('selected-provider-name').textContent = btn.dataset.name;
             document.getElementById('card-step2').classList.remove('d-none');
             document.getElementById('card-step3').classList.add('d-none');
+            document.getElementById('fetch-error').classList.add('d-none');
         });
     });
 
-    // ── Fetch services ────────────────────────────────────────────────────────
-    document.getElementById('btn-fetch')?.addEventListener('click', async () => {
-        if (!currentSlug) return;
+    // ── Buscar serviços ────────────────────────────────────────────────
+    document.getElementById('btn-fetch').addEventListener('click', async () => {
+        if (!currentSlug) { alert('Selecione um provedor primeiro.'); return; }
         currentMode = document.getElementById('import-mode').value;
+
         document.getElementById('loader').classList.remove('d-none');
         document.getElementById('card-step3').classList.add('d-none');
-
-        const fd = new FormData();
-        fd.append('provider_slug', currentSlug);
+        document.getElementById('fetch-error').classList.add('d-none');
 
         try {
-            const res  = await fetch(FETCH_URL, { method: 'POST', body: fd });
+            const fd = new FormData();
+            fd.append('provider_slug', currentSlug);
+
+            const res = await fetch(FETCH_URL, { method: 'POST', body: fd });
+
+            // Detecta resposta não-JSON (ex: redirect de login, HTML de erro)
+            const contentType = res.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                const text = await res.text();
+                throw new Error(`Resposta inesperada (HTTP ${res.status}). O servidor retornou HTML em vez de JSON. Verifique se a sessão expirou.\n\n${text.slice(0, 300)}`);
+            }
+
             const json = await res.json();
-            if (json.error) throw new Error(json.error);
-            allServices = json.services;
-            existingIds = json.existingIds;
+            if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+
+            allServices = json.services  || [];
+            existingIds = json.existingIds || [];
+
+            if (allServices.length === 0) {
+                throw new Error('O provedor retornou 0 serviços. Verifique a URL base e a chave de API nas configurações do provedor.');
+            }
+
             renderTable(allServices);
-        } catch (e) {
-            showToast('Erro: ' + e.message, 'danger');
+        } catch (err) {
+            document.getElementById('fetch-error-msg').textContent   = err.message.split('\n')[0];
+            document.getElementById('fetch-error-detail').textContent = err.message.includes('\n') ? err.message.slice(err.message.indexOf('\n') + 1) : '';
+            document.getElementById('fetch-error').classList.remove('d-none');
+            console.error('[ServiceImport] fetch error:', err);
         } finally {
             document.getElementById('loader').classList.add('d-none');
         }
     });
 
-    // ── Render table ──────────────────────────────────────────────────────────
+    // ── Renderizar tabela ────────────────────────────────────────────────
     function renderTable(services) {
         const markup = parseInt(document.getElementById('default-markup').value) || 30;
         const tbody  = document.getElementById('services-tbody');
@@ -221,34 +242,36 @@
         services.forEach(svc => {
             const isExisting = existingIds.includes(String(svc.external_id));
             const sellPrice  = (svc.provider_price * (1 + markup / 100)).toFixed(4);
-            const tr = document.createElement('tr');
+            const tr         = document.createElement('tr');
             tr.dataset.id       = svc.external_id;
             tr.dataset.existing = isExisting ? '1' : '0';
             tr.innerHTML = `
                 <td><input type="checkbox" class="form-check-input row-check" ${isExisting ? '' : 'checked'}></td>
-                <td><code class="text-muted small">${esc(String(svc.external_id))}</code></td>
-                <td class="fw-medium">${esc(svc.name)}</td>
-                <td><span class="badge bg-light text-dark border">${esc(svc.category || '—')}</span></td>
-                <td class="text-muted small">R$ ${svc.provider_price.toFixed(4)}</td>
-                <td class="text-success fw-semibold">R$ ${sellPrice}</td>
-                <td><input type="number" class="form-control form-control-sm min-input" value="${svc.min_qty}" min="1" style="width:78px"></td>
-                <td class="text-muted small">${Number(svc.max_qty).toLocaleString('pt-BR')}</td>
-                <td class="text-center">${isExisting
-                    ? '<span class="badge bg-warning text-dark" title="Já importado"><i class="fa fa-rotate"></i></span>'
-                    : '<span class="badge bg-success" title="Novo"><i class="fa fa-plus"></i></span>'}</td>
-            `;
+                <td><code class="text-muted" style="font-size:.75rem">${esc(String(svc.external_id))}</code></td>
+                <td style="max-width:300px" class="fw-medium">${esc(svc.name)}</td>
+                <td><span class="badge bg-light text-dark border" style="font-size:.7rem">${esc(svc.category || '—')}</span></td>
+                <td class="text-muted" style="font-size:.8rem">R$ ${Number(svc.provider_price).toFixed(4)}</td>
+                <td class="text-success fw-semibold" style="font-size:.85rem">R$ ${sellPrice}</td>
+                <td><input type="number" class="form-control form-control-sm min-input" value="${svc.min_qty}" min="1" style="width:75px"></td>
+                <td class="text-muted" style="font-size:.8rem">${Number(svc.max_qty).toLocaleString('pt-BR')}</td>
+                <td class="text-center">
+                    ${isExisting
+                        ? '<span class="badge bg-warning text-dark">atualiza</span>'
+                        : '<span class="badge bg-success">novo</span>'}
+                </td>`;
             tbody.appendChild(tr);
         });
 
         document.getElementById('card-step3').classList.remove('d-none');
         document.getElementById('count-badge').textContent = services.length;
-        document.getElementById('total-count').textContent  = services.length;
+        document.getElementById('total-count').textContent = services.length;
         updateCounts();
+        document.getElementById('card-step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    // ── Search / filter ───────────────────────────────────────────────────────
-    document.getElementById('search-services')?.addEventListener('input', applyFilters);
-    document.getElementById('filter-status')?.addEventListener('change', applyFilters);
+    // ── Filtros ───────────────────────────────────────────────────────────
+    document.getElementById('search-services').addEventListener('input', applyFilters);
+    document.getElementById('filter-status').addEventListener('change', applyFilters);
 
     function applyFilters() {
         const q      = document.getElementById('search-services').value.toLowerCase();
@@ -259,30 +282,28 @@
             const matchS   = status === 'all'
                 || (status === 'new'      && !existing)
                 || (status === 'existing' && existing);
-            tr.style.display = (matchQ && matchS) ? '' : 'none';
+            tr.style.display = matchQ && matchS ? '' : 'none';
         });
         updateCounts();
     }
 
-    // ── Check all ─────────────────────────────────────────────────────────────
-    document.getElementById('check-all')?.addEventListener('change', e => {
+    // ── Checkboxes ─────────────────────────────────────────────────────────
+    document.getElementById('check-all').addEventListener('change', e => {
         document.querySelectorAll('#services-tbody tr').forEach(tr => {
-            if (tr.style.display !== 'none') {
-                tr.querySelector('.row-check').checked = e.target.checked;
-            }
+            if (tr.style.display !== 'none') tr.querySelector('.row-check').checked = e.target.checked;
         });
         updateCounts();
     });
     document.addEventListener('change', e => {
         if (e.target.classList.contains('row-check')) updateCounts();
     });
-    document.getElementById('btn-select-new')?.addEventListener('click', () => {
+    document.getElementById('btn-select-new').addEventListener('click', () => {
         document.querySelectorAll('#services-tbody tr').forEach(tr => {
             if (tr.dataset.existing !== '1') tr.querySelector('.row-check').checked = true;
         });
         updateCounts();
     });
-    document.getElementById('btn-deselect-all')?.addEventListener('click', () => {
+    document.getElementById('btn-deselect-all').addEventListener('click', () => {
         document.querySelectorAll('.row-check').forEach(cb => cb.checked = false);
         updateCounts();
     });
@@ -291,16 +312,15 @@
             document.querySelectorAll('.row-check:checked').length;
     }
 
-    // ── Save ──────────────────────────────────────────────────────────────────
-    document.getElementById('btn-save')?.addEventListener('click', async () => {
-        const markup = parseInt(document.getElementById('default-markup').value) || 30;
-        const catId  = document.getElementById('default-category').value || null;
-        const rows   = document.querySelectorAll('.row-check:checked');
-
-        if (!rows.length) { alert('Selecione pelo menos um serviço.'); return; }
+    // ── Importar ──────────────────────────────────────────────────────────────
+    document.getElementById('btn-save').addEventListener('click', async () => {
+        const markup   = parseInt(document.getElementById('default-markup').value) || 30;
+        const catId    = document.getElementById('default-category').value || null;
+        const checked  = document.querySelectorAll('.row-check:checked');
+        if (!checked.length) { alert('Selecione pelo menos um serviço.'); return; }
 
         const selected = [];
-        rows.forEach(cb => {
+        checked.forEach(cb => {
             const tr  = cb.closest('tr');
             const svc = allServices.find(s => String(s.external_id) === String(tr.dataset.id));
             if (!svc) return;
@@ -319,7 +339,7 @@
 
         const btn = document.getElementById('btn-save');
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Importando…';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Salvando…';
 
         try {
             const res  = await fetch(SAVE_URL, {
@@ -335,24 +355,24 @@
             });
             const json = await res.json();
             if (json.error) throw new Error(json.error);
-            showToast(`✅ ${json.saved} novos, ${json.updated} atualizados — total: ${json.total} serviços.`);
-        } catch (e) {
-            showToast('Erro: ' + e.message, 'danger');
+            showToast(`✅ ${json.saved} novos importados, ${json.updated} atualizados.`, 'success');
+        } catch (err) {
+            showToast('Erro: ' + err.message, 'danger');
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa fa-cloud-arrow-down me-1"></i> Importar Selecionados';
         }
     });
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Helpers ─────────────────────────────────────────────────────────────
     function esc(s) {
-        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
     function showToast(msg, type = 'success') {
         const el = document.getElementById('import-toast');
         el.className = `toast align-items-center text-bg-${type} border-0`;
         document.getElementById('toast-message').textContent = msg;
-        bootstrap.Toast.getOrCreateInstance(el, { delay: 6000 }).show();
+        bootstrap.Toast.getOrCreateInstance(el, { delay: 7000 }).show();
     }
 }());
 </script>
