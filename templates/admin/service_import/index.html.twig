@@ -1,13 +1,55 @@
-{% extends '@EasyAdmin/page/content.html.twig' %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Importar Serviços — SMM Panel Admin</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body { background: #f4f6f9; font-family: system-ui, sans-serif; }
+        .sidebar { width: 220px; min-height: 100vh; background: #1a1a2e; position: fixed; top: 0; left: 0; z-index: 100; padding-top: 1rem; }
+        .sidebar a { color: #ccc; text-decoration: none; display: block; padding: .45rem 1.2rem; font-size: .88rem; }
+        .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,.08); color: #fff; }
+        .sidebar .section-label { color: #666; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; padding: .8rem 1.2rem .2rem; }
+        .sidebar .brand { color: #fff; font-weight: 700; font-size: 1rem; padding: .5rem 1.2rem 1rem; border-bottom: 1px solid #333; margin-bottom: .5rem; }
+        .main-content { margin-left: 220px; padding: 2rem; }
+        .topbar { background: #fff; border-bottom: 1px solid #e5e7eb; padding: .6rem 1.5rem; margin-left: 220px; position: sticky; top: 0; z-index: 99; display: flex; justify-content: space-between; align-items: center; }
+        .topbar .user { font-size: .85rem; color: #555; }
+        .sticky-top { top: 0; }
+    </style>
+</head>
+<body>
 
-{% block page_title %}
-    <i class="fa fa-cloud-arrow-down me-2"></i> Importar Serviços
-{% endblock %}
+{# Sidebar #}
+<nav class="sidebar">
+    <div class="brand"><i class="fa fa-chart-line me-2"></i>SMM Panel <span style="font-weight:300;opacity:.6">Admin</span></div>
+    <a href="{{ path('admin') }}"><i class="fa fa-gauge-high fa-fw me-2"></i>Dashboard</a>
+    <div class="section-label">Pedidos</div>
+    <a href="{{ path('admin') }}?crudControllerFqcn=App\Controller\Admin\OrderCrudController"><i class="fa fa-cart-shopping fa-fw me-2"></i>Pedidos</a>
+    <a href="{{ path('admin') }}?crudControllerFqcn=App\Controller\Admin\PaymentCrudController"><i class="fa fa-credit-card fa-fw me-2"></i>Pagamentos</a>
+    <a href="{{ path('admin') }}?crudControllerFqcn=App\Controller\Admin\WalletTransactionCrudController"><i class="fa fa-arrow-right-arrow-left fa-fw me-2"></i>Transações</a>
+    <div class="section-label">Catálogo</div>
+    <a href="{{ path('admin') }}?crudControllerFqcn=App\Controller\Admin\ServiceCrudController"><i class="fa fa-list fa-fw me-2"></i>Serviços</a>
+    <a href="{{ path('admin') }}?crudControllerFqcn=App\Controller\Admin\ServiceCategoryCrudController"><i class="fa fa-tags fa-fw me-2"></i>Categorias</a>
+    <a href="{{ path('admin_service_import') }}" class="active"><i class="fa fa-cloud-download fa-fw me-2"></i>Importar Serviços</a>
+    <div class="section-label">Usuários &amp; CRM</div>
+    <a href="{{ path('admin') }}?crudControllerFqcn=App\Controller\Admin\UserCrudController"><i class="fa fa-users fa-fw me-2"></i>Usuários</a>
+    <a href="{{ path('admin_crm') }}"><i class="fa fa-comments fa-fw me-2"></i>CRM</a>
+    <div class="section-label">Integrações</div>
+    <a href="{{ path('admin') }}?crudControllerFqcn=App\Controller\Admin\ProviderCredentialCrudController"><i class="fa fa-plug fa-fw me-2"></i>Provedores / APIs</a>
+</nav>
 
-{% block main %}
-<div class="container-fluid px-0">
+{# Topbar #}
+<div class="topbar">
+    <strong style="font-size:.9rem"><i class="fa fa-cloud-download me-2 text-primary"></i>Importar Serviços</strong>
+    <span class="user"><i class="fa fa-user-circle me-1"></i>{{ app.user ? app.user.email : 'Admin' }}</span>
+</div>
 
-    {# ── Step 1: Selecionar provedor ── #}
+{# Main #}
+<div class="main-content">
+
+    {# Step 1 #}
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-white d-flex align-items-center gap-2 py-3">
             <span class="badge bg-primary rounded-pill">1</span>
@@ -17,7 +59,7 @@
             {% if providers is empty %}
                 <div class="alert alert-warning mb-0">
                     <i class="fa fa-triangle-exclamation me-2"></i>
-                    Nenhum provedor SMM cadastrado. Cadastre um em <strong>Integrações &rarr; Provedores / APIs</strong>.
+                    Nenhum provedor SMM cadastrado.
                 </div>
             {% else %}
                 <div class="row g-3">
@@ -40,7 +82,7 @@
         </div>
     </div>
 
-    {# ── Step 2: Configurações ── #}
+    {# Step 2 #}
     <div class="card shadow-sm mb-4 d-none" id="card-step2">
         <div class="card-header bg-white d-flex align-items-center gap-2 py-3">
             <span class="badge bg-primary rounded-pill">2</span>
@@ -81,28 +123,27 @@
         </div>
     </div>
 
-    {# ── Loader ── #}
+    {# Loader #}
     <div class="text-center py-5 d-none" id="loader">
         <div class="spinner-border text-primary" style="width:3rem;height:3rem;"></div>
         <p class="mt-3 text-muted">Consultando API do provedor…</p>
     </div>
 
-    {# ── Erro de fetch ── #}
-    <div class="alert alert-danger d-none" id="fetch-error" role="alert">
-        <strong><i class="fa fa-circle-xmark me-1"></i> Erro ao buscar serviços:</strong>
+    {# Erro #}
+    <div class="alert alert-danger d-none" id="fetch-error">
+        <strong><i class="fa fa-circle-xmark me-1"></i> Erro:</strong>
         <span id="fetch-error-msg"></span>
-        <pre id="fetch-error-detail" class="mt-2 mb-0 small text-danger" style="white-space:pre-wrap"></pre>
+        <pre id="fetch-error-detail" class="mt-2 mb-0 small" style="white-space:pre-wrap"></pre>
     </div>
 
-    {# ── Step 3: Tabela ── #}
+    {# Step 3 #}
     <div class="card shadow-sm d-none" id="card-step3">
         <div class="card-header bg-white d-flex align-items-center gap-3 py-3 flex-wrap">
             <span class="badge bg-primary rounded-pill">3</span>
             <strong>Serviços Disponíveis</strong>
             <span class="badge bg-secondary" id="count-badge">0</span>
             <div class="ms-auto d-flex gap-2 flex-wrap">
-                <input type="text" class="form-control form-control-sm" id="search-services"
-                    placeholder="Filtrar por nome ou categoria…" style="width:240px">
+                <input type="text" class="form-control form-control-sm" id="search-services" placeholder="Filtrar…" style="width:220px">
                 <select class="form-select form-select-sm" id="filter-status" style="width:150px">
                     <option value="all">Todos</option>
                     <option value="new">Novos</option>
@@ -123,7 +164,7 @@
                             <th>Preço Venda</th>
                             <th style="width:85px">Mín.</th>
                             <th>Máx.</th>
-                            <th style="width:55px" class="text-center">★</th>
+                            <th class="text-center">★</th>
                         </tr>
                     </thead>
                     <tbody id="services-tbody"></tbody>
@@ -146,7 +187,7 @@
         </div>
     </div>
 
-    {# ── Toast ── #}
+    {# Toast #}
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:1090">
         <div id="import-toast" class="toast align-items-center border-0" role="alert">
             <div class="d-flex">
@@ -156,11 +197,9 @@
         </div>
     </div>
 
-</div>
-{% endblock %}
+</div>{# /main-content #}
 
-{% block javascripts %}
-{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 (function () {
     'use strict';
@@ -168,20 +207,15 @@
     const FETCH_URL = {{ path('admin_service_import_fetch')|json_encode|raw }};
     const SAVE_URL  = {{ path('admin_service_import_save')|json_encode|raw }};
 
-    let allServices = [];
-    let existingIds = [];
-    let currentSlug = '';
-    let currentMode = 'batch';
+    let allServices = [], existingIds = [], currentSlug = '', currentMode = 'batch';
 
-    // ── Selecionar provedor ───────────────────────────────────────────────
+    // Selecionar provedor
     document.querySelectorAll('.provider-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.provider-btn').forEach(b => {
-                b.classList.remove('btn-primary');
-                b.classList.add('btn-outline-secondary');
+                b.classList.remove('btn-primary'); b.classList.add('btn-outline-secondary');
             });
-            btn.classList.remove('btn-outline-secondary');
-            btn.classList.add('btn-primary');
+            btn.classList.remove('btn-outline-secondary'); btn.classList.add('btn-primary');
             currentSlug = btn.dataset.slug;
             document.getElementById('selected-provider-name').textContent = btn.dataset.name;
             document.getElementById('card-step2').classList.remove('d-none');
@@ -190,190 +224,136 @@
         });
     });
 
-    // ── Buscar serviços ────────────────────────────────────────────────
+    // Buscar serviços
     document.getElementById('btn-fetch').addEventListener('click', async () => {
-        if (!currentSlug) { alert('Selecione um provedor primeiro.'); return; }
+        if (!currentSlug) { alert('Selecione um provedor.'); return; }
         currentMode = document.getElementById('import-mode').value;
-
         document.getElementById('loader').classList.remove('d-none');
         document.getElementById('card-step3').classList.add('d-none');
         document.getElementById('fetch-error').classList.add('d-none');
-
         try {
             const fd = new FormData();
             fd.append('provider_slug', currentSlug);
-
             const res = await fetch(FETCH_URL, { method: 'POST', body: fd });
-
-            // Detecta resposta não-JSON (ex: redirect de login, HTML de erro)
-            const contentType = res.headers.get('content-type') || '';
-            if (!contentType.includes('application/json')) {
-                const text = await res.text();
-                throw new Error(`Resposta inesperada (HTTP ${res.status}). O servidor retornou HTML em vez de JSON. Verifique se a sessão expirou.\n\n${text.slice(0, 300)}`);
+            const ct  = res.headers.get('content-type') || '';
+            if (!ct.includes('application/json')) {
+                const txt = await res.text();
+                throw new Error(`HTTP ${res.status} — servidor retornou HTML. Sessão expirada?\n${txt.slice(0,300)}`);
             }
-
             const json = await res.json();
             if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
-
             allServices = json.services  || [];
             existingIds = json.existingIds || [];
-
-            if (allServices.length === 0) {
-                throw new Error('O provedor retornou 0 serviços. Verifique a URL base e a chave de API nas configurações do provedor.');
-            }
-
+            if (!allServices.length) throw new Error('Provedor retornou 0 serviços. Verifique URL base e chave de API.');
             renderTable(allServices);
         } catch (err) {
-            document.getElementById('fetch-error-msg').textContent   = err.message.split('\n')[0];
-            document.getElementById('fetch-error-detail').textContent = err.message.includes('\n') ? err.message.slice(err.message.indexOf('\n') + 1) : '';
+            const [first, ...rest] = err.message.split('\n');
+            document.getElementById('fetch-error-msg').textContent    = first;
+            document.getElementById('fetch-error-detail').textContent = rest.join('\n');
             document.getElementById('fetch-error').classList.remove('d-none');
-            console.error('[ServiceImport] fetch error:', err);
         } finally {
             document.getElementById('loader').classList.add('d-none');
         }
     });
 
-    // ── Renderizar tabela ────────────────────────────────────────────────
     function renderTable(services) {
         const markup = parseInt(document.getElementById('default-markup').value) || 30;
         const tbody  = document.getElementById('services-tbody');
         tbody.innerHTML = '';
-
         services.forEach(svc => {
             const isExisting = existingIds.includes(String(svc.external_id));
             const sellPrice  = (svc.provider_price * (1 + markup / 100)).toFixed(4);
-            const tr         = document.createElement('tr');
-            tr.dataset.id       = svc.external_id;
-            tr.dataset.existing = isExisting ? '1' : '0';
+            const tr = document.createElement('tr');
+            tr.dataset.id = svc.external_id; tr.dataset.existing = isExisting ? '1' : '0';
             tr.innerHTML = `
-                <td><input type="checkbox" class="form-check-input row-check" ${isExisting ? '' : 'checked'}></td>
-                <td><code class="text-muted" style="font-size:.75rem">${esc(String(svc.external_id))}</code></td>
-                <td style="max-width:300px" class="fw-medium">${esc(svc.name)}</td>
-                <td><span class="badge bg-light text-dark border" style="font-size:.7rem">${esc(svc.category || '—')}</span></td>
+                <td><input type="checkbox" class="form-check-input row-check" ${isExisting?'':'checked'}></td>
+                <td><code style="font-size:.75rem">${esc(String(svc.external_id))}</code></td>
+                <td style="max-width:280px" class="fw-medium">${esc(svc.name)}</td>
+                <td><span class="badge bg-light text-dark border">${esc(svc.category||'—')}</span></td>
                 <td class="text-muted" style="font-size:.8rem">R$ ${Number(svc.provider_price).toFixed(4)}</td>
-                <td class="text-success fw-semibold" style="font-size:.85rem">R$ ${sellPrice}</td>
-                <td><input type="number" class="form-control form-control-sm min-input" value="${svc.min_qty}" min="1" style="width:75px"></td>
+                <td class="text-success fw-semibold">R$ ${sellPrice}</td>
+                <td><input type="number" class="form-control form-control-sm min-input" value="${svc.min_qty}" min="1" style="width:72px"></td>
                 <td class="text-muted" style="font-size:.8rem">${Number(svc.max_qty).toLocaleString('pt-BR')}</td>
-                <td class="text-center">
-                    ${isExisting
-                        ? '<span class="badge bg-warning text-dark">atualiza</span>'
-                        : '<span class="badge bg-success">novo</span>'}
-                </td>`;
+                <td class="text-center">${isExisting?'<span class="badge bg-warning text-dark">atualiza</span>':'<span class="badge bg-success">novo</span>'}</td>`;
             tbody.appendChild(tr);
         });
-
         document.getElementById('card-step3').classList.remove('d-none');
         document.getElementById('count-badge').textContent = services.length;
         document.getElementById('total-count').textContent = services.length;
         updateCounts();
-        document.getElementById('card-step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById('card-step3').scrollIntoView({ behavior:'smooth', block:'start' });
     }
 
-    // ── Filtros ───────────────────────────────────────────────────────────
     document.getElementById('search-services').addEventListener('input', applyFilters);
     document.getElementById('filter-status').addEventListener('change', applyFilters);
-
     function applyFilters() {
-        const q      = document.getElementById('search-services').value.toLowerCase();
-        const status = document.getElementById('filter-status').value;
+        const q = document.getElementById('search-services').value.toLowerCase();
+        const s = document.getElementById('filter-status').value;
         document.querySelectorAll('#services-tbody tr').forEach(tr => {
-            const existing = tr.dataset.existing === '1';
-            const matchQ   = !q || tr.textContent.toLowerCase().includes(q);
-            const matchS   = status === 'all'
-                || (status === 'new'      && !existing)
-                || (status === 'existing' && existing);
-            tr.style.display = matchQ && matchS ? '' : 'none';
+            const ex = tr.dataset.existing === '1';
+            tr.style.display = (!q||tr.textContent.toLowerCase().includes(q)) &&
+                (s==='all'||(s==='new'&&!ex)||(s==='existing'&&ex)) ? '' : 'none';
         });
         updateCounts();
     }
 
-    // ── Checkboxes ─────────────────────────────────────────────────────────
     document.getElementById('check-all').addEventListener('change', e => {
         document.querySelectorAll('#services-tbody tr').forEach(tr => {
-            if (tr.style.display !== 'none') tr.querySelector('.row-check').checked = e.target.checked;
-        });
-        updateCounts();
+            if (tr.style.display!=='none') tr.querySelector('.row-check').checked = e.target.checked;
+        }); updateCounts();
     });
-    document.addEventListener('change', e => {
-        if (e.target.classList.contains('row-check')) updateCounts();
-    });
+    document.addEventListener('change', e => { if (e.target.classList.contains('row-check')) updateCounts(); });
     document.getElementById('btn-select-new').addEventListener('click', () => {
         document.querySelectorAll('#services-tbody tr').forEach(tr => {
-            if (tr.dataset.existing !== '1') tr.querySelector('.row-check').checked = true;
-        });
-        updateCounts();
+            if (tr.dataset.existing!=='1') tr.querySelector('.row-check').checked = true;
+        }); updateCounts();
     });
     document.getElementById('btn-deselect-all').addEventListener('click', () => {
-        document.querySelectorAll('.row-check').forEach(cb => cb.checked = false);
-        updateCounts();
+        document.querySelectorAll('.row-check').forEach(cb => cb.checked = false); updateCounts();
     });
     function updateCounts() {
-        document.getElementById('selected-count').textContent =
-            document.querySelectorAll('.row-check:checked').length;
+        document.getElementById('selected-count').textContent = document.querySelectorAll('.row-check:checked').length;
     }
 
-    // ── Importar ──────────────────────────────────────────────────────────────
     document.getElementById('btn-save').addEventListener('click', async () => {
-        const markup   = parseInt(document.getElementById('default-markup').value) || 30;
-        const catId    = document.getElementById('default-category').value || null;
-        const checked  = document.querySelectorAll('.row-check:checked');
+        const markup  = parseInt(document.getElementById('default-markup').value) || 30;
+        const catId   = document.getElementById('default-category').value || null;
+        const checked = document.querySelectorAll('.row-check:checked');
         if (!checked.length) { alert('Selecione pelo menos um serviço.'); return; }
-
         const selected = [];
         checked.forEach(cb => {
             const tr  = cb.closest('tr');
             const svc = allServices.find(s => String(s.external_id) === String(tr.dataset.id));
             if (!svc) return;
-            selected.push({
-                external_id:    svc.external_id,
-                name:           svc.name,
-                provider_price: svc.provider_price,
-                min_qty:        svc.min_qty,
-                max_qty:        svc.max_qty,
-                category_name:  svc.category,
-                category_id:    catId ? parseInt(catId) : null,
-                markup_percent: markup,
-                custom_min_qty: parseInt(tr.querySelector('.min-input')?.value) || null,
-            });
+            selected.push({ external_id: svc.external_id, name: svc.name, provider_price: svc.provider_price,
+                min_qty: svc.min_qty, max_qty: svc.max_qty, category_name: svc.category,
+                category_id: catId ? parseInt(catId) : null, markup_percent: markup,
+                custom_min_qty: parseInt(tr.querySelector('.min-input')?.value)||null });
         });
-
         const btn = document.getElementById('btn-save');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Salvando…';
-
+        btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Salvando…';
         try {
-            const res  = await fetch(SAVE_URL, {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify({
-                    provider_slug:          currentSlug,
-                    mode:                   currentMode,
-                    category_id:            catId ? parseInt(catId) : null,
-                    default_markup_percent: markup,
-                    services:               selected,
-                }),
-            });
+            const res  = await fetch(SAVE_URL, { method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ provider_slug: currentSlug, mode: currentMode,
+                    category_id: catId?parseInt(catId):null, default_markup_percent: markup, services: selected }) });
             const json = await res.json();
             if (json.error) throw new Error(json.error);
-            showToast(`✅ ${json.saved} novos importados, ${json.updated} atualizados.`, 'success');
+            showToast(`✅ ${json.saved} novos, ${json.updated} atualizados.`, 'success');
         } catch (err) {
             showToast('Erro: ' + err.message, 'danger');
         } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa fa-cloud-arrow-down me-1"></i> Importar Selecionados';
+            btn.disabled = false; btn.innerHTML = '<i class="fa fa-cloud-arrow-down me-1"></i> Importar Selecionados';
         }
     });
 
-    // ── Helpers ─────────────────────────────────────────────────────────────
-    function esc(s) {
-        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-    function showToast(msg, type = 'success') {
+    function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function showToast(msg, type='success') {
         const el = document.getElementById('import-toast');
         el.className = `toast align-items-center text-bg-${type} border-0`;
         document.getElementById('toast-message').textContent = msg;
-        bootstrap.Toast.getOrCreateInstance(el, { delay: 7000 }).show();
+        bootstrap.Toast.getOrCreateInstance(el, { delay:7000 }).show();
     }
 }());
 </script>
-{% endblock %}
+</body>
+</html>
