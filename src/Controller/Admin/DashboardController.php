@@ -71,6 +71,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToCrud('Pedidos',    'fa fa-cart-shopping', \App\Entity\Order::class);
         yield MenuItem::linkToCrud('Pagamentos', 'fa fa-credit-card',   \App\Entity\Payment::class);
         yield MenuItem::linkToCrud('Transações', 'fa fa-arrow-right-arrow-left', \App\Entity\WalletTransaction::class);
+        yield MenuItem::linkToCrud('Logs de Pedidos', 'fa fa-list-alt', \App\Entity\OrderLog::class);
 
         yield MenuItem::section('CATÁLOGO');
         yield MenuItem::linkToCrud('Serviços',   'fa fa-list', \App\Entity\Service::class);
@@ -83,5 +84,6 @@ class DashboardController extends AbstractDashboardController
 
         yield MenuItem::section('INTEGRAÇÕES');
         yield MenuItem::linkToCrud('Provedores / APIs', 'fa fa-plug', \App\Entity\ProviderCredential::class);
+        yield MenuItem::linkToRoute('Saldo Providers', 'fa fa-dollar-sign', 'admin_provider_balance');
     }
 }
