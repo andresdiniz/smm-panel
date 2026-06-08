@@ -8,6 +8,7 @@ use App\Billing\DynamicGatewayLoader;
 use App\Repository\PaymentRepository;
 use App\Repository\WalletRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -21,6 +22,8 @@ class WalletController extends AbstractController
         private readonly WalletRepository     $walletRepository,
         private readonly PaymentRepository    $paymentRepository,
         private readonly DynamicGatewayLoader $gatewayLoader,
+        #[Autowire(env: 'DEFAULT_PAYMENT_GATEWAY')]
+        private readonly string               $defaultGateway,
     ) {}
 
     #[Route('', name: 'index')]
@@ -59,12 +62,21 @@ class WalletController extends AbstractController
                 return $this->redirectToRoute('app_wallet_deposit');
             }
 
-            $gatewaySlug = $request->request->get('gateway', $_ENV['DEFAULT_PAYMENT_GATEWAY'] ?? 'stub');
+            // Prioridade: campo do formulário → variável de ambiente → 'asaas'
+            $gatewaySlug = $request->request->get('gateway')
+                ?: $this->defaultGateway
+                ?: 'asaas';
 
             try {
                 $gateway = $this->gatewayLoader->load($gatewaySlug);
             } catch (\RuntimeException $e) {
-                $this->addFlash('error', 'Gateway de pagamento não configurado. Contate o administrador.');
+                $this->addFlash(
+                    'error',
+                    sprintf(
+                        'Gateway "%s" não configurado. Adicione a credencial no painel administrativo.',
+                        $gatewaySlug,
+                    ),
+                );
                 return $this->redirectToRoute('app_wallet_deposit');
             }
 
