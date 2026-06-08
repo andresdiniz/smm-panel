@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Repository\OrderRepository;
+use App\Repository\ProviderCredentialRepository;
 use App\Repository\ServiceRepository;
 use App\Repository\UserRepository;
 use App\Repository\WalletTransactionRepository;
@@ -18,22 +19,40 @@ use Symfony\Component\HttpFoundation\Response;
 class DashboardController extends AbstractDashboardController
 {
     public function __construct(
-        private readonly OrderRepository             $orderRepo,
-        private readonly UserRepository              $userRepo,
-        private readonly ServiceRepository           $serviceRepo,
-        private readonly WalletTransactionRepository $txRepo,
+        private readonly OrderRepository              $orderRepo,
+        private readonly UserRepository               $userRepo,
+        private readonly ServiceRepository            $serviceRepo,
+        private readonly WalletTransactionRepository  $txRepo,
+        private readonly ProviderCredentialRepository $credRepo,
     ) {}
 
     public function index(): Response
     {
-        $stats = [
-            'orders_today'    => $this->orderRepo->countToday(),
-            'orders_pending'  => $this->orderRepo->countByStatus('pending'),
-            'users_total'     => $this->userRepo->count([]),
-            'revenue_month'   => $this->txRepo->sumCreditThisMonth(),
-        ];
+        return $this->render('admin/dashboard.html.twig', [
+            // KPI: usuários
+            'usersCount'    => $this->userRepo->count([]),
+            'newUsersToday' => $this->userRepo->countCreatedToday(),
 
-        return $this->render('admin/dashboard.html.twig', ['stats' => $stats]);
+            // KPI: pedidos
+            'ordersTotal'   => $this->orderRepo->countThisMonth(),
+            'ordersToday'   => $this->orderRepo->countToday(),
+
+            // KPI: receita e lucro
+            'revenueCents'   => $this->txRepo->sumCreditThisMonth(),
+            'revenueToday'   => $this->txRepo->sumCreditToday(),
+            'expensesCents'  => $this->txRepo->sumDebitThisMonth(),
+            'feesCents'      => $this->txRepo->sumFeesThisMonth(),
+            'netProfitCents' => $this->txRepo->sumCreditThisMonth()
+                                - $this->txRepo->sumDebitThisMonth()
+                                - $this->txRepo->sumFeesThisMonth(),
+
+            // Providers
+            'credentials'  => $this->credRepo->findAll(),
+
+            // Tabelas
+            'recentOrders' => $this->orderRepo->findRecent(10),
+            'recentUsers'  => $this->userRepo->findRecent(10),
+        ]);
     }
 
     public function configureDashboard(): Dashboard

@@ -30,6 +30,15 @@ class OrderRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    public function findRecent(int $limit = 10): array
+    {
+        return $this->createQueryBuilder('o')
+            ->orderBy('o.createdAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
     public function countByUserSince(User $user, \DateTimeImmutable $since): int
     {
         return (int) $this->createQueryBuilder('o')
@@ -76,6 +85,21 @@ class OrderRepository extends ServiceEntityRepository
             ->select('COUNT(o.id)')
             ->andWhere('o.createdAt >= :start')
             ->setParameter('start', $start)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function countThisMonth(): int
+    {
+        $start = new \DateTimeImmutable('first day of this month midnight');
+        $end   = new \DateTimeImmutable('first day of next month midnight');
+
+        return (int) $this->createQueryBuilder('o')
+            ->select('COUNT(o.id)')
+            ->andWhere('o.createdAt >= :start')
+            ->andWhere('o.createdAt < :end')
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
             ->getQuery()
             ->getSingleScalarResult();
     }
