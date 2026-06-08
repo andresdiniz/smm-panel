@@ -6,6 +6,7 @@ namespace App\Smm;
 
 use App\Entity\ProviderCredential;
 use App\Repository\ProviderCredentialRepository;
+use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
@@ -17,6 +18,7 @@ final class DynamicSmmProviderLoader
     public function __construct(
         private readonly ProviderCredentialRepository $repo,
         private readonly HttpClientInterface          $http,
+        private readonly LoggerInterface              $logger,
     ) {}
 
     /**
@@ -34,6 +36,7 @@ final class DynamicSmmProviderLoader
                 $cred->getSlug(),
                 $cred->getBaseUrl(),
                 $cred->getApiKey(),
+                $this->logger,
             );
         }
 
@@ -49,6 +52,13 @@ final class DynamicSmmProviderLoader
         if (!$cred) {
             return null;
         }
-        return new GenericSmmProvider($this->http, $cred->getSlug(), $cred->getBaseUrl(), $cred->getApiKey());
+
+        return new GenericSmmProvider(
+            $this->http,
+            $cred->getSlug(),
+            $cred->getBaseUrl(),
+            $cred->getApiKey(),
+            $this->logger,
+        );
     }
 }
