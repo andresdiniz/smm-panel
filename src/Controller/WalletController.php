@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Billing\DynamicGatewayLoader;
+use App\Entity\ProviderCredential;
 use App\Repository\PaymentRepository;
+use App\Repository\ProviderCredentialRepository;
 use App\Repository\WalletRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -19,11 +20,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class WalletController extends AbstractController
 {
     public function __construct(
-        private readonly WalletRepository     $walletRepository,
-        private readonly PaymentRepository    $paymentRepository,
-        private readonly DynamicGatewayLoader $gatewayLoader,
-        #[Autowire(env: 'DEFAULT_PAYMENT_GATEWAY')]
-        private readonly string               $defaultGateway,
+        private readonly WalletRepository              $walletRepository,
+        private readonly PaymentRepository             $paymentRepository,
+        private readonly DynamicGatewayLoader          $gatewayLoader,
+        private readonly ProviderCredentialRepository  $credentialRepository,
     ) {}
 
     #[Route('', name: 'index')]
@@ -41,9 +41,8 @@ class WalletController extends AbstractController
     #[Route('/deposit', name: 'deposit', methods: ['GET', 'POST'])]
     public function deposit(Request $request): Response
     {
-        $user   = $this->getUser();
-        $wallet = $this->walletRepository->findOneByUser($user);
-
+        $user        = $this->getUser();
+        $wallet      = $this->walletRepository->findOneByUser($user);
         $lastDeposit = $this->paymentRepository->findLastDepositByUser($user);
 
         if ($request->isMethod('POST')) {
@@ -62,20 +61,23 @@ class WalletController extends AbstractController
                 return $this->redirectToRoute('app_wallet_deposit');
             }
 
-            // Prioridade: campo do formulário → variável de ambiente → 'asaas'
-            $gatewaySlug = $request->request->get('gateway')
-                ?: $this->defaultGateway
-                ?: 'asaas';
+            // Prioridade: campo do formulário > primeiro gateway ativo no banco
+            $gatewaySlug = $request->request->get('gateway') ?: $this->resolveDefaultGateway();
+
+            if ($gatewaySlug === null) {
+                $this->addFlash(
+                    'error',
+                    'Nenhum gateway de pagamento configurado. Acesse o painel administrativo e cadastre uma credencial.',
+                );
+                return $this->redirectToRoute('app_wallet_deposit');
+            }
 
             try {
                 $gateway = $this->gatewayLoader->load($gatewaySlug);
             } catch (\RuntimeException $e) {
                 $this->addFlash(
                     'error',
-                    sprintf(
-                        'Gateway "%s" não configurado. Adicione a credencial no painel administrativo.',
-                        $gatewaySlug,
-                    ),
+                    sprintf('Gateway "%s" não encontrado no banco. Cadastre a credencial no painel admin.', $gatewaySlug),
                 );
                 return $this->redirectToRoute('app_wallet_deposit');
             }
@@ -110,5 +112,25 @@ class WalletController extends AbstractController
             'payment'      => $payment,
             'qrCodeBase64' => $payment->getQrCodeBase64(),
         ]);
+    }
+
+    /**
+     * Resolve o slug do gateway padrão consultando o banco.
+     * Retorna o primeiro gateway_payment ativo encontrado, ou null se nenhum estiver cadastrado.
+     */
+    private function resolveDefaultGateway(): ?string
+    {
+        $credentials = $this->credentialRepository->findAllActiveByType(ProviderCredential::TYPE_PAYMENT);
+
+        // Preferência: asaas > mercadopago > pagbank > qualquer outro
+        foreach (['asaas', 'mercadopago', 'pagbank'] as $preferred) {
+            if (isset($credentials[$preferred])) {
+                return $preferred;
+            }
+        }
+
+        // Fallback: primeiro ativo que existir no banco
+        $first = array_key_first($credentials);
+        return $first ?? null;
     }
 }

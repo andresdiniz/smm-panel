@@ -8,42 +8,30 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 
 /**
- * Insere credencial payment_gateway/asaas no banco caso ainda não exista.
+ * Esta migration foi esvaziada intencionalmente.
  *
- * ANTES de rodar esta migration, defina no servidor:
- *   ASAAS_API_KEY  = sua chave da API Asaas (começa com $aact_...)
- *   ASAAS_BASE_URL = https://sandbox.asaas.com/api/v3  (sandbox)
- *                    https://api.asaas.com/v3           (produção)
+ * As credenciais do gateway de pagamento (Asaas, MercadoPago, PagBank)
+ * são cadastradas EXCLUSIVAMENTE pelo painel administrativo em:
+ *   /admin -> Credenciais de Provedores
  *
- * A migration usa INSERT IGNORE para ser idempotente: rodar duas vezes
- * não gera erro nem duplicata.
+ * Não é necessário definir ASAAS_API_KEY nem ASAAS_BASE_URL no .env.
+ * O sistema lê tudo do banco de dados.
  */
 final class Version20260608_SeedAsaas extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Seed: credencial payment_gateway/asaas via env vars';
+        return 'No-op: credenciais de gateway gerenciadas pelo painel admin (banco de dados)';
     }
 
     public function up(Schema $schema): void
     {
-        $apiKey  = $_ENV['ASAAS_API_KEY']  ?? 'CONFIGURE_ASAAS_API_KEY_NO_ENV';
-        $baseUrl = $_ENV['ASAAS_BASE_URL'] ?? 'https://sandbox.asaas.com/api/v3';
-
-        $this->addSql(<<<SQL
-            INSERT IGNORE INTO provider_credentials
-                (type, slug, base_url, api_key, secret_token, active, created_at)
-            VALUES
-                ('payment_gateway', 'asaas', :base_url, :api_key, NULL, 1, NOW())
-            SQL,
-            ['base_url' => $baseUrl, 'api_key' => $apiKey],
-        );
+        // Intencionalmente vazio.
+        // Cadastre a credencial em: Admin > Credenciais de Provedores
     }
 
     public function down(Schema $schema): void
     {
-        $this->addSql(
-            "DELETE FROM provider_credentials WHERE type = 'payment_gateway' AND slug = 'asaas'"
-        );
+        // Nada a reverter.
     }
 }
