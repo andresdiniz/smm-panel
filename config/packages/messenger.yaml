@@ -4,11 +4,9 @@ framework:
 
         transports:
             orders_high:
-                dsn: '%env(REDIS_DSN)%'
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
-                    stream: orders_high
-                    group: smm_workers
-                    redeliver_timeout: 3600
+                    queue_name: orders_high
                 retry_strategy:
                     max_retries: 5
                     delay: 2000
@@ -16,11 +14,9 @@ framework:
                     max_delay: 60000
 
             orders_medium:
-                dsn: '%env(REDIS_DSN)%'
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
-                    stream: orders_medium
-                    group: smm_workers
-                    redeliver_timeout: 3600
+                    queue_name: orders_medium
                 retry_strategy:
                     max_retries: 10
                     delay: 5000
@@ -28,10 +24,9 @@ framework:
                     max_delay: 300000
 
             orders_low:
-                dsn: '%env(REDIS_DSN)%'
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
-                    stream: orders_low
-                    group: smm_workers
+                    queue_name: orders_low
                 retry_strategy:
                     max_retries: 3
                     delay: 10000
