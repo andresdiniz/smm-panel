@@ -193,12 +193,16 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
     }
 
     /**
-     * Busca QR Code Pix com até 3 tentativas (o Asaas pode demorar
-     * alguns instantes para gerar o QR após criar a cobrança).
+     * Busca QR Code Pix com até 5 tentativas com delay progressivo.
+     *
+     * O sandbox Asaas pode demorar alguns segundos para gerar o QR Code
+     * após criar a cobrança. Usamos backoff crescente (1s, 2s, 3s, 4s)
+     * para dar tempo ao gateway sem travar a requisição desnecessariamente.
      */
-    private function fetchPixQrWithRetry(string $paymentId, int $maxAttempts = 3): array
+    private function fetchPixQrWithRetry(string $paymentId, int $maxAttempts = 5): array
     {
-        $url = $this->baseUrl . '/payments/' . $paymentId . '/pixQrCode';
+        $url  = $this->baseUrl . '/payments/' . $paymentId . '/pixQrCode';
+        $data = [];
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             $response = $this->http->request('GET', $url, [
@@ -211,11 +215,12 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
                 return $data;
             }
 
+            // Delay progressivo antes da próxima tentativa: 1s, 2s, 3s, 4s
             if ($attempt < $maxAttempts) {
-                usleep(700_000);
+                sleep($attempt);
             }
         }
 
-        return $data ?? [];
+        return $data;
     }
 }
