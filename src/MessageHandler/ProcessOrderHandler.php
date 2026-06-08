@@ -6,6 +6,7 @@ namespace App\MessageHandler;
 
 use App\Entity\Order;
 use App\Message\ProcessOrderMessage;
+use App\Repository\WalletRepository;
 use App\Smm\SmmProviderRegistry;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -25,6 +26,7 @@ final class ProcessOrderHandler
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly SmmProviderRegistry    $registry,
+        private readonly WalletRepository       $walletRepo,
         private readonly LoggerInterface        $logger,
     ) {}
 
@@ -58,7 +60,7 @@ final class ProcessOrderHandler
                 'service_id' => $service->getId(),
                 'slug'       => $slug,
             ]);
-            $order->setStatus(Order::STATUS_CANCELLED);
+            $this->cancelWithRefund($order, 'Provider não configurado ou inexistente');
             $this->em->flush();
             return;
         }
@@ -91,8 +93,6 @@ final class ProcessOrderHandler
             ]);
 
         } catch (\Throwable $e) {
-            // GenericSmmProvider já logou os detalhes HTTP/JSON do erro.
-            // Aqui registramos o impacto no pedido.
             $this->logger->error('ProcessOrderHandler: falha ao enviar pedido → cancelando.', [
                 'order_id'   => $order->getId(),
                 'provider'   => $slug,
@@ -101,9 +101,40 @@ final class ProcessOrderHandler
                 'trace'      => $e->getTraceAsString(),
             ]);
 
-            $order->setStatus(Order::STATUS_CANCELLED);
+            $this->cancelWithRefund($order, $e->getMessage());
         }
 
         $this->em->flush();
+    }
+
+    /**
+     * Cancela o pedido E devolve o valor pago na carteira do usuário.
+     */
+    private function cancelWithRefund(Order $order, string $reason): void
+    {
+        $order->setStatus(Order::STATUS_CANCELLED);
+
+        $amount = $order->getAmountCents();
+        if ($amount <= 0) {
+            return;
+        }
+
+        $wallet = $this->walletRepo->findOneBy(['user' => $order->getUser()]);
+        if (!$wallet) {
+            $this->logger->error('ProcessOrderHandler: carteira não encontrada para reembolso.', [
+                'order_id' => $order->getId(),
+                'user_id'  => $order->getUser()->getId(),
+            ]);
+            return;
+        }
+
+        $wallet->credit($amount);
+
+        $this->logger->info('ProcessOrderHandler: reembolso efetuado.', [
+            'order_id'     => $order->getId(),
+            'user_id'      => $order->getUser()->getId(),
+            'refund_cents' => $amount,
+            'reason'       => $reason,
+        ]);
     }
 }
