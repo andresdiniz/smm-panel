@@ -69,12 +69,16 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
 
         $data = $response->toArray();
 
+        if (!isset($data['id'])) {
+            throw new \RuntimeException('Asaas não retornou ID da cobrança: ' . json_encode($data));
+        }
+
         $payment = $this->buildPayment($user, $amountCents, $method, $feeCents);
         $payment->setExternalId($data['id']);
         $payment->setGatewayResponse(json_encode($data));
 
         if ($billingType === 'PIX') {
-            $qrData = $this->fetchPixQr($data['id']);
+            $qrData = $this->fetchPixQrWithRetry($data['id']);
             $payment->setPixCode($qrData['payload'] ?? null);
             $payment->setQrCodeBase64($qrData['encodedImage'] ?? null);
         }
@@ -145,13 +149,33 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         return $response->toArray()['id'];
     }
 
-    private function fetchPixQr(string $paymentId): array
+    /**
+     * Busca QR Code Pix com até 3 tentativas (o Asaas pode demorar
+     * alguns instantes para gerar o QR após criar a cobrança).
+     */
+    private function fetchPixQrWithRetry(string $paymentId, int $maxAttempts = 3): array
     {
-        $response = $this->http->request(
-            'GET',
-            $this->baseUrl . '/payments/' . $paymentId . '/pixQrCode',
-            ['headers' => ['access_token' => $this->apiKey]]
-        );
-        return $response->toArray();
+        $url = $this->baseUrl . '/payments/' . $paymentId . '/pixQrCode';
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            $response = $this->http->request('GET', $url, [
+                'headers' => ['access_token' => $this->apiKey],
+            ]);
+
+            $data = $response->toArray(throw: false);
+
+            // QR disponível quando encodedImage e payload estiverem presentes
+            if (!empty($data['encodedImage']) && !empty($data['payload'])) {
+                return $data;
+            }
+
+            // Aguarda antes de tentar novamente (exceto na última tentativa)
+            if ($attempt < $maxAttempts) {
+                usleep(700_000); // 700ms
+            }
+        }
+
+        // Retorna o que vier mesmo que incompleto — não bloqueia o fluxo
+        return $data ?? [];
     }
 }
