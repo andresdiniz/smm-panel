@@ -17,8 +17,38 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  */
 final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterface
 {
-    /** CPF genérico válido para o sandbox Asaas (usado somente quando nenhum CPF real é fornecido). */
+    /** CPF genérico válido para o sandbox Asaas (somente quando nenhum CPF real é fornecido). */
     private const SANDBOX_CPF = '00000000191';
+
+    /**
+     * Eventos que indicam pagamento confirmado/recebido.
+     * Pix: vai direto para PAYMENT_RECEIVED sem passar por CONFIRMED.
+     * Cartão: passa por PAYMENT_CONFIRMED antes do RECEIVED (dias depois).
+     * Aprovamos o crédito já em PAYMENT_CONFIRMED para não atrasar o usuário.
+     *
+     * @see https://docs.asaas.com/docs/webhook-para-cobrancas
+     */
+    private const EVENTS_APPROVE = [
+        'PAYMENT_RECEIVED',
+        'PAYMENT_CONFIRMED',
+    ];
+
+    /** Eventos que indicam pagamento cancelado/vencido/excluído. */
+    private const EVENTS_CANCEL = [
+        'PAYMENT_OVERDUE',
+        'PAYMENT_DELETED',
+        'PAYMENT_CREDIT_CARD_CAPTURE_REFUSED',
+        'PAYMENT_REPROVED_BY_RISK_ANALYSIS',
+    ];
+
+    /** Eventos de estorno (total ou parcial). */
+    private const EVENTS_REFUND = [
+        'PAYMENT_REFUNDED',
+        'PAYMENT_PARTIALLY_REFUNDED',
+        'PAYMENT_CHARGEBACK_REQUESTED',
+        'PAYMENT_CHARGEBACK_DISPUTE',
+        'PAYMENT_AWAITING_CHARGEBACK_REVERSAL',
+    ];
 
     public function __construct(
         EntityManagerInterface               $em,
@@ -99,26 +129,75 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         return $payment;
     }
 
+    /**
+     * Recebe eventos POST do Asaas conforme:
+     * https://docs.asaas.com/docs/receba-eventos-do-asaas-no-seu-endpoint-de-webhook
+     *
+     * Estrutura do body:
+     * {
+     *   "id": "evt_XXXXXXX",
+     *   "event": "PAYMENT_RECEIVED",
+     *   "dateCreated": "2024-06-12 16:45:03",
+     *   "payment": { "id": "pay_XXXXXXX", "status": "RECEIVED", ... }
+     * }
+     *
+     * Segurança: valida header `asaas-access-token`.
+     * Idempotência: eventos duplicados são ignorados silenciosamente.
+     * Resposta: sempre retorna o Payment (controller devolve HTTP 200).
+     */
     public function processWebhook(Request $request): Payment
     {
-        if ($request->headers->get('asaas-access-token') !== $this->webhookToken) {
-            throw new \InvalidArgumentException('Assinatura de webhook inválida.');
+        // 1. Autenticação via header — doc: "authToken" configurado no painel
+        $token = $request->headers->get('asaas-access-token', '');
+        if (!hash_equals($this->webhookToken, $token)) {
+            throw new \InvalidArgumentException('asaas-access-token inválido.');
         }
 
+        // 2. Parse do payload
         $data     = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
         $event    = $data['event'] ?? '';
-        $chargeId = $data['payment']['id'] ?? throw new \InvalidArgumentException('Webhook sem ID.');
+        $chargeId = $data['payment']['id'] ?? null;
 
+        if (!$chargeId) {
+            // Evento sem cobrança (ex: TRANSFER_*, BILL_*) — ignora silenciosamente
+            throw new \InvalidArgumentException('Webhook sem payment.id — evento ignorado: ' . $event);
+        }
+
+        // 3. Busca o pagamento local pelo ID externo do Asaas
         $payment = $this->findByExternalId($chargeId);
-        $payment->setGatewayResponse(json_encode($data));
 
-        if (in_array($event, ['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED'], true)) {
+        // 4. Salva o payload bruto para auditoria
+        $payment->setGatewayResponse(json_encode($data, JSON_UNESCAPED_UNICODE));
+
+        // 5. Idempotência: não reprocessa status finais
+        $currentStatus = $payment->getStatus();
+        $finalStatuses = [Payment::STATUS_APPROVED, Payment::STATUS_REFUNDED, Payment::STATUS_CANCELLED];
+
+        if (in_array($currentStatus, $finalStatuses, true)
+            && !in_array($event, ['PAYMENT_REFUNDED', 'PAYMENT_PARTIALLY_REFUNDED'], true)
+        ) {
+            $this->em->flush(); // persiste apenas o gatewayResponse atualizado
+            return $payment;
+        }
+
+        // 6. Máquina de estados conforme fluxos da documentação Asaas
+        if (in_array($event, self::EVENTS_APPROVE, true)) {
+            // Pix: PAYMENT_CREATED → PAYMENT_RECEIVED
+            // Cartão: PAYMENT_CREATED → PAYMENT_CONFIRMED → PAYMENT_RECEIVED
             $this->approveAndCredit($payment);
-        } elseif (in_array($event, ['PAYMENT_OVERDUE', 'PAYMENT_CANCELLED'], true)) {
+
+        } elseif (in_array($event, self::EVENTS_CANCEL, true)) {
             $payment->setStatus(Payment::STATUS_CANCELLED);
             $this->em->flush();
-        } elseif ($event === 'PAYMENT_REFUNDED') {
+
+        } elseif (in_array($event, self::EVENTS_REFUND, true)) {
             $payment->setStatus(Payment::STATUS_REFUNDED);
+            $this->em->flush();
+
+        } else {
+            // Eventos informativos (PAYMENT_CREATED, PAYMENT_UPDATED,
+            // PAYMENT_BANK_SLIP_VIEWED, PAYMENT_CHECKOUT_VIEWED, etc.)
+            // Apenas persiste o gatewayResponse, sem mudar status.
             $this->em->flush();
         }
 
@@ -130,7 +209,7 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         $response = $this->http->request('GET', $this->baseUrl . '/payments/' . $payment->getExternalId(), [
             'headers' => ['access_token' => $this->apiKey],
         ]);
-        $data  = $response->toArray();
+        $data   = $response->toArray(throw: false);
         $remote = $data['status'] ?? 'PENDING';
 
         $map = [
@@ -147,10 +226,8 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
     /**
      * Cria ou reutiliza cliente no Asaas.
      *
-     * - cpfCnpj: usa o CPF real enviado pelo formulário;
-     *   se vazio E ambiente sandbox, usa o CPF genérico válido;
-     *   em produção sem CPF, lança exceção.
-     * - mobilePhone: envia somente dígitos após o DDI (+55XXXXXXXXXXX → "11999990000").
+     * - cpfCnpj: usa o CPF real; se vazio em sandbox usa CPF genérico; em produção lança excessão.
+     * - mobilePhone: somente dígitos sem DDI ("11999990000"), pois Asaas não aceita +55 nesse campo.
      */
     private function ensureCustomer(User $user, string $cpf = '', string $phone = ''): string
     {
@@ -164,10 +241,10 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             }
         }
 
-        // Remove DDI +55 e qualquer não-dígito para o campo mobilePhone do Asaas
+        // Remove DDI +55 e qualquer não-dígito para o campo mobilePhone
         $mobilePhone = preg_replace('/\D/', '', $phone);
         if (str_starts_with($mobilePhone, '55') && strlen($mobilePhone) > 11) {
-            $mobilePhone = substr($mobilePhone, 2); // remove os dois dígitos do DDI
+            $mobilePhone = substr($mobilePhone, 2);
         }
 
         $payload = [
@@ -214,7 +291,7 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
     }
 
     /**
-     * Busca QR Code Pix com até 5 tentativas com delay progressivo (backoff 1–4 s).
+     * Busca QR Code Pix com até 5 tentativas com backoff progressivo (1–4 s).
      */
     private function fetchPixQrWithRetry(string $paymentId, int $maxAttempts = 5): array
     {
