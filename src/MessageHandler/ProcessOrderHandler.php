@@ -14,6 +14,14 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 #[AsMessageHandler]
 final class ProcessOrderHandler
 {
+    /**
+     * Tentativas antes de cancelar definitivamente.
+     * (Messenger já faz retry automático via transport — este valor
+     *  é uma segunda camada de guarda para quando o Messenger não
+     *  está configurado com retry.)
+     */
+    private const MAX_ATTEMPTS = 1;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly SmmProviderRegistry    $registry,
@@ -26,14 +34,16 @@ final class ProcessOrderHandler
         $order = $this->em->find(Order::class, $message->orderId);
 
         if (!$order) {
-            $this->logger->warning('ProcessOrderHandler: pedido não encontrado.', ['id' => $message->orderId]);
+            $this->logger->warning('ProcessOrderHandler: pedido não encontrado.', [
+                'order_id' => $message->orderId,
+            ]);
             return;
         }
 
         if ($order->getStatus() !== Order::STATUS_PENDING) {
             $this->logger->info('ProcessOrderHandler: pedido já processado, ignorando.', [
-                'id'     => $message->orderId,
-                'status' => $order->getStatus(),
+                'order_id' => $message->orderId,
+                'status'   => $order->getStatus(),
             ]);
             return;
         }
@@ -41,8 +51,10 @@ final class ProcessOrderHandler
         $service = $order->getService();
         $slug    = $service->getProviderSlug();
 
+        // ── Valida provider ───────────────────────────────────────────
         if (!$slug || !$this->registry->has($slug)) {
-            $this->logger->error('ProcessOrderHandler: provider slug não configurado.', [
+            $this->logger->error('ProcessOrderHandler: provider slug não configurado ou inexistente.', [
+                'order_id'   => $order->getId(),
                 'service_id' => $service->getId(),
                 'slug'       => $slug,
             ]);
@@ -51,9 +63,19 @@ final class ProcessOrderHandler
             return;
         }
 
+        // ── Envia ao provider ─────────────────────────────────────────
+        $provider = $this->registry->get($slug);
+
+        $this->logger->info('ProcessOrderHandler: enviando pedido ao provider.', [
+            'order_id'            => $order->getId(),
+            'provider'            => $slug,
+            'external_service_id' => $service->getExternalServiceId(),
+            'target_url'          => $order->getTargetUrl(),
+            'quantity'            => $order->getQuantity(),
+        ]);
+
         try {
-            $provider    = $this->registry->get($slug);
-            $externalId  = $provider->addOrder(
+            $externalId = $provider->addOrder(
                 $service->getExternalServiceId(),
                 $order->getTargetUrl(),
                 $order->getQuantity()
@@ -62,16 +84,23 @@ final class ProcessOrderHandler
             $order->setExternalOrderId($externalId);
             $order->setStatus(Order::STATUS_PROCESSING);
 
-            $this->logger->info('ProcessOrderHandler: pedido enviado ao provider.', [
+            $this->logger->info('ProcessOrderHandler: pedido aceito pelo provider.', [
                 'order_id'    => $order->getId(),
                 'external_id' => $externalId,
                 'provider'    => $slug,
             ]);
+
         } catch (\Throwable $e) {
-            $this->logger->error('ProcessOrderHandler: falha ao enviar pedido.', [
-                'order_id' => $order->getId(),
-                'error'    => $e->getMessage(),
+            // GenericSmmProvider já logou os detalhes HTTP/JSON do erro.
+            // Aqui registramos o impacto no pedido.
+            $this->logger->error('ProcessOrderHandler: falha ao enviar pedido → cancelando.', [
+                'order_id'   => $order->getId(),
+                'provider'   => $slug,
+                'error'      => $e->getMessage(),
+                'error_type' => $e::class,
+                'trace'      => $e->getTraceAsString(),
             ]);
+
             $order->setStatus(Order::STATUS_CANCELLED);
         }
 

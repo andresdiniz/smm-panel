@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Smm;
 
+use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
@@ -28,6 +29,7 @@ final class GenericSmmProvider implements SmmProviderInterface
         private readonly string $slug,
         private readonly string $baseUrl,
         private readonly string $apiKey,
+        private readonly LoggerInterface $logger,
     ) {}
 
     public function getSlug(): string
@@ -37,12 +39,14 @@ final class GenericSmmProvider implements SmmProviderInterface
 
     public function addOrder(string $serviceId, string $targetUrl, int $quantity): string
     {
-        $data = $this->post([
+        $payload = [
             'action'   => 'add',
             'service'  => $serviceId,
             'link'     => $targetUrl,
             'quantity' => $quantity,
-        ]);
+        ];
+
+        $data = $this->post($payload);
 
         if (isset($data['error'])) {
             throw new \RuntimeException('[' . $this->slug . '] Erro ao criar pedido: ' . $data['error']);
@@ -84,10 +88,75 @@ final class GenericSmmProvider implements SmmProviderInterface
     /** @param array<string, mixed> $params */
     private function post(array $params): array
     {
-        $response = $this->http->request('POST', $this->baseUrl, [
-            'body' => array_merge(['key' => $this->apiKey], $params),
+        $body = array_merge(['key' => $this->apiKey], $params);
+
+        // Mascara a chave nos logs — nunca logar credenciais em texto puro
+        $safeBody = $body;
+        $safeBody['key'] = '***';
+
+        $this->logger->debug('[SMM] → REQUEST', [
+            'provider' => $this->slug,
+            'url'      => $this->baseUrl,
+            'body'     => $safeBody,
         ]);
 
-        return $response->toArray(false);
+        $startMs = (int) round(microtime(true) * 1000);
+
+        try {
+            $response   = $this->http->request('POST', $this->baseUrl, ['body' => $body]);
+            $statusCode = $response->getStatusCode();
+            $rawBody    = $response->getContent(false);   // false = não lança em 4xx/5xx
+            $elapsed    = (int) round(microtime(true) * 1000) - $startMs;
+
+            // Tenta decodificar JSON para o log, mas sem quebrar se vier HTML/texto
+            $decoded = null;
+            try {
+                $decoded = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
+            } catch (\JsonException) {
+                // mantém $decoded = null
+            }
+
+            $this->logger->debug('[SMM] ← RESPONSE', [
+                'provider'    => $this->slug,
+                'action'      => $params['action'] ?? '?',
+                'http_status' => $statusCode,
+                'elapsed_ms'  => $elapsed,
+                'body_raw'    => $decoded ?? $rawBody,
+            ]);
+
+            if ($statusCode >= 400) {
+                $this->logger->error('[SMM] Resposta HTTP de erro', [
+                    'provider'    => $this->slug,
+                    'action'      => $params['action'] ?? '?',
+                    'http_status' => $statusCode,
+                    'body'        => $decoded ?? $rawBody,
+                ]);
+            }
+
+            // Se 'error' veio no JSON, loga como warning antes de devolver
+            if (is_array($decoded) && isset($decoded['error'])) {
+                $this->logger->warning('[SMM] API retornou erro de negócio', [
+                    'provider' => $this->slug,
+                    'action'   => $params['action'] ?? '?',
+                    'error'    => $decoded['error'],
+                    'request'  => $safeBody,
+                ]);
+            }
+
+            return $decoded ?? [];
+
+        } catch (\Throwable $e) {
+            $elapsed = (int) round(microtime(true) * 1000) - $startMs;
+
+            $this->logger->critical('[SMM] Exceção na chamada HTTP', [
+                'provider'   => $this->slug,
+                'action'     => $params['action'] ?? '?',
+                'elapsed_ms' => $elapsed,
+                'exception'  => $e->getMessage(),
+                'request'    => $safeBody,
+            ]);
+
+            throw $e;
+        }
     }
 }
