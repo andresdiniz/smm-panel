@@ -14,27 +14,26 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * Gateway PagBank (PagSeguro) — Pix QR Code e cartão tokenizado.
  *
  * Docs: https://dev.pagbank.uol.com.br/reference
- *
- * Variáveis de ambiente necessárias:
- *   PAGBANK_TOKEN=Bearer_token_aqui
- *   PAGBANK_BASE_URL=https://api.pagseguro.com       (produção)
- *                    https://sandbox.api.pagseguro.com (sandbox)
- *   PAGBANK_WEBHOOK_TOKEN=token_secreto
  */
 final class PagBankGateway extends AbstractGateway implements PaymentGatewayInterface
 {
     public function __construct(
-        EntityManagerInterface       $em,
-        private readonly HttpClientInterface $http,
-        private readonly string $token,
-        private readonly string $baseUrl,
-        private readonly string $webhookToken,
+        EntityManagerInterface               $em,
+        private readonly HttpClientInterface  $http,
+        private readonly string               $token,
+        private readonly string               $baseUrl,
+        private readonly string               $webhookToken,
     ) {
         parent::__construct($em);
     }
 
-    public function createDeposit(User $user, int $amountCents, string $method): Payment
-    {
+    public function createDeposit(
+        User   $user,
+        int    $amountCents,
+        string $method,
+        string $cpf   = '',
+        string $phone = '',
+    ): Payment {
         $feeRate = match ($method) {
             Payment::METHOD_PIX         => 0.0099,
             Payment::METHOD_CREDIT_CARD => 0.0349,
@@ -58,12 +57,12 @@ final class PagBankGateway extends AbstractGateway implements PaymentGatewayInte
                 'Content-Type'  => 'application/json',
             ],
             'json' => [
-                'reference_id' => uniqid('pb_', true),
-                'customer'     => [
+                'reference_id'    => uniqid('pb_', true),
+                'customer'        => [
                     'name'  => $user->getName(),
                     'email' => $user->getEmail(),
                 ],
-                'amount' => [
+                'amount'          => [
                     'value'    => $amountCents,
                     'currency' => 'BRL',
                 ],
@@ -79,7 +78,6 @@ final class PagBankGateway extends AbstractGateway implements PaymentGatewayInte
 
         $qr = $data['qr_codes'][0] ?? [];
         $payment->setPixCode($qr['text'] ?? null);
-        // PagBank retorna links para imagem, não base64
         $payment->setQrCodeBase64(null);
         $payment->setGatewayResponse(json_encode(array_merge($data, ['_qr_image' => $qr['links'][0]['href'] ?? null])));
 
@@ -89,32 +87,29 @@ final class PagBankGateway extends AbstractGateway implements PaymentGatewayInte
 
     private function createCard(User $user, int $amountCents, string $method, int $feeCents): Payment
     {
-        // Cartão: exige encrypted_card gerado pelo PagBank SDK no frontend
-        // O token do cartão deve ser passado via sessão/request — aqui é o ponto de integração
         $response = $this->http->request('POST', $this->baseUrl . '/orders', [
             'headers' => [
                 'Authorization' => 'Bearer ' . $this->token,
                 'Content-Type'  => 'application/json',
             ],
             'json' => [
-                'reference_id'       => uniqid('pb_card_', true),
-                'customer'           => [
+                'reference_id' => uniqid('pb_card_', true),
+                'customer'     => [
                     'name'  => $user->getName(),
                     'email' => $user->getEmail(),
                 ],
-                'items' => [[
+                'items'   => [[
                     'name'        => 'Recarga PulseSMM',
                     'quantity'    => 1,
                     'unit_amount' => $amountCents,
                 ]],
                 'charges' => [[
-                    'reference_id' => uniqid('ch_', true),
-                    'amount'       => ['value' => $amountCents, 'currency' => 'BRL'],
+                    'reference_id'   => uniqid('ch_', true),
+                    'amount'         => ['value' => $amountCents, 'currency' => 'BRL'],
                     'payment_method' => [
                         'type'         => $method === Payment::METHOD_CREDIT_CARD ? 'CREDIT_CARD' : 'DEBIT_CARD',
                         'installments' => 1,
                         'capture'      => true,
-                        // 'card' => ['encrypted' => $encryptedCard] // passar do frontend
                     ],
                 ]],
             ],
@@ -168,7 +163,7 @@ final class PagBankGateway extends AbstractGateway implements PaymentGatewayInte
 
     public function fetchStatus(Payment $payment): string
     {
-        $data    = $this->http->request('GET', $this->baseUrl . '/orders/' . $payment->getExternalId(), [
+        $data   = $this->http->request('GET', $this->baseUrl . '/orders/' . $payment->getExternalId(), [
             'headers' => ['Authorization' => 'Bearer ' . $this->token],
         ])->toArray(false);
 
