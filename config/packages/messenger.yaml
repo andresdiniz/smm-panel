@@ -43,6 +43,7 @@ framework:
                     - App\Messenger\Middleware\AuditMiddleware
 
         routing:
+            App\Message\ProcessOrderMessage:                   orders_high
             App\Message\Order\DispatchOrderToProviderMessage:  orders_high
             App\Message\Order\SyncOrderStatusMessage:          orders_medium
             App\Message\Order\OrderNotificationMessage:        orders_low
