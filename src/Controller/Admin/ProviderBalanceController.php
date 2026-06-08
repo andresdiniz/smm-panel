@@ -22,7 +22,8 @@ class ProviderBalanceController extends AbstractController
     {
         $balances = [];
 
-        foreach ($this->registry->all() as $slug => $provider) {
+        foreach ($this->registry->slugs() as $slug) {
+            $provider = $this->registry->get($slug);
             try {
                 $balances[] = [
                     'slug'    => $slug,
