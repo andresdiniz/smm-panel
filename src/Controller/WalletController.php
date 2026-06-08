@@ -20,10 +20,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class WalletController extends AbstractController
 {
     public function __construct(
-        private readonly WalletRepository              $walletRepository,
-        private readonly PaymentRepository             $paymentRepository,
-        private readonly DynamicGatewayLoader          $gatewayLoader,
-        private readonly ProviderCredentialRepository  $credentialRepository,
+        private readonly WalletRepository             $walletRepository,
+        private readonly PaymentRepository            $paymentRepository,
+        private readonly DynamicGatewayLoader         $gatewayLoader,
+        private readonly ProviderCredentialRepository $credentialRepository,
     ) {}
 
     #[Route('', name: 'index')]
@@ -61,6 +61,13 @@ class WalletController extends AbstractController
                 return $this->redirectToRoute('app_wallet_deposit');
             }
 
+            // Sanitiza CPF: remove tudo que não for dígito
+            $cpf = preg_replace('/\D/', '', (string) $request->request->get('cpf', ''));
+
+            // Sanitiza telefone: remove tudo que não for dígito, garante DDI 55
+            $rawPhone = preg_replace('/\D/', '', (string) $request->request->get('phone', ''));
+            $phone    = $rawPhone !== '' ? '+55' . $rawPhone : '';
+
             // Prioridade: campo do formulário > primeiro gateway ativo no banco
             $gatewaySlug = $request->request->get('gateway') ?: $this->resolveDefaultGateway();
 
@@ -82,7 +89,7 @@ class WalletController extends AbstractController
                 return $this->redirectToRoute('app_wallet_deposit');
             }
 
-            $payment = $gateway->createDeposit($user, $amountCents, $method);
+            $payment = $gateway->createDeposit($user, $amountCents, $method, $cpf, $phone);
 
             if ($method === 'pix') {
                 return $this->redirectToRoute('app_wallet_pix_pending', [
@@ -116,20 +123,17 @@ class WalletController extends AbstractController
 
     /**
      * Resolve o slug do gateway padrão consultando o banco.
-     * Retorna o primeiro gateway_payment ativo encontrado, ou null se nenhum estiver cadastrado.
      */
     private function resolveDefaultGateway(): ?string
     {
         $credentials = $this->credentialRepository->findAllActiveByType(ProviderCredential::TYPE_PAYMENT);
 
-        // Preferência: asaas > mercadopago > pagbank > qualquer outro
         foreach (['asaas', 'mercadopago', 'pagbank'] as $preferred) {
             if (isset($credentials[$preferred])) {
                 return $preferred;
             }
         }
 
-        // Fallback: primeiro ativo que existir no banco
         $first = array_key_first($credentials);
         return $first ?? null;
     }

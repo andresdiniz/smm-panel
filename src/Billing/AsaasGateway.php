@@ -14,30 +14,33 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * Gateway Asaas — Pix, cartão de crédito e débito.
  *
  * Docs: https://docs.asaas.com/reference
- *
- * Credenciais gerenciadas pelo painel admin (banco de dados).
- * Não é necessário definir variáveis de ambiente para este gateway.
  */
 final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterface
 {
-    /**
-     * CPF genérico válido aceito pelo sandbox Asaas.
-     * Em produção, substitua pelo CPF real do usuário.
-     */
+    /** CPF genérico válido para o sandbox Asaas (usado somente quando nenhum CPF real é fornecido). */
     private const SANDBOX_CPF = '00000000191';
 
     public function __construct(
-        EntityManagerInterface              $em,
-        private readonly HttpClientInterface $http,
-        private readonly string              $apiKey,
-        private readonly string              $baseUrl,
-        private readonly string              $webhookToken,
+        EntityManagerInterface               $em,
+        private readonly HttpClientInterface  $http,
+        private readonly string               $apiKey,
+        private readonly string               $baseUrl,
+        private readonly string               $webhookToken,
     ) {
         parent::__construct($em);
     }
 
-    public function createDeposit(User $user, int $amountCents, string $method): Payment
-    {
+    /**
+     * @param string $cpf   CPF somente dígitos (ex: "12345678901") — vazio usa fallback sandbox
+     * @param string $phone Telefone com DDI +55 (ex: "+5511999990000") — vazio omite o campo
+     */
+    public function createDeposit(
+        User   $user,
+        int    $amountCents,
+        string $method,
+        string $cpf   = '',
+        string $phone = '',
+    ): Payment {
         $billingType = match ($method) {
             Payment::METHOD_PIX         => 'PIX',
             Payment::METHOD_CREDIT_CARD => 'CREDIT_CARD',
@@ -53,7 +56,7 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         };
         $feeCents = (int) ceil($amountCents * $feeRate);
 
-        $customerId = $this->ensureCustomer($user);
+        $customerId = $this->ensureCustomer($user, $cpf, $phone);
 
         $response = $this->http->request('POST', $this->baseUrl . '/payments', [
             'headers' => [
@@ -73,9 +76,8 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         $data       = $response->toArray(throw: false);
 
         if ($statusCode !== 200 && $statusCode !== 201) {
-            $errorBody = json_encode($data, JSON_UNESCAPED_UNICODE);
             throw new \RuntimeException(
-                sprintf('Asaas retornou HTTP %d ao criar cobrança: %s', $statusCode, $errorBody)
+                sprintf('Asaas retornou HTTP %d ao criar cobrança: %s', $statusCode, json_encode($data, JSON_UNESCAPED_UNICODE))
             );
         }
 
@@ -128,7 +130,7 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         $response = $this->http->request('GET', $this->baseUrl . '/payments/' . $payment->getExternalId(), [
             'headers' => ['access_token' => $this->apiKey],
         ]);
-        $data   = $response->toArray();
+        $data  = $response->toArray();
         $remote = $data['status'] ?? 'PENDING';
 
         $map = [
@@ -145,20 +147,39 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
     /**
      * Cria ou reutiliza cliente no Asaas.
      *
-     * O Asaas retorna 200 mesmo se o cliente já existir (idempotente por e-mail
-     * quando externalReference é omitido). O cpfCnpj é obrigatório para
-     * cobranças PIX; no sandbox usamos um CPF genérico válido.
+     * - cpfCnpj: usa o CPF real enviado pelo formulário;
+     *   se vazio E ambiente sandbox, usa o CPF genérico válido;
+     *   em produção sem CPF, lança exceção.
+     * - mobilePhone: envia somente dígitos após o DDI (+55XXXXXXXXXXX → "11999990000").
      */
-    private function ensureCustomer(User $user): string
+    private function ensureCustomer(User $user, string $cpf = '', string $phone = ''): string
     {
         $isSandbox = str_contains($this->baseUrl, 'sandbox');
+
+        if ($cpf === '') {
+            if ($isSandbox) {
+                $cpf = self::SANDBOX_CPF;
+            } else {
+                throw new \RuntimeException('CPF obrigatório para criar cobrança em produção.');
+            }
+        }
+
+        // Remove DDI +55 e qualquer não-dígito para o campo mobilePhone do Asaas
+        $mobilePhone = preg_replace('/\D/', '', $phone);
+        if (str_starts_with($mobilePhone, '55') && strlen($mobilePhone) > 11) {
+            $mobilePhone = substr($mobilePhone, 2); // remove os dois dígitos do DDI
+        }
 
         $payload = [
             'name'              => $user->getName(),
             'email'             => $user->getEmail(),
             'externalReference' => (string) $user->getId(),
-            'cpfCnpj'           => $isSandbox ? self::SANDBOX_CPF : '',
+            'cpfCnpj'           => $cpf,
         ];
+
+        if ($mobilePhone !== '') {
+            $payload['mobilePhone'] = $mobilePhone;
+        }
 
         $response = $this->http->request('POST', $this->baseUrl . '/customers', [
             'headers' => [
@@ -174,8 +195,8 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         // Cliente já existente: busca pelo externalReference
         if ($statusCode === 400 && isset($data['errors'])) {
             $existing = $this->http->request('GET', $this->baseUrl . '/customers', [
-                'headers'       => ['access_token' => $this->apiKey],
-                'query'         => ['externalReference' => (string) $user->getId()],
+                'headers' => ['access_token' => $this->apiKey],
+                'query'   => ['externalReference' => (string) $user->getId()],
             ]);
             $list = $existing->toArray(throw: false);
             if (!empty($list['data'][0]['id'])) {
@@ -193,11 +214,7 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
     }
 
     /**
-     * Busca QR Code Pix com até 5 tentativas com delay progressivo.
-     *
-     * O sandbox Asaas pode demorar alguns segundos para gerar o QR Code
-     * após criar a cobrança. Usamos backoff crescente (1s, 2s, 3s, 4s)
-     * para dar tempo ao gateway sem travar a requisição desnecessariamente.
+     * Busca QR Code Pix com até 5 tentativas com delay progressivo (backoff 1–4 s).
      */
     private function fetchPixQrWithRetry(string $paymentId, int $maxAttempts = 5): array
     {
@@ -215,7 +232,6 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
                 return $data;
             }
 
-            // Delay progressivo antes da próxima tentativa: 1s, 2s, 3s, 4s
             if ($attempt < $maxAttempts) {
                 sleep($attempt);
             }

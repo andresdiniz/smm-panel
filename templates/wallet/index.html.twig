@@ -95,6 +95,13 @@
           <td>
             {% if tx.status == 'approved' %}
               <span class="badge badge--completed">Aprovado</span>
+            {% elseif tx.status == 'pending' and tx.method == 'pix' %}
+              <a href="{{ path('app_wallet_pix_pending', {id: tx.id}) }}"
+                 class="badge badge--pending"
+                 style="text-decoration:none; cursor:pointer;"
+                 title="Clique para ver o QR Code Pix">
+                ⏳ Pendente
+              </a>
             {% elseif tx.status == 'pending' %}
               <span class="badge badge--pending">Pendente</span>
             {% elseif tx.status == 'cancelled' %}
