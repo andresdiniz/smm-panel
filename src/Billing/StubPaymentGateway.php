@@ -23,8 +23,13 @@ final class StubPaymentGateway implements PaymentGatewayInterface
         private readonly EntityManagerInterface $em,
     ) {}
 
-    public function createDeposit(User $user, int $amountCents, string $method): Payment
-    {
+    public function createDeposit(
+        User   $user,
+        int    $amountCents,
+        string $method,
+        string $cpf   = '',
+        string $phone = '',
+    ): Payment {
         $payment = new Payment();
         $payment->setUser($user);
         $payment->setType(Payment::TYPE_DEPOSIT);
@@ -52,8 +57,8 @@ final class StubPaymentGateway implements PaymentGatewayInterface
 
     public function processWebhook(Request $request): Payment
     {
-        $data      = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
-        $external  = $data['id'] ?? throw new \InvalidArgumentException('Webhook sem ID externo.');
+        $data     = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $external = $data['id'] ?? throw new \InvalidArgumentException('Webhook sem ID externo.');
 
         /** @var Payment|null $payment */
         $payment = $this->em->getRepository(Payment::class)->findOneBy(['externalId' => $external]);
@@ -78,7 +83,6 @@ final class StubPaymentGateway implements PaymentGatewayInterface
 
     public function fetchStatus(Payment $payment): string
     {
-        // Stub: sempre retorna o status atual da entidade
         return $payment->getStatus();
     }
 
@@ -93,7 +97,6 @@ final class StubPaymentGateway implements PaymentGatewayInterface
 
     private function generateStubQrBase64(): string
     {
-        // SVG mínimo simulando um QR Code para dev
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><rect width="200" height="200" fill="#fff"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="14" fill="#111">QR STUB</text></svg>';
         return base64_encode($svg);
     }
