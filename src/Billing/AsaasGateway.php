@@ -15,20 +15,23 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  *
  * Docs: https://docs.asaas.com/reference
  *
- * Variáveis de ambiente necessárias:
- *   ASAAS_API_KEY=aact_...
- *   ASAAS_BASE_URL=https://api.asaas.com/v3          (produção)
- *                  https://sandbox.asaas.com/api/v3   (sandbox)
- *   ASAAS_WEBHOOK_TOKEN=token_secreto
+ * Credenciais gerenciadas pelo painel admin (banco de dados).
+ * Não é necessário definir variáveis de ambiente para este gateway.
  */
 final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterface
 {
+    /**
+     * CPF genérico válido aceito pelo sandbox Asaas.
+     * Em produção, substitua pelo CPF real do usuário.
+     */
+    private const SANDBOX_CPF = '00000000191';
+
     public function __construct(
-        EntityManagerInterface          $em,
+        EntityManagerInterface              $em,
         private readonly HttpClientInterface $http,
-        private readonly string $apiKey,
-        private readonly string $baseUrl,
-        private readonly string $webhookToken,
+        private readonly string              $apiKey,
+        private readonly string              $baseUrl,
+        private readonly string              $webhookToken,
     ) {
         parent::__construct($em);
     }
@@ -42,7 +45,6 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             default                     => throw new \InvalidArgumentException('Método inválido: ' . $method),
         };
 
-        // Calcula taxa: Pix 0,99% | Crédito 2,99% | Débito 1,99%
         $feeRate = match ($method) {
             Payment::METHOD_PIX         => 0.0099,
             Payment::METHOD_CREDIT_CARD => 0.0299,
@@ -67,7 +69,15 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             ],
         ]);
 
-        $data = $response->toArray();
+        $statusCode = $response->getStatusCode();
+        $data       = $response->toArray(throw: false);
+
+        if ($statusCode !== 200 && $statusCode !== 201) {
+            $errorBody = json_encode($data, JSON_UNESCAPED_UNICODE);
+            throw new \RuntimeException(
+                sprintf('Asaas retornou HTTP %d ao criar cobrança: %s', $statusCode, $errorBody)
+            );
+        }
 
         if (!isset($data['id'])) {
             throw new \RuntimeException('Asaas não retornou ID da cobrança: ' . json_encode($data));
@@ -89,13 +99,12 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
 
     public function processWebhook(Request $request): Payment
     {
-        // Valida token de autenticação do webhook Asaas
         if ($request->headers->get('asaas-access-token') !== $this->webhookToken) {
             throw new \InvalidArgumentException('Assinatura de webhook inválida.');
         }
 
-        $data    = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
-        $event   = $data['event'] ?? '';
+        $data     = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $event    = $data['event'] ?? '';
         $chargeId = $data['payment']['id'] ?? throw new \InvalidArgumentException('Webhook sem ID.');
 
         $payment = $this->findByExternalId($chargeId);
@@ -133,20 +142,54 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         return $map[$remote] ?? Payment::STATUS_PENDING;
     }
 
+    /**
+     * Cria ou reutiliza cliente no Asaas.
+     *
+     * O Asaas retorna 200 mesmo se o cliente já existir (idempotente por e-mail
+     * quando externalReference é omitido). O cpfCnpj é obrigatório para
+     * cobranças PIX; no sandbox usamos um CPF genérico válido.
+     */
     private function ensureCustomer(User $user): string
     {
-        // Tenta criar cliente no Asaas (idempotente por e-mail)
+        $isSandbox = str_contains($this->baseUrl, 'sandbox');
+
+        $payload = [
+            'name'              => $user->getName(),
+            'email'             => $user->getEmail(),
+            'externalReference' => (string) $user->getId(),
+            'cpfCnpj'           => $isSandbox ? self::SANDBOX_CPF : '',
+        ];
+
         $response = $this->http->request('POST', $this->baseUrl . '/customers', [
             'headers' => [
                 'access_token' => $this->apiKey,
                 'Content-Type' => 'application/json',
             ],
-            'json' => [
-                'name'  => $user->getName(),
-                'email' => $user->getEmail(),
-            ],
+            'json' => $payload,
         ]);
-        return $response->toArray()['id'];
+
+        $statusCode = $response->getStatusCode();
+        $data       = $response->toArray(throw: false);
+
+        // Cliente já existente: busca pelo externalReference
+        if ($statusCode === 400 && isset($data['errors'])) {
+            $existing = $this->http->request('GET', $this->baseUrl . '/customers', [
+                'headers'       => ['access_token' => $this->apiKey],
+                'query'         => ['externalReference' => (string) $user->getId()],
+            ]);
+            $list = $existing->toArray(throw: false);
+            if (!empty($list['data'][0]['id'])) {
+                return $list['data'][0]['id'];
+            }
+        }
+
+        if (!isset($data['id'])) {
+            throw new \RuntimeException(
+                sprintf('Asaas: falha ao criar cliente (HTTP %d): %s', $statusCode, json_encode($data, JSON_UNESCAPED_UNICODE))
+            );
+        }
+
+        return $data['id'];
     }
 
     /**
@@ -164,18 +207,15 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
 
             $data = $response->toArray(throw: false);
 
-            // QR disponível quando encodedImage e payload estiverem presentes
             if (!empty($data['encodedImage']) && !empty($data['payload'])) {
                 return $data;
             }
 
-            // Aguarda antes de tentar novamente (exceto na última tentativa)
             if ($attempt < $maxAttempts) {
-                usleep(700_000); // 700ms
+                usleep(700_000);
             }
         }
 
-        // Retorna o que vier mesmo que incompleto — não bloqueia o fluxo
         return $data ?? [];
     }
 }
