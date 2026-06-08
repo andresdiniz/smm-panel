@@ -1,53 +1,385 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Pix pendente — PulseSMM{% endblock %}
-{% block page_title %}Aguardando pagamento Pix{% endblock %}
+{% block page_title %}Pagar via Pix{% endblock %}
 
 {% block content %}
-<section class="wallet-page wallet-page--narrow">
-  <div class="container">
-    <div class="panel-card pix-card" data-reveal>
+<div class="pix-page" data-reveal>
 
-      <div class="panel-card__head">
-        <h1>Conclua sua recarga via Pix</h1>
-        <span class="pill">Aguardando pagamento</span>
-      </div>
-      <p class="text-muted" style="margin-bottom:var(--space-6)">
-        Escaneie o QR Code ou copie o código abaixo para finalizar o pagamento.
-      </p>
-
-      <div class="pix-card__grid">
-        <div class="pix-card__qr glass-card">
-          {% if qrCodeBase64 is defined and qrCodeBase64 %}
-            <img src="data:image/png;base64,{{ qrCodeBase64 }}" alt="QR Code Pix" class="pix-card__image">
-          {% else %}
-            <div class="pix-card__placeholder">
-              <i data-lucide="qr-code" width="48" height="48"></i>
-              <span>QR Code indisponível</span>
-            </div>
-          {% endif %}
-        </div>
-
-        <div class="pix-card__info">
-          <div class="glass-card">
-            <span>Valor</span>
-            <strong>R$ {{ (payment.amountCents / 100)|number_format(2, ',', '.') }}</strong>
-          </div>
-          <label class="field">
-            <span>Copia e cola Pix</span>
-            <textarea class="control control--textarea" id="pixCode" readonly rows="4">{{ payment.pixCode }}</textarea>
-          </label>
-          <div class="pix-card__actions">
-            <button type="button" class="btn btn--primary" id="copyPixBtn"
-              onclick="navigator.clipboard.writeText(document.getElementById('pixCode').value).then(function(){ var b=document.getElementById('copyPixBtn'); b.textContent='Copiado!'; setTimeout(function(){ b.textContent='Copiar código'; },2000); })">
-              Copiar código
-            </button>
-            <a href="{{ path('app_wallet_index') }}" class="btn btn--ghost">Voltar para carteira</a>
-          </div>
-        </div>
-      </div>
-
+  {# ── Cabeçalho de status ── #}
+  <div class="pix-header">
+    <div class="pix-header__pulse">
+      <span class="pix-header__dot"></span>
+    </div>
+    <div>
+      <p class="pix-header__label">Status</p>
+      <p class="pix-header__status">Aguardando pagamento</p>
+    </div>
+    <div class="pix-header__amount">
+      <p class="pix-header__label">Valor</p>
+      <p class="pix-header__value">R$ {{ (payment.amountCents / 100)|number_format(2, ',', '.') }}</p>
     </div>
   </div>
-</section>
+
+  <p class="pix-intro">Escaneie o QR Code com o app do seu banco ou copie o código Pix abaixo para concluir o pagamento.</p>
+
+  {# ── Conteúdo principal ── #}
+  <div class="pix-body">
+
+    {# QR Code #}
+    <div class="pix-qr-wrap">
+      {% if qrCodeBase64 is defined and qrCodeBase64 %}
+        <div class="pix-qr">
+          <img src="data:image/png;base64,{{ qrCodeBase64 }}" alt="QR Code Pix"
+               width="220" height="220" loading="eager">
+        </div>
+        <p class="pix-qr__hint">
+          <i data-lucide="smartphone" width="13" height="13"></i>
+          Abra o app do banco → Pix → Pagar → Câmera
+        </p>
+      {% else %}
+        <div class="pix-qr pix-qr--empty">
+          <i data-lucide="qr-code" width="52" height="52"></i>
+          <span>QR Code indisponível</span>
+          <a href="" class="btn btn--ghost btn--sm">Tentar novamente</a>
+        </div>
+      {% endif %}
+    </div>
+
+    {# Divider #}
+    <div class="pix-or">
+      <span>ou</span>
+    </div>
+
+    {# Copia e cola #}
+    <div class="pix-copy-wrap">
+      <label class="pix-copy__label">
+        <i data-lucide="copy" width="14" height="14"></i>
+        Pix Copia e Cola
+      </label>
+      <div class="pix-copy__box">
+        <textarea class="pix-copy__code" id="pixCode" readonly rows="3" spellcheck="false">{{ payment.pixCode }}</textarea>
+        <button type="button" class="pix-copy__btn" id="copyPixBtn" aria-label="Copiar código Pix">
+          <i data-lucide="copy" width="16" height="16" id="copyIcon"></i>
+          <span id="copyLabel">Copiar</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  {# ── Instruções ── #}
+  <ol class="pix-steps">
+    <li><span class="pix-step__num">1</span> Abra o aplicativo do seu banco</li>
+    <li><span class="pix-step__num">2</span> Acesse a área Pix e escolha <strong>Pagar</strong></li>
+    <li><span class="pix-step__num">3</span> Escaneie o QR Code ou cole o código copiado</li>
+    <li><span class="pix-step__num">4</span> Confirme o pagamento — seu saldo é creditado em instantes</li>
+  </ol>
+
+  {# ── Rodapé ── #}
+  <div class="pix-footer">
+    <div class="pix-footer__expiry">
+      <i data-lucide="clock" width="14" height="14"></i>
+      <span>Código válido por <strong>24 horas</strong></span>
+    </div>
+    <a href="{{ path('app_wallet_index') }}" class="btn btn--ghost btn--sm">
+      <i data-lucide="arrow-left" width="15" height="15"></i>
+      Voltar para carteira
+    </a>
+  </div>
+
+</div>
+
+<style>
+/* ── Página Pix ── */
+.pix-page {
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp6);
+}
+
+/* ── Header de status ── */
+.pix-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp4);
+  padding: var(--sp4) var(--sp5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+}
+.pix-header__pulse {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.pix-header__pulse::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  animation: pulse-ring 2s ease-in-out infinite;
+}
+.pix-header__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--primary, #01696f);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-ring {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.3); opacity: 0; }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+.pix-header__label {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+}
+.pix-header__status {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--primary-h, #0c4e54);
+}
+.pix-header__amount { margin-left: auto; text-align: right; }
+.pix-header__value {
+  font-size: var(--text-lg);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.pix-intro {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.65;
+  text-align: center;
+  max-width: 44ch;
+  margin: 0 auto;
+}
+
+/* ── Corpo: QR + copia-e-cola ── */
+.pix-body {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--sp6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp5);
+}
+
+/* ── QR Code ── */
+.pix-qr-wrap { display: flex; flex-direction: column; align-items: center; gap: var(--sp3); }
+.pix-qr {
+  padding: var(--sp4);
+  background: #fff;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06);
+}
+.pix-qr img { display: block; border-radius: var(--r-md); }
+.pix-qr--empty {
+  width: 220px;
+  height: 220px;
+  flex-direction: column;
+  gap: var(--sp3);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.pix-qr__hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ── Divider OR ── */
+.pix-or {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--sp3);
+}
+.pix-or::before, .pix-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.pix-or span {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── Copia e cola ── */
+.pix-copy-wrap { width: 100%; display: flex; flex-direction: column; gap: var(--sp2); }
+.pix-copy__label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.pix-copy__box {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--bg);
+  transition: border-color .18s;
+}
+.pix-copy__box:focus-within { border-color: var(--primary); }
+.pix-copy__code {
+  flex: 1;
+  padding: var(--sp3) var(--sp4);
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  resize: none;
+  outline: none;
+  word-break: break-all;
+}
+.pix-copy__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 var(--sp4);
+  background: var(--primary, #01696f);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 64px;
+  transition: background .18s;
+  flex-shrink: 0;
+}
+.pix-copy__btn:hover { background: var(--primary-h, #0c4e54); }
+.pix-copy__btn.copied {
+  background: var(--success, #437a22);
+}
+
+/* ── Passos ── */
+.pix-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp3);
+  padding: var(--sp4) var(--sp5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+}
+.pix-steps li {
+  display: flex;
+  align-items: center;
+  gap: var(--sp3);
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.4;
+}
+.pix-step__num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 50%;
+  background: var(--primary-hi);
+  color: var(--primary-h);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+/* ── Rodapé ── */
+.pix-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp3) var(--sp4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  gap: var(--sp4);
+}
+.pix-footer__expiry {
+  display: flex;
+  align-items: center;
+  gap: var(--sp2);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+@media (max-width: 560px) {
+  .pix-body { padding: var(--sp4); }
+  .pix-header { flex-wrap: wrap; gap: var(--sp3); }
+  .pix-header__amount { margin-left: 0; text-align: left; }
+}
+</style>
+
+{% block javascripts %}{{ parent() }}
+<script>
+const copyBtn  = document.getElementById('copyPixBtn');
+const copyIcon = document.getElementById('copyIcon');
+const copyLbl  = document.getElementById('copyLabel');
+const pixCode  = document.getElementById('pixCode');
+
+copyBtn.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(pixCode.value);
+  } catch {
+    pixCode.select();
+    document.execCommand('copy');
+  }
+  copyBtn.classList.add('copied');
+  copyLbl.textContent = 'Copiado!';
+  copyIcon.setAttribute('data-lucide', 'check');
+  lucide.createIcons();
+  setTimeout(() => {
+    copyBtn.classList.remove('copied');
+    copyLbl.textContent = 'Copiar';
+    copyIcon.setAttribute('data-lucide', 'copy');
+    lucide.createIcons();
+  }, 2500);
+});
+</script>
+{% endblock %}
 {% endblock %}
