@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\ProviderCredential;
+use App\Entity\Service;
+use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminCrud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -23,9 +25,48 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 #[AdminCrud(routePath: '/admin/credentials', routeName: 'admin_credential')]
 class ProviderCredentialCrudController extends AbstractCrudController
 {
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+    ) {}
+
     public static function getEntityFqcn(): string
     {
         return ProviderCredential::class;
+    }
+
+    /**
+     * Intercepta o save do EasyAdmin (toggle switch AJAX e form completo).
+     * Se o campo `active` mudou, propaga para todos os Service do mesmo slug.
+     */
+    public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    {
+        /** @var ProviderCredential $entityInstance */
+
+        // Lê o valor ANTES do flush para comparar com o estado atual.
+        $uow     = $entityManager->getUnitOfWork();
+        $uow->computeChangeSets();
+        $changes = $uow->getEntityChangeSet($entityInstance);
+
+        // Persiste o provider normalmente.
+        parent::updateEntity($entityManager, $entityInstance);
+
+        // Só propaga se `active` mudou de fato.
+        if (!array_key_exists('active', $changes)) {
+            return;
+        }
+
+        $newActive = $entityInstance->isActive();
+        $slug      = $entityInstance->getSlug();
+
+        // UPDATE em massa — sem carregar serviços em memória.
+        $entityManager->createQuery(
+            'UPDATE ' . Service::class . ' s
+             SET s.active = :active
+             WHERE s.providerSlug = :slug'
+        )
+        ->setParameter('active', $newActive)
+        ->setParameter('slug', $slug)
+        ->execute();
     }
 
     public function configureCrud(Crud $crud): Crud
@@ -68,7 +109,7 @@ class ProviderCredentialCrudController extends AbstractCrudController
     {
         $isIndex = $pageName === Crud::PAGE_INDEX;
 
-        // ── Colunas do índice ────────────────────────────────────────────────
+        // ── Colunas do índice ────────────────────────────────────────────────────────────────────
         if ($isIndex) {
             yield IdField::new('id');
             yield ChoiceField::new('type', 'Tipo')
@@ -87,7 +128,7 @@ class ProviderCredentialCrudController extends AbstractCrudController
             return;
         }
 
-        // ── Aba: Identificação ───────────────────────────────────────────────
+        // ── Aba: Identificação ────────────────────────────────────────────────────────────
         yield FormField::addTab('Identificação')->setIcon('fa fa-id-card');
 
         yield ChoiceField::new('type', 'Tipo')
@@ -109,7 +150,7 @@ class ProviderCredentialCrudController extends AbstractCrudController
             ->setColumns(12)
             ->setHelp('Endpoint raiz do provedor. Ex: https://sandbox.asaas.com/api/v3');
 
-        // ── Aba: Credenciais ─────────────────────────────────────────────────
+        // ── Aba: Credenciais ─────────────────────────────────────────────────────────────────
         yield FormField::addTab('Credenciais')->setIcon('fa fa-key');
 
         yield TextField::new('apiKey', 'Chave de API')

@@ -12,46 +12,38 @@ use Doctrine\ORM\Events;
 use Doctrine\Persistence\Event\LifecycleEventArgs;
 
 /**
- * Desabilita/reabilita em cascata todos os Service vinculados a um
- * ProviderCredential quando o campo `active` do provedor muda.
+ * Fallback: garante a cascata active/inactive também para qualquer
+ * persistência de ProviderCredential fora do EasyAdmin
+ * (ex: comandos de console, API interna, testes).
  *
- * Funciona com o toggle switch do EasyAdmin e qualquer outra persistência
- * da entidade.
- *
- * Exemplo:
- *   Provedor "smmkings" desabilitado → todos os Service com
- *   providerSlug = "smmkings" ficam active = false automaticamente.
- *   Ao reabilitar o provedor → os mesmos serviços voltam a active = true.
+ * Usa preUpdate onde o changeSet ainda está disponível no UoW.
+ * O EasyAdmin já trata via updateEntity() no Controller.
  */
-#[AsDoctrineListener(event: Events::postUpdate)]
+#[AsDoctrineListener(event: Events::preUpdate)]
 final class ProviderStatusSubscriber
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
     ) {}
 
-    public function postUpdate(LifecycleEventArgs $args): void
+    public function preUpdate(LifecycleEventArgs $args): void
     {
         $entity = $args->getObject();
 
-        // Somente ProviderCredential do tipo SMM interessa —
-        // gateways de pagamento não têm Service vinculados.
         if (!$entity instanceof ProviderCredential) {
             return;
         }
 
-        // Verifica se o campo `active` realmente mudou neste update.
-        $uow      = $this->em->getUnitOfWork();
-        $changes  = $uow->getEntityChangeSet($entity);
+        $uow     = $this->em->getUnitOfWork();
+        $changes = $uow->getEntityChangeSet($entity);
 
         if (!array_key_exists('active', $changes)) {
-            return; // Outro campo foi alterado, não precisa fazer nada.
+            return;
         }
 
-        $newActive = $entity->isActive(); // valor atual (após o update)
+        $newActive = $entity->isActive();
         $slug      = $entity->getSlug();
 
-        // UPDATE único em massa — sem carregar entidades em memória.
         $this->em->createQuery(
             'UPDATE ' . Service::class . ' s
              SET s.active = :active
