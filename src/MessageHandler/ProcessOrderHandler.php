@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\MessageHandler;
 
 use App\Entity\Order;
+use App\Entity\OrderLog;
 use App\Message\ProcessOrderMessage;
 use App\Repository\WalletRepository;
 use App\Smm\SmmProviderRegistry;
@@ -15,12 +16,6 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 #[AsMessageHandler]
 final class ProcessOrderHandler
 {
-    /**
-     * Tentativas antes de cancelar definitivamente.
-     * (Messenger já faz retry automático via transport — este valor
-     *  é uma segunda camada de guarda para quando o Messenger não
-     *  está configurado com retry.)
-     */
     private const MAX_ATTEMPTS = 1;
 
     public function __construct(
@@ -53,19 +48,20 @@ final class ProcessOrderHandler
         $service = $order->getService();
         $slug    = $service->getProviderSlug();
 
-        // ── Valida provider ───────────────────────────────────────────
+        // ── Valida provider ───────────────────────────────────────────────
         if (!$slug || !$this->registry->has($slug)) {
             $this->logger->error('ProcessOrderHandler: provider slug não configurado ou inexistente.', [
                 'order_id'   => $order->getId(),
                 'service_id' => $service->getId(),
                 'slug'       => $slug,
             ]);
+            $this->saveLog($order, $slug ?? 'unknown', OrderLog::ACTION_ADD, null, null, 'Provider não configurado ou inexistente', null);
             $this->cancelWithRefund($order, 'Provider não configurado ou inexistente');
             $this->em->flush();
             return;
         }
 
-        // ── Envia ao provider ─────────────────────────────────────────
+        // ── Envia ao provider ─────────────────────────────────────────────
         $provider = $this->registry->get($slug);
 
         $this->logger->info('ProcessOrderHandler: enviando pedido ao provider.', [
@@ -76,6 +72,8 @@ final class ProcessOrderHandler
             'quantity'            => $order->getQuantity(),
         ]);
 
+        $startMs = (int) round(microtime(true) * 1000);
+
         try {
             $externalId = $provider->addOrder(
                 $service->getExternalServiceId(),
@@ -83,8 +81,13 @@ final class ProcessOrderHandler
                 $order->getQuantity()
             );
 
+            $elapsed = (int) round(microtime(true) * 1000) - $startMs;
+
             $order->setExternalOrderId($externalId);
             $order->setStatus(Order::STATUS_PROCESSING);
+
+            // ✅ Log de sucesso
+            $this->saveLog($order, $slug, OrderLog::ACTION_ADD, 200, ['order' => $externalId], null, $elapsed);
 
             $this->logger->info('ProcessOrderHandler: pedido aceito pelo provider.', [
                 'order_id'    => $order->getId(),
@@ -93,6 +96,8 @@ final class ProcessOrderHandler
             ]);
 
         } catch (\Throwable $e) {
+            $elapsed = (int) round(microtime(true) * 1000) - $startMs;
+
             $this->logger->error('ProcessOrderHandler: falha ao enviar pedido → cancelando.', [
                 'order_id'   => $order->getId(),
                 'provider'   => $slug,
@@ -101,11 +106,16 @@ final class ProcessOrderHandler
                 'trace'      => $e->getTraceAsString(),
             ]);
 
+            // ❌ Log de erro
+            $this->saveLog($order, $slug, OrderLog::ACTION_ADD, null, ['exception' => $e->getMessage()], $e->getMessage(), $elapsed);
+
             $this->cancelWithRefund($order, $e->getMessage());
         }
 
         $this->em->flush();
     }
+
+    // ── Helpers ───────────────────────────────────────────────────────────
 
     /**
      * Cancela o pedido E devolve o valor pago na carteira do usuário.
@@ -136,5 +146,29 @@ final class ProcessOrderHandler
             'refund_cents' => $amount,
             'reason'       => $reason,
         ]);
+    }
+
+    /**
+     * Persiste um log de chamada ao provider sem dar flush (feito no __invoke).
+     */
+    private function saveLog(
+        Order   $order,
+        string  $provider,
+        string  $action,
+        ?int    $httpStatus,
+        ?array  $responseBody,
+        ?string $errorMessage,
+        ?int    $elapsedMs,
+    ): void {
+        $log = (new OrderLog())
+            ->setOrder($order)
+            ->setProvider($provider)
+            ->setAction($action)
+            ->setHttpStatus($httpStatus)
+            ->setResponseBody($responseBody)
+            ->setErrorMessage($errorMessage)
+            ->setElapsedMs($elapsedMs);
+
+        $this->em->persist($log);
     }
 }

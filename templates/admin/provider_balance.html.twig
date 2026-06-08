@@ -1,0 +1,45 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Saldo nos Providers{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <h1 class="mb-4">💰 Saldo nos Providers</h1>
+
+    {% if balances is empty %}
+        <div class="alert alert-warning">Nenhum provider ativo encontrado.</div>
+    {% else %}
+        <div class="row g-3">
+            {% for item in balances %}
+                <div class="col-md-4">
+                    <div class="card {% if item.error %}border-danger{% else %}border-success{% endif %} shadow-sm">
+                        <div class="card-header fw-bold text-uppercase">
+                            {{ item.slug }}
+                        </div>
+                        <div class="card-body">
+                            {% if item.error %}
+                                <p class="text-danger mb-0">
+                                    <strong>Erro:</strong> {{ item.error }}
+                                </p>
+                            {% else %}
+                                <p class="display-6 mb-0 text-success fw-bold">
+                                    $ {{ item.balance|number_format(2, '.', ',') }}
+                                </p>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer text-muted small">
+                            Atualizado agora
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="{{ ea_url().setRoute('admin_provider_balance') }}" class="btn btn-secondary">
+            🔄 Atualizar
+        </a>
+    </div>
+</div>
+{% endblock %}
