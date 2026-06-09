@@ -6,43 +6,67 @@
 {% block stylesheets %}{{ parent() }}
 <style>
 /* ══════════════════════════════════════════
-   PIX PENDING — Layout Profissional v2
+   PIX PENDING v3 — tema-agnóstico
    ══════════════════════════════════════════ */
 
+/* tokens locais que funcionam em cima de qualquer tema-base */
 .pix-wrap {
+  --_bg:       var(--surface,   #1a1d27);
+  --_bg2:      var(--surface-2, #1f2333);
+  --_bg3:      var(--surface-off, #161925);
+  --_border:   var(--border,    rgba(255,255,255,.09));
+  --_border2:  var(--border-2,  rgba(255,255,255,.05));
+  --_text:     var(--text,      #e8eaf0);
+  --_text2:    var(--text-2,    #7c8299);
+  --_acc:      var(--acc,       #01696f);
+  --_acc-soft: var(--acc-soft,  rgba(1,105,111,.15));
+  --_acc-brd:  var(--acc-border,rgba(1,105,111,.35));
+  --_acc-hov:  var(--acc-hover, #0c4e54);
+
   max-width: 520px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: var(--sp5);
-  padding-bottom: var(--sp8);
+  gap: 16px;
+  padding-bottom: 40px;
 }
 
-/* ── Status Card ── */
+/* ── Status card ── */
 .pix-status {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 44px 1fr auto;
   align-items: center;
-  gap: var(--sp4);
-  padding: var(--sp4) var(--sp6);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r4);
+  gap: 16px;
+  padding: 16px 24px;
+  background: var(--_bg2);
+  border: 1px solid var(--_border);
+  border-radius: 12px;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,.18);
+}
+.pix-status::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--_acc);
+  border-radius: 0 2px 2px 0;
 }
 .pix-status::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 10% 50%, var(--acc-soft) 0%, transparent 60%);
+  background: radial-gradient(ellipse at 0% 50%, var(--_acc-soft) 0%, transparent 55%);
   pointer-events: none;
 }
+
+/* pulse */
 .pix-pulse {
   width: 44px; height: 44px;
   border-radius: 50%;
-  background: var(--acc-soft);
-  border: 1.5px solid var(--acc-border);
+  background: var(--_acc-soft);
+  border: 1.5px solid var(--_acc-brd);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,193 +79,185 @@
   position: absolute;
   inset: -7px;
   border-radius: 50%;
-  border: 1.5px solid var(--acc-border);
-  animation: pulse-ring 2.2s cubic-bezier(.4,0,.6,1) infinite;
+  border: 1.5px solid var(--_acc-brd);
+  animation: pix-ring 2.2s cubic-bezier(.4,0,.6,1) infinite;
   opacity: 0;
 }
 .pix-pulse__dot {
-  width: 14px; height: 14px;
+  width: 13px; height: 13px;
   border-radius: 50%;
-  background: var(--acc);
-  animation: pulse-dot 2.2s ease-in-out infinite;
+  background: var(--_acc);
+  animation: pix-dot 2.2s ease-in-out infinite;
 }
-@keyframes pulse-ring {
+@keyframes pix-ring {
   0%   { transform: scale(.75); opacity: .7; }
-  70%  { transform: scale(1.55); opacity: 0; }
+  70%  { transform: scale(1.6);  opacity: 0; }
   100% { transform: scale(.75); opacity: 0; }
 }
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: .45; transform: scale(.8); }
+@keyframes pix-dot {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%      { opacity: .4;  transform: scale(.8); }
 }
-.pix-status__info { z-index: 1; }
+
+.pix-status__info   { z-index: 1; }
 .pix-status__eyebrow {
   font-size: 10px;
   font-weight: 700;
-  color: var(--text-2);
+  color: var(--_text2);
   text-transform: uppercase;
   letter-spacing: .08em;
   margin-bottom: 3px;
 }
 .pix-status__label {
-  font-size: var(--text-sm);
+  font-size: 13px;
   font-weight: 700;
-  color: var(--acc);
+  color: var(--_acc);
 }
 .pix-status__amount { text-align: right; z-index: 1; }
-.pix-status__amount-eyebrow {
+.pix-status__alabel {
   font-size: 10px;
   font-weight: 700;
-  color: var(--text-2);
+  color: var(--_text2);
   text-transform: uppercase;
   letter-spacing: .08em;
   margin-bottom: 3px;
 }
 .pix-status__value {
-  font-size: var(--text-xl);
+  font-size: 22px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.04em;
   line-height: 1;
-  color: var(--text);
+  color: var(--_text);
 }
 
 /* ── Subtítulo ── */
 .pix-subtitle {
-  font-size: var(--text-sm);
-  color: var(--text-2);
-  line-height: 1.7;
+  font-size: 13px;
+  color: var(--_text2);
+  line-height: 1.65;
   text-align: center;
-  padding: 0 var(--sp4);
+  padding: 0 8px;
 }
 
 /* ── Card principal ── */
 .pix-card {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r4);
+  background: var(--_bg2);
+  border: 1px solid var(--_border);
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,.18);
 }
 
-/* ── QR ── */
-.pix-qr-wrap {
+/* ── QR section ── */
+.pix-qr-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--sp4);
-  padding: var(--sp7) var(--sp6) var(--sp6);
-  border-bottom: 1px solid var(--border);
+  gap: 16px;
+  padding: 32px 24px 24px;
+  border-bottom: 1px solid var(--_border);
 }
 .pix-qr-frame {
-  padding: var(--sp4);
+  padding: 14px;
   background: #ffffff;
-  border-radius: var(--r3);
+  border-radius: 10px;
   box-shadow:
-    0 0 0 1px rgba(0,0,0,.06),
-    0 4px 16px rgba(0,0,0,.08),
-    0 16px 48px rgba(0,0,0,.06);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform .25s ease, box-shadow .25s ease;
+    0 0 0 1px rgba(0,0,0,.08),
+    0 4px 16px rgba(0,0,0,.14),
+    0 20px 48px rgba(0,0,0,.10);
+  display: inline-flex;
+  transition: transform .22s ease, box-shadow .22s ease;
 }
 .pix-qr-frame:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow:
-    0 0 0 1px rgba(0,0,0,.06),
-    0 8px 24px rgba(0,0,0,.12),
-    0 24px 64px rgba(0,0,0,.1);
+    0 0 0 1px rgba(0,0,0,.08),
+    0 8px 28px rgba(0,0,0,.2),
+    0 28px 64px rgba(0,0,0,.14);
 }
-.pix-qr-frame img {
-  display: block;
-  border-radius: 4px;
-}
+.pix-qr-frame img { display: block; border-radius: 4px; }
 .pix-qr-empty {
   width: 220px; height: 220px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--sp3);
-  color: var(--text-2);
-  font-size: var(--text-sm);
-  font-weight: 500;
+  gap: 12px;
+  color: var(--_text2);
+  font-size: 13px;
 }
 .pix-qr-hint {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--surface-off);
-  border: 1px solid var(--border);
-  border-radius: var(--rp);
-  padding: 5px var(--sp3);
+  background: var(--_bg3);
+  border: 1px solid var(--_border);
+  border-radius: 999px;
+  padding: 5px 12px;
   font-size: 11px;
   font-weight: 500;
-  color: var(--text-2);
+  color: var(--_text2);
 }
 
-/* ── Divisor com texto ── */
+/* ── Divisor ── */
 .pix-divider {
   display: flex;
   align-items: center;
-  gap: var(--sp3);
-  padding: 0 var(--sp6);
+  gap: 12px;
+  padding: 14px 24px 0;
 }
 .pix-divider__line {
   flex: 1;
   height: 1px;
-  background: var(--border);
+  background: var(--_border);
 }
-.pix-divider__text {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-2);
-  text-transform: uppercase;
-  letter-spacing: .1em;
+.pix-divider__label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--_text2);
   white-space: nowrap;
 }
 
 /* ── Copia e Cola ── */
-.pix-copy-wrap {
-  padding: var(--sp4) var(--sp6) var(--sp6);
-}
+.pix-copy-section { padding: 12px 24px 24px; }
 .pix-copy-header {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 10px;
   font-weight: 700;
-  color: var(--text-2);
+  color: var(--_text2);
   text-transform: uppercase;
   letter-spacing: .08em;
-  margin-bottom: var(--sp3);
+  margin-bottom: 10px;
 }
 .pix-copy-field {
   display: flex;
   align-items: stretch;
-  border: 1.5px solid var(--border);
-  border-radius: var(--r3);
+  border: 1.5px solid var(--_border);
+  border-radius: 8px;
   overflow: hidden;
-  background: var(--surface-off);
+  background: var(--_bg3);
   transition: border-color .18s, box-shadow .18s;
 }
 .pix-copy-field:focus-within {
-  border-color: var(--acc);
-  box-shadow: 0 0 0 3px var(--acc-soft);
+  border-color: var(--_acc);
+  box-shadow: 0 0 0 3px var(--_acc-soft);
 }
 .pix-copy-code {
   flex: 1;
-  padding: var(--sp3) var(--sp4);
+  padding: 10px 14px;
   font-family: 'Courier New', monospace;
   font-size: 11px;
   line-height: 1.65;
-  color: var(--text);
+  color: var(--_text);
   background: transparent;
   border: none;
   resize: none;
   outline: none;
   word-break: break-all;
-  min-height: 68px;
+  min-height: 70px;
 }
 .pix-copy-btn {
   display: flex;
@@ -249,90 +265,107 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 0 var(--sp5);
+  padding: 0 20px;
   min-width: 76px;
-  background: var(--acc);
+  background: var(--_acc);
   color: #fff;
   border: none;
   cursor: pointer;
   font-size: 11px;
   font-weight: 700;
   flex-shrink: 0;
-  transition: background .18s, transform .12s;
+  transition: background .18s, transform .1s;
 }
-.pix-copy-btn:hover   { background: var(--acc-hover); }
-.pix-copy-btn:active  { transform: scale(.97); }
-.pix-copy-btn.copied  {
-  background: #1a6b14;
-}
+.pix-copy-btn:hover  { background: var(--_acc-hov); }
+.pix-copy-btn:active { transform: scale(.96); }
+.pix-copy-btn.copied { background: #1a6b14; }
 
 /* ── Passos ── */
 .pix-steps {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r4);
+  background: var(--_bg2);
+  border: 1px solid var(--_border);
+  border-radius: 12px;
   overflow: hidden;
   list-style: none;
+  box-shadow: 0 2px 10px rgba(0,0,0,.12);
 }
 .pix-step {
   display: flex;
   align-items: center;
-  gap: var(--sp4);
-  padding: var(--sp3) var(--sp5);
-  border-bottom: 1px solid var(--border-2);
+  gap: 14px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--_border2);
   transition: background .15s;
 }
 .pix-step:last-child { border-bottom: none; }
-.pix-step:hover { background: var(--surface-off); }
+.pix-step:hover { background: rgba(255,255,255,.03); }
 .pix-step__num {
   width: 24px; height: 24px;
   min-width: 24px;
   border-radius: 50%;
-  background: var(--acc-soft);
-  border: 1.5px solid var(--acc-border);
+  background: var(--_acc-soft);
+  border: 1.5px solid var(--_acc-brd);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
   font-weight: 800;
-  color: var(--acc);
+  color: var(--_acc);
+  flex-shrink: 0;
 }
 .pix-step__text {
-  font-size: var(--text-sm);
-  color: var(--text-2);
+  font-size: 13px;
+  color: var(--_text2);
   line-height: 1.5;
 }
-.pix-step__text strong { color: var(--text); font-weight: 700; }
+.pix-step__text strong { color: var(--_text); font-weight: 700; }
 
 /* ── Footer ── */
 .pix-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sp3);
-  padding: var(--sp3) var(--sp5);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r3);
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--_bg2);
+  border: 1px solid var(--_border);
+  border-radius: 10px;
   flex-wrap: wrap;
 }
 .pix-expiry {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--text-xs);
-  color: var(--text-2);
+  font-size: 12px;
+  color: var(--_text2);
 }
-.pix-expiry strong { color: var(--text); }
+.pix-expiry strong { color: var(--_text); }
+.pix-footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--_text2);
+  text-decoration: none;
+  transition: color .18s;
+}
+.pix-footer a:hover { color: var(--_text); }
 
 /* ── Responsivo ── */
-@media (max-width: 540px) {
-  .pix-status { grid-template-columns: auto 1fr; gap: var(--sp3); padding: var(--sp4); }
-  .pix-status__amount { grid-column: 1 / -1; text-align: left; }
-  .pix-status__value { font-size: var(--text-lg); }
-  .pix-qr-wrap { padding: var(--sp5) var(--sp4) var(--sp4); }
-  .pix-copy-wrap { padding: var(--sp4); }
-  .pix-footer { gap: var(--sp3); }
+@media (max-width: 520px) {
+  .pix-status {
+    grid-template-columns: 44px 1fr;
+    padding: 14px 16px;
+  }
+  .pix-status__amount {
+    grid-column: 2;
+    text-align: left;
+    margin-top: -8px;
+  }
+  .pix-qr-section { padding: 24px 16px 20px; }
+  .pix-copy-section { padding: 10px 16px 20px; }
+  .pix-step { padding: 11px 16px; }
 }
 </style>
 {% endblock %}
@@ -340,7 +373,7 @@
 {% block content %}
 <div class="pix-wrap">
 
-  {# ── Status card ── #}
+  {# ── Status ── #}
   <div class="pix-status">
     <div class="pix-pulse">
       <span class="pix-pulse__dot"></span>
@@ -350,7 +383,7 @@
       <div class="pix-status__label">Aguardando pagamento</div>
     </div>
     <div class="pix-status__amount">
-      <div class="pix-status__amount-eyebrow">Valor</div>
+      <div class="pix-status__alabel">Valor</div>
       <div class="pix-status__value">R$&nbsp;{{ (payment.amountCents / 100)|number_format(2, ',', '.') }}</div>
     </div>
   </div>
@@ -362,7 +395,7 @@
   {# ── Card QR + Copia e Cola ── #}
   <div class="pix-card">
 
-    <div class="pix-qr-wrap">
+    <div class="pix-qr-section">
       {% if qrCodeBase64 is defined and qrCodeBase64 %}
         <div class="pix-qr-frame">
           <img src="data:image/png;base64,{{ qrCodeBase64 }}"
@@ -375,9 +408,8 @@
       {% else %}
         <div class="pix-qr-frame">
           <div class="pix-qr-empty">
-            <i data-lucide="qr-code" width="52" height="52" style="color:var(--text-2);opacity:.4"></i>
+            <i data-lucide="qr-code" width="52" height="52" style="opacity:.35"></i>
             <span>QR Code indisponível</span>
-            <a href="" class="btn btn--ghost btn--sm">Tentar novamente</a>
           </div>
         </div>
       {% endif %}
@@ -385,11 +417,11 @@
 
     <div class="pix-divider">
       <span class="pix-divider__line"></span>
-      <span class="pix-divider__text">ou use o Pix Copia e Cola</span>
+      <span class="pix-divider__label">ou use o Pix Copia e Cola</span>
       <span class="pix-divider__line"></span>
     </div>
 
-    <div class="pix-copy-wrap">
+    <div class="pix-copy-section">
       <div class="pix-copy-header">
         <i data-lucide="copy" width="12" height="12"></i>
         Pix Copia e Cola
@@ -431,8 +463,8 @@
       <i data-lucide="clock" width="14" height="14"></i>
       <span>Código válido por <strong>24 horas</strong></span>
     </div>
-    <a href="{{ path('app_wallet_index') }}" class="btn btn--ghost btn--sm">
-      <i data-lucide="arrow-left" width="14" height="14"></i>
+    <a href="{{ path('app_wallet_index') }}">
+      <i data-lucide="arrow-left" width="13" height="13"></i>
       Voltar para carteira
     </a>
   </div>
