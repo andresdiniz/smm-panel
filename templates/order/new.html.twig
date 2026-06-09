@@ -19,25 +19,25 @@
 
       <ul class="on-tips">
         <li class="on-tip">
-          <span class="on-tip__icon"><i data-lucide="zap" width="14" height="14"></i></span>
+          <span class="on-tip__icon"><i data-lucide="zap" width="15" height="15"></i></span>
           <span>Processamento automático</span>
         </li>
         <li class="on-tip">
-          <span class="on-tip__icon"><i data-lucide="shield-check" width="14" height="14"></i></span>
+          <span class="on-tip__icon"><i data-lucide="shield-check" width="15" height="15"></i></span>
           <span>Saldo debitado só após confirmação</span>
         </li>
         <li class="on-tip">
-          <span class="on-tip__icon"><i data-lucide="refresh-cw" width="14" height="14"></i></span>
+          <span class="on-tip__icon"><i data-lucide="refresh-cw" width="15" height="15"></i></span>
           <span>Acompanhe em tempo real no painel</span>
         </li>
         <li class="on-tip">
-          <span class="on-tip__icon"><i data-lucide="lock" width="14" height="14"></i></span>
+          <span class="on-tip__icon"><i data-lucide="lock" width="15" height="15"></i></span>
           <span>Transação protegida com CSRF</span>
         </li>
       </ul>
 
       <div class="on-balance-chip">
-        <i data-lucide="wallet" width="14" height="14"></i>
+        <i data-lucide="wallet" width="15" height="15"></i>
         <span>Saldo disponível</span>
         <strong id="asideBalance">…</strong>
       </div>
@@ -122,14 +122,14 @@
       {# Preview de preço #}
       <div class="on-price" id="pricePreview">
         <div class="on-price__left">
-          <i data-lucide="tag" width="14" height="14"></i>
+          <i data-lucide="tag" width="15" height="15"></i>
           <span>Valor estimado</span>
         </div>
         <strong class="on-price__value" id="priceValue">R$ 0,00</strong>
       </div>
 
       <button type="submit" class="on-submit">
-        <i data-lucide="check-circle" width="18" height="18"></i>
+        <i data-lucide="check-circle" width="19" height="19"></i>
         Criar pedido
       </button>
     </form>
@@ -174,7 +174,7 @@
   color: var(--primary-h);
   padding: 4px 10px;
   border-radius: var(--r-full);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -183,7 +183,7 @@
 }
 
 .on-title {
-  font-size: var(--text-xl);
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
   font-weight: 900;
   letter-spacing: -0.03em;
   line-height: 1.15;
@@ -192,7 +192,7 @@
 }
 
 .on-desc {
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
   line-height: 1.65;
   margin-bottom: 20px;
@@ -210,13 +210,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--muted);
 }
 .on-tip__icon {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--r-md);
   background: var(--surface-off);
   border: 1px solid var(--border);
@@ -234,14 +234,14 @@
   background: color-mix(in oklab, var(--primary) 8%, var(--surface-off));
   border: 1px solid color-mix(in oklab, var(--primary) 20%, var(--border));
   border-radius: var(--r-lg);
-  padding: 10px 14px;
-  font-size: 0.78rem;
+  padding: 11px 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--primary-h);
 }
 .on-balance-chip strong {
   margin-left: auto;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-variant-numeric: tabular-nums;
   font-weight: 800;
 }
@@ -257,24 +257,22 @@
 .on-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
 }
 
 /* ── Field ── */
-.on-field { display: flex; flex-direction: column; gap: 6px; }
+.on-field { display: flex; flex-direction: column; gap: 7px; }
 
 .on-label {
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: var(--text);
   letter-spacing: 0.01em;
 }
-.on-required { color: var(--danger, #e05a5a); margin-left: 2px; }
+.on-required { color: #e05a5a; margin-left: 2px; }
 
 /* Select customizado */
-.on-select-wrap {
-  position: relative;
-}
+.on-select-wrap { position: relative; }
 .on-select-chevron {
   position: absolute;
   right: 12px;
@@ -299,17 +297,17 @@
   color: var(--muted);
   pointer-events: none;
 }
-.on-control--icon { padding-left: 36px !important; }
+.on-control--icon { padding-left: 38px !important; }
 
 /* Control base */
 .on-control {
   width: 100%;
-  height: 42px;
-  padding: 0 13px;
+  height: 46px;
+  padding: 0 14px;
   background: var(--surface-off);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  font-size: var(--text-sm);
+  font-size: 0.9rem;
   color: var(--text);
   transition: border-color 160ms ease, box-shadow 160ms ease;
   outline: none;
@@ -321,7 +319,7 @@
 .on-control::placeholder { color: var(--faint); }
 
 .on-hint {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   color: var(--muted);
   line-height: 1.4;
 }
@@ -337,25 +335,23 @@
   overflow: hidden;
   animation: fadeSlide 180ms ease;
 }
-.on-svc-detail.is-visible {
-  display: flex;
-}
+.on-svc-detail.is-visible { display: flex; }
 .on-svc-detail__row {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  padding: 10px 14px;
+  padding: 11px 14px;
 }
 .on-svc-detail__row span {
-  font-size: 0.62rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--faint);
   font-weight: 700;
 }
 .on-svc-detail__row strong {
-  font-size: var(--text-sm);
+  font-size: 0.9rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--text);
@@ -375,7 +371,7 @@
   background: color-mix(in oklab, var(--primary) 8%, var(--surface-off));
   border: 1px solid color-mix(in oklab, var(--primary) 22%, var(--border));
   border-radius: var(--r-lg);
-  padding: 12px 16px;
+  padding: 13px 16px;
   animation: fadeSlide 180ms ease;
 }
 .on-price.is-visible { display: flex; }
@@ -383,47 +379,47 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--primary-h);
 }
 .on-price__value {
-  font-size: var(--text-lg);
+  font-size: 1.15rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   color: var(--primary-h);
 }
 
-/* ── Submit ── */
+/* ── Submit — cor fixa teal para funcionar em ambos os temas ── */
 .on-submit {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 9px;
   width: 100%;
-  height: 46px;
-  background: var(--primary-h);
-  color: #fff;
+  height: 50px;
+  background: #01696f;          /* teal fixo — visível no light E dark */
+  color: #ffffff;
   border: none;
   border-radius: var(--r-lg);
-  font-size: var(--text-sm);
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 160ms ease, transform 100ms ease, box-shadow 160ms ease;
   letter-spacing: 0.01em;
+  transition: background 160ms ease, transform 100ms ease, box-shadow 160ms ease;
 }
 .on-submit:hover {
-  background: var(--primary-darker, color-mix(in oklab, var(--primary-h) 85%, #000));
-  box-shadow: 0 4px 14px color-mix(in oklab, var(--primary) 35%, transparent);
+  background: #0c4e54;
+  box-shadow: 0 4px 16px rgba(1,105,111,0.35);
 }
 .on-submit:active { transform: scale(0.98); }
 
 /* ── Animation ── */
 @keyframes fadeSlide {
   from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0);    }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Responsive ── */
@@ -432,13 +428,9 @@
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  .on-aside {
-    position: static;
-  }
-  .on-aside__inner {
-    padding: 20px 18px;
-  }
-  .on-title { font-size: var(--text-lg); }
+  .on-aside { position: static; }
+  .on-aside__inner { padding: 20px 18px; }
+  .on-title { font-size: 1.3rem; }
   .on-tips { display: none; }
 }
 </style>
@@ -457,18 +449,17 @@
   const sdPrice= document.getElementById('sdPrice');
   const bal    = document.getElementById('asideBalance');
 
-  /* pega saldo do chip do header se existir */
   const headerBal = document.querySelector('.balance-amount, .header-balance, [data-balance]');
   if (bal && headerBal) bal.textContent = headerBal.textContent.trim();
 
   function fmt(n){ return parseInt(n).toLocaleString('pt-BR'); }
 
   function update(){
-    const opt   = sel.options[sel.selectedIndex];
-    const min   = parseInt(opt.dataset.min  || 0);
-    const max   = parseInt(opt.dataset.max  || 0);
-    const ppt   = parseInt(opt.dataset.price|| 0);
-    const q     = parseInt(qty.value        || 0);
+    const opt = sel.options[sel.selectedIndex];
+    const min = parseInt(opt.dataset.min   || 0);
+    const max = parseInt(opt.dataset.max   || 0);
+    const ppt = parseInt(opt.dataset.price || 0);
+    const q   = parseInt(qty.value         || 0);
 
     if (!min) {
       detail.classList.remove('is-visible');
