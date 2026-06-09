@@ -11,6 +11,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\BadgeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
@@ -24,26 +25,32 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 
 class OrderCrudController extends AbstractCrudController
 {
-    /** Mapa de status: label => valor DB */
+    /**
+     * Chaves s\u00e3o os LABELS (o que o EasyAdmin exibe / usa para lookup no renderAsBadges).
+     * Valores s\u00e3o os valores gravados no banco.
+     */
     private const STATUS_CHOICES = [
         'Pendente'     => Order::STATUS_PENDING,
         'Processando'  => Order::STATUS_PROCESSING,
         'Em andamento' => Order::STATUS_IN_PROGRESS,
-        'Concluído'    => Order::STATUS_COMPLETED,
+        'Conclu\u00eddo'    => Order::STATUS_COMPLETED,
         'Parcial'      => Order::STATUS_PARTIAL,
         'Cancelado'    => Order::STATUS_CANCELLED,
         'Reembolsado'  => Order::STATUS_REFUNDED,
     ];
 
-    /** Cores para o BadgeField de status */
+    /**
+     * renderAsBadges() faz lookup pelo LABEL (chave do array passado para setChoices),
+     * portanto as chaves aqui tamb\u00e9m devem ser os labels.
+     */
     private const STATUS_BADGE = [
-        Order::STATUS_PENDING     => 'warning',
-        Order::STATUS_PROCESSING  => 'info',
-        Order::STATUS_IN_PROGRESS => 'primary',
-        Order::STATUS_COMPLETED   => 'success',
-        Order::STATUS_PARTIAL     => 'secondary',
-        Order::STATUS_CANCELLED   => 'danger',
-        Order::STATUS_REFUNDED    => 'dark',
+        'Pendente'     => 'warning',
+        'Processando'  => 'info',
+        'Em andamento' => 'primary',
+        'Conclu\u00eddo'    => 'success',
+        'Parcial'      => 'secondary',
+        'Cancelado'    => 'danger',
+        'Reembolsado'  => 'dark',
     ];
 
     public static function getEntityFqcn(): string
@@ -57,8 +64,9 @@ class OrderCrudController extends AbstractCrudController
             ->setEntityLabelInSingular('Pedido')
             ->setEntityLabelInPlural('Pedidos')
             ->setDefaultSort(['createdAt' => 'DESC'])
-            ->setSearchFields(['id', 'targetUrl', 'externalOrderId', 'user.email'])
-            ->setPaginatorPageSize(30);
+            ->setSearchFields(['id', 'targetUrl', 'externalOrderId', 'user.email', 'user.name'])
+            ->setPaginatorPageSize(30)
+            ->showEntityActionsInlined();
     }
 
     public function configureActions(Actions $actions): Actions
@@ -76,23 +84,24 @@ class OrderCrudController extends AbstractCrudController
                 ChoiceFilter::new('status', 'Status')
                     ->setChoices(self::STATUS_CHOICES)
             )
-            ->add(EntityFilter::new('user', 'Usuário'))
-            ->add(EntityFilter::new('service', 'Serviço'))
+            ->add(EntityFilter::new('user', 'Usu\u00e1rio'))
+            ->add(EntityFilter::new('service', 'Servi\u00e7o'))
             ->add(DateTimeFilter::new('createdAt', 'Criado em'));
     }
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id')->onlyOnIndex();
+        yield IdField::new('id')->setLabel('ID')->setMaxLength(6);
 
-        yield AssociationField::new('user', 'Usuário')
+        yield AssociationField::new('user', 'Usu\u00e1rio')
             ->setColumns(4);
 
-        yield AssociationField::new('service', 'Serviço')
+        yield AssociationField::new('service', 'Servi\u00e7o')
             ->setColumns(4);
 
+        // ChoiceField com renderAsBadges: chaves do mapa DEVEM ser os labels
         yield ChoiceField::new('status', 'Status')
-            ->setChoices(array_flip(self::STATUS_CHOICES))
+            ->setChoices(self::STATUS_CHOICES)
             ->renderAsBadges(self::STATUS_BADGE)
             ->setColumns(4);
 
@@ -101,7 +110,7 @@ class OrderCrudController extends AbstractCrudController
             ->setStoredAsCents(true)
             ->setColumns(3);
 
-        yield IntegerField::new('quantity', 'Quantidade')
+        yield IntegerField::new('quantity', 'Qtd')
             ->setColumns(3);
 
         yield UrlField::new('targetUrl', 'URL alvo')
