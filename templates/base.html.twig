@@ -67,12 +67,6 @@
         <span class="sidebar__link-label">Novo pedido</span>
       </a>
 
-      <a href="{{ path('app_catalog') }}"
-         class="sidebar__link {% if route starts with 'app_catalog' %}is-active{% endif %}">
-        <i data-lucide="layers" width="17" height="17" aria-hidden="true"></i>
-        <span class="sidebar__link-label">Catálogo</span>
-      </a>
-
       <div class="sidebar__section">Financeiro</div>
 
       <a href="{{ path('app_wallet_index') }}"
@@ -81,13 +75,13 @@
         <span class="sidebar__link-label">Carteira</span>
         {% if app.user.wallet is defined and app.user.wallet %}
         <span class="sidebar__badge">
-          R$ {{ (app.user.wallet.balanceCents / 100)|number_format(2, ',', '.') }}
+          R$ {{ (app.user.wallet.balanceCents / 100)|number_format(2, ',', '.') }}
         </span>
         {% endif %}
       </a>
 
-      <a href="{{ path('app_transaction_index') }}"
-         class="sidebar__link {% if route starts with 'app_transaction' %}is-active{% endif %}">
+      <a href="{{ path('app_wallet_history') }}"
+         class="sidebar__link {% if route == 'app_wallet_history' %}is-active{% endif %}">
         <i data-lucide="receipt-text" width="17" height="17" aria-hidden="true"></i>
         <span class="sidebar__link-label">Histórico</span>
       </a>
@@ -149,9 +143,9 @@
 
     <div class="topbar__actions">
       {% if app.user.wallet is defined and app.user.wallet %}
-      <a href="{{ path('app_wallet_deposit') }}" class="topbar__wallet" aria-label="Saldo da carteira">
+      <a href="{{ path('app_wallet_index') }}" class="topbar__wallet" aria-label="Saldo da carteira">
         <i data-lucide="wallet" width="13" height="13" aria-hidden="true"></i>
-        R$ {{ (app.user.wallet.balanceCents / 100)|number_format(2, ',', '.') }}
+        R$ {{ (app.user.wallet.balanceCents / 100)|number_format(2, ',', '.') }}
       </a>
       {% endif %}
 
