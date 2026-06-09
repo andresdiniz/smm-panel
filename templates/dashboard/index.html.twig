@@ -5,109 +5,212 @@
 
 {% block stylesheets %}
 <style>
-/* ── Dashboard-specific ─────────────────────────── */
-.kpi-grid{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:var(--s4);
-  margin-bottom:var(--s6);
-}
-@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:480px){.kpi-grid{grid-template-columns:1fr}}
+/* ================================================================
+   DASHBOARD — page-specific styles
+================================================================ */
 
-/* KPI accent top-line */
-.kpi{position:relative;overflow:hidden}
-.kpi::before{
-  content:'';
-  position:absolute;top:0;left:0;right:0;
-  height:2px;
-  border-radius:var(--r-lg) var(--r-lg) 0 0;
-  background:var(--kpi-accent,var(--primary));
-  opacity:.6;
+/* KPI grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s4);
+  margin-bottom: var(--s5);
 }
-.kpi__header{
-  display:flex;align-items:center;
-  justify-content:space-between;gap:var(--s2);
-}
-.kpi__icon{
-  width:32px;height:32px;
-  border-radius:var(--r-md);
-  display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;
-  color:var(--kpi-accent,var(--primary));
-  background:color-mix(in srgb,var(--kpi-accent,var(--primary)) 12%,transparent);
-}
-.kpi__icon--teal {--kpi-accent:var(--primary)}
-.kpi__icon--blue {--kpi-accent:#2563eb}
-.kpi__icon--green{--kpi-accent:#16a34a}
-.kpi__icon--gold {--kpi-accent:var(--accent)}
-[data-theme="dark"] .kpi__icon--blue {--kpi-accent:#60a5fa}
-[data-theme="dark"] .kpi__icon--green{--kpi-accent:#4ade80}
+@media (max-width: 960px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .kpi-grid { grid-template-columns: 1fr; } }
 
-/* Quick actions grid */
-.quick-actions{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:var(--s3);
-  margin-bottom:var(--s6);
+/* KPI accent top-bar */
+.kpi { position: relative; overflow: hidden; padding: 20px 22px; }
+.kpi::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  background: var(--kpi-accent, var(--primary));
+  opacity: .5;
 }
-@media(max-width:600px){.quick-actions{grid-template-columns:repeat(2,1fr)}}
+
+.kpi__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-bottom: var(--s3);
+}
+
+.kpi__meta { display: flex; flex-direction: column; gap: 3px; }
+
+.kpi__label {
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  line-height: 1;
+}
+
+.kpi__icon {
+  width: 34px; height: 34px;
+  border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  color: var(--kpi-accent, var(--primary));
+  background: color-mix(in srgb, var(--kpi-accent, var(--primary)) 10%, transparent);
+}
+.kpi__icon--teal  { --kpi-accent: var(--primary) }
+.kpi__icon--blue  { --kpi-accent: #2563eb }
+.kpi__icon--green { --kpi-accent: #16a34a }
+.kpi__icon--gold  { --kpi-accent: var(--accent) }
+[data-theme="dark"] .kpi__icon--blue  { --kpi-accent: #60a5fa }
+[data-theme="dark"] .kpi__icon--green { --kpi-accent: #4ade80 }
+
+.kpi__value {
+  font-size: clamp(1.45rem, 1.1rem + .9vw, 1.95rem);
+  font-weight: 800;
+  letter-spacing: -.04em;
+  color: var(--text);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: var(--s2);
+}
+
+.kpi__link {
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  opacity: .7;
+  transition: opacity var(--fast) var(--ease), gap var(--fast) var(--ease);
+}
+.kpi__link:hover { opacity: 1; gap: 8px; }
+
+/* Quick actions */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s3);
+  margin-bottom: var(--s5);
+}
+@media (max-width: 600px) { .quick-actions { grid-template-columns: repeat(2, 1fr); } }
 
 /* Recents card */
-.card--padded{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--r-lg);
-  box-shadow:var(--shadow-sm);
-  overflow:hidden;
+.card--padded {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
-.card__head{
-  display:flex;align-items:center;
-  justify-content:space-between;
-  padding:var(--s4) var(--s5);
-  border-bottom:1px solid var(--border);
+
+.card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
 }
-.card__head h2{
-  font-size:var(--tsm);font-weight:700;
-  color:var(--text);letter-spacing:-.01em;
+.card__head h2 {
+  font-size: var(--tb);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.02em;
+}
+
+/* Table: column widths */
+.data-table .col-id     { width: 42px;  min-width: 42px; }
+.data-table .col-svc    { width: auto;  min-width: 200px; }
+.data-table .col-url    { width: 160px; min-width: 120px; }
+.data-table .col-qty    { width: 56px;  min-width: 56px;  text-align: right; }
+.data-table .col-val    { width: 80px;  min-width: 72px;  text-align: right; }
+.data-table .col-status { width: 120px; min-width: 100px; }
+.data-table .col-date   { width: 76px;  min-width: 68px; }
+.data-table .col-act    { width: 56px;  min-width: 56px;  text-align: right; }
+
+/* Service name: wrap instead of ellipsis */
+.svc-name {
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+  word-break: break-word;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.svc-cat {
+  font-size: var(--tx);
+  color: var(--text-3);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* URL cell */
+.url-cell {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--tx);
+  color: var(--primary);
+  max-width: 160px;
+}
+
+/* Refined badge overrides */
+.badge {
+  padding: 3px 9px;
+  font-size: .6rem;
+  letter-spacing: .06em;
+  vertical-align: middle;
 }
 </style>
 {% endblock %}
 
 {% block content %}
 
-{# ── KPIs ────────────────────────────────────────────── #}
+{# ── KPIs ───────────────────────────────────────────────── #}
 <div class="kpi-grid" data-reveal>
 
   <div class="kpi">
     <div class="kpi__header">
-      <span class="kpi__label">Saldo disponível</span>
+      <div class="kpi__meta">
+        <span class="kpi__label">Saldo disponível</span>
+      </div>
       <div class="kpi__icon kpi__icon--teal">
         <i data-lucide="wallet" width="16" height="16"></i>
       </div>
     </div>
     <div class="kpi__value">R$&thinsp;{{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}</div>
     <a href="{{ path('app_wallet_deposit') }}" class="kpi__link">
-      Recarregar <i data-lucide="arrow-right" width="12" height="12"></i>
+      Recarregar <i data-lucide="arrow-right" width="11" height="11"></i>
     </a>
   </div>
 
   <div class="kpi">
     <div class="kpi__header">
-      <span class="kpi__label">Pedidos (30d)</span>
+      <div class="kpi__meta">
+        <span class="kpi__label">Pedidos (30d)</span>
+      </div>
       <div class="kpi__icon kpi__icon--blue">
         <i data-lucide="shopping-cart" width="16" height="16"></i>
       </div>
     </div>
     <div class="kpi__value">{{ ordersCount }}</div>
     <a href="{{ path('app_order_new') }}" class="kpi__link">
-      Novo pedido <i data-lucide="arrow-right" width="12" height="12"></i>
+      Novo pedido <i data-lucide="arrow-right" width="11" height="11"></i>
     </a>
   </div>
 
   <div class="kpi">
     <div class="kpi__header">
-      <span class="kpi__label">Concluídos</span>
+      <div class="kpi__meta">
+        <span class="kpi__label">Concluídos</span>
+      </div>
       <div class="kpi__icon kpi__icon--green">
         <i data-lucide="check-circle" width="16" height="16"></i>
       </div>
@@ -117,7 +220,9 @@
 
   <div class="kpi">
     <div class="kpi__header">
-      <span class="kpi__label">Total gasto (30d)</span>
+      <div class="kpi__meta">
+        <span class="kpi__label">Total gasto (30d)</span>
+      </div>
       <div class="kpi__icon kpi__icon--gold">
         <i data-lucide="trending-up" width="16" height="16"></i>
       </div>
@@ -127,7 +232,7 @@
 
 </div>
 
-{# ── AÇÕES RÁPIDAS ──────────────────────────────────── #}
+{# ── AÇÕES RÁPIDAS ──────────────────────────────────────── #}
 <div class="quick-actions" data-reveal data-delay="1">
 
   <a href="{{ path('app_order_new') }}" class="quick-action">
@@ -152,7 +257,7 @@
 
 </div>
 
-{# ── PEDIDOS RECENTES ───────────────────────────────── #}
+{# ── PEDIDOS RECENTES ────────────────────────────────── #}
 <div class="card--padded" data-reveal data-delay="2">
 
   <div class="card__head">
@@ -163,13 +268,23 @@
   {% if recentOrders|length > 0 %}
   <div class="table-wrap" style="border:none;border-radius:0;box-shadow:none">
     <table class="data-table">
+      <colgroup>
+        <col class="col-id">
+        <col class="col-svc">
+        <col class="col-url">
+        <col class="col-qty">
+        <col class="col-val">
+        <col class="col-status">
+        <col class="col-date">
+        <col class="col-act">
+      </colgroup>
       <thead>
         <tr>
           <th>#</th>
           <th>Serviço</th>
           <th>URL</th>
-          <th>Qtd</th>
-          <th>Valor</th>
+          <th style="text-align:right">Qtd</th>
+          <th style="text-align:right">Valor</th>
           <th>Status</th>
           <th>Data</th>
           <th></th>
@@ -178,29 +293,48 @@
       <tbody>
         {% for order in recentOrders %}
         <tr>
-          <td class="cell-muted">{{ order.id }}</td>
-          <td>
-            <div style="font-weight:600;color:var(--text)">
-              {{ order.service.name|length > 38 ? order.service.name|slice(0,38)~'…' : order.service.name }}
-            </div>
-            <div class="cell-muted" style="margin-top:1px">{{ order.service.category }}</div>
+          <td class="cell-muted col-id">{{ order.id }}</td>
+
+          <td class="col-svc">
+            <div class="svc-name">{{ order.service.name }}</div>
+            <div class="svc-cat">{{ order.service.category }}</div>
           </td>
-          <td style="max-width:140px">
+
+          <td class="col-url">
             <a href="{{ order.targetUrl }}" target="_blank" rel="noopener noreferrer"
-               style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--tx);color:var(--primary)">
+               class="url-cell" title="{{ order.targetUrl }}">
               {{ order.targetUrl }}
             </a>
           </td>
-          <td class="cell-mono">{{ order.quantity|number_format(0,',','.') }}</td>
-          <td class="cell-mono" style="white-space:nowrap">R$&thinsp;{{ (order.amountCents/100)|number_format(2,',','.') }}</td>
-          <td>
+
+          <td class="cell-mono col-qty" style="text-align:right">
+            {{ order.quantity|number_format(0,',','.') }}
+          </td>
+
+          <td class="cell-mono col-val" style="text-align:right;white-space:nowrap">
+            R$&thinsp;{{ (order.amountCents/100)|number_format(2,',','.') }}
+          </td>
+
+          <td class="col-status">
             {% set st = order.status|lower %}
-            <span class="badge badge--{{ st == 'completed' ? 'completed' : (st == 'cancelled' ? 'cancelled' : (st == 'pending' ? 'pending' : 'processing')) }}">
+            {% set stClass = {
+              'completed':  'badge--completed',
+              'cancelled':  'badge--cancelled',
+              'pending':    'badge--pending',
+              'processing': 'badge--processing',
+              'partial':    'badge--pending',
+              'inprogress': 'badge--processing'
+            } %}
+            <span class="badge {{ stClass[st] ?? 'badge--processing' }}">
               {{ order.status|replace({'_':' '})|capitalize }}
             </span>
           </td>
-          <td class="cell-muted" style="white-space:nowrap">{{ order.createdAt|date('d/m/y') }}</td>
-          <td>
+
+          <td class="cell-muted col-date" style="white-space:nowrap">
+            {{ order.createdAt|date('d/m/y') }}
+          </td>
+
+          <td class="col-act">
             <a href="{{ path('app_order_show', {id: order.id}) }}" class="btn btn-ghost btn-sm">Ver</a>
           </td>
         </tr>
