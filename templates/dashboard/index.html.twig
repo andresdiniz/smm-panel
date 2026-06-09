@@ -6,10 +6,14 @@
 {% block stylesheets %}
 <style>
 /* ================================================================
-   DASHBOARD — page-specific styles
+   DASHBOARD — redesign v2
+   - KPI cards respirando com padding generoso e ícone harmonioso
+   - Tabela: larguras proporcionais, texto quebra em vez de ellipsis
+   - Badges com dot indicator e tipografia alinhada
+   - Fundo body ≠ surface dos cards para profundidade visual
 ================================================================ */
 
-/* KPI grid */
+/* ── KPI GRID ─────────────────────────────────────────────── */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -17,45 +21,42 @@
   margin-bottom: var(--s5);
 }
 @media (max-width: 960px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px) { .kpi-grid { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .kpi-grid { grid-template-columns: 1fr 1fr; gap: var(--s3); } }
 
-/* KPI accent top-bar */
-.kpi { position: relative; overflow: hidden; padding: 20px 22px; }
-.kpi::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0;
-  height: 3px;
-  border-radius: var(--r-lg) var(--r-lg) 0 0;
-  background: var(--kpi-accent, var(--primary));
-  opacity: .5;
+.kpi {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .kpi__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--s3);
-  margin-bottom: var(--s3);
+  gap: var(--s2);
 }
-
-.kpi__meta { display: flex; flex-direction: column; gap: 3px; }
 
 .kpi__label {
   font-size: .65rem;
   font-weight: 700;
-  letter-spacing: .09em;
+  letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--text-3);
-  line-height: 1;
+  line-height: 1.3;
+  padding-top: 2px;
 }
 
 .kpi__icon {
-  width: 34px; height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--r-md);
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   color: var(--kpi-accent, var(--primary));
-  background: color-mix(in srgb, var(--kpi-accent, var(--primary)) 10%, transparent);
+  background: color-mix(in srgb, var(--kpi-accent, var(--primary)) 12%, transparent);
 }
 .kpi__icon--teal  { --kpi-accent: var(--primary) }
 .kpi__icon--blue  { --kpi-accent: #2563eb }
@@ -65,29 +66,52 @@
 [data-theme="dark"] .kpi__icon--green { --kpi-accent: #4ade80 }
 
 .kpi__value {
-  font-size: clamp(1.45rem, 1.1rem + .9vw, 1.95rem);
+  font-size: clamp(1.35rem, 1rem + .9vw, 1.85rem);
   font-weight: 800;
   letter-spacing: -.04em;
   color: var(--text);
   line-height: 1;
-  font-variant-numeric: tabular-nums;
-  margin-bottom: var(--s2);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
+.kpi__foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .7rem;
+  color: var(--text-3);
+  flex-wrap: wrap;
+}
+
+.kpi__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: .65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--r-full, 9999px);
+}
+.kpi__delta--up   { background: color-mix(in srgb,#22c55e 15%,transparent); color: #22c55e; }
+.kpi__delta--down { background: color-mix(in srgb,#ef4444 15%,transparent); color: #ef4444; }
+.kpi__delta--neutral { background: color-mix(in srgb,currentColor 10%,transparent); color: var(--text-3); }
+[data-theme="light"] .kpi__delta--up   { color: #15803d; }
+[data-theme="light"] .kpi__delta--down { color: #991b1b; }
+
 .kpi__link {
-  font-size: .72rem;
+  font-size: .7rem;
   font-weight: 600;
   color: var(--primary);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  opacity: .7;
+  opacity: .75;
   transition: opacity var(--fast) var(--ease), gap var(--fast) var(--ease);
 }
 .kpi__link:hover { opacity: 1; gap: 8px; }
 
-/* Quick actions */
+/* ── QUICK ACTIONS ────────────────────────────────────────── */
 .quick-actions {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -96,7 +120,7 @@
 }
 @media (max-width: 600px) { .quick-actions { grid-template-columns: repeat(2, 1fr); } }
 
-/* Recents card */
+/* ── CARD WRAPPER ─────────────────────────────────────────── */
 .card--padded {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -109,37 +133,48 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--border);
+  gap: var(--s4);
 }
+
 .card__head h2 {
   font-size: var(--tb);
   font-weight: 700;
   color: var(--text);
   letter-spacing: -.02em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-/* Table: column widths */
-.data-table .col-id     { width: 42px;  min-width: 42px; }
-.data-table .col-svc    { width: auto;  min-width: 200px; }
-.data-table .col-url    { width: 160px; min-width: 120px; }
-.data-table .col-qty    { width: 56px;  min-width: 56px;  text-align: right; }
-.data-table .col-val    { width: 80px;  min-width: 72px;  text-align: right; }
-.data-table .col-status { width: 120px; min-width: 100px; }
-.data-table .col-date   { width: 76px;  min-width: 68px; }
-.data-table .col-act    { width: 56px;  min-width: 56px;  text-align: right; }
+.card__head-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-shrink: 0;
+}
 
-/* Service name: wrap instead of ellipsis */
+/* ── ORDERS TABLE ─────────────────────────────────────────── */
+/* Proporcional: serviço respira, colunas pequenas não sugam espaço */
+.data-table .col-id     { width: 52px;  min-width: 44px; }
+.data-table .col-svc    { width: 36%;   min-width: 180px; }
+.data-table .col-url    { width: 22%;   min-width: 120px; }
+.data-table .col-qty    { width: 60px;  min-width: 52px;  text-align: right; }
+.data-table .col-val    { width: 88px;  min-width: 72px;  text-align: right; }
+.data-table .col-status { width: 118px; min-width: 100px; text-align: center; }
+.data-table .col-date   { width: 82px;  min-width: 68px;  text-align: right; }
+.data-table .col-act    { width: 52px;  min-width: 48px;  text-align: right; }
+
+/* Serviço: quebra elegantemente em vez de ellipsis */
 .svc-name {
   font-weight: 600;
   color: var(--text);
   line-height: 1.35;
   word-break: break-word;
+  overflow-wrap: break-word;
   white-space: normal;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  display: block;
 }
 .svc-cat {
   font-size: var(--tx);
@@ -148,6 +183,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: block;
 }
 
 /* URL cell */
@@ -158,16 +194,70 @@
   white-space: nowrap;
   font-size: var(--tx);
   color: var(--primary);
-  max-width: 160px;
+  max-width: 100%;
+}
+.url-cell:hover { text-decoration: underline; }
+
+/* Badge refinado: dot indicator + padding correto */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  border-radius: var(--r-full, 9999px);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.badge::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: currentColor;
+  opacity: .8;
 }
 
-/* Refined badge overrides */
-.badge {
-  padding: 3px 9px;
-  font-size: .6rem;
-  letter-spacing: .06em;
-  vertical-align: middle;
+/* Paginação no rodapé */
+.card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-2, var(--surface)) 60%, transparent);
+  gap: var(--s4);
 }
+.card__foot-info {
+  font-size: var(--tx);
+  color: var(--text-3);
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.page-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--tx);
+  font-weight: 600;
+  color: var(--text-2);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease), color var(--fast) var(--ease);
+  text-decoration: none;
+}
+.page-btn:hover { background: var(--surface-2, var(--border)); color: var(--text); border-color: var(--border); }
+.page-btn--active { background: var(--primary); color: #fff; border-color: var(--primary); }
 </style>
 {% endblock %}
 
@@ -176,58 +266,62 @@
 {# ── KPIs ───────────────────────────────────────────────── #}
 <div class="kpi-grid" data-reveal>
 
-  <div class="kpi">
+  <div class="kpi card--padded">
     <div class="kpi__header">
-      <div class="kpi__meta">
-        <span class="kpi__label">Saldo disponível</span>
-      </div>
+      <span class="kpi__label">Saldo disponível</span>
       <div class="kpi__icon kpi__icon--teal">
-        <i data-lucide="wallet" width="16" height="16"></i>
+        <i data-lucide="wallet" width="15" height="15"></i>
       </div>
     </div>
     <div class="kpi__value">R$&thinsp;{{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}</div>
-    <a href="{{ path('app_wallet_deposit') }}" class="kpi__link">
-      Recarregar <i data-lucide="arrow-right" width="11" height="11"></i>
-    </a>
+    <div class="kpi__foot">
+      <a href="{{ path('app_wallet_deposit') }}" class="kpi__link">
+        Recarregar <i data-lucide="arrow-right" width="10" height="10"></i>
+      </a>
+    </div>
   </div>
 
-  <div class="kpi">
+  <div class="kpi card--padded">
     <div class="kpi__header">
-      <div class="kpi__meta">
-        <span class="kpi__label">Pedidos (30d)</span>
-      </div>
+      <span class="kpi__label">Pedidos (30d)</span>
       <div class="kpi__icon kpi__icon--blue">
-        <i data-lucide="shopping-cart" width="16" height="16"></i>
+        <i data-lucide="shopping-cart" width="15" height="15"></i>
       </div>
     </div>
     <div class="kpi__value">{{ ordersCount }}</div>
-    <a href="{{ path('app_order_new') }}" class="kpi__link">
-      Novo pedido <i data-lucide="arrow-right" width="11" height="11"></i>
-    </a>
+    <div class="kpi__foot">
+      <a href="{{ path('app_order_new') }}" class="kpi__link">
+        Novo pedido <i data-lucide="arrow-right" width="10" height="10"></i>
+      </a>
+    </div>
   </div>
 
-  <div class="kpi">
+  <div class="kpi card--padded">
     <div class="kpi__header">
-      <div class="kpi__meta">
-        <span class="kpi__label">Concluídos</span>
-      </div>
+      <span class="kpi__label">Concluídos</span>
       <div class="kpi__icon kpi__icon--green">
-        <i data-lucide="check-circle" width="16" height="16"></i>
+        <i data-lucide="check-circle" width="15" height="15"></i>
       </div>
     </div>
     <div class="kpi__value">{{ completedCount }}</div>
+    <div class="kpi__foot">
+      <span class="kpi__delta kpi__delta--up">
+        <i data-lucide="trending-up" width="9" height="9"></i> pedidos ok
+      </span>
+    </div>
   </div>
 
-  <div class="kpi">
+  <div class="kpi card--padded">
     <div class="kpi__header">
-      <div class="kpi__meta">
-        <span class="kpi__label">Total gasto (30d)</span>
-      </div>
+      <span class="kpi__label">Total gasto (30d)</span>
       <div class="kpi__icon kpi__icon--gold">
-        <i data-lucide="trending-up" width="16" height="16"></i>
+        <i data-lucide="trending-up" width="15" height="15"></i>
       </div>
     </div>
     <div class="kpi__value">R$&thinsp;{{ (totalSpentCents / 100)|number_format(2, ',', '.') }}</div>
+    <div class="kpi__foot">
+      <span class="kpi__delta kpi__delta--neutral">últimos 30 dias</span>
+    </div>
   </div>
 
 </div>
@@ -236,22 +330,22 @@
 <div class="quick-actions" data-reveal data-delay="1">
 
   <a href="{{ path('app_order_new') }}" class="quick-action">
-    <i data-lucide="plus-circle" width="22" height="22"></i>
+    <i data-lucide="plus-circle" width="20" height="20"></i>
     <span>Novo pedido</span>
   </a>
 
   <a href="{{ path('app_wallet_deposit') }}" class="quick-action">
-    <i data-lucide="banknote" width="22" height="22"></i>
+    <i data-lucide="banknote" width="20" height="20"></i>
     <span>Recarregar</span>
   </a>
 
   <a href="{{ path('app_wallet_index') }}" class="quick-action">
-    <i data-lucide="receipt-text" width="22" height="22"></i>
+    <i data-lucide="receipt-text" width="20" height="20"></i>
     <span>Histórico</span>
   </a>
 
   <a href="#" class="quick-action">
-    <i data-lucide="headset" width="22" height="22"></i>
+    <i data-lucide="headset" width="20" height="20"></i>
     <span>Suporte</span>
   </a>
 
@@ -261,8 +355,13 @@
 <div class="card--padded" data-reveal data-delay="2">
 
   <div class="card__head">
-    <h2>Pedidos recentes</h2>
-    <a href="{{ path('app_order_new') }}" class="btn btn-primary btn-sm">+ Novo</a>
+    <h2>
+      <i data-lucide="file-text" width="15" height="15"></i>
+      Pedidos recentes
+    </h2>
+    <div class="card__head-actions">
+      <a href="{{ path('app_order_new') }}" class="btn btn-primary btn-sm">+ Novo</a>
+    </div>
   </div>
 
   {% if recentOrders|length > 0 %}
@@ -285,8 +384,8 @@
           <th>URL</th>
           <th style="text-align:right">Qtd</th>
           <th style="text-align:right">Valor</th>
-          <th>Status</th>
-          <th>Data</th>
+          <th style="text-align:center">Status</th>
+          <th style="text-align:right">Data</th>
           <th></th>
         </tr>
       </thead>
@@ -296,8 +395,8 @@
           <td class="cell-muted col-id">{{ order.id }}</td>
 
           <td class="col-svc">
-            <div class="svc-name">{{ order.service.name }}</div>
-            <div class="svc-cat">{{ order.service.category }}</div>
+            <span class="svc-name">{{ order.service.name }}</span>
+            <span class="svc-cat">{{ order.service.category }}</span>
           </td>
 
           <td class="col-url">
@@ -315,7 +414,7 @@
             R$&thinsp;{{ (order.amountCents/100)|number_format(2,',','.') }}
           </td>
 
-          <td class="col-status">
+          <td class="col-status" style="text-align:center">
             {% set st = order.status|lower %}
             {% set stClass = {
               'completed':  'badge--completed',
@@ -330,7 +429,7 @@
             </span>
           </td>
 
-          <td class="cell-muted col-date" style="white-space:nowrap">
+          <td class="cell-muted col-date" style="white-space:nowrap;text-align:right">
             {{ order.createdAt|date('d/m/y') }}
           </td>
 
@@ -341,6 +440,15 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
+
+  <div class="card__foot">
+    <span class="card__foot-info">Mostrando {{ recentOrders|length }} pedidos recentes</span>
+    <nav class="pagination" aria-label="Paginação">
+      <a href="{{ path('app_order_index') }}" class="page-btn" aria-label="Ver todos">
+        Ver todos <i data-lucide="arrow-right" width="10" height="10" style="margin-left:2px"></i>
+      </a>
+    </nav>
   </div>
 
   {% else %}
