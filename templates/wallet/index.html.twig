@@ -3,8 +3,259 @@
 {% block title %}Carteira — PulseSMM{% endblock %}
 {% block page_title %}Carteira{% endblock %}
 
-{% block stylesheets %}
-  <link rel="stylesheet" href="{{ asset('css/wallet.css') }}">
+{% block stylesheets %}{{ parent() }}
+<style>
+/* ══════════════════════════════════════════
+   WALLET INDEX — Design Refinado
+   ══════════════════════════════════════════ */
+
+/* ── Hero saldo ── */
+.wallet-hero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--acc) 0%, var(--acc-hover) 100%);
+  border-radius: var(--r4);
+  padding: var(--sp8) var(--sp8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp6);
+  color: #fff;
+  margin-bottom: var(--sp6);
+}
+.wallet-hero::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 240px; height: 240px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.07);
+  pointer-events: none;
+}
+.wallet-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -80px; left: 40%;
+  width: 280px; height: 280px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.04);
+  pointer-events: none;
+}
+.wallet-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp2);
+  background: rgba(255,255,255,.15);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: var(--rp);
+  padding: 4px var(--sp3);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-bottom: var(--sp3);
+  color: rgba(255,255,255,.9);
+}
+.wallet-hero__label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  opacity: .75;
+  margin-bottom: var(--sp1);
+  display: flex;
+  align-items: center;
+  gap: var(--sp2);
+}
+.wallet-hero__amount {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.wallet-hero__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp3);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.wallet-hero .btn--inv {
+  background: #fff;
+  color: var(--acc);
+  border: none;
+  font-weight: 700;
+  box-shadow: 0 2px 12px rgba(0,0,0,.15);
+}
+.wallet-hero .btn--inv:hover {
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 4px 20px rgba(0,0,0,.2);
+}
+.wallet-hero .btn--inv-ghost {
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  border: 1.5px solid rgba(255,255,255,.3);
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+}
+.wallet-hero .btn--inv-ghost:hover {
+  background: rgba(255,255,255,.2);
+}
+
+/* ── KPI Grid ── */
+.wallet-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp4);
+  margin-bottom: var(--sp6);
+}
+.wallet-kpis .kpi {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r3);
+  padding: var(--sp4) var(--sp5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp2);
+  transition: box-shadow var(--base), transform var(--base);
+}
+.wallet-kpis .kpi:hover {
+  box-shadow: var(--sh-md);
+  transform: translateY(-2px);
+}
+.wallet-kpis .kpi__icon {
+  width: 36px; height: 36px;
+  border-radius: var(--r2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--sp1);
+}
+.wallet-kpis .kpi__icon--teal  { background: var(--acc-soft); color: var(--acc); }
+.wallet-kpis .kpi__icon--blue  { background: rgba(21,79,130,.1); color: var(--blue); }
+.wallet-kpis .kpi__icon--gold  { background: rgba(122,82,0,.1); color: var(--gold); }
+.wallet-kpis .kpi__icon--green { background: rgba(30,94,20,.1); color: var(--green); }
+.wallet-kpis .kpi__label {
+  font-size: var(--text-xs);
+  color: var(--text-2);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.wallet-kpis .kpi__value--md {
+  font-size: var(--text-lg);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.wallet-kpis .kpi__value--success { color: var(--green); }
+
+/* ── Table Card ── */
+.wallet-table-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r4);
+  overflow: hidden;
+}
+.wallet-table-card .card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp4) var(--sp6);
+  border-bottom: 1px solid var(--border);
+}
+.wallet-table-card .card__head h2 {
+  font-size: var(--text-base);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.wallet-table-card .table-wrap {
+  overflow-x: auto;
+}
+.wallet-table-card .data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.wallet-table-card .data-table thead tr {
+  border-bottom: 1.5px solid var(--border);
+}
+.wallet-table-card .data-table thead th {
+  padding: var(--sp3) var(--sp5);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text-2);
+  text-align: left;
+  white-space: nowrap;
+  background: var(--surface);
+}
+.wallet-table-card .data-table tbody tr {
+  border-bottom: 1px solid var(--border-2);
+  transition: background var(--fast);
+}
+.wallet-table-card .data-table tbody tr:last-child { border-bottom: none; }
+.wallet-table-card .data-table tbody tr:hover { background: var(--surface-off); }
+.wallet-table-card .data-table td {
+  padding: var(--sp3) var(--sp5);
+  font-size: var(--text-sm);
+  vertical-align: middle;
+}
+.cell-muted { color: var(--text-2); }
+.cell-mono  { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+.cell-right { text-align: right; }
+.wt-amount  { font-weight: 700; color: var(--text-2); }
+.wt-amount--credit { color: var(--green); }
+
+/* Badges na tabela */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--rp);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+.badge--completed { background: var(--green-bg); color: var(--green); }
+.badge--pending   { background: var(--gold-bg);  color: var(--gold);  }
+.badge--cancelled { background: var(--red-bg);   color: var(--red);   }
+
+/* ── Empty state ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--sp12) var(--sp8);
+  color: var(--text-2);
+  gap: var(--sp3);
+}
+.empty-state svg { color: var(--text-3); opacity: .7; }
+.empty-state h3  { font-size: var(--text-base); font-weight: 700; color: var(--text); }
+.empty-state p   { font-size: var(--text-sm); color: var(--text-2); max-width: 32ch; }
+
+/* ── Responsivo ── */
+@media (max-width: 900px) {
+  .wallet-kpis { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .wallet-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--sp6);
+  }
+  .wallet-hero__actions { flex-direction: row; width: 100%; }
+  .wallet-hero__actions .btn { flex: 1; justify-content: center; }
+  .wallet-kpis { grid-template-columns: repeat(2, 1fr); }
+  .wallet-table-card .data-table thead th,
+  .wallet-table-card .data-table td { padding: var(--sp2) var(--sp3); }
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -12,30 +263,37 @@
 {# ── HERO SALDO ── #}
 <div class="wallet-hero" data-reveal>
   <div class="wallet-hero__info">
-    <span class="wallet-hero__label">Saldo disponível</span>
+    <div class="wallet-hero__badge">
+      <i data-lucide="wallet" width="12" height="12"></i>
+      Carteira PulseSMM
+    </div>
+    <div class="wallet-hero__label">
+      <i data-lucide="circle-dollar-sign" width="14" height="14"></i>
+      Saldo disponível
+    </div>
     <div class="wallet-hero__amount">
       R$&nbsp;{{ wallet ? (wallet.balanceCents / 100)|number_format(2, ',', '.') : '0,00' }}
     </div>
   </div>
   <div class="wallet-hero__actions">
-    <a href="{{ path('app_wallet_deposit') }}" class="btn btn--primary">
+    <a href="{{ path('app_wallet_deposit') }}" class="btn btn--inv">
       <i data-lucide="plus" width="16" height="16"></i>
       Adicionar saldo
     </a>
-    <a href="{{ path('app_transaction_index') }}" class="btn btn--ghost">
+    <a href="{{ path('app_transaction_index') }}" class="btn btn--inv-ghost">
       <i data-lucide="clock" width="16" height="16"></i>
-      Histórico completo
+      Histórico
     </a>
   </div>
 </div>
 
-{# ── STATS KPIs ── #}
+{# ── KPIs ── #}
 {% set total_depositado = 0 %}
 {% for tx in transactions %}
   {% if tx.status == 'approved' %}{% set total_depositado = total_depositado + tx.amountCents %}{% endif %}
 {% endfor %}
 
-<div class="kpi-grid wallet-kpis" data-reveal>
+<div class="wallet-kpis" data-reveal>
   <div class="kpi">
     <div class="kpi__icon kpi__icon--teal">
       <i data-lucide="trending-up" width="18" height="18"></i>
@@ -67,7 +325,7 @@
 </div>
 
 {# ── EXTRATO ── #}
-<div class="card wallet-table-card" data-reveal>
+<div class="wallet-table-card" data-reveal>
   <div class="card__head">
     <h2>Extrato</h2>
     <span class="badge badge--pending">{{ transactions|length }} registro(s)</span>
@@ -87,25 +345,35 @@
       {% for tx in transactions %}
         <tr>
           <td class="cell-muted cell-mono">
-            {{ tx.createdAt|date('d/m/Y') }}
-            <br><small>{{ tx.createdAt|date('H:i') }}</small>
+            {{ tx.createdAt|date('d/m/Y') }}<br>
+            <small style="font-size:var(--text-xs);opacity:.7">{{ tx.createdAt|date('H:i') }}</small>
           </td>
           <td>{{ tx.gateway ?? '—' }}</td>
           <td>{{ tx.method ?? '—' }}</td>
           <td>
             {% if tx.status == 'approved' %}
-              <span class="badge badge--completed">Aprovado</span>
+              <span class="badge badge--completed">
+                <i data-lucide="check" width="11" height="11"></i>
+                Aprovado
+              </span>
             {% elseif tx.status == 'pending' and tx.method == 'pix' %}
               <a href="{{ path('app_wallet_pix_pending', {id: tx.id}) }}"
                  class="badge badge--pending"
-                 style="text-decoration:none; cursor:pointer;"
-                 title="Clique para ver o QR Code Pix">
-                ⏳ Pendente
+                 style="text-decoration:none;cursor:pointer"
+                 title="Ver QR Code Pix">
+                <i data-lucide="qr-code" width="11" height="11"></i>
+                Pendente
               </a>
             {% elseif tx.status == 'pending' %}
-              <span class="badge badge--pending">Pendente</span>
+              <span class="badge badge--pending">
+                <i data-lucide="clock" width="11" height="11"></i>
+                Pendente
+              </span>
             {% elseif tx.status == 'cancelled' %}
-              <span class="badge badge--cancelled">Cancelado</span>
+              <span class="badge badge--cancelled">
+                <i data-lucide="x" width="11" height="11"></i>
+                Cancelado
+              </span>
             {% else %}
               <span class="badge badge--pending">{{ tx.status }}</span>
             {% endif %}
@@ -120,7 +388,7 @@
             <div class="empty-state">
               <i data-lucide="credit-card" width="40" height="40"></i>
               <h3>Nenhuma transação ainda</h3>
-              <p>Faça seu primeiro depósito para começar.</p>
+              <p>Faça seu primeiro depósito para ver o extrato aqui.</p>
               <a href="{{ path('app_wallet_deposit') }}" class="btn btn--ghost btn--sm">Fazer primeiro depósito</a>
             </div>
           </td>
