@@ -1,123 +1,570 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}PulseSMM — Crescimento com painel premium{% endblock %}
-{% block description %}Painel SMM mobile-first com Pix, cartão, catálogo inteligente, CRM e análise financeira.{% endblock %}
+{% block title %}PulseSMM — Crescimento nas redes sociais{% endblock %}
+{% block description %}Seguidores, curtidas e visualizações entregues com rapidez. Painel SMM mobile-first com Pix, cartão, catálogo inteligente e CRM.{% endblock %}
+{% block page_title %}Início{% endblock %}
 
-{% block body %}
+{% block stylesheets %}
+<style>
+/* ════════════════════════════════════════
+   HOME PAGE — css individual
+════════════════════════════════════════ */
+
+/* ── Hero ── */
+.hero {
+  padding: var(--s12) 0 var(--s16);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 60% -10%, oklch(0.48 0.08 192 / 0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 0% 80%,   oklch(0.72 0.15 82  / 0.06) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.hero__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s12);
+  align-items: center;
+}
+
+@media (max-width: 860px) {
+  .hero { padding: var(--s10) 0 var(--s12); }
+  .hero__grid { grid-template-columns: 1fr; gap: var(--s10); }
+}
+
+.hero__content { display: flex; flex-direction: column; gap: var(--s5); }
+
+.hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s1) var(--s3);
+  background: var(--primary-lo);
+  border: 1px solid var(--primary-mid);
+  border-radius: var(--r-full);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.hero__eyebrow .dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: pulse-dot 2.4s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%,100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.4); opacity: .6; }
+}
+
+.hero__title {
+  font-size: var(--t-3xl);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  line-height: 1.08;
+}
+
+.hero__title em {
+  font-style: normal;
+  color: var(--primary);
+}
+
+.hero__subtitle {
+  font-size: var(--t-base);
+  color: var(--text-muted);
+  max-width: 48ch;
+  line-height: 1.75;
+}
+
+.hero__cta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s3);
+}
+
+/* Hero stats row */
+.hero__stats {
+  display: flex;
+  align-items: center;
+  gap: var(--s6);
+  flex-wrap: wrap;
+  padding-top: var(--s4);
+  border-top: 1px solid var(--divider);
+}
+
+.mini-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mini-stat strong {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mini-stat span {
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Hero Visual ── */
+.hero__visual {
+  position: relative;
+  height: 380px;
+}
+
+@media (max-width: 860px) {
+  .hero__visual { height: 260px; }
+}
+
+.floating-card {
+  position: absolute;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-md);
+  padding: var(--s4) var(--s5);
+  transition: box-shadow var(--dur) var(--ease);
+}
+
+.floating-card:hover { box-shadow: var(--shadow-lg); }
+
+.floating-card--main {
+  top: 20px; left: 0; right: 0;
+  animation: float 6s ease-in-out infinite;
+}
+
+.floating-card--small {
+  padding: var(--s3) var(--s4);
+  border-radius: var(--r-lg);
+  font-size: var(--t-xs);
+  background: var(--surface);
+}
+
+.floating-card--one {
+  bottom: 30px; left: 10%;
+  animation: float 5s ease-in-out 1s infinite;
+}
+
+.floating-card--two {
+  bottom: 30px; right: 10%;
+  animation: float 7s ease-in-out 0.5s infinite;
+}
+
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-10px); }
+}
+
+.floating-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--s3);
+}
+
+.floating-card__top span { font-size: var(--t-xs); color: var(--text-faint); text-transform: uppercase; letter-spacing: .04em; }
+.floating-card__top strong { font-size: var(--t-lg); font-weight: 800; color: var(--text); letter-spacing: -.03em; }
+
+.floating-card--small span { font-size: 0.68rem; color: var(--text-faint); }
+.floating-card--small strong { display: block; font-size: var(--t-sm); font-weight: 700; color: var(--text); margin-top: 2px; }
+
+/* Chart bars */
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 80px;
+}
+
+.chart-bars span {
+  flex: 1;
+  background: var(--primary-lo);
+  border-radius: var(--r-xs) var(--r-xs) 0 0;
+  border: 1px solid var(--primary-mid);
+  transition: background var(--dur) var(--ease);
+}
+
+.chart-bars span:last-child {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+/* ── Features section ── */
+.section {
+  padding: var(--s16) 0;
+}
+
+.section--alt {
+  background: var(--surface);
+  margin-inline: calc(-1 * var(--s6));
+  padding-inline: var(--s6);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+@media (max-width: 540px) {
+  .section { padding: var(--s12) 0; }
+  .section--alt { margin-inline: calc(-1 * var(--s4)); padding-inline: var(--s4); }
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s5);
+}
+
+@media (max-width: 860px) { .feature-grid { grid-template-columns: 1fr; gap: var(--s4); } }
+
+.feature-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--s6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  box-shadow: var(--shadow-xs);
+}
+
+.feature-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+  border-color: var(--border-strong);
+}
+
+.feature-card__icon {
+  width: 44px; height: 44px;
+  border-radius: var(--r-md);
+  background: var(--primary-lo);
+  border: 1px solid var(--primary-mid);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.feature-card h3 {
+  font-size: var(--t-base);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.feature-card p {
+  font-size: var(--t-sm);
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+
+/* ── Showcase section ── */
+.showcase {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s12);
+  align-items: center;
+}
+
+@media (max-width: 860px) { .showcase { grid-template-columns: 1fr; gap: var(--s8); } }
+
+.showcase__eyebrow {
+  display: inline-flex;
+  padding: var(--s1) var(--s3);
+  background: var(--accent-lo);
+  border: 1px solid oklch(0.72 0.15 82 / 0.22);
+  border-radius: var(--r-full);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: var(--s4);
+}
+
+.showcase__panel h2 {
+  font-size: var(--t-xl);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  line-height: 1.12;
+  margin-bottom: var(--s4);
+}
+
+.showcase__panel p {
+  font-size: var(--t-sm);
+  color: var(--text-muted);
+  line-height: 1.75;
+  max-width: 46ch;
+}
+
+.showcase__stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.glass-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--s5) var(--s6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s4);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.glass-card:hover { box-shadow: var(--shadow-md); transform: translateX(4px); }
+
+.glass-card span { font-size: var(--t-xs); color: var(--text-faint); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+.glass-card strong { font-size: var(--t-lg); font-weight: 800; color: var(--text); letter-spacing: -.03em; }
+
+/* ── CTA Section ── */
+.cta-section {
+  padding: var(--s16) 0;
+  text-align: center;
+}
+
+.cta-section h2 {
+  font-size: var(--t-2xl);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  margin-bottom: var(--s4);
+}
+
+.cta-section p {
+  font-size: var(--t-base);
+  color: var(--text-muted);
+  max-width: 50ch;
+  margin: 0 auto var(--s8);
+  line-height: 1.75;
+}
+
+.cta-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--s3);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ═══════════════════ HERO ═══════════════════ #}
 <section class="hero">
-    <div class="container hero__grid">
-        <div class="hero__content" data-reveal>
-            <span class="pill">✦ Painel SMM mobile-first</span>
-            <h1>Venda, gerencie e acompanhe pedidos com uma experiência realmente moderna</h1>
-            <p>
-                Pix, cartão, catálogo inteligente, pedidos em tempo real, remarketing e CRM em uma interface
-                rápida, elegante e pensada primeiro para celular.
-            </p>
+  <div class="hero__grid" data-reveal>
+    <div class="hero__content">
 
-            <div class="hero__actions">
-                <a href="{{ path('app_register') }}" class="btn btn--primary btn--lg">Começar agora</a>
-                <a href="{{ path('app_catalog') }}" class="btn btn--ghost btn--lg">Explorar serviços</a>
-            </div>
+      <div class="hero__eyebrow">
+        <span class="dot"></span>
+        Plataforma online
+      </div>
 
-            <div class="hero__stats">
-                <div class="mini-stat">
-                    <strong data-counter="12840">0</strong>
-                    <span>Pedidos entregues</span>
-                </div>
-                <div class="mini-stat">
-                    <strong data-counter="3421">0</strong>
-                    <span>Clientes ativos</span>
-                </div>
-                <div class="mini-stat">
-                    <strong data-counter="98">0</strong>
-                    <span>% satisfação</span>
-                </div>
-            </div>
+      <h1 class="hero__title">
+        Cresça nas redes sociais
+        <em>sem complicação</em>
+      </h1>
+
+      <p class="hero__subtitle">
+        Seguidores, curtidas e visualizações entregues de forma rápida, segura
+        e com rastreamento em tempo real. Checkout via Pix ou cartão.
+      </p>
+
+      <div class="hero__cta">
+        <a href="{{ path('app_order_new') }}" class="btn btn--primary btn--lg">
+          <i data-lucide="zap" width="16" height="16" aria-hidden="true"></i>
+          Fazer um pedido
+        </a>
+        <a href="{{ path('app_catalog') }}" class="btn btn--ghost btn--lg">
+          Ver catálogo
+          <i data-lucide="arrow-right" width="15" height="15" aria-hidden="true"></i>
+        </a>
+      </div>
+
+      <div class="hero__stats">
+        <div class="mini-stat">
+          <strong data-counter="12840">0</strong>
+          <span>Pedidos entregues</span>
         </div>
-
-        <div class="hero__visual" data-reveal>
-            <div class="floating-card floating-card--main">
-                <div class="floating-card__top">
-                    <span>Receita hoje</span>
-                    <strong>R$ 4.820,50</strong>
-                </div>
-                <div class="chart-bars" aria-hidden="true">
-                    <span style="height:34%"></span>
-                    <span style="height:56%"></span>
-                    <span style="height:49%"></span>
-                    <span style="height:78%"></span>
-                    <span style="height:67%"></span>
-                    <span style="height:92%"></span>
-                    <span style="height:74%"></span>
-                </div>
-            </div>
-
-            <div class="floating-card floating-card--small floating-card--one">
-                <span>Pix confirmado</span>
-                <strong>+ R$ 150,00</strong>
-            </div>
-
-            <div class="floating-card floating-card--small floating-card--two">
-                <span>Pedido #4931</span>
-                <strong>Em processamento</strong>
-            </div>
+        <div class="mini-stat">
+          <strong data-counter="3421">0</strong>
+          <span>Clientes ativos</span>
         </div>
+        <div class="mini-stat">
+          <strong data-counter="98">0</strong>
+          <span>% satisfação</span>
+        </div>
+      </div>
     </div>
+
+    <div class="hero__visual" aria-hidden="true">
+      <div class="floating-card floating-card--main">
+        <div class="floating-card__top">
+          <span>Receita hoje</span>
+          <strong>R$ 4.820,50</strong>
+        </div>
+        <div class="chart-bars">
+          <span style="height:34%"></span>
+          <span style="height:56%"></span>
+          <span style="height:49%"></span>
+          <span style="height:78%"></span>
+          <span style="height:67%"></span>
+          <span style="height:92%"></span>
+          <span style="height:74%"></span>
+        </div>
+      </div>
+      <div class="floating-card floating-card--small floating-card--one">
+        <span>Pix confirmado</span>
+        <strong>+ R$ 150,00</strong>
+      </div>
+      <div class="floating-card floating-card--small floating-card--two">
+        <span>Pedido #4931</span>
+        <strong>Em andamento</strong>
+      </div>
+    </div>
+  </div>
 </section>
 
+{# ═══════════════════ FEATURES ═══════════════════ #}
 <section class="section">
-    <div class="container">
-        <div class="section-head" data-reveal>
-            <span class="pill pill--soft">Vantagens</span>
-            <h2>Feito para escalar sem parecer um painel genérico</h2>
-        </div>
+  <div class="section-head" data-reveal>
+    <span class="pill pill--soft">Vantagens</span>
+    <h2>Feito para escalar sem parecer genérico</h2>
+    <p>Cada detalhe foi pensado para reduzir atrito e aumentar conversão.</p>
+  </div>
 
-        <div class="feature-grid">
-            <article class="feature-card" data-reveal>
-                <div class="feature-card__icon" aria-hidden="true">⚡</div>
-                <h3>Checkout rápido</h3>
-                <p>Fluxo de compra enxuto com Pix, crédito e débito, pensado para reduzir abandono.</p>
-            </article>
-            <article class="feature-card" data-reveal>
-                <div class="feature-card__icon" aria-hidden="true">📊</div>
-                <h3>Dashboard vivo</h3>
-                <p>Pedidos, saldo, progresso e indicadores com visual limpo e leitura rápida no celular.</p>
-            </article>
-            <article class="feature-card" data-reveal>
-                <div class="feature-card__icon" aria-hidden="true">🤖</div>
-                <h3>Automação real</h3>
-                <p>Crons, filas, e-mails e remarketing ligados ao comportamento do cliente.</p>
-            </article>
-        </div>
-    </div>
+  <div class="feature-grid">
+    <article class="feature-card" data-reveal data-delay="1">
+      <div class="feature-card__icon">
+        <i data-lucide="zap" width="20" height="20" aria-hidden="true"></i>
+      </div>
+      <h3>Checkout rápido</h3>
+      <p>Fluxo de compra enxuto com Pix, crédito e débito, pensado para reduzir abandono e aumentar conversão.</p>
+    </article>
+
+    <article class="feature-card" data-reveal data-delay="2">
+      <div class="feature-card__icon">
+        <i data-lucide="bar-chart-2" width="20" height="20" aria-hidden="true"></i>
+      </div>
+      <h3>Dashboard vivo</h3>
+      <p>Pedidos, saldo, progresso e KPIs com visual limpo e leitura rápida — especialmente no celular.</p>
+    </article>
+
+    <article class="feature-card" data-reveal data-delay="3">
+      <div class="feature-card__icon">
+        <i data-lucide="repeat-2" width="20" height="20" aria-hidden="true"></i>
+      </div>
+      <h3>Automação real</h3>
+      <p>Crons, filas, e-mails e remarketing ativados pelo comportamento do usuário, sem intervenção manual.</p>
+    </article>
+  </div>
 </section>
 
+{# ═══════════════════ SHOWCASE ═══════════════════ #}
 <section class="section section--alt">
-    <div class="container showcase" data-reveal>
-        <div class="showcase__panel">
-            <span class="showcase__eyebrow">Visão operacional</span>
-            <h2>O usuário entende tudo em poucos toques</h2>
-            <p>
-                KPIs no topo, pedido rápido, status bem visível e histórico recente.
-                A ideia é reduzir atrito e aumentar recompra.
-            </p>
-            <a href="{{ path('app_register') }}" class="btn btn--primary" style="margin-top:20px">Criar conta grátis</a>
-        </div>
-
-        <div class="showcase__stack">
-            <div class="glass-card">
-                <span>Saldo disponível</span>
-                <strong>R$ 1.240,00</strong>
-            </div>
-            <div class="glass-card">
-                <span>Pedidos ativos</span>
-                <strong>12</strong>
-            </div>
-            <div class="glass-card">
-                <span>Taxa de conversão</span>
-                <strong>6,8%</strong>
-            </div>
-        </div>
+  <div class="showcase" data-reveal>
+    <div class="showcase__panel">
+      <span class="showcase__eyebrow">Visão operacional</span>
+      <h2>O usuário entende tudo em poucos toques</h2>
+      <p>
+        KPIs no topo, pedido rápido, status bem visível e histórico recente.
+        A ideia é reduzir atrito e aumentar recompra.
+      </p>
+      <div style="margin-top: var(--s6); display:flex; gap: var(--s3); flex-wrap:wrap;">
+        <a href="{{ path('app_order_new') }}" class="btn btn--primary">Fazer pedido agora</a>
+        <a href="{{ path('app_wallet_deposit') }}" class="btn btn--secondary">Adicionar saldo</a>
+      </div>
     </div>
+
+    <div class="showcase__stack">
+      <div class="glass-card" data-reveal data-delay="1">
+        {% if app.user.wallet is defined and app.user.wallet %}
+        <span>Saldo disponível</span>
+        <strong>R$ {{ (app.user.wallet.balanceCents / 100)|number_format(2, ',', '.') }}</strong>
+        {% else %}
+        <span>Saldo disponível</span>
+        <strong>R$ 0,00</strong>
+        {% endif %}
+      </div>
+      <div class="glass-card" data-reveal data-delay="2">
+        <span>Plataformas suportadas</span>
+        <strong>Instagram, TikTok, YT…</strong>
+      </div>
+      <div class="glass-card" data-reveal data-delay="3">
+        <span>Entrega média</span>
+        <strong>< 30 minutos</strong>
+      </div>
+    </div>
+  </div>
 </section>
+
+{# ═══════════════════ CTA ═══════════════════ #}
+<section class="cta-section" data-reveal>
+  <h2>Pronto para crescer?</h2>
+  <p>Comece agora com créditos na sua carteira e faça seu primeiro pedido em menos de 2 minutos.</p>
+  <div class="cta-actions">
+    <a href="{{ path('app_wallet_deposit') }}" class="btn btn--primary btn--lg">
+      <i data-lucide="plus-circle" width="16" height="16" aria-hidden="true"></i>
+      Adicionar saldo
+    </a>
+    <a href="{{ path('app_catalog') }}" class="btn btn--ghost btn--lg">Explorar catálogo</a>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block javascripts %}
+<script>
+(function(){
+  /* Animated counters */
+  function animCounter(el, target, suffix) {
+    var duration = 1600, start = null;
+    function step(ts) {
+      if (!start) start = ts;
+      var p = Math.min((ts - start) / duration, 1);
+      var v = Math.floor((1 - Math.pow(1-p, 3)) * target);
+      el.textContent = v.toLocaleString('pt-BR') + (suffix||'');
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('[data-counter]').forEach(function(el){
+      var target = +el.getAttribute('data-counter');
+      var suffix = el.getAttribute('data-suffix') || '';
+      var io = new IntersectionObserver(function(entries){
+        if (entries[0].isIntersecting) { animCounter(el, target, suffix); io.disconnect(); }
+      }, { threshold: 0.3 });
+      io.observe(el);
+    });
+  });
+})();
+</script>
 {% endblock %}
