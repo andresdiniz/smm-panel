@@ -5,177 +5,286 @@
 
 {% block main %}
 <style>
-/* ══ ADMIN DASHBOARD v2 ══ */
+/*
+  ADMIN DASHBOARD v3
+  Cores hardcoded — não depende dos tokens do EasyAdmin nem do painel.
+  Paleta dark-mode em camadas:
+    --bg   : #0f1117  (fundo página)
+    --s0   : #161b27  (header de tabelas, hover)
+    --s1   : #1c2233  (cards, tbl-card)
+    --s2   : #212840  (card hover / destaque)
+    --bd   : rgba(255,255,255,.08)
+    --bd2  : rgba(255,255,255,.04)
+    --t1   : #e2e6f0  (texto principal)
+    --t2   : #8b90a8  (texto secundário)
+    --t3   : #505570  (texto apagado / labels)
+*/
 
-.dash { padding: 20px 0 48px; }
+/* reset de espaço que o EasyAdmin injeta */
+.content-header { display:none !important; }
+.content-wrapper { padding: 0 !important; }
 
-/* ─ Header ─ */
-.d-hd { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:22px; }
-.d-hd__title { font-size:1.0625rem; font-weight:900; letter-spacing:-.03em; color:var(--t1); margin:0; }
-.d-hd__date  { font-size:.75rem; color:var(--t3); margin-top:3px; }
+.dash {
+  padding: 24px 28px 60px;
+  max-width: 1480px;
+  background: #0f1117;
+  min-height: 100vh;
+  color: #e2e6f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
 
-/* ─ KPI grid ─ */
-.kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
+/* ── Header ── */
+.d-hd { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:28px; }
+.d-hd__title { font-size:1.125rem; font-weight:900; letter-spacing:-.03em; color:#e2e6f0; margin:0; }
+.d-hd__date  { font-size:.75rem; color:#505570; margin-top:4px; }
+
+/* ── KPI grid ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+}
 @media(max-width:1100px){ .kpi-grid{ grid-template-columns:repeat(2,1fr) } }
 @media(max-width:560px) { .kpi-grid{ grid-template-columns:1fr } }
 
 .kpi {
-  background:var(--s1); border:1px solid var(--b1); border-radius:var(--r3);
-  padding:16px 18px 14px; box-shadow:var(--sh1);
-  display:flex; flex-direction:column; gap:6px;
-  position:relative; overflow:hidden;
-  transition:box-shadow var(--tr),transform var(--tr);
-  cursor:default;
+  background: #1c2233;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  padding: 20px 20px 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.25);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow .18s, transform .18s;
+  cursor: default;
 }
-.kpi:hover { box-shadow:var(--sh2); transform:translateY(-1px); }
+.kpi:hover { box-shadow: 0 8px 30px rgba(0,0,0,.35); transform: translateY(-2px); }
 .kpi::after {
-  content:''; position:absolute; inset:0 0 auto 0;
-  height:3px; border-radius:var(--r3) var(--r3) 0 0;
+  content: '';
+  position: absolute; inset: 0 0 auto 0;
+  height: 3px;
+  border-radius: 12px 12px 0 0;
 }
-.kpi--teal::after  { background:var(--acc); }
-.kpi--blue::after  { background:var(--blu); }
-.kpi--green::after { background:var(--grn); }
-.kpi--gold::after  { background:var(--gld); }
+.kpi--teal::after  { background: #01696f; }
+.kpi--blue::after  { background: #1e6fa0; }
+.kpi--green::after { background: #437a22; }
+.kpi--gold::after  { background: #c98a00; }
 
-.kpi__top   { display:flex; align-items:center; justify-content:space-between; }
-.kpi__label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--t2); }
-.kpi__ico   { width:26px; height:26px; border-radius:var(--r1); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.kpi__ico svg { width:13px; height:13px; display:block; }
-.kpi__ico--teal  { background:rgba(0,105,111,.12); color:var(--acc); }
-.kpi__ico--blue  { background:rgba(26,78,128,.12);  color:var(--blu); }
-.kpi__ico--green { background:rgba(36,96,26,.12);   color:var(--grn); }
-.kpi__ico--gold  { background:rgba(135,93,0,.12);   color:var(--gld); }
+.kpi__top { display:flex; align-items:center; justify-content:space-between; }
+.kpi__label {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: #8b90a8;
+}
+.kpi__ico {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.kpi__ico svg { width: 14px; height: 14px; display: block; }
+.kpi__ico--teal  { background: rgba(1,105,111,.18);  color: #4fb8be; }
+.kpi__ico--blue  { background: rgba(30,111,160,.18); color: #5ba8d4; }
+.kpi__ico--green { background: rgba(67,122,34,.18);  color: #7abf4a; }
+.kpi__ico--gold  { background: rgba(201,138,0,.18);  color: #e8af34; }
 
-.kpi__value { font-size:1.75rem; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:-.04em; line-height:1; color:var(--t1); }
-.kpi__value--green { color:var(--grn); }
-.kpi__value--gold  { color:var(--gld); }
-.kpi__delta { font-size:.6875rem; color:var(--t3); }
+.kpi__value {
+  font-size: 2rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.04em;
+  line-height: 1;
+  color: #f0f2fa;
+}
+.kpi__value--green { color: #7abf4a; }
+.kpi__value--gold  { color: #e8af34; }
+.kpi__delta { font-size: .6875rem; color: #505570; }
 
-/* ─ Section label ─ */
-.d-sect { display:flex; align-items:center; gap:8px; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:var(--t3); margin-bottom:10px; }
-.d-sect::after { content:''; flex:1; height:1px; background:var(--b1); }
+/* ── Seção label ── */
+.d-sect {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .09em;
+  color: #505570;
+  margin-bottom: 12px;
+}
+.d-sect::after { content:''; flex:1; height:1px; background:rgba(255,255,255,.07); }
 
-/* ─ Financeiro ─ */
-.fin-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+/* ── Fin cards ── */
+.fin-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+}
 @media(max-width:820px){ .fin-grid{ grid-template-columns:repeat(2,1fr) } }
 @media(max-width:520px){ .fin-grid{ grid-template-columns:1fr } }
 
 .fin {
-  background:var(--s1); border:1px solid var(--b1); border-radius:var(--r2);
-  padding:14px 16px; box-shadow:var(--sh0);
-  display:flex; align-items:center; gap:12px;
-  transition:box-shadow var(--tr);
+  background: #1c2233;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.2);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: box-shadow .18s;
 }
-.fin:hover { box-shadow:var(--sh1); }
-.fin__ico { width:32px; height:32px; border-radius:var(--r1); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.fin__ico svg { width:14px; height:14px; display:block; }
-.fin__ico--green { background:rgba(36,96,26,.12);   color:var(--grn); }
-.fin__ico--red   { background:rgba(161,44,123,.1);  color:var(--red); }
-.fin__ico--gold  { background:rgba(135,93,0,.12);   color:var(--gld); }
-.fin__body  { display:flex; flex-direction:column; gap:3px; min-width:0; }
-.fin__label { font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--t2); white-space:nowrap; }
-.fin__value { font-size:1.1875rem; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:-.025em; line-height:1.15; }
-.fin__value--green { color:var(--grn); }
-.fin__value--red   { color:var(--red); }
-.fin__value--gold  { color:var(--gld); }
+.fin:hover { box-shadow: 0 6px 20px rgba(0,0,0,.3); }
+.fin__ico {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.fin__ico svg { width: 16px; height: 16px; display: block; }
+.fin__ico--green { background: rgba(67,122,34,.18);  color: #7abf4a; }
+.fin__ico--red   { background: rgba(200,70,70,.15);  color: #e06060; }
+.fin__ico--gold  { background: rgba(201,138,0,.18);  color: #e8af34; }
+.fin__body { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.fin__label {
+  font-size: 9.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: #8b90a8;
+}
+.fin__value {
+  font-size: 1.25rem; font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.025em;
+  line-height: 1.15;
+  color: #f0f2fa;
+}
+.fin__value--green { color: #7abf4a; }
+.fin__value--red   { color: #e06060; }
+.fin__value--gold  { color: #e8af34; }
 
-/* ─ Providers ─ */
-.prov-grid { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:20px; }
+/* ── Providers ── */
+.prov-grid { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:28px; }
 .prov {
-  display:inline-flex; align-items:center; gap:7px;
-  background:var(--s1); border:1px solid var(--b1);
-  border-radius:var(--rp); padding:5px 12px 5px 9px;
-  box-shadow:var(--sh0); transition:box-shadow var(--tr);
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #1c2233;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 999px;
+  padding: 6px 14px 6px 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  transition: box-shadow .18s, border-color .18s;
 }
-.prov:hover { box-shadow:var(--sh1); }
-.prov__dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-.prov__dot--on  { background:var(--grn); box-shadow:0 0 0 2.5px rgba(67,122,34,.2); }
-.prov__dot--off { background:var(--t3); }
-.prov__name { font-size:.75rem; font-weight:800; letter-spacing:-.01em; color:var(--t1); }
-.prov__type { font-size:.6875rem; font-weight:500; color:var(--t3); }
+.prov:hover { box-shadow: 0 4px 14px rgba(0,0,0,.25); border-color: rgba(255,255,255,.15); }
+.prov__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.prov__dot--on  { background: #7abf4a; box-shadow: 0 0 0 2.5px rgba(122,191,74,.2); }
+.prov__dot--off { background: #505570; }
+.prov__name { font-size: .75rem; font-weight: 800; letter-spacing: -.01em; color: #e2e6f0; }
+.prov__type { font-size: .6875rem; font-weight: 500; color: #505570; }
 
-/* ─ Table pair ─ */
-.tbl-pair { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-@media(max-width:960px){ .tbl-pair{ grid-template-columns:1fr } }
+/* ── Table pair (60/40) ── */
+.tbl-pair {
+  display: grid;
+  grid-template-columns: 6fr 4fr;
+  gap: 14px;
+}
+@media(max-width:1000px){ .tbl-pair{ grid-template-columns:1fr } }
 
 .tbl-card {
-  background:var(--s1); border:1px solid var(--b1);
-  border-radius:var(--r3); overflow:hidden;
-  box-shadow:var(--sh1); display:flex; flex-direction:column;
+  background: #1c2233;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,.22);
+  display: flex;
+  flex-direction: column;
 }
 .tbl-card__head {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:10px 16px; border-bottom:1px solid var(--b1);
-  background:var(--s0); flex-shrink:0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 18px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  background: #161b27;
+  flex-shrink: 0;
 }
-.tbl-card__title { font-size:.8125rem; font-weight:800; letter-spacing:-.02em; color:var(--t1); }
-.tbl-card__link  { font-size:.6875rem; font-weight:700; color:var(--acc); text-decoration:none; white-space:nowrap; transition:color var(--tr); }
-.tbl-card__link:hover { color:var(--acc2); }
+.tbl-card__title { font-size: .875rem; font-weight: 800; letter-spacing: -.025em; color: #e2e6f0; }
+.tbl-card__link {
+  font-size: .6875rem; font-weight: 700;
+  color: #4fb8be;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color .15s;
+}
+.tbl-card__link:hover { color: #8bdde1; }
 
-.tbl-wrap { overflow-x:auto; flex:1; }
+.tbl-wrap { overflow-x: auto; flex: 1; }
 .tbl { width:100%; border-collapse:collapse; table-layout:fixed; }
 .tbl th {
-  text-align:left; font-size:9.5px; font-weight:700;
-  text-transform:uppercase; letter-spacing:.08em;
-  color:var(--t2); padding:7px 12px;
-  border-bottom:1px solid var(--b1);
-  background:var(--s0); white-space:nowrap;
+  text-align: left;
+  font-size: 9.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: #505570;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  background: #161b27;
+  white-space: nowrap;
 }
 .tbl td {
-  padding:7px 12px; border-bottom:1px solid var(--b2);
-  vertical-align:middle; font-size:.8125rem; color:var(--t1);
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  vertical-align: middle;
+  font-size: .8125rem;
+  color: #e2e6f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.tbl tbody tr { transition:background 100ms; }
-.tbl tbody tr:hover { background:var(--s0); }
-.tbl tbody tr:last-child td { border-bottom:none; }
+.tbl tbody tr { transition: background .1s; }
+.tbl tbody tr:hover { background: rgba(255,255,255,.03); }
+.tbl tbody tr:last-child td { border-bottom: none; }
 
-/* Larguras — tabela pedidos */
-.tbl--orders col.c-id   { width:44px; }
-.tbl--orders col.c-usr  { width:22%; }
-.tbl--orders col.c-srv  { width:auto; }
-.tbl--orders col.c-val  { width:80px; }
-.tbl--orders col.c-st   { width:90px; }
+/* Colgroup — pedidos */
+.tbl--orders col.co-id  { width: 40px; }
+.tbl--orders col.co-usr { width: 100px; }
+.tbl--orders col.co-srv { width: auto; }
+.tbl--orders col.co-val { width: 76px; }
+.tbl--orders col.co-st  { width: 94px; }
 
-/* Larguras — tabela usuários */
-.tbl--users col.c-nome  { width:26%; }
-.tbl--users col.c-mail  { width:auto; }
-.tbl--users col.c-bal   { width:90px; }
-.tbl--users col.c-dt    { width:72px; }
+/* Colgroup — usuários */
+.tbl--users col.cu-nome { width: 28%; }
+.tbl--users col.cu-mail { width: auto; }
+.tbl--users col.cu-bal  { width: 88px; }
+.tbl--users col.cu-dt   { width: 60px; }
 
-.c-id   { color:var(--t3) !important; font-variant-numeric:tabular-nums; font-size:.75rem !important; }
-.c-bold { font-weight:700; }
-.c-muted{ color:var(--t2) !important; }
-.c-mono { font-variant-numeric:tabular-nums; font-size:.75rem !important; }
+.c-id   { color: #505570 !important; font-variant-numeric:tabular-nums; font-size:.75rem !important; }
+.c-bold { font-weight: 700; color: #c8ccdc !important; }
+.c-muted{ color: #8b90a8 !important; }
+.c-mono { font-variant-numeric:tabular-nums; font-size:.75rem !important; color:#a0a4bc !important; }
 
-/* Badge status inline */
+/* Badge status */
 .bst {
-  display:inline-flex; align-items:center; gap:4px;
-  padding:2px 8px; border-radius:999px;
-  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
-  white-space:nowrap;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em;
+  white-space: nowrap;
 }
 .bst::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
-.bst--green { background:rgba(67,122,34,.12);  color:var(--grn); }
-.bst--blue  { background:rgba(26,78,128,.12);  color:var(--blu); }
-.bst--red   { background:rgba(161,44,123,.1);  color:var(--red); }
-.bst--grey  { background:rgba(255,255,255,.06);color:var(--t2); }
-.bst--gold  { background:rgba(135,93,0,.12);   color:var(--gld); }
+.bst--green { background:rgba(67,122,34,.18);  color:#7abf4a; }
+.bst--blue  { background:rgba(30,111,160,.18); color:#5ba8d4; }
+.bst--red   { background:rgba(200,70,70,.15);  color:#e06060; }
+.bst--grey  { background:rgba(255,255,255,.07);color:#8b90a8; }
+.bst--gold  { background:rgba(201,138,0,.18);  color:#e8af34; }
 
-.d-empty { color:var(--t3); font-size:.8125rem; text-align:center; padding:28px 16px; }
+.d-empty { color:#505570; font-size:.8125rem; text-align:center; padding:32px 16px; }
 </style>
 
-{# Macro SVG icon 13×13 #}
-{% macro ico(d) %}<svg style="width:13px;height:13px;display:block;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ d|raw }}</svg>{% endmacro %}
+{# Macro SVG #}
+{% macro ico(d) %}<svg style="width:14px;height:14px;display:block;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ d|raw }}</svg>{% endmacro %}
 {% import _self as i %}
 
-{# Mapa de meses pt-BR #}
-{% set meses = {
-  '01':'janeiro','02':'fevereiro','03':'março','04':'abril',
-  '05':'maio','06':'junho','07':'julho','08':'agosto',
-  '09':'setembro','10':'outubro','11':'novembro','12':'dezembro'
-} %}
-{% set hoje = 'now'|date('d') ~ ' de ' ~ meses['now'|date('m')] ~ ' de ' ~ 'now'|date('Y') %}
+{# Data em pt-BR sem depender de locale PHP #}
+{% set _m = {'01':'janeiro','02':'fevereiro','03':'março','04':'abril','05':'maio','06':'junho','07':'julho','08':'agosto','09':'setembro','10':'outubro','11':'novembro','12':'dezembro'} %}
+{% set _hoje = 'now'|date('d') ~ ' de ' ~ _m['now'|date('m')] ~ ' de ' ~ 'now'|date('Y') %}
 
 <div class="dash">
 
@@ -183,7 +292,7 @@
   <div class="d-hd">
     <div>
       <h1 class="d-hd__title">Dashboard</h1>
-      <div class="d-hd__date">{{ hoje }}</div>
+      <div class="d-hd__date">{{ _hoje }}</div>
     </div>
   </div>
 
@@ -244,7 +353,7 @@
       </div>
     </div>
     <div class="fin">
-      <span class="fin__ico fin__ico--gold">{{ i.ico('<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>') }}</span>
+      <span class="fin__ico fin__ico--gold">{{ i.ico('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>') }}</span>
       <div class="fin__body">
         <div class="fin__label">Taxas (gateways)</div>
         <div class="fin__value fin__value--gold">R$ {{ (feesCents/100)|number_format(2,',','.') }}</div>
@@ -266,10 +375,9 @@
     {% endfor %}
   </div>
 
-  {# TABLES #}
+  {# TABELAS 60/40 #}
   <div class="tbl-pair">
 
-    {# Pedidos recentes #}
     <div class="tbl-card">
       <div class="tbl-card__head">
         <span class="tbl-card__title">Pedidos recentes</span>
@@ -278,9 +386,7 @@
       {% if recentOrders|length > 0 %}
       <div class="tbl-wrap">
         <table class="tbl tbl--orders">
-          <colgroup>
-            <col class="c-id"><col class="c-usr"><col class="c-srv"><col class="c-val"><col class="c-st">
-          </colgroup>
+          <colgroup><col class="co-id"><col class="co-usr"><col class="co-srv"><col class="co-val"><col class="co-st"></colgroup>
           <thead><tr><th>#</th><th>Usuário</th><th>Serviço</th><th>Valor</th><th>Status</th></tr></thead>
           <tbody>
             {% for o in recentOrders %}
@@ -290,11 +396,7 @@
               <td class="c-bold">{{ o.user.name }}</td>
               <td class="c-muted" title="{{ o.service.name }}">{{ o.service.name }}</td>
               <td class="c-mono">R$ {{ (o.amountCents/100)|number_format(2,',','.') }}</td>
-              <td>
-                <span class="bst bst--{{ st=='completed'?'green':(st=='cancelled'?'red':(st=='processing'?'blue':(st=='partial'?'gold':'grey'))) }}">
-                  {{ st|replace({'_':' '})|capitalize }}
-                </span>
-              </td>
+              <td><span class="bst bst--{{ st=='completed'?'green':(st=='cancelled'?'red':(st=='processing'?'blue':(st=='partial'?'gold':'grey'))) }}">{{ st|replace({'_':' '})|capitalize }}</span></td>
             </tr>
             {% endfor %}
           </tbody>
@@ -303,7 +405,6 @@
       {% else %}<p class="d-empty">Nenhum pedido ainda.</p>{% endif %}
     </div>
 
-    {# Usuários recentes #}
     <div class="tbl-card">
       <div class="tbl-card__head">
         <span class="tbl-card__title">Usuários recentes</span>
@@ -312,9 +413,7 @@
       {% if recentUsers|length > 0 %}
       <div class="tbl-wrap">
         <table class="tbl tbl--users">
-          <colgroup>
-            <col class="c-nome"><col class="c-mail"><col class="c-bal"><col class="c-dt">
-          </colgroup>
+          <colgroup><col class="cu-nome"><col class="cu-mail"><col class="cu-bal"><col class="cu-dt"></colgroup>
           <thead><tr><th>Nome</th><th>E-mail</th><th>Saldo</th><th>Desde</th></tr></thead>
           <tbody>
             {% for u in recentUsers %}
