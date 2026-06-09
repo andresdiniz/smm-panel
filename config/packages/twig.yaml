@@ -1,5 +1,9 @@
 twig:
     file_name_pattern: '*.twig'
+    # Timezone padrão para o filtro |date() em todos os templates
+    # Evita que datas salvas em UTC apareçam 3h adiantadas no Brasil
+    date:
+        timezone: America/Sao_Paulo
 
 when@test:
     twig:
