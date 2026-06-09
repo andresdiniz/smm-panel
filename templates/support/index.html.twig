@@ -1,0 +1,68 @@
+{% extends 'base.html.twig' %}
+{% block page_title %}Suporte{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
+  <div>
+    <h1 style="font-size:1.25rem;font-weight:700;margin:0;">Meus Tickets</h1>
+    <p style="font-size:.85rem;color:var(--color-text-muted,#7a7974);margin:2px 0 0;">Abra um chamado ou acompanhe seus atendimentos</p>
+  </div>
+  <a href="{{ path('support_new') }}" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:6px;">
+    <i data-lucide="plus" width="15" height="15" aria-hidden="true"></i>
+    Abrir ticket
+  </a>
+</div>
+
+{% if tickets|length == 0 %}
+<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:64px 16px;color:var(--color-text-muted,#7a7974);">
+  <i data-lucide="inbox" width="48" height="48" style="margin-bottom:16px;color:var(--color-text-faint,#bab9b4);" aria-hidden="true"></i>
+  <h3 style="font-size:1rem;font-weight:600;color:var(--color-text);margin:0 0 6px;">Nenhum ticket ainda</h3>
+  <p style="max-width:34ch;margin:0 0 20px;font-size:.875rem;">Ficou com dúvida ou encontrou um problema? Abra um chamado e nossa equipe responde em breve.</p>
+  <a href="{{ path('support_new') }}" class="btn btn-primary">Abrir ticket</a>
+</div>
+{% else %}
+<div class="card" style="overflow:hidden;">
+  <table style="width:100%;border-collapse:collapse;">
+    <thead>
+      <tr style="border-bottom:1px solid var(--color-border,#d4d1ca);background:var(--color-surface-2,#fbfbf9);">
+        <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);">#</th>
+        <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);">Assunto</th>
+        <th style="padding:10px 16px;text-align:center;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);">Status</th>
+        <th style="padding:10px 16px;text-align:center;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);">Msgs</th>
+        <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);">Atualizado</th>
+        <th style="padding:10px 16px;"></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for ticket in tickets %}
+      {%- set unread = ticket.countUnreadByUser() -%}
+      <tr style="border-bottom:1px solid var(--color-border,#d4d1ca);{% if not loop.last %}{% endif %}transition:background .15s;" onmouseover="this.style.background='var(--color-surface-offset)'" onmouseout="this.style.background=''">
+        <td style="padding:12px 16px;font-size:.8rem;color:var(--color-text-muted);font-variant-numeric:tabular-nums;">#{{ ticket.id }}</td>
+        <td style="padding:12px 16px;font-size:.875rem;font-weight:500;max-width:260px;">
+          {{ ticket.subject|u.truncate(60, '…') }}
+          {% if unread > 0 %}
+          <span style="display:inline-flex;margin-left:6px;padding:1px 6px;font-size:.58rem;font-weight:700;border-radius:9999px;background:var(--color-error,#a12c7b);color:#fff;vertical-align:middle;">{{ unread }}</span>
+          {% endif %}
+        </td>
+        <td style="padding:12px 16px;text-align:center;">
+          <span style="padding:2px 10px;font-size:.7rem;font-weight:600;border-radius:9999px;
+            {% if ticket.status.value == 'open' %}background:color-mix(in srgb,var(--color-blue,#006494) 12%,transparent);color:var(--color-blue,#006494);
+            {% elseif ticket.status.value == 'in_progress' %}background:color-mix(in srgb,var(--color-orange,#da7101) 12%,transparent);color:var(--color-orange,#da7101);
+            {% elseif ticket.status.value == 'waiting_user' %}background:color-mix(in srgb,var(--color-gold,#d19900) 12%,transparent);color:var(--color-gold,#d19900);
+            {% else %}background:color-mix(in srgb,var(--color-success,#437a22) 12%,transparent);color:var(--color-success,#437a22);
+            {% endif %}">{{ ticket.status.label() }}</span>
+        </td>
+        <td style="padding:12px 16px;text-align:center;font-size:.8rem;color:var(--color-text-muted);font-variant-numeric:tabular-nums;">{{ ticket.messages|length }}</td>
+        <td style="padding:12px 16px;font-size:.8rem;color:var(--color-text-muted);white-space:nowrap;">
+          {{ (ticket.updatedAt ?? ticket.createdAt)|date('d/m/y H:i') }}
+        </td>
+        <td style="padding:12px 16px;text-align:right;">
+          <a href="{{ path('support_show', {id: ticket.id}) }}" style="font-size:.8rem;font-weight:500;color:var(--color-primary);text-decoration:none;">Ver →</a>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

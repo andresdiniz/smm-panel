@@ -1,0 +1,110 @@
+{% extends 'base.html.twig' %}
+{% block page_title %}Ticket #{{ ticket.id }}{% endblock %}
+
+{% block content %}
+<div style="max-width:800px;margin:0 auto;">
+
+  <div style="margin-bottom:16px;">
+    <a href="{{ path('admin_support_index') }}" style="font-size:.85rem;color:var(--color-text-muted);text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+      <i data-lucide="arrow-left" width="14" height="14" aria-hidden="true"></i> Todos os tickets
+    </a>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 240px;gap:20px;align-items:start;">
+
+    {# Coluna principal: conversa #}
+    <div>
+      <div style="margin-bottom:16px;">
+        <h1 style="font-size:1.1rem;font-weight:700;margin:0 0 4px;">{{ ticket.subject }}</h1>
+        <span style="font-size:.75rem;color:var(--color-text-muted);">{{ ticket.user.name }} &middot; {{ ticket.user.email }} &middot; aberto {{ ticket.createdAt|date('d/m/Y H:i') }}</span>
+      </div>
+
+      {# Thread #}
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+        {% for msg in ticket.messages %}
+        <div style="display:flex;flex-direction:column;align-items:{% if msg.isFromAdmin() %}flex-end{% else %}flex-start{% endif %};">
+          <div style="max-width:88%;">
+            <div style="font-size:.68rem;font-weight:600;margin-bottom:4px;color:var(--color-text-muted);text-align:{% if msg.isFromAdmin() %}right{% else %}left{% endif %};">
+              {% if msg.isFromAdmin() %}<span style="color:var(--color-primary);"><i data-lucide="headphones" width="11" height="11" style="vertical-align:middle;"></i> Suporte (você)</span>{% else %}{{ ticket.user.name|split(' ')|first }}{% endif %}
+              &nbsp;&middot;&nbsp;{{ msg.createdAt|date('d/m/y H:i') }}
+            </div>
+            <div style="padding:12px 16px;border-radius:{% if msg.isFromAdmin() %}16px 4px 16px 16px{% else %}4px 16px 16px 16px{% endif %};
+              background:{% if msg.isFromAdmin() %}var(--color-primary){% else %}var(--color-surface){% endif %};
+              color:{% if msg.isFromAdmin() %}#fff{% else %}var(--color-text){% endif %};
+              border:1px solid {% if msg.isFromAdmin() %}transparent{% else %}var(--color-border){% endif %};
+              font-size:.875rem;line-height:1.6;white-space:pre-wrap;word-break:break-word;">
+              {{ msg.body|e|nl2br }}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {# Resposta #}
+      {% if ticket.isOpen() %}
+      <div class="card" style="padding:16px;">
+        <form method="POST">
+          <input type="hidden" name="action" value="reply">
+          <label for="body" style="display:block;font-size:.8rem;font-weight:600;margin-bottom:8px;">Responder ao usuário</label>
+          <textarea id="body" name="body" rows="4" required maxlength="4000"
+                    placeholder="Digite sua resposta..."
+                    style="width:100%;padding:9px 12px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface-2);color:var(--color-text);font-size:.875rem;resize:vertical;outline:none;font-family:inherit;transition:border .15s;"
+                    onfocus="this.style.borderColor='var(--color-primary)'" onblur="this.style.borderColor='var(--color-border)'"></textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+            <button type="submit" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:6px;">
+              <i data-lucide="send" width="14" height="14" aria-hidden="true"></i>
+              Enviar resposta
+            </button>
+          </div>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+
+    {# Sidebar direita: controles #}
+    <div style="display:flex;flex-direction:column;gap:12px;">
+
+      <div class="card" style="padding:16px;">
+        <p style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);margin:0 0 10px;">Status</p>
+        <form method="POST" style="display:flex;flex-direction:column;gap:8px;">
+          <input type="hidden" name="action" value="status">
+          <select name="status" style="width:100%;padding:7px 10px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface-2);color:var(--color-text);font-size:.875rem;outline:none;">
+            {% for s in statuses %}
+            <option value="{{ s.value }}" {% if ticket.status == s %}selected{% endif %}>{{ s.label() }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-secondary" style="font-size:.8rem;">Atualizar status</button>
+        </form>
+      </div>
+
+      <div class="card" style="padding:16px;">
+        <p style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);margin:0 0 10px;">Prioridade</p>
+        <form method="POST" style="display:flex;flex-direction:column;gap:8px;">
+          <input type="hidden" name="action" value="priority">
+          <select name="priority" style="width:100%;padding:7px 10px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface-2);color:var(--color-text);font-size:.875rem;outline:none;">
+            {% for p in priorities %}
+            <option value="{{ p.value }}" {% if ticket.priority == p %}selected{% endif %}>{{ p.label() }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-secondary" style="font-size:.8rem;">Atualizar prioridade</button>
+        </form>
+      </div>
+
+      <div class="card" style="padding:16px;">
+        <p style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);margin:0 0 10px;">Dados</p>
+        <dl style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:.78rem;">
+          <dt style="color:var(--color-text-muted);">Aberto</dt>
+          <dd>{{ ticket.createdAt|date('d/m/y H:i') }}</dd>
+          <dt style="color:var(--color-text-muted);">Mensagens</dt>
+          <dd>{{ ticket.messages|length }}</dd>
+          {% if ticket.closedAt %}
+          <dt style="color:var(--color-text-muted);">Fechado</dt>
+          <dd>{{ ticket.closedAt|date('d/m/y H:i') }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

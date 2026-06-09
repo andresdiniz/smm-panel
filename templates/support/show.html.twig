@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+{% block page_title %}Ticket #{{ ticket.id }}{% endblock %}
+
+{% block content %}
+<div style="max-width:720px;margin:0 auto;">
+
+  {# Cabeçalho #}
+  <div style="margin-bottom:20px;">
+    <a href="{{ path('support_index') }}" style="font-size:.85rem;color:var(--color-text-muted);text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+      <i data-lucide="arrow-left" width="14" height="14" aria-hidden="true"></i> Meus tickets
+    </a>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:10px;">
+      <div>
+        <h1 style="font-size:1.1rem;font-weight:700;margin:0 0 4px;">{{ ticket.subject }}</h1>
+        <span style="font-size:.75rem;color:var(--color-text-muted);">Aberto em {{ ticket.createdAt|date('d/m/Y \\à\\s H:i') }}</span>
+      </div>
+      <span style="padding:3px 12px;font-size:.72rem;font-weight:600;border-radius:9999px;
+        {% if ticket.status.value == 'open' %}background:color-mix(in srgb,var(--color-blue) 12%,transparent);color:var(--color-blue);
+        {% elseif ticket.status.value == 'in_progress' %}background:color-mix(in srgb,var(--color-orange) 12%,transparent);color:var(--color-orange);
+        {% elseif ticket.status.value == 'waiting_user' %}background:color-mix(in srgb,var(--color-gold) 12%,transparent);color:var(--color-gold);
+        {% else %}background:color-mix(in srgb,var(--color-success) 12%,transparent);color:var(--color-success);
+        {% endif %}">{{ ticket.status.label() }}</span>
+    </div>
+  </div>
+
+  {# Thread de mensagens #}
+  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
+    {% for msg in ticket.messages %}
+    <div style="display:flex;flex-direction:column;align-items:{% if msg.isFromUser() %}flex-end{% else %}flex-start{% endif %};">
+      <div style="max-width:85%;">
+        <div style="font-size:.68rem;font-weight:600;margin-bottom:4px;color:var(--color-text-muted);text-align:{% if msg.isFromUser() %}right{% else %}left{% endif %};">
+          {% if msg.isFromUser() %}Você{% else %}<span style="color:var(--color-primary);"><i data-lucide="headphones" width="11" height="11" style="vertical-align:middle;"></i> Suporte</span>{% endif %}
+          &nbsp;&middot;&nbsp;{{ msg.createdAt|date('d/m/y H:i') }}
+        </div>
+        <div style="padding:12px 16px;border-radius:{% if msg.isFromUser() %}16px 4px 16px 16px{% else %}4px 16px 16px 16px{% endif %};
+          background:{% if msg.isFromUser() %}var(--color-primary){% else %}var(--color-surface){% endif %};
+          color:{% if msg.isFromUser() %}#fff{% else %}var(--color-text){% endif %};
+          border:1px solid {% if msg.isFromUser() %}transparent{% else %}var(--color-border){% endif %};
+          font-size:.875rem;line-height:1.6;white-space:pre-wrap;word-break:break-word;">
+          {{ msg.body|e|nl2br }}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# Caixa de resposta #}
+  {% if ticket.isOpen() %}
+  <div class="card" style="padding:16px;">
+    <form method="POST">
+      <label for="body" style="display:block;font-size:.8rem;font-weight:600;margin-bottom:8px;">Responder</label>
+      <textarea id="body" name="body" rows="4" required maxlength="4000"
+                placeholder="Digite sua mensagem..."
+                style="width:100%;padding:9px 12px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface-2);color:var(--color-text);font-size:.875rem;resize:vertical;outline:none;font-family:inherit;transition:border .15s;"
+                onfocus="this.style.borderColor='var(--color-primary)'" onblur="this.style.borderColor='var(--color-border)'"></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+        <button type="submit" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:6px;">
+          <i data-lucide="send" width="14" height="14" aria-hidden="true"></i>
+          Enviar mensagem
+        </button>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:24px;background:var(--color-surface);border-radius:12px;border:1px solid var(--color-border);color:var(--color-text-muted);font-size:.875rem;">
+    <i data-lucide="lock" width="20" height="20" style="margin-bottom:8px;display:block;margin-inline:auto;" aria-hidden="true"></i>
+    Este ticket está fechado. <a href="{{ path('support_new') }}" style="color:var(--color-primary);">Abrir novo ticket</a> se precisar de mais ajuda.
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

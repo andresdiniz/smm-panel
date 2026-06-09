@@ -1,0 +1,42 @@
+{% extends 'base.html.twig' %}
+{% block page_title %}Novo Ticket{% endblock %}
+
+{% block content %}
+<div style="max-width:640px;margin:0 auto;">
+  <div style="margin-bottom:20px;">
+    <a href="{{ path('support_index') }}" style="font-size:.85rem;color:var(--color-text-muted);text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+      <i data-lucide="arrow-left" width="14" height="14" aria-hidden="true"></i> Voltar
+    </a>
+    <h1 style="font-size:1.2rem;font-weight:700;margin:10px 0 4px;">Abrir novo ticket</h1>
+    <p style="font-size:.875rem;color:var(--color-text-muted);">Descreva sua dúvida ou problema com o máximo de detalhes possível.</p>
+  </div>
+
+  <div class="card" style="padding:24px;">
+    <form method="POST" action="{{ path('support_new') }}">
+      <div style="margin-bottom:16px;">
+        <label for="subject" style="display:block;font-size:.8rem;font-weight:600;margin-bottom:6px;">Assunto <span style="color:var(--color-error);">*</span></label>
+        <input type="text" id="subject" name="subject" required maxlength="180"
+               placeholder="Ex: Pedido #32 travado em processando..."
+               style="width:100%;padding:9px 12px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface-2);color:var(--color-text);font-size:.875rem;outline:none;transition:border .15s;"
+               onfocus="this.style.borderColor='var(--color-primary)'" onblur="this.style.borderColor='var(--color-border)'">
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <label for="body" style="display:block;font-size:.8rem;font-weight:600;margin-bottom:6px;">Mensagem <span style="color:var(--color-error);">*</span></label>
+        <textarea id="body" name="body" required rows="6" maxlength="4000"
+                  placeholder="Descreva o problema, inclua IDs de pedidos ou print se necessário..."
+                  style="width:100%;padding:9px 12px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface-2);color:var(--color-text);font-size:.875rem;resize:vertical;outline:none;transition:border .15s;font-family:inherit;"
+                  onfocus="this.style.borderColor='var(--color-primary)'" onblur="this.style.borderColor='var(--color-border)'"></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <a href="{{ path('support_index') }}" class="btn btn-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:6px;">
+          <i data-lucide="send" width="14" height="14" aria-hidden="true"></i>
+          Enviar ticket
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
