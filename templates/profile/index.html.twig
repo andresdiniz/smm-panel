@@ -3,30 +3,275 @@
 {% block title %}Perfil — PulseSMM{% endblock %}
 {% block page_title %}Meu perfil{% endblock %}
 
+{% block stylesheets %}{{ parent() }}
+<style>
+/* ══════════════════════════════════════════
+   PROFILE v2 — tokens locais scoped no .pro
+   ══════════════════════════════════════════ */
+.pro {
+  --_bg:       var(--surface,     #181b26);
+  --_bg2:      var(--surface-2,   #1f2333);
+  --_bg3:      var(--surface-off, #161925);
+  --_border:   var(--border,      rgba(255,255,255,.09));
+  --_border2:  var(--border-2,    rgba(255,255,255,.05));
+  --_text:     var(--text,        #e4e6f0);
+  --_text2:    var(--text-2,      #7a7e99);
+  --_text3:    var(--text-3,      #4a4e66);
+  --_acc:      var(--acc,         #01696f);
+  --_acc-soft: var(--acc-soft,    rgba(1,105,111,.15));
+  --_acc-brd:  var(--acc-border,  rgba(1,105,111,.35));
+  --_acc-hov:  var(--acc-hover,   #0c4e54);
+
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 32px;
+  max-width: 820px;
+  align-items: start;
+  padding-bottom: 48px;
+}
+
+/* ── Sidebar de perfil ── */
+.pro__side {
+  background: var(--_bg2);
+  border: 1px solid var(--_border);
+  border-radius: 14px;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.18);
+  position: sticky;
+  top: calc(var(--topbar-h, 60px) + 20px);
+}
+
+.pro__avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #01696f 0%, #0c4e54 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 16px rgba(1,105,111,.4);
+  flex-shrink: 0;
+}
+
+.pro__name {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--_text);
+  line-height: 1.2;
+}
+.pro__email {
+  font-size: 11px;
+  color: var(--_text2);
+  word-break: break-all;
+}
+
+.pro__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin: 6px 0 10px;
+}
+.pro__badge--admin {
+  background: var(--_acc-soft);
+  color: var(--_acc);
+  border: 1px solid var(--_acc-brd);
+}
+.pro__badge--user {
+  background: rgba(255,255,255,.06);
+  color: var(--_text2);
+  border: 1px solid var(--_border);
+}
+
+.pro__stats {
+  width: 100%;
+  border-top: 1px solid var(--_border2);
+  padding-top: 16px;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pro__stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pro__stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--_text2);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.pro__stat-value {
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--_text);
+}
+
+/* ── Card do formulário ── */
+.pro__card {
+  background: var(--_bg2);
+  border: 1px solid var(--_border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,.18);
+}
+.pro__card-head {
+  padding: 18px 24px 16px;
+  border-bottom: 1px solid var(--_border);
+  background: var(--_bg3);
+}
+.pro__card-head h2 {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--_text);
+  margin-bottom: 2px;
+}
+.pro__card-head p {
+  font-size: 12px;
+  color: var(--_text2);
+}
+.pro__card-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Fields */
+.pro__field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.pro__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--_text2);
+}
+.pro__label em { color: #e05252; font-style: normal; margin-left: 2px; }
+.pro__hint {
+  font-size: 11px;
+  color: var(--_text3);
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
+.pro__control {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--_bg3);
+  border: 1.5px solid var(--_border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--_text);
+  outline: none;
+  transition: border-color .18s, box-shadow .18s, background .18s;
+}
+.pro__control::placeholder { color: var(--_text3); }
+.pro__control:focus {
+  border-color: var(--_acc);
+  background: var(--_bg2);
+  box-shadow: 0 0 0 3px var(--_acc-soft);
+}
+.pro__control:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  background: var(--_bg3);
+}
+
+.pro__submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  background: var(--_acc);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s, transform .1s, box-shadow .18s;
+  box-shadow: 0 4px 14px rgba(1,105,111,.35);
+  align-self: flex-start;
+  margin-top: 4px;
+}
+.pro__submit:hover  { background: var(--_acc-hov); box-shadow: 0 6px 18px rgba(1,105,111,.45); }
+.pro__submit:active { transform: scale(.98); }
+
+/* Responsivo */
+@media (max-width: 640px) {
+  .pro {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .pro__side {
+    position: static;
+    flex-direction: row;
+    text-align: left;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 18px 20px;
+  }
+  .pro__avatar { margin-bottom: 0; width: 52px; height: 52px; font-size: 20px; }
+  .pro__stats { flex-direction: row; flex-wrap: wrap; gap: 12px; padding-top: 12px; }
+  .pro__stat { flex-direction: column; align-items: flex-start; gap: 2px; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="profile-layout">
+<div class="pro">
 
-  {# ── SIDEBAR PERFIL ── #}
-  <div class="profile-side" data-reveal>
-    <div class="profile-avatar">{{ user.name|first|upper }}</div>
-    <div class="profile-side__name">{{ user.name }}</div>
-    <div class="profile-side__email">{{ user.email }}</div>
-    <div class="profile-side__role">
-      {% if is_granted('ROLE_ADMIN') %}
-        <span class="badge badge--admin">Admin</span>
-      {% else %}
-        <span class="badge badge--pending">Usuário</span>
-      {% endif %}
-    </div>
+  {# ── SIDEBAR ── #}
+  <div class="pro__side" data-reveal>
+    <div class="pro__avatar">{{ user.name|first|upper }}</div>
+    <div class="pro__name">{{ user.name }}</div>
+    <div class="pro__email">{{ user.email }}</div>
 
-    <div class="profile-side__stats">
-      <div class="profile-stat">
-        <span class="profile-stat__label">Membro desde</span>
-        <span class="profile-stat__value">{{ user.createdAt|date('d/m/Y') }}</span>
+    {% if is_granted('ROLE_ADMIN') %}
+      <span class="pro__badge pro__badge--admin">
+        <i data-lucide="shield-check" width="10" height="10"></i>
+        Admin
+      </span>
+    {% else %}
+      <span class="pro__badge pro__badge--user">
+        <i data-lucide="user" width="10" height="10"></i>
+        Usuário
+      </span>
+    {% endif %}
+
+    <div class="pro__stats">
+      <div class="pro__stat">
+        <span class="pro__stat-label">Membro desde</span>
+        <span class="pro__stat-value">{{ user.createdAt|date('d/m/Y') }}</span>
       </div>
-      <div class="profile-stat">
-        <span class="profile-stat__label">Saldo</span>
-        <span class="profile-stat__value">
+      <div class="pro__stat">
+        <span class="pro__stat-label">Saldo</span>
+        <span class="pro__stat-value">
           R$ {{ user.wallet ? (user.wallet.balanceCents / 100)|number_format(2, ',', '.') : '0,00' }}
         </span>
       </div>
@@ -34,90 +279,35 @@
   </div>
 
   {# ── FORMULÁRIO ── #}
-  <div class="card card--padded" data-reveal>
-    <h2 class="profile-form__title">Dados da conta</h2>
-    <p class="profile-form__sub">Atualize seu nome de exibição.</p>
+  <div class="pro__card" data-reveal>
+    <div class="pro__card-head">
+      <h2>Dados da conta</h2>
+      <p>Atualize seu nome de exibição.</p>
+    </div>
 
-    <form method="post" class="form-grid" style="margin-top: var(--sp5)">
+    <form method="post" class="pro__card-body">
       <input type="hidden" name="_token" value="{{ csrf_token('profile_edit') }}">
 
-      <div class="field">
-        <label for="profile_name">Nome completo <span class="required">*</span></label>
-        <input type="text" id="profile_name" name="name" class="control"
+      <div class="pro__field">
+        <span class="pro__label">Nome completo <em>*</em></span>
+        <input type="text" id="profile_name" name="name"
+               class="pro__control"
                value="{{ user.name }}" required minlength="2">
       </div>
 
-      <div class="field">
-        <label>E-mail</label>
-        <input type="email" class="control" value="{{ user.email }}" disabled>
-        <span class="field-hint">Para alterar o e-mail entre em contato com o suporte.</span>
+      <div class="pro__field">
+        <span class="pro__label">E-mail</span>
+        <input type="email" class="pro__control"
+               value="{{ user.email }}" disabled>
+        <span class="pro__hint">Para alterar o e-mail entre em contato com o suporte.</span>
       </div>
 
-      <button type="submit" class="btn btn--primary">
-        <i data-lucide="save" width="16" height="16"></i>
+      <button type="submit" class="pro__submit">
+        <i data-lucide="save" width="15" height="15"></i>
         Salvar alterações
       </button>
     </form>
   </div>
 
 </div>
-
-<style>
-.profile-layout {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: var(--sp6);
-  max-width: 860px;
-  align-items: start;
-}
-.profile-side {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
-  padding: var(--sp6);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: var(--sp2);
-  box-shadow: var(--sh-sm);
-}
-.profile-avatar {
-  width: 72px;
-  height: 72px;
-  border-radius: var(--r-full);
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-h) 100%);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-xl);
-  font-weight: 900;
-  letter-spacing: -0.04em;
-  margin-bottom: var(--sp2);
-  box-shadow: var(--sh-md);
-}
-.profile-side__name { font-size: var(--text-base); font-weight: 800; letter-spacing: -0.02em; }
-.profile-side__email { font-size: var(--text-xs); color: var(--muted); }
-.profile-side__role { margin: var(--sp1) 0 var(--sp4); }
-.profile-side__stats {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp2);
-  border-top: 1px solid var(--border);
-  padding-top: var(--sp4);
-  margin-top: var(--sp2);
-}
-.profile-stat { display: flex; justify-content: space-between; align-items: center; font-size: var(--text-xs); }
-.profile-stat__label { color: var(--muted); font-weight: 600; }
-.profile-stat__value { font-weight: 800; font-variant-numeric: tabular-nums; }
-.profile-form__title { font-size: var(--text-lg); font-weight: 900; letter-spacing: -0.02em; }
-.profile-form__sub { font-size: var(--text-sm); color: var(--muted); margin-top: 4px; }
-@media (max-width: 680px) {
-  .profile-layout { grid-template-columns: 1fr; }
-  .profile-side { flex-direction: row; text-align: left; flex-wrap: wrap; }
-  .profile-avatar { width: 52px; height: 52px; font-size: var(--text-base); }
-}
-</style>
 {% endblock %}
