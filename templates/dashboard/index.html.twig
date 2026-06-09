@@ -3,47 +3,321 @@
 {% block title %}Dashboard — PulseSMM{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
+{% block stylesheets %}
+<style>
+/* ── Dashboard-specific ────────────────────────── */
+
+/* KPI grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s4);
+  margin-bottom: var(--s6);
+}
+@media (max-width: 900px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .kpi-grid { grid-template-columns: 1fr; } }
+
+.kpi {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  background: var(--kpi-accent, var(--primary));
+  opacity: 0.7;
+}
+
+.kpi:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
+.kpi__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+.kpi__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.kpi__icon {
+  width: 34px; height: 34px;
+  border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  color: var(--kpi-accent, var(--primary));
+  background: color-mix(in oklch, var(--kpi-accent, var(--primary)) 12%, transparent);
+}
+
+.kpi__icon--teal  { --kpi-accent: var(--primary); }
+.kpi__icon--blue  { --kpi-accent: #1a6ba0; }
+.kpi__icon--green { --kpi-accent: #3a7a1e; }
+.kpi__icon--gold  { --kpi-accent: var(--accent); }
+[data-theme="dark"] .kpi__icon--blue  { --kpi-accent: #5599cc; }
+[data-theme="dark"] .kpi__icon--green { --kpi-accent: #6aaa42; }
+
+.kpi__value {
+  font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  margin-top: var(--s1);
+}
+
+.kpi__link {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: var(--s1);
+  opacity: 0.85;
+  transition: opacity var(--dur) var(--ease), gap var(--dur) var(--ease);
+}
+
+.kpi__link:hover { opacity: 1; gap: 8px; }
+
+/* Quick actions */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s3);
+  margin-bottom: var(--s6);
+}
+@media (max-width: 600px) { .quick-actions { grid-template-columns: repeat(2, 1fr); } }
+
+.quick-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  padding: var(--s4) var(--s3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: var(--t-xs);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-align: center;
+  transition:
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+  box-shadow: var(--shadow-xs);
+}
+
+.quick-action:hover {
+  background: var(--primary-lo);
+  border-color: var(--primary-mid);
+  color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  opacity: 1;
+}
+
+.quick-action svg, .quick-action i {
+  transition: transform var(--dur) var(--ease);
+}
+
+.quick-action:hover svg, .quick-action:hover i {
+  transform: scale(1.15);
+}
+
+/* Recent orders card */
+.card--padded {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+}
+
+.card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s5) var(--s6);
+  border-bottom: 1px solid var(--border);
+}
+
+.card__head h2 {
+  font-size: var(--t-base);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+/* Table */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-sm);
+}
+
+.data-table thead th {
+  padding: var(--s3) var(--s4);
+  background: var(--surface);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.data-table tbody td {
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--divider);
+  color: var(--text-muted);
+  vertical-align: middle;
+}
+
+.data-table tbody tr:last-child td { border-bottom: none; }
+
+.data-table tbody tr:hover td {
+  background: var(--surface-offset);
+}
+
+.cell-muted { color: var(--text-faint) !important; font-size: var(--t-xs); }
+.cell-mono  { font-variant-numeric: tabular-nums; }
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badge::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.badge--completed  { background: var(--success-lo); color: var(--success);  border: 1px solid var(--success-border); }
+.badge--cancelled  { background: var(--danger-lo);  color: var(--danger);   border: 1px solid var(--danger-border); }
+.badge--pending    { background: var(--warning-lo); color: var(--warning);  border: 1px solid var(--warning-border); }
+.badge--processing { background: var(--info-lo);    color: var(--info);     border: 1px solid var(--info-border); }
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--s16) var(--s8);
+  gap: var(--s3);
+  color: var(--text-faint);
+}
+
+.empty-state h3 {
+  font-size: var(--t-base);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.empty-state p {
+  font-size: var(--t-sm);
+  color: var(--text-faint);
+  max-width: 36ch;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 
-{# ── KPIs ──────────────────────────────────────────────── #}
+{# ── KPIs ───────────────────────────────────────────── #}
 <div class="kpi-grid" data-reveal>
+
   <div class="kpi">
-    <div class="kpi__icon kpi__icon--teal">
-      <i data-lucide="wallet" width="18" height="18"></i>
+    <div class="kpi__header">
+      <span class="kpi__label">Saldo disponível</span>
+      <div class="kpi__icon kpi__icon--teal">
+        <i data-lucide="wallet" width="16" height="16"></i>
+      </div>
     </div>
-    <div class="kpi__label">Saldo disponível</div>
-    <div class="kpi__value">R$ {{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}</div>
-    <a href="{{ path('app_wallet_deposit') }}" class="kpi__link">Recarregar →</a>
+    <div class="kpi__value">R$ {{ (wallet.balanceCents / 100)|number_format(2, ',', '.') }}</div>
+    <a href="{{ path('app_wallet_deposit') }}" class="kpi__link">Recarregar <i data-lucide="arrow-right" width="12" height="12"></i></a>
   </div>
 
   <div class="kpi">
-    <div class="kpi__icon kpi__icon--blue">
-      <i data-lucide="shopping-cart" width="18" height="18"></i>
+    <div class="kpi__header">
+      <span class="kpi__label">Pedidos (30d)</span>
+      <div class="kpi__icon kpi__icon--blue">
+        <i data-lucide="shopping-cart" width="16" height="16"></i>
+      </div>
     </div>
-    <div class="kpi__label">Pedidos (30d)</div>
     <div class="kpi__value">{{ ordersCount }}</div>
-    <a href="{{ path('app_order_new') }}" class="kpi__link">Novo pedido →</a>
+    <a href="{{ path('app_order_new') }}" class="kpi__link">Novo pedido <i data-lucide="arrow-right" width="12" height="12"></i></a>
   </div>
 
   <div class="kpi">
-    <div class="kpi__icon kpi__icon--green">
-      <i data-lucide="check-circle" width="18" height="18"></i>
+    <div class="kpi__header">
+      <span class="kpi__label">Concluídos</span>
+      <div class="kpi__icon kpi__icon--green">
+        <i data-lucide="check-circle" width="16" height="16"></i>
+      </div>
     </div>
-    <div class="kpi__label">Concluídos</div>
     <div class="kpi__value">{{ completedCount }}</div>
   </div>
 
   <div class="kpi">
-    <div class="kpi__icon kpi__icon--gold">
-      <i data-lucide="trending-up" width="18" height="18"></i>
+    <div class="kpi__header">
+      <span class="kpi__label">Total gasto (30d)</span>
+      <div class="kpi__icon kpi__icon--gold">
+        <i data-lucide="trending-up" width="16" height="16"></i>
+      </div>
     </div>
-    <div class="kpi__label">Total gasto (30d)</div>
-    <div class="kpi__value">R$ {{ (totalSpentCents / 100)|number_format(2, ',', '.') }}</div>
+    <div class="kpi__value">R$ {{ (totalSpentCents / 100)|number_format(2, ',', '.') }}</div>
   </div>
+
 </div>
 
-{# ── AÇÕES RÁPIDAS ─────────────────────────────────────── #}
-<div class="quick-actions" data-reveal>
+{# ── AÇÕES RÁPIDAS ─────────────────────────────────── #}
+<div class="quick-actions" data-reveal data-delay="1">
   <a href="{{ path('app_order_new') }}" class="quick-action">
     <i data-lucide="plus-circle" width="22" height="22"></i>
     <span>Novo pedido</span>
@@ -62,8 +336,9 @@
   </a>
 </div>
 
-{# ── PEDIDOS RECENTES ─────────────────────────────────── #}
-<div class="card card--padded" data-reveal>
+{# ── PEDIDOS RECENTES ───────────────────────────── #}
+<div class="card--padded" data-reveal data-delay="2">
+
   <div class="card__head">
     <h2>Pedidos recentes</h2>
     <a href="{{ path('app_order_new') }}" class="btn btn--primary btn--sm">+ Novo</a>
@@ -89,23 +364,23 @@
         <tr>
           <td class="cell-muted">{{ order.id }}</td>
           <td>
-            <div style="font-weight:700;font-size:var(--text-sm)">{{ order.service.name|length > 35 ? order.service.name|slice(0,35) ~ '…' : order.service.name }}</div>
+            <div style="font-weight:700;font-size:var(--t-sm);color:var(--text)">{{ order.service.name|length > 35 ? order.service.name|slice(0,35) ~ '…' : order.service.name }}</div>
             <div class="cell-muted" style="margin-top:2px">{{ order.service.category }}</div>
           </td>
-          <td style="max-width:160px">
+          <td style="max-width:150px">
             <a href="{{ order.targetUrl }}" target="_blank" rel="noopener"
-               style="color:var(--primary);text-decoration:none;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--text-xs)">
+               style="color:var(--primary);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--t-xs)">
               {{ order.targetUrl }}
             </a>
           </td>
           <td class="cell-mono">{{ order.quantity|number_format(0,',','.') }}</td>
-          <td class="cell-mono" style="white-space:nowrap">R$ {{ (order.amountCents/100)|number_format(2,',','.') }}</td>
+          <td class="cell-mono" style="white-space:nowrap">R$ {{ (order.amountCents/100)|number_format(2,',','.') }}</td>
           <td>
             <span class="badge badge--{{ order.status == 'completed' ? 'completed' : (order.status == 'cancelled' ? 'cancelled' : (order.status == 'pending' ? 'pending' : 'processing')) }}">
-              {{ order.status|replace({'_': ' '})|capitalize }}
+              {{ order.status|replace({'_':' '})|capitalize }}
             </span>
           </td>
-          <td class="cell-muted" style="white-space:nowrap">{{ order.createdAt|date('d/m/Y') }}</td>
+          <td class="cell-muted" style="white-space:nowrap">{{ order.createdAt|date('d/m/y') }}</td>
           <td>
             <a href="{{ path('app_order_show', {id: order.id}) }}" class="btn btn--ghost btn--sm">Ver</a>
           </td>
@@ -114,14 +389,16 @@
       </tbody>
     </table>
   </div>
+
   {% else %}
   <div class="empty-state">
     <i data-lucide="inbox" width="40" height="40"></i>
     <h3>Nenhum pedido ainda</h3>
     <p>Crie seu primeiro pedido e acompanhe o resultado aqui.</p>
-    <a href="{{ path('app_order_new') }}" class="btn btn--primary">Criar pedido</a>
+    <a href="{{ path('app_order_new') }}" class="btn btn--primary" style="margin-top:var(--s2)">Criar pedido</a>
   </div>
   {% endif %}
+
 </div>
 
 {% endblock %}
