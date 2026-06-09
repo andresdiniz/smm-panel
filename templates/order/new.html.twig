@@ -36,10 +36,17 @@
         </li>
       </ul>
 
+      {# Chip de saldo — renderizado diretamente pelo Twig #}
       <div class="on-balance-chip">
         <i data-lucide="wallet" width="15" height="15"></i>
         <span>Saldo disponível</span>
-        <strong id="asideBalance">…</strong>
+        <strong>
+          {% if app.user.wallet is defined and app.user.wallet %}
+            R$&thinsp;{{ (app.user.wallet.balanceCents / 100)|number_format(2, ',', '.') }}
+          {% else %}
+            R$&thinsp;0,00
+          {% endif %}
+        </strong>
       </div>
     </div>
   </aside>
@@ -244,6 +251,7 @@
   font-size: 0.95rem;
   font-variant-numeric: tabular-nums;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 /* ── Form wrap ── */
@@ -400,7 +408,7 @@
   gap: 9px;
   width: 100%;
   height: 50px;
-  background: #01696f;          /* teal fixo — visível no light E dark */
+  background: #01696f;
   color: #ffffff;
   border: none;
   border-radius: var(--r-lg);
@@ -424,10 +432,7 @@
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .on-wrap {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
+  .on-wrap { grid-template-columns: 1fr; gap: 16px; }
   .on-aside { position: static; }
   .on-aside__inner { padding: 20px 18px; }
   .on-title { font-size: 1.3rem; }
@@ -447,10 +452,6 @@
   const sdMin  = document.getElementById('sdMin');
   const sdMax  = document.getElementById('sdMax');
   const sdPrice= document.getElementById('sdPrice');
-  const bal    = document.getElementById('asideBalance');
-
-  const headerBal = document.querySelector('.balance-amount, .header-balance, [data-balance]');
-  if (bal && headerBal) bal.textContent = headerBal.textContent.trim();
 
   function fmt(n){ return parseInt(n).toLocaleString('pt-BR'); }
 
