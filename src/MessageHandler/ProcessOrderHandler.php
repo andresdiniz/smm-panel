@@ -7,21 +7,29 @@ namespace App\MessageHandler;
 use App\Entity\Order;
 use App\Entity\OrderLog;
 use App\Message\ProcessOrderMessage;
+use App\Message\Order\SyncOrderStatusMessage;
 use App\Repository\WalletRepository;
 use App\Smm\SmmProviderRegistry;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DelayStamp;
 
 #[AsMessageHandler]
 final class ProcessOrderHandler
 {
-    private const MAX_ATTEMPTS = 1;
+    /**
+     * Delay do primeiro sync após o provider aceitar o pedido: 2 minutos.
+     * Os syncs seguintes usam backoff exponencial no SyncOrderStatusHandler.
+     */
+    private const FIRST_SYNC_DELAY_MS = 120_000;
 
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly SmmProviderRegistry    $registry,
         private readonly WalletRepository       $walletRepo,
+        private readonly MessageBusInterface    $bus,
         private readonly LoggerInterface        $logger,
     ) {}
 
@@ -95,6 +103,22 @@ final class ProcessOrderHandler
                 'provider'    => $slug,
             ]);
 
+            // 🔄 Agenda o primeiro sync de status após FIRST_SYNC_DELAY_MS (2 min).
+            // O SyncOrderStatusHandler cuida dos re-agendamentos seguintes com backoff
+            // exponencial (2min → 4min → 8min → ... → teto 30min).
+            $this->em->flush(); // persiste externalOrderId antes de despachar
+            $this->bus->dispatch(
+                new SyncOrderStatusMessage($order->getId()),
+                [new DelayStamp(self::FIRST_SYNC_DELAY_MS)]
+            );
+
+            $this->logger->info('ProcessOrderHandler: primeiro sync agendado.', [
+                'order_id'  => $order->getId(),
+                'delay_ms'  => self::FIRST_SYNC_DELAY_MS,
+            ]);
+
+            return; // flush já feito acima
+
         } catch (\Throwable $e) {
             $elapsed = (int) round(microtime(true) * 1000) - $startMs;
 
@@ -103,7 +127,6 @@ final class ProcessOrderHandler
                 'provider'   => $slug,
                 'error'      => $e->getMessage(),
                 'error_type' => $e::class,
-                'trace'      => $e->getTraceAsString(),
             ]);
 
             // ❌ Log de erro
@@ -117,9 +140,6 @@ final class ProcessOrderHandler
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
-    /**
-     * Cancela o pedido E devolve o valor pago na carteira do usuário.
-     */
     private function cancelWithRefund(Order $order, string $reason): void
     {
         $order->setStatus(Order::STATUS_CANCELLED);
@@ -148,9 +168,6 @@ final class ProcessOrderHandler
         ]);
     }
 
-    /**
-     * Persiste um log de chamada ao provider sem dar flush (feito no __invoke).
-     */
     private function saveLog(
         Order   $order,
         string  $provider,
