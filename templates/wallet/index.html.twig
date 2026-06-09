@@ -5,255 +5,323 @@
 
 {% block stylesheets %}{{ parent() }}
 <style>
-/* ══════════════════════════════════════════
-   WALLET INDEX — Design Refinado
-   ══════════════════════════════════════════ */
+/* ════════════════════════════════════════════
+   WALLET INDEX
+   ════════════════════════════════════════════ */
 
-/* ── Hero saldo ── */
-.wallet-hero {
+/* ─ Hero ──────────────────────────────────────── */
+.wh {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--acc) 0%, var(--acc-hover) 100%);
+  background: linear-gradient(135deg, #01696f 0%, #08444a 55%, #0b3638 100%);
   border-radius: var(--r4);
-  padding: var(--sp8) var(--sp8);
+  padding: 36px 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sp6);
+  gap: 24px;
   color: #fff;
-  margin-bottom: var(--sp6);
+  margin-bottom: 20px;
+  box-shadow: 0 8px 32px rgba(1,105,111,.28);
 }
-.wallet-hero::before {
+/* orbs decorativos */
+.wh::before {
   content: '';
   position: absolute;
-  top: -60px; right: -60px;
-  width: 240px; height: 240px;
+  top: -70px; right: -70px;
+  width: 260px; height: 260px;
   border-radius: 50%;
   background: rgba(255,255,255,.07);
   pointer-events: none;
 }
-.wallet-hero::after {
+.wh::after {
   content: '';
   position: absolute;
-  bottom: -80px; left: 40%;
-  width: 280px; height: 280px;
+  bottom: -90px; left: 38%;
+  width: 300px; height: 300px;
   border-radius: 50%;
   background: rgba(255,255,255,.04);
   pointer-events: none;
 }
-.wallet-hero__badge {
+
+.wh__badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp2);
+  gap: 6px;
   background: rgba(255,255,255,.15);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255,255,255,.2);
-  border-radius: var(--rp);
-  padding: 4px var(--sp3);
-  font-size: var(--text-xs);
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-size: .72rem;
   font-weight: 700;
-  letter-spacing: .06em;
+  letter-spacing: .07em;
   text-transform: uppercase;
-  margin-bottom: var(--sp3);
-  color: rgba(255,255,255,.9);
+  margin-bottom: 12px;
+  color: rgba(255,255,255,.92);
+  width: fit-content;
 }
-.wallet-hero__label {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  opacity: .75;
-  margin-bottom: var(--sp1);
+.wh__label {
   display: flex;
   align-items: center;
-  gap: var(--sp2);
+  gap: 6px;
+  font-size: .85rem;
+  font-weight: 500;
+  opacity: .72;
+  margin-bottom: 6px;
 }
-.wallet-hero__amount {
-  font-size: clamp(2rem, 5vw, 3.2rem);
+.wh__amount {
+  font-size: clamp(2.1rem, 5.5vw, 3.4rem);
   font-weight: 900;
   letter-spacing: -0.04em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-.wallet-hero__actions {
+.wh__actions {
   display: flex;
   flex-direction: column;
-  gap: var(--sp3);
+  gap: 10px;
   flex-shrink: 0;
   position: relative;
   z-index: 1;
 }
-.wallet-hero .btn--inv {
+/* botões dentro do hero */
+.wh__btn-solid {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 20px;
   background: #fff;
-  color: var(--acc);
+  color: #01696f;
   border: none;
+  border-radius: var(--r3);
+  font-size: .88rem;
   font-weight: 700;
-  box-shadow: 0 2px 12px rgba(0,0,0,.15);
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0,0,0,.18);
+  transition: background 140ms ease, box-shadow 140ms ease;
+  white-space: nowrap;
 }
-.wallet-hero .btn--inv:hover {
-  background: rgba(255,255,255,.9);
-  box-shadow: 0 4px 20px rgba(0,0,0,.2);
+.wh__btn-solid:hover {
+  background: rgba(255,255,255,.88);
+  box-shadow: 0 4px 20px rgba(0,0,0,.22);
 }
-.wallet-hero .btn--inv-ghost {
+.wh__btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 20px;
   background: rgba(255,255,255,.12);
   color: #fff;
   border: 1.5px solid rgba(255,255,255,.3);
+  border-radius: var(--r3);
+  font-size: .88rem;
   font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
   backdrop-filter: blur(8px);
+  transition: background 140ms ease;
+  white-space: nowrap;
 }
-.wallet-hero .btn--inv-ghost:hover {
-  background: rgba(255,255,255,.2);
-}
+.wh__btn-ghost:hover { background: rgba(255,255,255,.2); }
 
-/* ── KPI Grid ── */
-.wallet-kpis {
+/* ─ KPI grid ────────────────────────────────── */
+.wkpis {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--sp4);
-  margin-bottom: var(--sp6);
+  gap: 14px;
+  margin-bottom: 20px;
 }
-.wallet-kpis .kpi {
+.wkpi {
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--r3);
-  padding: var(--sp4) var(--sp5);
+  padding: 18px 20px 16px;
   display: flex;
   flex-direction: column;
-  gap: var(--sp2);
-  transition: box-shadow var(--base), transform var(--base);
+  gap: 8px;
+  transition: box-shadow 160ms ease, transform 160ms ease;
 }
-.wallet-kpis .kpi:hover {
+.wkpi:hover {
   box-shadow: var(--sh-md);
   transform: translateY(-2px);
 }
-.wallet-kpis .kpi__icon {
+.wkpi__icon {
   width: 36px; height: 36px;
   border-radius: var(--r2);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: var(--sp1);
+  flex-shrink: 0;
 }
-.wallet-kpis .kpi__icon--teal  { background: var(--acc-soft); color: var(--acc); }
-.wallet-kpis .kpi__icon--blue  { background: rgba(21,79,130,.1); color: var(--blue); }
-.wallet-kpis .kpi__icon--gold  { background: rgba(122,82,0,.1); color: var(--gold); }
-.wallet-kpis .kpi__icon--green { background: rgba(30,94,20,.1); color: var(--green); }
-.wallet-kpis .kpi__label {
-  font-size: var(--text-xs);
-  color: var(--text-2);
-  font-weight: 600;
+.wkpi__icon--teal  { background: var(--acc-soft); color: var(--acc); }
+.wkpi__icon--blue  { background: color-mix(in oklab,#154f82 12%,transparent); color: var(--blue,#3a7fc1); }
+.wkpi__icon--gold  { background: color-mix(in oklab,#9c7400 12%,transparent); color: var(--gold,#b08a00); }
+.wkpi__icon--green { background: color-mix(in oklab,#1e5e14 12%,transparent); color: var(--green,#437a22); }
+.wkpi__label {
+  font-size: .7rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .06em;
+  letter-spacing: .07em;
+  color: var(--text-2);
 }
-.wallet-kpis .kpi__value--md {
-  font-size: var(--text-lg);
+.wkpi__val {
+  font-size: 1.45rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
-  line-height: 1.1;
+  line-height: 1;
+  color: var(--text);
 }
-.wallet-kpis .kpi__value--success { color: var(--green); }
+.wkpi__val--green { color: var(--green,#437a22); }
 
-/* ── Table Card ── */
-.wallet-table-card {
+/* ─ Tabela extrato ───────────────────────── */
+.wtcard {
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--r4);
   overflow: hidden;
 }
-.wallet-table-card .card__head {
+.wtcard__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--sp4) var(--sp6);
+  padding: 14px 24px;
   border-bottom: 1px solid var(--border);
 }
-.wallet-table-card .card__head h2 {
-  font-size: var(--text-base);
+.wtcard__head h2 {
+  font-size: .9rem;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
-.wallet-table-card .table-wrap {
-  overflow-x: auto;
+.wtcard__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  background: var(--surface-off);
+  color: var(--text-2);
+  border: 1px solid var(--border);
 }
-.wallet-table-card .data-table {
+.wtcard__wrap { overflow-x: auto; }
+
+/* Tabela */
+.wt {
   width: 100%;
   border-collapse: collapse;
 }
-.wallet-table-card .data-table thead tr {
+.wt thead tr {
   border-bottom: 1.5px solid var(--border);
 }
-.wallet-table-card .data-table thead th {
-  padding: var(--sp3) var(--sp5);
-  font-size: var(--text-xs);
+.wt thead th {
+  padding: 10px 16px;
+  font-size: .68rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .07em;
+  letter-spacing: .08em;
   color: var(--text-2);
   text-align: left;
   white-space: nowrap;
   background: var(--surface);
 }
-.wallet-table-card .data-table tbody tr {
-  border-bottom: 1px solid var(--border-2);
-  transition: background var(--fast);
+.wt tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 120ms ease;
 }
-.wallet-table-card .data-table tbody tr:last-child { border-bottom: none; }
-.wallet-table-card .data-table tbody tr:hover { background: var(--surface-off); }
-.wallet-table-card .data-table td {
-  padding: var(--sp3) var(--sp5);
-  font-size: var(--text-sm);
+.wt tbody tr:last-child { border-bottom: none; }
+.wt tbody tr:hover { background: var(--surface-off); }
+
+/* linha pendente: fundo dourado sutil */
+.wt tbody tr.row--pending {
+  background: color-mix(in oklab, var(--gold,#b08a00) 5%, transparent);
+}
+.wt tbody tr.row--pending:hover {
+  background: color-mix(in oklab, var(--gold,#b08a00) 9%, transparent);
+}
+
+.wt td {
+  padding: 12px 16px;
+  font-size: .875rem;
   vertical-align: middle;
 }
-.cell-muted { color: var(--text-2); }
-.cell-mono  { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
-.cell-right { text-align: right; }
-.wt-amount  { font-weight: 700; color: var(--text-2); }
-.wt-amount--credit { color: var(--green); }
 
-/* Badges na tabela */
-.badge {
+/* larguras das colunas */
+.wt .col-date    { width: 130px; white-space: nowrap; }
+.wt .col-gw      { width: 130px; }
+.wt .col-method  { width: 100px; }
+.wt .col-status  { width: 140px; }
+.wt .col-val     { text-align: right; white-space: nowrap; }
+
+.td-date-main  { font-size: .85rem; font-variant-numeric: tabular-nums; color: var(--text); }
+.td-date-sub   { font-size: .72rem; color: var(--text-2); opacity: .7; margin-top: 2px; }
+.td-gw-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: .72rem;
+  font-weight: 600;
+  background: var(--surface-off);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+.td-method { font-size: .82rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); font-weight: 600; }
+
+/* Badges status */
+.bs {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
-  border-radius: var(--rp);
-  font-size: var(--text-xs);
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: .72rem;
   font-weight: 700;
   letter-spacing: .03em;
   white-space: nowrap;
+  text-decoration: none;
 }
-.badge--completed { background: var(--green-bg); color: var(--green); }
-.badge--pending   { background: var(--gold-bg);  color: var(--gold);  }
-.badge--cancelled { background: var(--red-bg);   color: var(--red);   }
+.bs--ok    { background: var(--green-bg,rgba(67,122,34,.12)); color: var(--green,#437a22); }
+.bs--pend  { background: color-mix(in oklab,var(--gold,#b08a00) 14%,transparent); color: var(--gold,#b08a00); }
+.bs--cancel{ background: color-mix(in oklab,var(--red,#a1364a) 12%,transparent); color: var(--red,#a1364a); }
 
-/* ── Empty state ── */
-.empty-state {
+.td-val {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: .92rem;
+  color: var(--text-2);
+}
+.td-val--credit { color: var(--green,#437a22); }
+
+/* ─ Empty state ───────────────────────── */
+.wempty {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: var(--sp12) var(--sp8);
-  color: var(--text-2);
-  gap: var(--sp3);
+  padding: 60px 32px;
+  gap: 10px;
 }
-.empty-state svg { color: var(--text-3); opacity: .7; }
-.empty-state h3  { font-size: var(--text-base); font-weight: 700; color: var(--text); }
-.empty-state p   { font-size: var(--text-sm); color: var(--text-2); max-width: 32ch; }
+.wempty svg  { color: var(--text-2); opacity: .5; }
+.wempty h3   { font-size: .95rem; font-weight: 700; color: var(--text); }
+.wempty p    { font-size: .85rem; color: var(--text-2); max-width: 30ch; }
 
-/* ── Responsivo ── */
+/* ─ Responsivo ───────────────────────── */
 @media (max-width: 900px) {
-  .wallet-kpis { grid-template-columns: repeat(2, 1fr); }
+  .wkpis { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 640px) {
-  .wallet-hero {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: var(--sp6);
-  }
-  .wallet-hero__actions { flex-direction: row; width: 100%; }
-  .wallet-hero__actions .btn { flex: 1; justify-content: center; }
-  .wallet-kpis { grid-template-columns: repeat(2, 1fr); }
-  .wallet-table-card .data-table thead th,
-  .wallet-table-card .data-table td { padding: var(--sp2) var(--sp3); }
+  .wh { flex-direction: column; align-items: flex-start; padding: 24px 20px; }
+  .wh__actions { flex-direction: row; width: 100%; }
+  .wh__btn-solid, .wh__btn-ghost { flex: 1; justify-content: center; }
+  .wkpis { grid-template-columns: repeat(2, 1fr); }
+  .wt thead th, .wt td { padding: 8px 10px; }
+  .wt .col-gw { display: none; } /* esconde gateway em telas pequenas */
 }
 </style>
 {% endblock %}
@@ -261,26 +329,26 @@
 {% block content %}
 
 {# ── HERO SALDO ── #}
-<div class="wallet-hero" data-reveal>
-  <div class="wallet-hero__info">
-    <div class="wallet-hero__badge">
+<div class="wh" data-reveal>
+  <div class="wh__info">
+    <div class="wh__badge">
       <i data-lucide="wallet" width="12" height="12"></i>
       Carteira PulseSMM
     </div>
-    <div class="wallet-hero__label">
+    <div class="wh__label">
       <i data-lucide="circle-dollar-sign" width="14" height="14"></i>
       Saldo disponível
     </div>
-    <div class="wallet-hero__amount">
-      R$&nbsp;{{ wallet ? (wallet.balanceCents / 100)|number_format(2, ',', '.') : '0,00' }}
+    <div class="wh__amount">
+      R$&thinsp;{{ wallet ? (wallet.balanceCents / 100)|number_format(2, ',', '.') : '0,00' }}
     </div>
   </div>
-  <div class="wallet-hero__actions">
-    <a href="{{ path('app_wallet_deposit') }}" class="btn btn--inv">
+  <div class="wh__actions">
+    <a href="{{ path('app_wallet_deposit') }}" class="wh__btn-solid">
       <i data-lucide="plus" width="16" height="16"></i>
       Adicionar saldo
     </a>
-    <a href="{{ path('app_transaction_index') }}" class="btn btn--inv-ghost">
+    <a href="{{ path('app_transaction_index') }}" class="wh__btn-ghost">
       <i data-lucide="clock" width="16" height="16"></i>
       Histórico
     </a>
@@ -288,105 +356,124 @@
 </div>
 
 {# ── KPIs ── #}
-{% set total_depositado = 0 %}
+{% set total_dep = 0 %}
 {% for tx in transactions %}
-  {% if tx.status == 'approved' %}{% set total_depositado = total_depositado + tx.amountCents %}{% endif %}
+  {% if tx.status == 'approved' %}{% set total_dep = total_dep + tx.amountCents %}{% endif %}
 {% endfor %}
 
-<div class="wallet-kpis" data-reveal>
-  <div class="kpi">
-    <div class="kpi__icon kpi__icon--teal">
+<div class="wkpis" data-reveal>
+  <div class="wkpi">
+    <div class="wkpi__icon wkpi__icon--teal">
       <i data-lucide="trending-up" width="18" height="18"></i>
     </div>
-    <div class="kpi__label">Total depositado</div>
-    <div class="kpi__value kpi__value--md">R$&nbsp;{{ (total_depositado / 100)|number_format(2, ',', '.') }}</div>
+    <div class="wkpi__label">Total depositado</div>
+    <div class="wkpi__val">R$&thinsp;{{ (total_dep / 100)|number_format(2, ',', '.') }}</div>
   </div>
-  <div class="kpi">
-    <div class="kpi__icon kpi__icon--blue">
+  <div class="wkpi">
+    <div class="wkpi__icon wkpi__icon--blue">
       <i data-lucide="layers" width="18" height="18"></i>
     </div>
-    <div class="kpi__label">Transações</div>
-    <div class="kpi__value kpi__value--md">{{ transactions|length }}</div>
+    <div class="wkpi__label">Transações</div>
+    <div class="wkpi__val">{{ transactions|length }}</div>
   </div>
-  <div class="kpi">
-    <div class="kpi__icon kpi__icon--gold">
+  <div class="wkpi">
+    <div class="wkpi__icon wkpi__icon--gold">
       <i data-lucide="clock" width="18" height="18"></i>
     </div>
-    <div class="kpi__label">Pendentes</div>
-    <div class="kpi__value kpi__value--md">{{ transactions|filter(t => t.status == 'pending')|length }}</div>
+    <div class="wkpi__label">Pendentes</div>
+    <div class="wkpi__val">{{ transactions|filter(t => t.status == 'pending')|length }}</div>
   </div>
-  <div class="kpi">
-    <div class="kpi__icon kpi__icon--green">
+  <div class="wkpi">
+    <div class="wkpi__icon wkpi__icon--green">
       <i data-lucide="check-circle" width="18" height="18"></i>
     </div>
-    <div class="kpi__label">Aprovadas</div>
-    <div class="kpi__value kpi__value--md kpi__value--success">{{ transactions|filter(t => t.status == 'approved')|length }}</div>
+    <div class="wkpi__label">Aprovadas</div>
+    <div class="wkpi__val wkpi__val--green">{{ transactions|filter(t => t.status == 'approved')|length }}</div>
   </div>
 </div>
 
 {# ── EXTRATO ── #}
-<div class="wallet-table-card" data-reveal>
-  <div class="card__head">
+<div class="wtcard" data-reveal>
+  <div class="wtcard__head">
     <h2>Extrato</h2>
-    <span class="badge badge--pending">{{ transactions|length }} registro(s)</span>
+    <span class="wtcard__badge">
+      <i data-lucide="receipt" width="12" height="12"></i>
+      {{ transactions|length }} registro{{ transactions|length != 1 ? 's' : '' }}
+    </span>
   </div>
-  <div class="table-wrap">
-    <table class="data-table">
+  <div class="wtcard__wrap">
+    <table class="wt">
       <thead>
         <tr>
-          <th>Data</th>
-          <th>Gateway</th>
-          <th>Método</th>
-          <th>Status</th>
-          <th class="cell-right">Valor</th>
+          <th class="col-date">Data</th>
+          <th class="col-gw">Gateway</th>
+          <th class="col-method">Método</th>
+          <th class="col-status">Status</th>
+          <th class="col-val">Valor</th>
         </tr>
       </thead>
       <tbody>
       {% for tx in transactions %}
-        <tr>
-          <td class="cell-muted cell-mono">
-            {{ tx.createdAt|date('d/m/Y') }}<br>
-            <small style="font-size:var(--text-xs);opacity:.7">{{ tx.createdAt|date('H:i') }}</small>
+        <tr class="{{ tx.status == 'pending' ? 'row--pending' : '' }}">
+
+          {# Data #}
+          <td class="col-date">
+            <div class="td-date-main">{{ tx.createdAt|date('d/m/Y') }}</div>
+            <div class="td-date-sub">{{ tx.createdAt|date('H:i') }}</div>
           </td>
-          <td>{{ tx.gateway ?? '—' }}</td>
-          <td>{{ tx.method ?? '—' }}</td>
-          <td>
+
+          {# Gateway #}
+          <td class="col-gw">
+            {% if tx.gateway %}
+              <span class="td-gw-pill">{{ tx.gateway }}</span>
+            {% else %}
+              <span style="color:var(--text-2);opacity:.4">—</span>
+            {% endif %}
+          </td>
+
+          {# Método #}
+          <td class="col-method">
+            <span class="td-method">{{ tx.method ?? '—' }}</span>
+          </td>
+
+          {# Status #}
+          <td class="col-status">
             {% if tx.status == 'approved' %}
-              <span class="badge badge--completed">
-                <i data-lucide="check" width="11" height="11"></i>
-                Aprovado
+              <span class="bs bs--ok">
+                <i data-lucide="check" width="11" height="11"></i> Aprovado
               </span>
             {% elseif tx.status == 'pending' and tx.method == 'pix' %}
               <a href="{{ path('app_wallet_pix_pending', {id: tx.id}) }}"
-                 class="badge badge--pending"
-                 style="text-decoration:none;cursor:pointer"
+                 class="bs bs--pend"
                  title="Ver QR Code Pix">
-                <i data-lucide="qr-code" width="11" height="11"></i>
-                Pendente
+                <i data-lucide="qr-code" width="11" height="11"></i> Pendente
               </a>
             {% elseif tx.status == 'pending' %}
-              <span class="badge badge--pending">
-                <i data-lucide="clock" width="11" height="11"></i>
-                Pendente
+              <span class="bs bs--pend">
+                <i data-lucide="clock" width="11" height="11"></i> Pendente
               </span>
             {% elseif tx.status == 'cancelled' %}
-              <span class="badge badge--cancelled">
-                <i data-lucide="x" width="11" height="11"></i>
-                Cancelado
+              <span class="bs bs--cancel">
+                <i data-lucide="x" width="11" height="11"></i> Cancelado
               </span>
             {% else %}
-              <span class="badge badge--pending">{{ tx.status }}</span>
+              <span class="bs bs--pend">{{ tx.status }}</span>
             {% endif %}
           </td>
-          <td class="cell-right cell-mono wt-amount {{ tx.status == 'approved' ? 'wt-amount--credit' : '' }}">
-            +R$&nbsp;{{ (tx.amountCents / 100)|number_format(2, ',', '.') }}
+
+          {# Valor #}
+          <td class="col-val">
+            <span class="td-val {{ tx.status == 'approved' ? 'td-val--credit' : '' }}">
+              +R$&thinsp;{{ (tx.amountCents / 100)|number_format(2, ',', '.') }}
+            </span>
           </td>
+
         </tr>
       {% else %}
         <tr>
           <td colspan="5">
-            <div class="empty-state">
-              <i data-lucide="credit-card" width="40" height="40"></i>
+            <div class="wempty">
+              <i data-lucide="credit-card" width="42" height="42"></i>
               <h3>Nenhuma transação ainda</h3>
               <p>Faça seu primeiro depósito para ver o extrato aqui.</p>
               <a href="{{ path('app_wallet_deposit') }}" class="btn btn--ghost btn--sm">Fazer primeiro depósito</a>
