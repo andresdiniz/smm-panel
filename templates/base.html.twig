@@ -70,7 +70,7 @@
       <div class="sidebar__section">Financeiro</div>
 
       <a href="{{ path('app_wallet_index') }}"
-         class="sidebar__link {% if route starts with 'app_wallet' %}is-active{% endif %}">
+         class="sidebar__link {% if route == 'app_wallet_index' %}is-active{% endif %}">
         <i data-lucide="wallet" width="17" height="17" aria-hidden="true"></i>
         <span class="sidebar__link-label">Carteira</span>
         {% if app.user.wallet is defined and app.user.wallet %}
@@ -80,10 +80,10 @@
         {% endif %}
       </a>
 
-      <a href="{{ path('app_wallet_history') }}"
-         class="sidebar__link {% if route == 'app_wallet_history' %}is-active{% endif %}">
-        <i data-lucide="receipt-text" width="17" height="17" aria-hidden="true"></i>
-        <span class="sidebar__link-label">Histórico</span>
+      <a href="{{ path('app_wallet_deposit') }}"
+         class="sidebar__link {% if route == 'app_wallet_deposit' or route == 'app_wallet_pix_pending' %}is-active{% endif %}">
+        <i data-lucide="plus-circle" width="17" height="17" aria-hidden="true"></i>
+        <span class="sidebar__link-label">Depositar</span>
       </a>
 
       <div class="sidebar__section">Conta</div>
@@ -217,7 +217,6 @@
   'use strict';
   var html = document.documentElement;
 
-  /* ── init theme (already set in <head>, just sync icon) ── */
   function applyThemeIcon(t) {
     var icon = document.getElementById('themeIconLucide');
     if (!icon) return;
@@ -230,7 +229,6 @@
     var t = html.getAttribute('data-theme') || 'light';
     applyThemeIcon(t);
 
-    /* theme toggle */
     document.getElementById('themeToggle') && document.getElementById('themeToggle').addEventListener('click', function(){
       var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', next);
@@ -238,7 +236,6 @@
       applyThemeIcon(next);
     });
 
-    /* sidebar toggle */
     var shell   = document.getElementById('appShell');
     var toggle  = document.getElementById('sidebarToggle');
     var overlay = document.getElementById('sidebarOverlay');
@@ -268,7 +265,6 @@
       if (e.key === 'Escape' && shell.classList.contains('mobile-open')) closeDrawer();
     });
 
-    /* scroll reveal */
     var reveals = document.querySelectorAll('[data-reveal]');
     if ('IntersectionObserver' in window && reveals.length) {
       var io = new IntersectionObserver(function(entries){
