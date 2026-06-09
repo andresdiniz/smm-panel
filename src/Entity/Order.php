@@ -12,13 +12,13 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\HasLifecycleCallbacks]
 class Order
 {
-    public const STATUS_PENDING    = 'pending';
-    public const STATUS_PROCESSING = 'processing';
-    public const STATUS_IN_PROGRESS= 'in_progress';
-    public const STATUS_COMPLETED  = 'completed';
-    public const STATUS_PARTIAL    = 'partial';
-    public const STATUS_CANCELLED  = 'cancelled';
-    public const STATUS_REFUNDED   = 'refunded';
+    public const STATUS_PENDING     = 'pending';
+    public const STATUS_PROCESSING  = 'processing';
+    public const STATUS_IN_PROGRESS = 'in_progress';
+    public const STATUS_COMPLETED   = 'completed';
+    public const STATUS_PARTIAL     = 'partial';
+    public const STATUS_CANCELLED   = 'cancelled';
+    public const STATUS_REFUNDED    = 'refunded';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -42,20 +42,21 @@ class Order
     #[ORM\Column]
     private int $quantity;
 
-    /** URL alvo (perfil, post, vídeo etc.) */
     #[ORM\Column(length: 512)]
     private string $targetUrl;
 
-    /** ID do pedido no provider SMM externo */
     #[ORM\Column(length: 120, nullable: true)]
     private ?string $externalOrderId = null;
 
-    /** Quantidade já entregue reportada pelo provider */
     #[ORM\Column(nullable: true)]
     private ?int $startCount = null;
 
     #[ORM\Column(nullable: true)]
     private ?int $remains = null;
+
+    /** Contador de tentativas de sync com o provider (polling exponencial) */
+    #[ORM\Column(options: ['default' => 0])]
+    private int $syncAttempts = 0;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -63,11 +64,16 @@ class Order
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $completedAt = null;
+
     #[ORM\PrePersist]
     public function onPrePersist(): void { $this->createdAt = new \DateTimeImmutable(); }
 
     #[ORM\PreUpdate]
     public function onPreUpdate(): void { $this->updatedAt = new \DateTimeImmutable(); }
+
+    // ── Getters / Setters base ────────────────────────────────────────────
 
     public function getId(): ?int { return $this->id; }
     public function getUser(): User { return $this->user; }
@@ -88,6 +94,67 @@ class Order
     public function setStartCount(?int $n): static { $this->startCount = $n; return $this; }
     public function getRemains(): ?int { return $this->remains; }
     public function setRemains(?int $n): static { $this->remains = $n; return $this; }
+    public function getSyncAttempts(): int { return $this->syncAttempts; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
     public function getUpdatedAt(): ?\DateTimeImmutable { return $this->updatedAt; }
+    public function getCompletedAt(): ?\DateTimeImmutable { return $this->completedAt; }
+
+    // ── Helpers de estado (usados pelo SyncOrderStatusHandler) ───────────
+
+    /** Incrementa o contador de tentativas de polling */
+    public function incrementSyncAttempts(): void
+    {
+        $this->syncAttempts++;
+    }
+
+    /**
+     * Conveniente para o handler: slug do provider via Service.
+     * Evita que o handler acesse getService()->getProviderSlug() toda hora.
+     */
+    public function getProviderSlug(): ?string
+    {
+        return $this->service->getProviderSlug();
+    }
+
+    /**
+     * Alias limpo para o handler: ID externo do pedido no provider.
+     */
+    public function getExternalId(): ?string
+    {
+        return $this->externalOrderId;
+    }
+
+    /**
+     * Marca o pedido como COMPLETED.
+     * $delivered = quantidade que o provider diz ter entregue
+     *   (calculado como startCount no momento do status — veja ProviderStatus).
+     */
+    public function markAsCompleted(int $delivered): void
+    {
+        $this->status      = self::STATUS_COMPLETED;
+        $this->remains     = 0;
+        $this->startCount  = $delivered;
+        $this->completedAt = new \DateTimeImmutable();
+    }
+
+    /**
+     * Marca como PARTIAL: entregou parte, provider encerrou.
+     * $delivered = quanto foi entregue até o encerramento.
+     */
+    public function markAsPartial(int $delivered): void
+    {
+        $this->status     = self::STATUS_PARTIAL;
+        $this->startCount = $delivered;
+        $this->remains    = max(0, $this->quantity - $delivered);
+    }
+
+    /**
+     * Marca como CANCELLED com log da razão.
+     * Não faz refund — isso é responsabilidade do handler (SyncOrderStatusHandler).
+     */
+    public function markAsFailed(string $reason): void
+    {
+        $this->status = self::STATUS_CANCELLED;
+        // reason é logada pelo handler; não persiste na entidade para manter o schema enxuto
+    }
 }
