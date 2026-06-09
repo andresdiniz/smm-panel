@@ -43,7 +43,11 @@ class Service
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $externalServiceId = null;
 
-    /** Slug do provider: smmkings, justanother, etc. */
+    /**
+     * Slug do provider: smmkings, justanother, peakerr, etc.
+     * Sempre armazenado e retornado em lowercase para garantir
+     * consistência com o SmmProviderRegistry.
+     */
     #[ORM\Column(length: 60, nullable: true)]
     private ?string $providerSlug = null;
 
@@ -69,8 +73,24 @@ class Service
     public function setActive(bool $active): static { $this->active = $active; return $this; }
     public function getExternalServiceId(): ?string { return $this->externalServiceId; }
     public function setExternalServiceId(?string $id): static { $this->externalServiceId = $id; return $this; }
-    public function getProviderSlug(): ?string { return $this->providerSlug; }
-    public function setProviderSlug(?string $slug): static { $this->providerSlug = $slug; return $this; }
+
+    /**
+     * Retorna o providerSlug normalizado (lowercase) ou null.
+     * A normalização garante match com o SmmProviderRegistry
+     * independente de como o valor foi salvo no banco.
+     */
+    public function getProviderSlug(): ?string
+    {
+        return $this->providerSlug !== null
+            ? strtolower(trim($this->providerSlug))
+            : null;
+    }
+
+    public function setProviderSlug(?string $slug): static
+    {
+        $this->providerSlug = $slug !== null ? strtolower(trim($slug)) : null;
+        return $this;
+    }
 
     /** Calcula preço para uma quantidade específica */
     public function calculatePriceCents(int $quantity): int

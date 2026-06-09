@@ -13,6 +13,8 @@ use Doctrine\ORM\Mapping as ORM;
  *
  * type: 'payment_gateway' | 'smm_provider'
  * slug: 'asaas' | 'mercadopago' | 'pagbank' | 'smmkings' | 'justanother' | 'peakerr' | ...
+ *
+ * O slug é sempre normalizado para strtolower(trim()) via setter/getter.
  */
 #[ORM\Entity(repositoryClass: ProviderCredentialRepository::class)]
 #[ORM\Table(name: 'provider_credentials')]
@@ -62,8 +64,11 @@ class ProviderCredential
     public function getId(): ?int { return $this->id; }
     public function getType(): string { return $this->type; }
     public function setType(string $type): static { $this->type = $type; return $this; }
-    public function getSlug(): string { return $this->slug; }
-    public function setSlug(string $slug): static { $this->slug = $slug; return $this; }
+
+    /** Slug sempre retornado em lowercase. */
+    public function getSlug(): string { return strtolower(trim($this->slug)); }
+    public function setSlug(string $slug): static { $this->slug = strtolower(trim($slug)); return $this; }
+
     public function getBaseUrl(): string { return $this->baseUrl; }
     public function setBaseUrl(string $url): static { $this->baseUrl = $url; return $this; }
     public function getApiKey(): string { return $this->apiKey; }

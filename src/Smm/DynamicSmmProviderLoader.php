@@ -12,6 +12,10 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 /**
  * Carrega providers SMM dinamicamente a partir das credenciais no banco.
  * Substitui a definição estática em services.yaml.
+ *
+ * Os slugs são normalizados para strtolower(trim()) antes de serem
+ * indexados no registry, mantendo consistência com os slugs usados
+ * nas entidades Service.providerSlug.
  */
 final class DynamicSmmProviderLoader
 {
@@ -30,10 +34,11 @@ final class DynamicSmmProviderLoader
         $credentials = $this->repo->findAllActiveByType(ProviderCredential::TYPE_SMM);
 
         $providers = [];
-        foreach ($credentials as $slug => $cred) {
+        foreach ($credentials as $cred) {
+            $slug = strtolower(trim($cred->getSlug()));
             $providers[$slug] = new GenericSmmProvider(
                 $this->http,
-                $cred->getSlug(),
+                $slug,
                 $cred->getBaseUrl(),
                 $cred->getApiKey(),
                 $this->logger,
@@ -48,14 +53,19 @@ final class DynamicSmmProviderLoader
      */
     public function loadBySlug(string $slug): ?SmmProviderInterface
     {
-        $cred = $this->repo->findBySlug(ProviderCredential::TYPE_SMM, $slug);
+        $normalized = strtolower(trim($slug));
+        $cred = $this->repo->findBySlug(ProviderCredential::TYPE_SMM, $normalized);
+        if (!$cred) {
+            // Tenta com o slug original caso o banco armazene com case diferente
+            $cred = $this->repo->findBySlug(ProviderCredential::TYPE_SMM, $slug);
+        }
         if (!$cred) {
             return null;
         }
 
         return new GenericSmmProvider(
             $this->http,
-            $cred->getSlug(),
+            $normalized,
             $cred->getBaseUrl(),
             $cred->getApiKey(),
             $this->logger,
