@@ -5,32 +5,23 @@
 
 {% block main %}
 <style>
-/*
-  ADMIN DASHBOARD v3
-  Cores hardcoded — não depende dos tokens do EasyAdmin nem do painel.
-  Paleta dark-mode em camadas:
-    --bg   : #0f1117  (fundo página)
-    --s0   : #161b27  (header de tabelas, hover)
-    --s1   : #1c2233  (cards, tbl-card)
-    --s2   : #212840  (card hover / destaque)
-    --bd   : rgba(255,255,255,.08)
-    --bd2  : rgba(255,255,255,.04)
-    --t1   : #e2e6f0  (texto principal)
-    --t2   : #8b90a8  (texto secundário)
-    --t3   : #505570  (texto apagado / labels)
-*/
-
-/* reset de espaço que o EasyAdmin injeta */
+/* reset espaço duplo do EasyAdmin */
 .content-header { display:none !important; }
 .content-wrapper { padding: 0 !important; }
 
+/* gap entre sidebar e área de conteúdo */
+.content-body {
+  padding-left: 20px !important;
+}
+
 .dash {
-  padding: 24px 28px 60px;
-  max-width: 1480px;
+  padding: 28px 36px 64px 28px;
+  max-width: 100%;
   background: #0f1117;
   min-height: 100vh;
   color: #e2e6f0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  box-sizing: border-box;
 }
 
 /* ── Header ── */
@@ -186,6 +177,7 @@
   display: grid;
   grid-template-columns: 6fr 4fr;
   gap: 14px;
+  /* sem max-width — usa todo espaço disponível */
 }
 @media(max-width:1000px){ .tbl-pair{ grid-template-columns:1fr } }
 
@@ -197,6 +189,7 @@
   box-shadow: 0 4px 20px rgba(0,0,0,.22);
   display: flex;
   flex-direction: column;
+  /* sem max-width — expande com o grid */
 }
 .tbl-card__head {
   display: flex; align-items: center; justify-content: space-between;
@@ -215,8 +208,15 @@
 }
 .tbl-card__link:hover { color: #8bdde1; }
 
+/* scroll horizontal só se necessário */
 .tbl-wrap { overflow-x: auto; flex: 1; }
-.tbl { width:100%; border-collapse:collapse; table-layout:fixed; }
+
+/* table-layout: auto — colunas expandem com conteúdo */
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
 .tbl th {
   text-align: left;
   font-size: 9.5px; font-weight: 700;
@@ -228,36 +228,30 @@
   white-space: nowrap;
 }
 .tbl td {
-  padding: 8px 14px;
+  padding: 9px 14px;
   border-bottom: 1px solid rgba(255,255,255,.04);
   vertical-align: middle;
   font-size: .8125rem;
   color: #e2e6f0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* sem overflow:hidden nem text-overflow aqui — só nas colunas longas */
 }
 .tbl tbody tr { transition: background .1s; }
 .tbl tbody tr:hover { background: rgba(255,255,255,.03); }
 .tbl tbody tr:last-child td { border-bottom: none; }
 
-/* Colgroup — pedidos */
-.tbl--orders col.co-id  { width: 40px; }
-.tbl--orders col.co-usr { width: 100px; }
-.tbl--orders col.co-srv { width: auto; }
-.tbl--orders col.co-val { width: 76px; }
-.tbl--orders col.co-st  { width: 94px; }
+/* colunas que NÃO devem quebrar */
+.col-id    { white-space: nowrap; color: #505570 !important; font-variant-numeric:tabular-nums; font-size:.75rem !important; width:40px; }
+.col-usr   { white-space: nowrap; font-weight: 700; color: #c8ccdc !important; min-width: 110px; }
+.col-val   { white-space: nowrap; font-variant-numeric:tabular-nums; font-size:.75rem !important; color:#a0a4bc !important; width:80px; text-align:right; }
+.col-st    { white-space: nowrap; width: 110px; }
+/* coluna de serviço: quebra quando necessário, não some */
+.col-srv   { min-width: 160px; word-break: break-word; white-space: normal; color: #8b90a8 !important; }
 
-/* Colgroup — usuários */
-.tbl--users col.cu-nome { width: 28%; }
-.tbl--users col.cu-mail { width: auto; }
-.tbl--users col.cu-bal  { width: 88px; }
-.tbl--users col.cu-dt   { width: 60px; }
-
-.c-id   { color: #505570 !important; font-variant-numeric:tabular-nums; font-size:.75rem !important; }
-.c-bold { font-weight: 700; color: #c8ccdc !important; }
-.c-muted{ color: #8b90a8 !important; }
-.c-mono { font-variant-numeric:tabular-nums; font-size:.75rem !important; color:#a0a4bc !important; }
+/* usuários */
+.col-nome  { white-space: nowrap; font-weight: 700; color: #c8ccdc !important; min-width: 110px; }
+.col-mail  { color: #8b90a8 !important; min-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 0; }
+.col-bal   { white-space: nowrap; font-variant-numeric:tabular-nums; font-size:.75rem !important; color:#a0a4bc !important; width:90px; text-align:right; }
+.col-dt    { white-space: nowrap; color: #505570 !important; font-size:.75rem !important; width:65px; }
 
 /* Badge status */
 .bst {
@@ -282,7 +276,6 @@
 {% macro ico(d) %}<svg style="width:14px;height:14px;display:block;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ d|raw }}</svg>{% endmacro %}
 {% import _self as i %}
 
-{# Data em pt-BR sem depender de locale PHP #}
 {% set _m = {'01':'janeiro','02':'fevereiro','03':'março','04':'abril','05':'maio','06':'junho','07':'julho','08':'agosto','09':'setembro','10':'outubro','11':'novembro','12':'dezembro'} %}
 {% set _hoje = 'now'|date('d') ~ ' de ' ~ _m['now'|date('m')] ~ ' de ' ~ 'now'|date('Y') %}
 
@@ -321,8 +314,8 @@
         <span class="kpi__label">Receita (30d)</span>
         <span class="kpi__ico kpi__ico--green">{{ i.ico('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>') }}</span>
       </div>
-      <div class="kpi__value kpi__value--green">R$ {{ (revenueCents/100)|number_format(2,',','.') }}</div>
-      <div class="kpi__delta">R$ {{ (revenueToday/100)|number_format(2,',','.') }} hoje</div>
+      <div class="kpi__value kpi__value--green">R$&nbsp;{{ (revenueCents/100)|number_format(2,',','.') }}</div>
+      <div class="kpi__delta">R$&nbsp;{{ (revenueToday/100)|number_format(2,',','.') }} hoje</div>
     </div>
 
     <div class="kpi kpi--gold">
@@ -330,7 +323,7 @@
         <span class="kpi__label">Lucro líquido</span>
         <span class="kpi__ico kpi__ico--gold">{{ i.ico('<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>') }}</span>
       </div>
-      <div class="kpi__value kpi__value--gold">R$ {{ (netProfitCents/100)|number_format(2,',','.') }}</div>
+      <div class="kpi__value kpi__value--gold">R$&nbsp;{{ (netProfitCents/100)|number_format(2,',','.') }}</div>
       <div class="kpi__delta">Após taxas e custos</div>
     </div>
   </div>
@@ -342,21 +335,21 @@
       <span class="fin__ico fin__ico--green">{{ i.ico('<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>') }}</span>
       <div class="fin__body">
         <div class="fin__label">Entradas (depósitos)</div>
-        <div class="fin__value fin__value--green">R$ {{ (revenueCents/100)|number_format(2,',','.') }}</div>
+        <div class="fin__value fin__value--green">R$&nbsp;{{ (revenueCents/100)|number_format(2,',','.') }}</div>
       </div>
     </div>
     <div class="fin">
       <span class="fin__ico fin__ico--red">{{ i.ico('<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>') }}</span>
       <div class="fin__body">
         <div class="fin__label">Saídas (custo providers)</div>
-        <div class="fin__value fin__value--red">R$ {{ (expensesCents/100)|number_format(2,',','.') }}</div>
+        <div class="fin__value fin__value--red">R$&nbsp;{{ (expensesCents/100)|number_format(2,',','.') }}</div>
       </div>
     </div>
     <div class="fin">
       <span class="fin__ico fin__ico--gold">{{ i.ico('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>') }}</span>
       <div class="fin__body">
         <div class="fin__label">Taxas (gateways)</div>
-        <div class="fin__value fin__value--gold">R$ {{ (feesCents/100)|number_format(2,',','.') }}</div>
+        <div class="fin__value fin__value--gold">R$&nbsp;{{ (feesCents/100)|number_format(2,',','.') }}</div>
       </div>
     </div>
   </div>
@@ -375,7 +368,7 @@
     {% endfor %}
   </div>
 
-  {# TABELAS 60/40 #}
+  {# TABELAS 60/40 — sem max-width, usa todo o espaço #}
   <div class="tbl-pair">
 
     <div class="tbl-card">
@@ -385,18 +378,25 @@
       </div>
       {% if recentOrders|length > 0 %}
       <div class="tbl-wrap">
-        <table class="tbl tbl--orders">
-          <colgroup><col class="co-id"><col class="co-usr"><col class="co-srv"><col class="co-val"><col class="co-st"></colgroup>
-          <thead><tr><th>#</th><th>Usuário</th><th>Serviço</th><th>Valor</th><th>Status</th></tr></thead>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th style="width:40px">#</th>
+              <th style="min-width:110px">Usuário</th>
+              <th>Serviço</th>
+              <th style="width:84px;text-align:right">Valor</th>
+              <th style="width:116px">Status</th>
+            </tr>
+          </thead>
           <tbody>
             {% for o in recentOrders %}
             {% set st = o.status %}
             <tr>
-              <td class="c-id">{{ o.id }}</td>
-              <td class="c-bold">{{ o.user.name }}</td>
-              <td class="c-muted" title="{{ o.service.name }}">{{ o.service.name }}</td>
-              <td class="c-mono">R$ {{ (o.amountCents/100)|number_format(2,',','.') }}</td>
-              <td><span class="bst bst--{{ st=='completed'?'green':(st=='cancelled'?'red':(st=='processing'?'blue':(st=='partial'?'gold':'grey'))) }}">{{ st|replace({'_':' '})|capitalize }}</span></td>
+              <td class="col-id">{{ o.id }}</td>
+              <td class="col-usr">{{ o.user.name }}</td>
+              <td class="col-srv" title="{{ o.service.name }}">{{ o.service.name }}</td>
+              <td class="col-val">R$&nbsp;{{ (o.amountCents/100)|number_format(2,',','.') }}</td>
+              <td class="col-st"><span class="bst bst--{{ st=='completed'?'green':(st=='cancelled'?'red':(st=='processing'?'blue':(st=='partial'?'gold':'grey'))) }}">{{ st|replace({'_':' '})|capitalize }}</span></td>
             </tr>
             {% endfor %}
           </tbody>
@@ -412,16 +412,22 @@
       </div>
       {% if recentUsers|length > 0 %}
       <div class="tbl-wrap">
-        <table class="tbl tbl--users">
-          <colgroup><col class="cu-nome"><col class="cu-mail"><col class="cu-bal"><col class="cu-dt"></colgroup>
-          <thead><tr><th>Nome</th><th>E-mail</th><th>Saldo</th><th>Desde</th></tr></thead>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th style="min-width:110px">Nome</th>
+              <th>E-mail</th>
+              <th style="width:96px;text-align:right">Saldo</th>
+              <th style="width:72px">Desde</th>
+            </tr>
+          </thead>
           <tbody>
             {% for u in recentUsers %}
             <tr>
-              <td class="c-bold">{{ u.name }}</td>
-              <td class="c-muted" title="{{ u.email }}">{{ u.email }}</td>
-              <td class="c-mono">R$ {{ u.wallet ? (u.wallet.balanceCents/100)|number_format(2,',','.') : '0,00' }}</td>
-              <td class="c-muted c-mono">{{ u.createdAt|date('d/m/Y') }}</td>
+              <td class="col-nome">{{ u.name }}</td>
+              <td class="col-mail" title="{{ u.email }}">{{ u.email }}</td>
+              <td class="col-bal">R$&nbsp;{{ u.wallet ? (u.wallet.balanceCents/100)|number_format(2,',','.') : '0,00' }}</td>
+              <td class="col-dt">{{ u.createdAt|date('d/m/Y') }}</td>
             </tr>
             {% endfor %}
           </tbody>
