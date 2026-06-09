@@ -14,7 +14,7 @@
   --sb-text-hover: #c8ccd4;
   --sb-active-bg:  rgba(13,148,136,.13);
   --sb-active-txt: #e8faf8;
-  --sb-section:    #383c44;
+  --sb-section:    #52576080;
   --sb-badge-bg:   rgba(13,148,136,.14);
   --sb-badge-txt:  #2dd4bf;
   --sb-badge-bdr:  rgba(13,148,136,.28);
@@ -337,14 +337,14 @@ p, li { text-wrap:pretty }
 .sidebar__nav::-webkit-scrollbar-track { background: transparent }
 .sidebar__nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius:2px }
 
-/* Section labels */
+/* Section labels — contraste melhorado */
 .sidebar__section {
   padding: 18px 16px 5px;
   font-size: .6rem;
   font-weight: 700;
   letter-spacing: .10em;
   text-transform: uppercase;
-  color: var(--sb-section);
+  color: #525760;
   white-space: nowrap;
   overflow: hidden;
   line-height: 1;
@@ -669,7 +669,7 @@ p, li { text-wrap:pretty }
 .main-content {
   grid-area: main;
   min-width: 0;
-  padding: 28px 28px calc(28px + var(--bn-h));
+  padding: 28px 32px calc(28px + var(--bn-h));
   overflow-x: hidden;
 }
 @media (min-width:769px) { .main-content { padding-bottom:28px } }
@@ -975,12 +975,6 @@ p, li { text-wrap:pretty }
   color: var(--text-2);
   vertical-align: middle;
 }
-/* Coluna de ação (Ver): padding reduzido e centralizado */
-.data-table tbody td.col-action,
-.table tbody td.col-action {
-  padding: 8px 10px;
-  text-align: center;
-}
 
 .data-table tbody tr:last-child td,
 .table tbody tr:last-child td { border-bottom:none }
@@ -991,8 +985,42 @@ p, li { text-wrap:pretty }
   color: var(--text);
 }
 
-/* Coluna de ação no <col> / <th> */
-.col-action { width: 60px !important; text-align: center !important; }
+/* ----------------------------------------------------------------
+   COLGROUP — larguras explícitas para table-layout: fixed
+   A soma das colunas fixas (48+52+78+110+78+64 = 430px) fica abaixo
+   dos ~600px restantes após a sidebar, sobrando o resto para
+   col-svc (30%) e col-url (20%) se expandirem naturalmente.
+---------------------------------------------------------------- */
+col.col-id     { width: 48px;  }
+col.col-svc    { width: 30%;   }
+col.col-url    { width: 20%;   }
+col.col-qty    { width: 52px;  }
+col.col-val    { width: 78px;  }
+col.col-status { width: 110px; }
+col.col-date   { width: 78px;  }
+col.col-act    { width: 64px;  }
+
+/* Coluna de ação (Ver): padding reduzido e centralizado */
+.data-table tbody td.col-act,
+.table tbody td.col-act,
+.data-table tbody td.col-action,
+.table tbody td.col-action {
+  padding: 8px 6px;
+  text-align: center;
+}
+
+/* Botão Ver dentro da coluna de ação — nunca corta */
+.col-act .btn,
+.col-act .btn-ghost,
+.col-action .btn {
+  white-space: nowrap;
+  min-width: 34px;
+  padding: 4px 10px;
+  font-size: .68rem;
+}
+
+/* Legado: classe .col-action no <th>/<col> */
+.col-action { width: 64px; text-align: center; }
 
 .cell-muted { color:var(--text-3) !important; font-size:var(--tx) }
 .cell-mono  { font-variant-numeric:tabular-nums }
