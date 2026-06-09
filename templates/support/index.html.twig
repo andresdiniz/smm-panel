@@ -36,10 +36,11 @@
     <tbody>
     {% for ticket in tickets %}
       {%- set unread = ticket.countUnreadByUser() -%}
-      <tr style="border-bottom:1px solid var(--color-border,#d4d1ca);{% if not loop.last %}{% endif %}transition:background .15s;" onmouseover="this.style.background='var(--color-surface-offset)'" onmouseout="this.style.background=''">
+      {%- set subject = ticket.subject|length > 60 ? ticket.subject|slice(0,60) ~ '…' : ticket.subject -%}
+      <tr style="border-bottom:1px solid var(--color-border,#d4d1ca);transition:background .15s;" onmouseover="this.style.background='var(--color-surface-offset)'" onmouseout="this.style.background=''">
         <td style="padding:12px 16px;font-size:.8rem;color:var(--color-text-muted);font-variant-numeric:tabular-nums;">#{{ ticket.id }}</td>
         <td style="padding:12px 16px;font-size:.875rem;font-weight:500;max-width:260px;">
-          {{ ticket.subject|u.truncate(60, '…') }}
+          {{ subject }}
           {% if unread > 0 %}
           <span style="display:inline-flex;margin-left:6px;padding:1px 6px;font-size:.58rem;font-weight:700;border-radius:9999px;background:var(--color-error,#a12c7b);color:#fff;vertical-align:middle;">{{ unread }}</span>
           {% endif %}

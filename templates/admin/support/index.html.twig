@@ -7,7 +7,7 @@
     <h1 style="font-size:1.25rem;font-weight:700;margin:0 0 2px;">Central de Suporte</h1>
     <p style="font-size:.85rem;color:var(--color-text-muted);margin:0;">
       {{ tickets|length }} ticket{{ tickets|length != 1 ? 's' : '' }} aberto{{ tickets|length != 1 ? 's' : '' }}
-      {% if unreadCount > 0 %}&nbsp;&mdash;&nbsp;<strong style="color:var(--color-error);">{{ unreadCount }} não lido{{ unreadCount != 1 ? 's' : '' }}</strong>{% endif %}
+      {% if unreadCount > 0 %}&nbsp;—&nbsp;<strong style="color:var(--color-error);">{{ unreadCount }} não lido{{ unreadCount != 1 ? 's' : '' }}</strong>{% endif %}
     </p>
   </div>
 </div>
@@ -36,6 +36,7 @@
     <tbody>
     {% for ticket in tickets %}
       {%- set unread = ticket.countUnreadByAdmin() -%}
+      {%- set subject = ticket.subject|length > 50 ? ticket.subject|slice(0,50) ~ '…' : ticket.subject -%}
       <tr style="border-bottom:1px solid var(--color-border);transition:background .15s;" onmouseover="this.style.background='var(--color-surface-offset)'" onmouseout="this.style.background=''">
         <td style="padding:11px 16px;font-size:.8rem;color:var(--color-text-muted);font-variant-numeric:tabular-nums;">#{{ ticket.id }}</td>
         <td style="padding:11px 16px;">
@@ -43,7 +44,7 @@
           <div style="font-size:.7rem;color:var(--color-text-muted);">{{ ticket.user.email }}</div>
         </td>
         <td style="padding:11px 16px;font-size:.875rem;font-weight:500;max-width:240px;">
-          {{ ticket.subject|u.truncate(50, '…') }}
+          {{ subject }}
           {% if unread > 0 %}
           <span style="display:inline-flex;margin-left:6px;padding:1px 6px;font-size:.58rem;font-weight:700;border-radius:9999px;background:var(--color-error,#a12c7b);color:#fff;vertical-align:middle;">{{ unread }} novo{{ unread != 1 ? 's' : '' }}</span>
           {% endif %}
