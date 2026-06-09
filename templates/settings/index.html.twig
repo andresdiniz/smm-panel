@@ -3,141 +3,352 @@
 {% block title %}Configurações — PulseSMM{% endblock %}
 {% block page_title %}Configurações{% endblock %}
 
+{% block stylesheets %}{{ parent() }}
+<style>
+/* ══════════════════════════════════════════
+   SETTINGS v2 — tokens locais scoped em .cfg
+   ══════════════════════════════════════════ */
+.cfg {
+  --_bg:        var(--surface,     #181b26);
+  --_bg2:       var(--surface-2,   #1f2333);
+  --_bg3:       var(--surface-off, #161925);
+  --_border:    var(--border,      rgba(255,255,255,.09));
+  --_border2:   var(--border-2,    rgba(255,255,255,.05));
+  --_text:      var(--text,        #e4e6f0);
+  --_text2:     var(--text-2,      #7a7e99);
+  --_text3:     var(--text-3,      #4a4e66);
+  --_acc:       var(--acc,         #01696f);
+  --_acc-soft:  var(--acc-soft,    rgba(1,105,111,.15));
+  --_acc-brd:   var(--acc-border,  rgba(1,105,111,.35));
+  --_acc-hov:   var(--acc-hover,   #0c4e54);
+  --_red:       #e05252;
+  --_red-soft:  rgba(224,82,82,.12);
+  --_gold:      #c98a00;
+  --_gold-soft: rgba(201,138,0,.12);
+  --_blue:      #3a8cc7;
+  --_blue-soft: rgba(58,140,199,.12);
+
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 600px;
+  padding-bottom: 48px;
+}
+
+/* ── Card genérico ── */
+.cfg__card {
+  background: var(--_bg2);
+  border: 1px solid var(--_border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,.15);
+}
+.cfg__card-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--_border);
+  background: var(--_bg3);
+}
+.cfg__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.cfg__icon--lock  { background: var(--_acc-soft);  color: var(--_acc);  }
+.cfg__icon--theme { background: var(--_gold-soft); color: var(--_gold); }
+.cfg__icon--api   { background: var(--_blue-soft); color: var(--_blue); }
+.cfg__head-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--_text);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.cfg__head-sub {
+  font-size: 11px;
+  color: var(--_text2);
+  margin-top: 1px;
+}
+.cfg__card-body {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Flash error ── */
+.cfg__flash {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--_red-soft);
+  border: 1px solid rgba(224,82,82,.25);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--_red);
+}
+
+/* ── Fields ── */
+.cfg__field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.cfg__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--_text2);
+}
+.cfg__label em { color: var(--_red); font-style: normal; margin-left: 2px; }
+.cfg__hint {
+  font-size: 11px;
+  color: var(--_text3);
+  line-height: 1.5;
+  margin-top: 1px;
+}
+.cfg__error-inline {
+  font-size: 11px;
+  color: var(--_red);
+  font-weight: 600;
+  margin-top: 1px;
+}
+
+.cfg__control {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--_bg3);
+  border: 1.5px solid var(--_border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--_text);
+  outline: none;
+  transition: border-color .18s, box-shadow .18s, background .18s;
+}
+.cfg__control::placeholder { color: var(--_text3); }
+.cfg__control:focus {
+  border-color: var(--_acc);
+  background: var(--_bg2);
+  box-shadow: 0 0 0 3px var(--_acc-soft);
+}
+.cfg__control.is-invalid {
+  border-color: var(--_red);
+  box-shadow: 0 0 0 3px var(--_red-soft);
+}
+
+/* ── Botão submit ── */
+.cfg__submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--_acc);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s, transform .1s, box-shadow .18s;
+  box-shadow: 0 3px 12px rgba(1,105,111,.3);
+  align-self: flex-start;
+  margin-top: 4px;
+}
+.cfg__submit:hover  { background: var(--_acc-hov); box-shadow: 0 5px 16px rgba(1,105,111,.4); }
+.cfg__submit:active { transform: scale(.98); }
+
+/* ── Theme picker ── */
+.cfg__theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.cfg__theme-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 12px;
+  border: 1.5px solid var(--_border);
+  border-radius: 10px;
+  background: var(--_bg3);
+  color: var(--_text2);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s, border-color .18s, color .18s, box-shadow .18s;
+}
+.cfg__theme-opt:hover {
+  background: var(--_acc-soft);
+  border-color: var(--_acc-brd);
+  color: var(--_acc);
+}
+.cfg__theme-opt.is-active {
+  background: var(--_acc-soft);
+  border-color: var(--_acc);
+  color: var(--_acc);
+  box-shadow: 0 0 0 3px var(--_acc-soft);
+}
+
+/* ── API Key row ── */
+.cfg__api-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.cfg__api-row .cfg__control {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  flex: 1;
+  letter-spacing: .04em;
+}
+.cfg__icon-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--_bg3);
+  border: 1.5px solid var(--_border);
+  border-radius: 8px;
+  color: var(--_text2);
+  cursor: pointer;
+  transition: background .18s, border-color .18s, color .18s;
+}
+.cfg__icon-btn:hover {
+  background: var(--_acc-soft);
+  border-color: var(--_acc-brd);
+  color: var(--_acc);
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="settings-layout">
+<div class="cfg">
 
   {# ── SENHA ── #}
-  <div class="card card--padded settings-section" data-reveal>
-    <div class="settings-section__head">
-      <div class="settings-section__icon settings-section__icon--primary">
-        <i data-lucide="lock" width="18" height="18"></i>
+  <div class="cfg__card" data-reveal>
+    <div class="cfg__card-head">
+      <div class="cfg__icon cfg__icon--lock">
+        <i data-lucide="lock" width="16" height="16"></i>
       </div>
       <div>
-        <h2 class="settings-section__title">Alterar senha</h2>
-        <p class="settings-section__sub">Use uma senha forte com ao menos 8 caracteres.</p>
+        <div class="cfg__head-title">Alterar senha</div>
+        <div class="cfg__head-sub">Use uma senha forte com ao menos 8 caracteres.</div>
       </div>
     </div>
 
-    {% if error %}
-    <div class="flash flash--error">
-      <i data-lucide="x-circle" width="16" height="16"></i>
-      <span>{{ error }}</span>
-    </div>
-    {% endif %}
+    <div class="cfg__card-body">
+      {% if error %}
+      <div class="cfg__flash">
+        <i data-lucide="x-circle" width="14" height="14"></i>
+        <span>{{ error }}</span>
+      </div>
+      {% endif %}
 
-    <form method="post" class="form-grid" style="margin-top: var(--sp5)">
-      <input type="hidden" name="_token" value="{{ csrf_token('settings_password') }}">
-      <div class="field">
-        <label>Senha atual <span class="required">*</span></label>
-        <input type="password" name="current_password" class="control" required autocomplete="current-password">
-      </div>
-      <div class="field">
-        <label>Nova senha <span class="required">*</span></label>
-        <input type="password" name="new_password" class="control" required minlength="8" autocomplete="new-password" id="newPwd">
-        <span class="field-hint">Mínimo 8 caracteres.</span>
-      </div>
-      <div class="field">
-        <label>Confirmar nova senha <span class="required">*</span></label>
-        <input type="password" name="confirm_password" class="control" required autocomplete="new-password" id="confirmPwd">
-        <span class="field-error" id="pwdMatchError" style="display:none">As senhas não coincidem.</span>
-      </div>
-      <button type="submit" class="btn btn--primary">
-        <i data-lucide="shield-check" width="16" height="16"></i>
-        Alterar senha
-      </button>
-    </form>
+      <form method="post" style="display:flex;flex-direction:column;gap:16px;">
+        <input type="hidden" name="_token" value="{{ csrf_token('settings_password') }}">
+
+        <div class="cfg__field">
+          <span class="cfg__label">Senha atual <em>*</em></span>
+          <input type="password" name="current_password"
+                 class="cfg__control" required autocomplete="current-password">
+        </div>
+
+        <div class="cfg__field">
+          <span class="cfg__label">Nova senha <em>*</em></span>
+          <input type="password" name="new_password" id="newPwd"
+                 class="cfg__control" required minlength="8" autocomplete="new-password">
+          <span class="cfg__hint">Mínimo 8 caracteres.</span>
+        </div>
+
+        <div class="cfg__field">
+          <span class="cfg__label">Confirmar nova senha <em>*</em></span>
+          <input type="password" name="confirm_password" id="confirmPwd"
+                 class="cfg__control" required autocomplete="new-password">
+          <span class="cfg__error-inline" id="pwdMatchError" style="display:none">As senhas não coincidem.</span>
+        </div>
+
+        <button type="submit" class="cfg__submit">
+          <i data-lucide="shield-check" width="15" height="15"></i>
+          Alterar senha
+        </button>
+      </form>
+    </div>
   </div>
 
   {# ── TEMA ── #}
-  <div class="card card--padded settings-section" data-reveal>
-    <div class="settings-section__head">
-      <div class="settings-section__icon settings-section__icon--gold">
-        <i data-lucide="palette" width="18" height="18"></i>
+  <div class="cfg__card" data-reveal>
+    <div class="cfg__card-head">
+      <div class="cfg__icon cfg__icon--theme">
+        <i data-lucide="palette" width="16" height="16"></i>
       </div>
       <div>
-        <h2 class="settings-section__title">Aparência</h2>
-        <p class="settings-section__sub">Escolha o tema da interface.</p>
+        <div class="cfg__head-title">Aparência</div>
+        <div class="cfg__head-sub">Escolha o tema da interface.</div>
       </div>
     </div>
-
-    <div class="theme-picker">
-      <button class="theme-opt" id="themeLight" onclick="setTheme('light')">
-        <i data-lucide="sun" width="20" height="20"></i>
-        <span>Claro</span>
-      </button>
-      <button class="theme-opt" id="themeDark" onclick="setTheme('dark')">
-        <i data-lucide="moon" width="20" height="20"></i>
-        <span>Escuro</span>
-      </button>
-      <button class="theme-opt" id="themeSystem" onclick="setTheme('system')">
-        <i data-lucide="monitor" width="20" height="20"></i>
-        <span>Sistema</span>
-      </button>
+    <div class="cfg__card-body">
+      <div class="cfg__theme-grid">
+        <button class="cfg__theme-opt" id="themeLight" onclick="setTheme('light')" type="button">
+          <i data-lucide="sun" width="20" height="20"></i>
+          <span>Claro</span>
+        </button>
+        <button class="cfg__theme-opt" id="themeDark" onclick="setTheme('dark')" type="button">
+          <i data-lucide="moon" width="20" height="20"></i>
+          <span>Escuro</span>
+        </button>
+        <button class="cfg__theme-opt" id="themeSystem" onclick="setTheme('system')" type="button">
+          <i data-lucide="monitor" width="20" height="20"></i>
+          <span>Sistema</span>
+        </button>
+      </div>
     </div>
   </div>
 
   {# ── API KEY ── #}
-  <div class="card card--padded settings-section" data-reveal>
-    <div class="settings-section__head">
-      <div class="settings-section__icon settings-section__icon--blue">
-        <i data-lucide="key" width="18" height="18"></i>
+  <div class="cfg__card" data-reveal>
+    <div class="cfg__card-head">
+      <div class="cfg__icon cfg__icon--api">
+        <i data-lucide="key" width="16" height="16"></i>
       </div>
       <div>
-        <h2 class="settings-section__title">API Key</h2>
-        <p class="settings-section__sub">Use sua chave para integrar com ferramentas externas.</p>
+        <div class="cfg__head-title">API Key</div>
+        <div class="cfg__head-sub">Use sua chave para integrar com ferramentas externas.</div>
       </div>
     </div>
-    <div class="api-key-row">
-      <input type="text" class="control" value="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" readonly id="apiKeyInput">
-      <button class="btn btn--ghost btn--sm" onclick="toggleKey()" type="button" aria-label="Mostrar/ocultar API key">
-        <i data-lucide="eye" width="14" height="14"></i>
-      </button>
-      <button class="btn btn--ghost btn--sm" onclick="copyKey()" type="button" aria-label="Copiar API key">
-        <i data-lucide="copy" width="14" height="14"></i>
-      </button>
+    <div class="cfg__card-body">
+      <div class="cfg__api-row">
+        <input type="text" class="cfg__control"
+               value="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;"
+               readonly id="apiKeyInput">
+        <button class="cfg__icon-btn" onclick="toggleKey()" type="button" aria-label="Mostrar/ocultar API key">
+          <i data-lucide="eye" width="15" height="15"></i>
+        </button>
+        <button class="cfg__icon-btn" onclick="copyKey()" type="button" aria-label="Copiar API key">
+          <i data-lucide="copy" width="15" height="15"></i>
+        </button>
+      </div>
     </div>
   </div>
 
 </div>
-
-<style>
-.settings-layout { display: flex; flex-direction: column; gap: var(--sp4); max-width: 640px; }
-.settings-section__head { display: flex; align-items: flex-start; gap: var(--sp4); margin-bottom: var(--sp5); }
-.settings-section__icon {
-  width: 40px; height: 40px;
-  border-radius: var(--r-lg);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.settings-section__icon--primary { background: var(--primary-hi); color: var(--primary-h); }
-.settings-section__icon--gold    { background: color-mix(in oklab, #d19900 12%, var(--surface)); color: #6e4800; }
-.settings-section__icon--blue    { background: color-mix(in oklab, var(--blue) 12%, var(--surface)); color: var(--blue); }
-.settings-section__title { font-size: var(--text-base); font-weight: 800; letter-spacing: -0.02em; }
-.settings-section__sub   { font-size: var(--text-xs); color: var(--muted); margin-top: 2px; }
-.theme-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp3); margin-top: var(--sp2); }
-.theme-opt {
-  display: flex; flex-direction: column; align-items: center; gap: var(--sp2);
-  padding: var(--sp4) var(--sp3);
-  border: 1.5px solid var(--border);
-  border-radius: var(--r-lg);
-  background: var(--surface-off);
-  color: var(--muted);
-  font-size: var(--text-xs); font-weight: 700;
-  cursor: pointer;
-  transition: background var(--t), border-color var(--t), color var(--t);
-  min-height: 80px;
-}
-.theme-opt:hover, .theme-opt.is-active {
-  background: var(--primary-hi);
-  border-color: var(--primary);
-  color: var(--primary-h);
-}
-.api-key-row { display: flex; gap: var(--sp2); align-items: center; margin-top: var(--sp2); }
-.api-key-row .control { font-family: 'Courier New', monospace; font-size: var(--text-sm); flex: 1; }
-</style>
+{% endblock %}
 
 {% block javascripts %}{{ parent() }}
 <script>
+/* Theme */
 function setTheme(t) {
   if (t === 'system') {
     document.documentElement.removeAttribute('data-theme');
@@ -146,7 +357,7 @@ function setTheme(t) {
     document.documentElement.setAttribute('data-theme', t);
     sessionStorage.setItem('pulse-theme', t);
   }
-  document.querySelectorAll('.theme-opt').forEach(b => b.classList.remove('is-active'));
+  document.querySelectorAll('.cfg__theme-opt').forEach(b => b.classList.remove('is-active'));
   const map = { light: 'themeLight', dark: 'themeDark', system: 'themeSystem' };
   document.getElementById(map[t])?.classList.add('is-active');
 }
@@ -156,26 +367,31 @@ function setTheme(t) {
   document.getElementById(map[saved])?.classList.add('is-active');
 })();
 
+/* Validação de senha */
 const np = document.getElementById('newPwd');
 const cp = document.getElementById('confirmPwd');
 const err = document.getElementById('pwdMatchError');
 [np, cp].forEach(el => el?.addEventListener('input', () => {
   if (cp.value && np.value !== cp.value) {
-    err.style.display = 'block'; cp.classList.add('is-invalid');
+    err.style.display = 'block';
+    cp.classList.add('is-invalid');
   } else {
-    err.style.display = 'none'; cp.classList.remove('is-invalid');
+    err.style.display = 'none';
+    cp.classList.remove('is-invalid');
   }
 }));
 
+/* API Key */
 let keyVisible = false;
 function toggleKey() {
   keyVisible = !keyVisible;
-  document.getElementById('apiKeyInput').value = keyVisible ? 'pk_live_demo_key_aqui' : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
+  const input = document.getElementById('apiKeyInput');
+  input.value = keyVisible
+    ? '{{ user.apiToken ?? 'pk_live_demo_key_aqui' }}'
+    : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
 }
 function copyKey() {
-  const val = document.getElementById('apiKeyInput').value;
-  navigator.clipboard?.writeText(val);
+  navigator.clipboard?.writeText('{{ user.apiToken ?? '' }}');
 }
 </script>
-{% endblock %}
 {% endblock %}
