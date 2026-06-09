@@ -1,190 +1,231 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Pix pendente — PulseSMM{% endblock %}
+{% block title %}Pagar via Pix — PulseSMM{% endblock %}
 {% block page_title %}Pagar via Pix{% endblock %}
 
 {% block stylesheets %}{{ parent() }}
 <style>
 /* ══════════════════════════════════════════
-   PIX PENDING — Design Refinado
+   PIX PENDING — Layout Profissional v2
    ══════════════════════════════════════════ */
 
-.pix-page {
-  max-width: 560px;
+.pix-wrap {
+  max-width: 520px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: var(--sp5);
+  padding-bottom: var(--sp8);
 }
 
-/* ── Status header ── */
-.pix-status-bar {
-  display: flex;
+/* ── Status Card ── */
+.pix-status {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: var(--sp4);
-  padding: var(--sp4) var(--sp5);
+  padding: var(--sp4) var(--sp6);
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: var(--r3);
-  overflow: hidden;
+  border-radius: var(--r4);
   position: relative;
+  overflow: hidden;
 }
-.pix-status-bar::before {
+.pix-status::after {
   content: '';
   position: absolute;
-  top: 0; left: 0;
-  width: 3px; height: 100%;
-  background: var(--acc);
-  border-radius: 0 2px 2px 0;
+  inset: 0;
+  background: radial-gradient(ellipse at 10% 50%, var(--acc-soft) 0%, transparent 60%);
+  pointer-events: none;
 }
-.pix-status-bar__pulse {
-  width: 40px; height: 40px;
+.pix-pulse {
+  width: 44px; height: 44px;
   border-radius: 50%;
   background: var(--acc-soft);
   border: 1.5px solid var(--acc-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
   position: relative;
+  flex-shrink: 0;
+  z-index: 1;
 }
-.pix-status-bar__pulse::before {
+.pix-pulse::before {
   content: '';
   position: absolute;
-  inset: -6px;
+  inset: -7px;
   border-radius: 50%;
   border: 1.5px solid var(--acc-border);
-  animation: pix-ring 2s ease-in-out infinite;
+  animation: pulse-ring 2.2s cubic-bezier(.4,0,.6,1) infinite;
   opacity: 0;
 }
-.pix-status-bar__dot {
+.pix-pulse__dot {
   width: 14px; height: 14px;
   border-radius: 50%;
   background: var(--acc);
-  animation: pix-dot 2s ease-in-out infinite;
+  animation: pulse-dot 2.2s ease-in-out infinite;
 }
-@keyframes pix-ring {
-  0%   { transform: scale(.8); opacity: .6; }
-  70%  { transform: scale(1.5); opacity: 0; }
-  100% { transform: scale(.8); opacity: 0; }
+@keyframes pulse-ring {
+  0%   { transform: scale(.75); opacity: .7; }
+  70%  { transform: scale(1.55); opacity: 0; }
+  100% { transform: scale(.75); opacity: 0; }
 }
-@keyframes pix-dot {
+@keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: .5; transform: scale(.85); }
+  50%      { opacity: .45; transform: scale(.8); }
 }
-.pix-status-bar__info { flex: 1; }
-.pix-status-bar__label {
-  font-size: var(--text-xs);
-  color: var(--text-2);
+.pix-status__info { z-index: 1; }
+.pix-status__eyebrow {
+  font-size: 10px;
   font-weight: 700;
+  color: var(--text-2);
   text-transform: uppercase;
-  letter-spacing: .06em;
-  margin-bottom: 2px;
+  letter-spacing: .08em;
+  margin-bottom: 3px;
 }
-.pix-status-bar__status {
+.pix-status__label {
   font-size: var(--text-sm);
   font-weight: 700;
   color: var(--acc);
 }
-.pix-status-bar__amount { text-align: right; }
-.pix-status-bar__amount-label {
-  font-size: var(--text-xs);
+.pix-status__amount { text-align: right; z-index: 1; }
+.pix-status__amount-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
   color: var(--text-2);
-  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: .06em;
-  margin-bottom: 2px;
+  letter-spacing: .08em;
+  margin-bottom: 3px;
 }
-.pix-status-bar__value {
-  font-size: var(--text-lg);
+.pix-status__value {
+  font-size: var(--text-xl);
   font-weight: 900;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   line-height: 1;
+  color: var(--text);
 }
 
-/* ── Intro ── */
-.pix-intro {
+/* ── Subtítulo ── */
+.pix-subtitle {
   font-size: var(--text-sm);
   color: var(--text-2);
-  line-height: 1.65;
+  line-height: 1.7;
   text-align: center;
+  padding: 0 var(--sp4);
 }
 
-/* ── Corpo ── */
-.pix-body {
+/* ── Card principal ── */
+.pix-card {
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--r4);
   overflow: hidden;
 }
-.pix-body__qr-section {
-  padding: var(--sp6);
+
+/* ── QR ── */
+.pix-qr-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--sp4);
+  padding: var(--sp7) var(--sp6) var(--sp6);
   border-bottom: 1px solid var(--border);
 }
-.pix-qr {
+.pix-qr-frame {
   padding: var(--sp4);
-  background: #fff;
+  background: #ffffff;
   border-radius: var(--r3);
-  border: 1px solid rgba(0,0,0,.06);
-  box-shadow: 0 4px 24px rgba(0,0,0,.07);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.06),
+    0 4px 16px rgba(0,0,0,.08),
+    0 16px 48px rgba(0,0,0,.06);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: box-shadow var(--base);
+  transition: transform .25s ease, box-shadow .25s ease;
 }
-.pix-qr:hover { box-shadow: 0 8px 32px rgba(0,0,0,.12); }
-.pix-qr img { display: block; border-radius: var(--r2); }
-.pix-qr--empty {
+.pix-qr-frame:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.06),
+    0 8px 24px rgba(0,0,0,.12),
+    0 24px 64px rgba(0,0,0,.1);
+}
+.pix-qr-frame img {
+  display: block;
+  border-radius: 4px;
+}
+.pix-qr-empty {
   width: 220px; height: 220px;
+  display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: var(--sp3);
   color: var(--text-2);
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 500;
 }
-.pix-qr__hint {
-  display: flex;
+.pix-qr-hint {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--text-xs);
-  color: var(--text-2);
-  font-weight: 500;
   background: var(--surface-off);
   border: 1px solid var(--border);
   border-radius: var(--rp);
   padding: 5px var(--sp3);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
 }
 
-/* ── Copia e cola ── */
-.pix-body__copy-section {
-  padding: var(--sp5) var(--sp6);
-}
-.pix-copy-label {
+/* ── Divisor com texto ── */
+.pix-divider {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: var(--text-xs);
+  gap: var(--sp3);
+  padding: 0 var(--sp6);
+}
+.pix-divider__line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.pix-divider__text {
+  font-size: 10px;
   font-weight: 700;
   color: var(--text-2);
   text-transform: uppercase;
-  letter-spacing: .06em;
+  letter-spacing: .1em;
+  white-space: nowrap;
+}
+
+/* ── Copia e Cola ── */
+.pix-copy-wrap {
+  padding: var(--sp4) var(--sp6) var(--sp6);
+}
+.pix-copy-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: .08em;
   margin-bottom: var(--sp3);
 }
-.pix-copy-box {
+.pix-copy-field {
   display: flex;
   align-items: stretch;
   border: 1.5px solid var(--border);
-  border-radius: var(--r2);
+  border-radius: var(--r3);
   overflow: hidden;
   background: var(--surface-off);
-  transition: border-color var(--fast), box-shadow var(--fast);
+  transition: border-color .18s, box-shadow .18s;
 }
-.pix-copy-box:focus-within {
+.pix-copy-field:focus-within {
   border-color: var(--acc);
   box-shadow: 0 0 0 3px var(--acc-soft);
 }
@@ -193,157 +234,170 @@
   padding: var(--sp3) var(--sp4);
   font-family: 'Courier New', monospace;
   font-size: 11px;
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--text);
   background: transparent;
   border: none;
   resize: none;
   outline: none;
   word-break: break-all;
+  min-height: 68px;
 }
 .pix-copy-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 0 var(--sp4);
-  min-width: 68px;
+  gap: 4px;
+  padding: 0 var(--sp5);
+  min-width: 76px;
   background: var(--acc);
   color: #fff;
   border: none;
   cursor: pointer;
   font-size: 11px;
   font-weight: 700;
-  transition: background var(--fast);
   flex-shrink: 0;
+  transition: background .18s, transform .12s;
 }
-.pix-copy-btn:hover  { background: var(--acc-hover); }
-.pix-copy-btn.copied { background: var(--green, #1e5e14); }
+.pix-copy-btn:hover   { background: var(--acc-hover); }
+.pix-copy-btn:active  { transform: scale(.97); }
+.pix-copy-btn.copied  {
+  background: #1a6b14;
+}
 
 /* ── Passos ── */
 .pix-steps {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: var(--r3);
+  border-radius: var(--r4);
   overflow: hidden;
+  list-style: none;
 }
-.pix-steps li {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--sp4);
-  padding: var(--sp3) var(--sp5);
-  font-size: var(--text-sm);
-  color: var(--text-2);
-  line-height: 1.5;
-  transition: background var(--fast);
-  border-bottom: 1px solid var(--border-2);
-}
-.pix-steps li:last-child { border-bottom: none; }
-.pix-steps li:hover { background: var(--surface-off); }
-.pix-step-num {
+.pix-step {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 22px; height: 22px;
-  min-width: 22px;
+  gap: var(--sp4);
+  padding: var(--sp3) var(--sp5);
+  border-bottom: 1px solid var(--border-2);
+  transition: background .15s;
+}
+.pix-step:last-child { border-bottom: none; }
+.pix-step:hover { background: var(--surface-off); }
+.pix-step__num {
+  width: 24px; height: 24px;
+  min-width: 24px;
   border-radius: 50%;
   background: var(--acc-soft);
   border: 1.5px solid var(--acc-border);
-  color: var(--acc);
-  font-size: var(--text-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
   font-weight: 800;
-  margin-top: 1px;
+  color: var(--acc);
 }
+.pix-step__text {
+  font-size: var(--text-sm);
+  color: var(--text-2);
+  line-height: 1.5;
+}
+.pix-step__text strong { color: var(--text); font-weight: 700; }
 
 /* ── Footer ── */
 .pix-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sp4);
+  gap: var(--sp3);
   padding: var(--sp3) var(--sp5);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r3);
   flex-wrap: wrap;
 }
-.pix-footer__expiry {
+.pix-expiry {
   display: flex;
   align-items: center;
-  gap: var(--sp2);
+  gap: 6px;
   font-size: var(--text-xs);
   color: var(--text-2);
 }
+.pix-expiry strong { color: var(--text); }
 
 /* ── Responsivo ── */
-@media (max-width: 560px) {
-  .pix-body__qr-section { padding: var(--sp4); }
-  .pix-body__copy-section { padding: var(--sp4); }
-  .pix-status-bar { flex-wrap: wrap; gap: var(--sp3); }
-  .pix-status-bar__amount { margin-left: 0; }
+@media (max-width: 540px) {
+  .pix-status { grid-template-columns: auto 1fr; gap: var(--sp3); padding: var(--sp4); }
+  .pix-status__amount { grid-column: 1 / -1; text-align: left; }
+  .pix-status__value { font-size: var(--text-lg); }
+  .pix-qr-wrap { padding: var(--sp5) var(--sp4) var(--sp4); }
+  .pix-copy-wrap { padding: var(--sp4); }
   .pix-footer { gap: var(--sp3); }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="pix-page" data-reveal>
+<div class="pix-wrap">
 
-  {# ── Status bar ── #}
-  <div class="pix-status-bar">
-    <div class="pix-status-bar__pulse">
-      <span class="pix-status-bar__dot"></span>
+  {# ── Status card ── #}
+  <div class="pix-status">
+    <div class="pix-pulse">
+      <span class="pix-pulse__dot"></span>
     </div>
-    <div class="pix-status-bar__info">
-      <div class="pix-status-bar__label">Status do pagamento</div>
-      <div class="pix-status-bar__status">Aguardando pagamento</div>
+    <div class="pix-status__info">
+      <div class="pix-status__eyebrow">Status do pagamento</div>
+      <div class="pix-status__label">Aguardando pagamento</div>
     </div>
-    <div class="pix-status-bar__amount">
-      <div class="pix-status-bar__amount-label">Valor</div>
-      <div class="pix-status-bar__value">R$ {{ (payment.amountCents / 100)|number_format(2, ',', '.') }}</div>
+    <div class="pix-status__amount">
+      <div class="pix-status__amount-eyebrow">Valor</div>
+      <div class="pix-status__value">R$&nbsp;{{ (payment.amountCents / 100)|number_format(2, ',', '.') }}</div>
     </div>
   </div>
 
-  <p class="pix-intro">
+  <p class="pix-subtitle">
     Escaneie o QR Code com o app do seu banco ou copie o código abaixo para concluir o pagamento.
   </p>
 
-  {# ── QR Code + Copia e Cola ── #}
-  <div class="pix-body">
+  {# ── Card QR + Copia e Cola ── #}
+  <div class="pix-card">
 
-    <div class="pix-body__qr-section">
+    <div class="pix-qr-wrap">
       {% if qrCodeBase64 is defined and qrCodeBase64 %}
-        <div class="pix-qr">
+        <div class="pix-qr-frame">
           <img src="data:image/png;base64,{{ qrCodeBase64 }}"
                alt="QR Code Pix" width="220" height="220" loading="eager">
         </div>
-        <div class="pix-qr__hint">
+        <div class="pix-qr-hint">
           <i data-lucide="smartphone" width="13" height="13"></i>
           Abra o banco → Pix → Pagar → Câmera
         </div>
       {% else %}
-        <div class="pix-qr pix-qr--empty">
-          <i data-lucide="qr-code" width="48" height="48"></i>
-          <span>QR Code indisponível</span>
-          <a href="" class="btn btn--ghost btn--sm">Tentar novamente</a>
+        <div class="pix-qr-frame">
+          <div class="pix-qr-empty">
+            <i data-lucide="qr-code" width="52" height="52" style="color:var(--text-2);opacity:.4"></i>
+            <span>QR Code indisponível</span>
+            <a href="" class="btn btn--ghost btn--sm">Tentar novamente</a>
+          </div>
         </div>
       {% endif %}
     </div>
 
-    <div class="pix-body__copy-section">
-      <div class="pix-copy-label">
-        <i data-lucide="copy" width="13" height="13"></i>
+    <div class="pix-divider">
+      <span class="pix-divider__line"></span>
+      <span class="pix-divider__text">ou use o Pix Copia e Cola</span>
+      <span class="pix-divider__line"></span>
+    </div>
+
+    <div class="pix-copy-wrap">
+      <div class="pix-copy-header">
+        <i data-lucide="copy" width="12" height="12"></i>
         Pix Copia e Cola
       </div>
-      <div class="pix-copy-box">
+      <div class="pix-copy-field">
         <textarea class="pix-copy-code" id="pixCode" readonly rows="3" spellcheck="false">{{ payment.pixCode }}</textarea>
         <button type="button" class="pix-copy-btn" id="copyPixBtn" aria-label="Copiar código Pix">
-          <i data-lucide="copy" width="16" height="16" id="copyIcon"></i>
+          <i data-lucide="copy" width="17" height="17" id="copyIcon"></i>
           <span id="copyLabel">Copiar</span>
         </button>
       </div>
@@ -351,34 +405,34 @@
 
   </div>
 
-  {# ── Instruções ── #}
+  {# ── Passos ── #}
   <ol class="pix-steps">
-    <li>
-      <span class="pix-step-num">1</span>
-      Abra o aplicativo do seu banco
+    <li class="pix-step">
+      <span class="pix-step__num">1</span>
+      <span class="pix-step__text">Abra o aplicativo do seu banco</span>
     </li>
-    <li>
-      <span class="pix-step-num">2</span>
-      Acesse a área Pix e escolha <strong>Pagar</strong>
+    <li class="pix-step">
+      <span class="pix-step__num">2</span>
+      <span class="pix-step__text">Acesse a área Pix e escolha <strong>Pagar</strong></span>
     </li>
-    <li>
-      <span class="pix-step-num">3</span>
-      Escaneie o QR Code ou cole o código copiado
+    <li class="pix-step">
+      <span class="pix-step__num">3</span>
+      <span class="pix-step__text">Escaneie o QR Code ou cole o código copiado</span>
     </li>
-    <li>
-      <span class="pix-step-num">4</span>
-      Confirme — seu saldo é creditado em instantes
+    <li class="pix-step">
+      <span class="pix-step__num">4</span>
+      <span class="pix-step__text">Confirme — seu saldo é creditado <strong>em instantes</strong></span>
     </li>
   </ol>
 
   {# ── Footer ── #}
   <div class="pix-footer">
-    <div class="pix-footer__expiry">
+    <div class="pix-expiry">
       <i data-lucide="clock" width="14" height="14"></i>
       <span>Código válido por <strong>24 horas</strong></span>
     </div>
     <a href="{{ path('app_wallet_index') }}" class="btn btn--ghost btn--sm">
-      <i data-lucide="arrow-left" width="15" height="15"></i>
+      <i data-lucide="arrow-left" width="14" height="14"></i>
       Voltar para carteira
     </a>
   </div>
