@@ -156,7 +156,6 @@
 }
 
 /* ── ORDERS TABLE ─────────────────────────────────────────── */
-/* Proporcional: serviço respira, colunas pequenas não sugam espaço */
 .data-table .col-id     { width: 52px;  min-width: 44px; }
 .data-table .col-svc    { width: 36%;   min-width: 180px; }
 .data-table .col-url    { width: 22%;   min-width: 120px; }
@@ -166,7 +165,6 @@
 .data-table .col-date   { width: 82px;  min-width: 68px;  text-align: right; }
 .data-table .col-act    { width: 52px;  min-width: 48px;  text-align: right; }
 
-/* Serviço: quebra elegantemente em vez de ellipsis */
 .svc-name {
   font-weight: 600;
   color: var(--text);
@@ -186,7 +184,6 @@
   display: block;
 }
 
-/* URL cell */
 .url-cell {
   display: block;
   overflow: hidden;
@@ -198,7 +195,6 @@
 }
 .url-cell:hover { text-decoration: underline; }
 
-/* Badge refinado: dot indicator + padding correto */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -221,7 +217,6 @@
   opacity: .8;
 }
 
-/* Paginação no rodapé */
 .card__foot {
   display: flex;
   align-items: center;
@@ -241,12 +236,11 @@
   gap: 2px;
 }
 .page-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--r-md);
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--r-md);
   font-size: var(--tx);
   font-weight: 600;
   color: var(--text-2);
@@ -257,7 +251,6 @@
   text-decoration: none;
 }
 .page-btn:hover { background: var(--surface-2, var(--border)); color: var(--text); border-color: var(--border); }
-.page-btn--active { background: var(--primary); color: #fff; border-color: var(--primary); }
 </style>
 {% endblock %}
 
@@ -444,11 +437,9 @@
 
   <div class="card__foot">
     <span class="card__foot-info">Mostrando {{ recentOrders|length }} pedidos recentes</span>
-    <nav class="pagination" aria-label="Paginação">
-      <a href="{{ path('app_order_index') }}" class="page-btn" aria-label="Ver todos">
-        Ver todos <i data-lucide="arrow-right" width="10" height="10" style="margin-left:2px"></i>
-      </a>
-    </nav>
+    <a href="{{ path('app_order_new') }}" class="page-btn">
+      Novo pedido <i data-lucide="plus" width="10" height="10"></i>
+    </a>
   </div>
 
   {% else %}
