@@ -19,10 +19,10 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\DateTimeFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 
 class PaymentCrudController extends AbstractCrudController
 {
-    // renderAsBadges() faz lookup pelo LABEL exibido — chaves devem ser os labels
     private const METHOD_CHOICES = [
         'Pix'               => Payment::METHOD_PIX,
         'Cartão de Crédito' => Payment::METHOD_CREDIT_CARD,
@@ -70,8 +70,29 @@ class PaymentCrudController extends AbstractCrudController
 
     public function configureActions(Actions $actions): Actions
     {
+        // Acao: Aprovar pagamento manualmente
+        $approveAction = Action::new('approvePayment', 'Aprovar', 'fa fa-check-circle')
+            ->addCssClass('btn btn-success btn-sm')
+            ->setHtmlAttributes(['title' => 'Aprovar este pagamento e creditar o saldo do usuário'])
+            ->linkToRoute('admin_payment_approve', fn (Payment $p) => ['id' => $p->getId()])
+            ->displayIf(fn (Payment $p) => $p->getStatus() === Payment::STATUS_PENDING);
+
+        // Acao: Cancelar pagamento manualmente
+        $cancelAction = Action::new('cancelPayment', 'Cancelar', 'fa fa-times-circle')
+            ->addCssClass('btn btn-danger btn-sm')
+            ->setHtmlAttributes([
+                'title' => 'Cancelar este pagamento',
+                'onclick' => 'return confirm("Confirma o cancelamento deste pagamento?")',
+            ])
+            ->linkToRoute('admin_payment_cancel', fn (Payment $p) => ['id' => $p->getId()])
+            ->displayIf(fn (Payment $p) => $p->getStatus() === Payment::STATUS_PENDING);
+
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_DETAIL, $approveAction)
+            ->add(Crud::PAGE_DETAIL, $cancelAction)
+            ->add(Crud::PAGE_INDEX, $approveAction)
+            ->add(Crud::PAGE_INDEX, $cancelAction)
             ->disable(Action::NEW, Action::EDIT, Action::DELETE);
     }
 
@@ -110,7 +131,6 @@ class PaymentCrudController extends AbstractCrudController
             ->setChoices(self::STATUS_CHOICES)
             ->renderAsBadges(self::STATUS_BADGE);
 
-        // externalId: campo real da entidade (coluna external_id no banco)
         yield TextField::new('externalId', 'ID Externo')
             ->formatValue(static fn ($v) => $v ?? '—')
             ->hideOnForm();
@@ -124,15 +144,12 @@ class PaymentCrudController extends AbstractCrudController
             ->setFormat('dd/MM/yyyy HH:mm')
             ->hideOnForm();
 
-        // paidAt: relevante só para pagamentos aprovados — exibe no detail e index
         yield DateTimeField::new('paidAt', 'Pago em')
             ->setFormat('dd/MM/yyyy HH:mm')
             ->formatValue(static fn ($v) => $v ? $v->format('d/m/Y H:i') : '—')
             ->hideOnForm()
             ->hideOnIndex();
 
-        // updatedAt não existe na entidade Payment — usar paidAt no lugar
-        // gatewayResponse: só no detail, é JSON longo
         yield TextField::new('gatewayResponse', 'Resposta Gateway')
             ->hideOnIndex()
             ->hideOnForm()
