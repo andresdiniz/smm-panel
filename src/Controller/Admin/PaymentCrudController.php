@@ -22,33 +22,33 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 
 class PaymentCrudController extends AbstractCrudController
 {
-    /**
-     * renderAsBadges() faz lookup pelo LABEL exibido — chaves devem ser os labels.
-     */
+    // renderAsBadges() faz lookup pelo LABEL exibido — chaves devem ser os labels
     private const METHOD_CHOICES = [
-        'Pix'               => 'pix',
-        'Cart\u00e3o de Cr\u00e9dito' => 'credit_card',
-        'Cart\u00e3o de D\u00e9bito'  => 'debit_card',
+        'Pix'               => Payment::METHOD_PIX,
+        'Cartão de Crédito' => Payment::METHOD_CREDIT_CARD,
+        'Cartão de Débito'  => Payment::METHOD_DEBIT_CARD,
     ];
 
     private const METHOD_BADGE = [
         'Pix'               => 'success',
-        'Cart\u00e3o de Cr\u00e9dito' => 'primary',
-        'Cart\u00e3o de D\u00e9bito'  => 'info',
+        'Cartão de Crédito' => 'primary',
+        'Cartão de Débito'  => 'info',
     ];
 
     private const STATUS_CHOICES = [
-        'Pendente'  => 'pending',
-        'Aprovado'  => 'approved',
-        'Recusado'  => 'refused',
-        'Estornado' => 'refunded',
+        'Pendente'   => Payment::STATUS_PENDING,
+        'Aprovado'   => Payment::STATUS_APPROVED,
+        'Falhou'     => Payment::STATUS_FAILED,
+        'Cancelado'  => Payment::STATUS_CANCELLED,
+        'Estornado'  => Payment::STATUS_REFUNDED,
     ];
 
     private const STATUS_BADGE = [
-        'Pendente'  => 'warning',
-        'Aprovado'  => 'success',
-        'Recusado'  => 'danger',
-        'Estornado' => 'secondary',
+        'Pendente'   => 'warning',
+        'Aprovado'   => 'success',
+        'Falhou'     => 'danger',
+        'Cancelado'  => 'danger',
+        'Estornado'  => 'secondary',
     ];
 
     public static function getEntityFqcn(): string
@@ -63,7 +63,7 @@ class PaymentCrudController extends AbstractCrudController
             ->setEntityLabelInPlural('Pagamentos')
             ->setPageTitle(Crud::PAGE_INDEX, 'Gerenciar Pagamentos')
             ->setDefaultSort(['id' => 'DESC'])
-            ->setSearchFields(['id', 'gatewayTxId', 'user.email', 'user.name'])
+            ->setSearchFields(['id', 'externalId', 'user.email', 'user.name'])
             ->setPaginatorPageSize(30)
             ->showEntityActionsInlined();
     }
@@ -83,10 +83,10 @@ class PaymentCrudController extends AbstractCrudController
                     ->setChoices(self::STATUS_CHOICES)
             )
             ->add(
-                ChoiceFilter::new('method', 'M\u00e9todo')
+                ChoiceFilter::new('method', 'Método')
                     ->setChoices(self::METHOD_CHOICES)
             )
-            ->add(EntityFilter::new('user', 'Usu\u00e1rio'))
+            ->add(EntityFilter::new('user', 'Usuário'))
             ->add(DateTimeFilter::new('createdAt', 'Criado em'));
     }
 
@@ -96,13 +96,13 @@ class PaymentCrudController extends AbstractCrudController
             ->setLabel('ID')
             ->setMaxLength(6);
 
-        yield AssociationField::new('user', 'Usu\u00e1rio');
+        yield AssociationField::new('user', 'Usuário');
 
         yield MoneyField::new('amountCents', 'Valor')
             ->setCurrency('BRL')
             ->setStoredAsCents();
 
-        yield ChoiceField::new('method', 'M\u00e9todo')
+        yield ChoiceField::new('method', 'Método')
             ->setChoices(self::METHOD_CHOICES)
             ->renderAsBadges(self::METHOD_BADGE);
 
@@ -110,9 +110,9 @@ class PaymentCrudController extends AbstractCrudController
             ->setChoices(self::STATUS_CHOICES)
             ->renderAsBadges(self::STATUS_BADGE);
 
-        // ID Gateway: exibe "\u2014" quando nulo em vez de "Null"
-        yield TextField::new('gatewayTxId', 'ID Gateway')
-            ->formatValue(static fn ($v) => $v ?? '\u2014')
+        // externalId: campo real da entidade (coluna external_id no banco)
+        yield TextField::new('externalId', 'ID Externo')
+            ->formatValue(static fn ($v) => $v ?? '—')
             ->hideOnForm();
 
         yield MoneyField::new('feeCents', 'Taxa Gateway')
@@ -124,10 +124,18 @@ class PaymentCrudController extends AbstractCrudController
             ->setFormat('dd/MM/yyyy HH:mm')
             ->hideOnForm();
 
-        // "Atualizado em" s\u00f3 na tela de detalhe — n\u00e3o agrega no index
-        yield DateTimeField::new('updatedAt', 'Atualizado em')
+        // paidAt: relevante só para pagamentos aprovados — exibe no detail e index
+        yield DateTimeField::new('paidAt', 'Pago em')
             ->setFormat('dd/MM/yyyy HH:mm')
+            ->formatValue(static fn ($v) => $v ? $v->format('d/m/Y H:i') : '—')
             ->hideOnForm()
             ->hideOnIndex();
+
+        // updatedAt não existe na entidade Payment — usar paidAt no lugar
+        // gatewayResponse: só no detail, é JSON longo
+        yield TextField::new('gatewayResponse', 'Resposta Gateway')
+            ->hideOnIndex()
+            ->hideOnForm()
+            ->setMaxLength(300);
     }
 }
