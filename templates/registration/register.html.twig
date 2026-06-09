@@ -17,14 +17,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
 
   <style>
-    /* ═══════════════════════════════════════════════════════════════
-       DESIGN TOKENS (mesmo sistema do login)
-    ═══════════════════════════════════════════════════════════════ */
+    /* ═══════════════════════════════════════════════
+       DESIGN TOKENS — mesmos do login, consistência
+    ═══════════════════════════════════════════════ */
     :root, [data-theme="light"] {
       --bg:              #f2f0ec;
       --surface:         #fafaf8;
       --surface-2:       #ffffff;
       --surface-offset:  #ece9e4;
+      --surface-dynamic: #e4e1db;
       --border:          oklch(0.2 0.005 80 / 0.09);
       --border-focus:    oklch(0.2 0.005 80 / 0.18);
       --divider:         oklch(0.2 0.005 80 / 0.07);
@@ -45,7 +46,7 @@
       --success:         #3a7a1e;
       --success-lo:      oklch(0.50 0.14 145 / 0.10);
       --success-border:  oklch(0.50 0.14 145 / 0.22);
-      --r-xs:4px; --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:20px; --r-full:9999px;
+      --r-xs:4px; --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:20px; --r-2xl:24px; --r-full:9999px;
       --s1:.25rem; --s2:.5rem; --s3:.75rem; --s4:1rem;
       --s5:1.25rem; --s6:1.5rem; --s8:2rem; --s10:2.5rem; --s12:3rem;
       --font-body:    'Satoshi', system-ui, sans-serif;
@@ -71,6 +72,7 @@
       --surface:         #181716;
       --surface-2:       #1e1d1c;
       --surface-offset:  #161514;
+      --surface-dynamic: #252422;
       --border:          oklch(1 0 0 / 0.07);
       --border-focus:    oklch(1 0 0 / 0.14);
       --divider:         oklch(1 0 0 / 0.06);
@@ -102,6 +104,7 @@
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme]) {
         --bg:#111010;--surface:#181716;--surface-2:#1e1d1c;--surface-offset:#161514;
+        --surface-dynamic:#252422;
         --border:oklch(1 0 0/0.07);--border-focus:oklch(1 0 0/0.14);--divider:oklch(1 0 0/0.06);
         --text:#d6d4cf;--text-muted:#7a7874;--text-faint:#4e4c49;--text-inverse:#1a1917;
         --primary:#4ca3aa;--primary-h:#3a8f96;--primary-a:#2e747a;
@@ -117,7 +120,7 @@
       }
     }
 
-    /* ════════ RESET + BASE ════════ */
+    /* ════ RESET + BASE ════ */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html {
       font-family: var(--font-body);
@@ -125,6 +128,7 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
+      scroll-behavior: smooth;
       background: var(--bg);
       color: var(--text);
     }
@@ -144,54 +148,55 @@
       *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
 
-    /* ════════ LAYOUT SHELL ════════ */
+    /* ════ LAYOUT SHELL ════ */
     .auth-shell {
       display: flex;
       flex-direction: column;
       min-height: 100dvh;
     }
     @media (min-width: 900px) {
-      .auth-shell { display: grid; grid-template-columns: 1fr 1fr; }
+      .auth-shell { display: grid; grid-template-columns: 1fr 1fr; min-height: 100dvh; }
     }
     @media (min-width: 1200px) {
       .auth-shell { grid-template-columns: 1.15fr 1fr; }
     }
 
-    /* ════════ MOBILE TOPBAR ════════ */
+    /* ════ MOBILE TOPBAR ════ */
     .mobile-topbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: var(--s4) var(--s5);
+      padding: var(--s3) var(--s5);
       background: var(--surface);
       border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 20;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
     @media (min-width: 900px) { .mobile-topbar { display: none; } }
-    .topbar-brand {
-      display: flex; align-items: center; gap: var(--s2); text-decoration: none;
-    }
+
+    .topbar-brand { display: flex; align-items: center; gap: var(--s2); text-decoration: none; }
     .topbar-brand__icon {
       width: 32px; height: 32px; border-radius: var(--r-sm);
       background: var(--primary); display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
-    .topbar-brand__name {
-      font-size: 1rem; font-weight: 800; color: var(--text); letter-spacing: -.02em;
-    }
+    .topbar-brand__name { font-size: 1rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; }
     .topbar-brand__name em { color: var(--primary); font-style: normal; }
+
     .theme-btn-sm {
       width: 38px; height: 38px; border-radius: var(--r-full);
       background: var(--surface-2); border: 1px solid var(--border);
       display: flex; align-items: center; justify-content: center;
       color: var(--text-muted); box-shadow: var(--shadow-xs);
-      transition: color var(--dur) var(--ease), transform var(--dur) var(--ease);
+      transition: color var(--dur) var(--ease), transform var(--dur) var(--ease), background var(--dur) var(--ease);
     }
-    .theme-btn-sm:hover { color: var(--text); transform: rotate(15deg); }
+    .theme-btn-sm:hover { color: var(--text); transform: rotate(18deg); background: var(--surface-offset); }
+    .theme-btn-sm:active { transform: rotate(18deg) scale(.93); }
 
-    /* ════════ LEFT PANEL — hero ════════ */
+    /* ════ LEFT PANEL — hero visual ════ */
     .hero-panel {
       display: none;
       position: relative;
@@ -205,95 +210,108 @@
     }
     @media (min-width: 900px) { .hero-panel { display: flex; } }
 
+    /* Grid texture */
     .hero-panel::before {
       content: '';
       position: absolute; inset: 0;
       background-image:
-        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
-      background-size: 44px 44px;
+        linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+      background-size: 40px 40px;
       pointer-events: none; z-index: 0;
     }
+    /* Radial overlay */
     .hero-panel::after {
       content: '';
       position: absolute; inset: 0;
       background:
-        radial-gradient(ellipse 70% 50% at 15% 25%, rgba(255,255,255,.13) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 70% at 85% 80%, rgba(0,0,0,.18) 0%, transparent 55%);
+        radial-gradient(ellipse 70% 50% at 20% 20%, rgba(255,255,255,.14) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 60% at 80% 85%, rgba(0,0,0,.16) 0%, transparent 55%);
       pointer-events: none; z-index: 0;
     }
     .hero-orb {
-      position: absolute; width: 480px; height: 480px; border-radius: 50%;
+      position: absolute; width: 520px; height: 520px; border-radius: 50%;
       background: radial-gradient(circle, rgba(255,255,255,.10) 0%, transparent 70%);
-      top: -120px; right: -120px;
-      animation: orb-drift 10s ease-in-out infinite; pointer-events: none; z-index: 0;
+      top: -140px; right: -130px;
+      animation: orb-drift 11s ease-in-out infinite; pointer-events: none; z-index: 0;
     }
     .hero-orb-2 {
-      position: absolute; width: 300px; height: 300px; border-radius: 50%;
+      position: absolute; width: 320px; height: 320px; border-radius: 50%;
       background: radial-gradient(circle, rgba(255,255,255,.07) 0%, transparent 70%);
-      bottom: 80px; left: -80px;
-      animation: orb-drift 14s ease-in-out infinite reverse; pointer-events: none; z-index: 0;
+      bottom: 60px; left: -90px;
+      animation: orb-drift 15s ease-in-out infinite reverse; pointer-events: none; z-index: 0;
     }
     @keyframes orb-drift {
-      0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-24px,18px) scale(1.06)} 66%{transform:translate(12px,-20px) scale(.96)}
+      0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-20px,16px) scale(1.06)} 66%{transform:translate(10px,-18px) scale(.96)}
     }
+
     .hero-content {
       position: relative; z-index: 1;
-      display: flex; flex-direction: column; gap: var(--s10); flex: 1;
+      display: flex; flex-direction: column; gap: var(--s8); flex: 1;
     }
+
+    /* Brand in hero */
     .hero-brand { display: flex; align-items: center; gap: var(--s3); }
     .hero-brand__icon {
-      width: 46px; height: 46px; border-radius: var(--r-md);
+      width: 44px; height: 44px; border-radius: var(--r-md);
       background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.24);
       backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center;
       flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,.12);
     }
     .hero-brand__name { font-size: var(--t-lg); font-weight: 800; letter-spacing: -.025em; color: #fff; }
     .hero-brand__name em { font-style: normal; opacity: .72; }
-    .hero-status {
+
+    /* Badge */
+    .hero-badge {
       display: inline-flex; align-items: center; gap: var(--s2);
       background: rgba(255,255,255,.12); backdrop-filter: blur(10px);
       border: 1px solid rgba(255,255,255,.18); border-radius: var(--r-full);
-      padding: var(--s1) var(--s4); font-size: var(--t-xs); font-weight: 600;
-      letter-spacing: .05em; text-transform: uppercase; color: rgba(255,255,255,.9); width: fit-content;
+      padding: 5px var(--s4); font-size: var(--t-xs); font-weight: 600;
+      letter-spacing: .05em; text-transform: uppercase; color: rgba(255,255,255,.9);
+      width: fit-content;
     }
-    .hero-status__dot {
+    .hero-badge__dot {
       width: 6px; height: 6px; border-radius: 50%;
       background: var(--accent); box-shadow: 0 0 8px var(--accent);
-      animation: pulse-dot 2.4s ease-in-out infinite;
+      animation: pulse-dot 2.4s ease-in-out infinite; flex-shrink: 0;
     }
-    @keyframes pulse-dot { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.3);opacity:.7} }
+    @keyframes pulse-dot { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.35);opacity:.65} }
+
+    /* Headline */
     .hero-headline {
       font-family: var(--font-display);
       font-size: var(--t-2xl); font-weight: 400; font-style: italic;
-      line-height: 1.12; letter-spacing: -.02em; color: #fff;
+      line-height: 1.1; letter-spacing: -.02em; color: #fff; margin-bottom: var(--s3);
     }
     .hero-headline strong {
       font-style: normal; font-weight: 800; color: var(--accent);
-      font-family: var(--font-body); font-size: .75em;
+      font-family: var(--font-body); font-size: .78em;
       display: block; letter-spacing: -.03em;
     }
     .hero-desc {
-      font-size: var(--t-sm); line-height: 1.75; color: rgba(255,255,255,.7); max-width: 42ch;
+      font-size: var(--t-sm); line-height: 1.78; color: rgba(255,255,255,.68); max-width: 40ch;
     }
 
-    /* Steps timeline */
-    .hero-steps { display: flex; flex-direction: column; gap: var(--s4); }
+    /* Steps */
+    .hero-steps { display: flex; flex-direction: column; gap: var(--s3); }
     .hero-step {
       display: flex; align-items: flex-start; gap: var(--s4);
       font-size: var(--t-sm); color: rgba(255,255,255,.85);
     }
     .hero-step__num {
       width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
-      background: rgba(255,255,255,.15); border: 1.5px solid rgba(255,255,255,.25);
+      background: rgba(255,255,255,.14); border: 1.5px solid rgba(255,255,255,.24);
       display: flex; align-items: center; justify-content: center;
-      font-size: .7rem; font-weight: 800; color: #fff;
-      margin-top: 1px;
+      font-size: .68rem; font-weight: 800; color: #fff; margin-top: 1px;
+    }
+    .hero-step__num.active {
+      background: var(--accent); border-color: transparent;
+      color: #1a1200; box-shadow: 0 2px 10px rgba(224,156,0,.45);
     }
     .hero-step__text strong { display: block; font-weight: 700; margin-bottom: 1px; }
-    .hero-step__text span { color: rgba(255,255,255,.62); font-size: .8rem; }
+    .hero-step__text span { color: rgba(255,255,255,.60); font-size: .79rem; }
 
-    /* Benefit cards */
+    /* Benefits grid */
     .hero-benefits {
       display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3);
       position: relative; z-index: 1;
@@ -302,49 +320,51 @@
       background: rgba(255,255,255,.10); backdrop-filter: blur(14px);
       border: 1px solid rgba(255,255,255,.16); border-radius: var(--r-md);
       padding: var(--s4);
-      transition: background var(--dur) var(--ease);
+      transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
     }
-    .benefit-card:hover { background: rgba(255,255,255,.15); }
+    .benefit-card:hover { background: rgba(255,255,255,.16); transform: translateY(-2px); }
     .benefit-card__icon {
-      width: 32px; height: 32px; border-radius: var(--r-sm);
+      width: 30px; height: 30px; border-radius: var(--r-sm);
       background: rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center;
-      margin-bottom: var(--s3); color: rgba(255,255,255,.9);
+      margin-bottom: var(--s2); color: rgba(255,255,255,.9);
     }
-    .benefit-card__title { font-size: .85rem; font-weight: 700; color: #fff; margin-bottom: var(--s1); }
-    .benefit-card__sub { font-size: .72rem; color: rgba(255,255,255,.58); line-height: 1.5; }
+    .benefit-card__title { font-size: .84rem; font-weight: 700; color: #fff; margin-bottom: 3px; }
+    .benefit-card__sub { font-size: .72rem; color: rgba(255,255,255,.56); line-height: 1.5; }
 
-    /* Bottom quote */
+    /* Quote */
     .hero-quote {
       background: rgba(255,255,255,.08); backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,.12); border-radius: var(--r-lg);
+      border: 1px solid rgba(255,255,255,.12); border-radius: var(--r-xl);
       padding: var(--s5) var(--s6); position: relative; z-index: 1;
     }
+    .hero-quote__stars { color: var(--accent); font-size: .7rem; letter-spacing: 2px; margin-bottom: var(--s2); }
     .hero-quote__text {
-      font-size: var(--t-sm); line-height: 1.65; color: rgba(255,255,255,.82);
+      font-size: var(--t-sm); line-height: 1.65; color: rgba(255,255,255,.80);
       font-style: italic; margin-bottom: var(--s3);
     }
     .hero-quote__author {
       display: flex; align-items: center; gap: var(--s2);
-      font-size: .75rem; color: rgba(255,255,255,.6);
+      font-size: .74rem; color: rgba(255,255,255,.58);
     }
     .hero-quote__avatar {
       width: 28px; height: 28px; border-radius: 50%;
-      background: rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center;
-      font-size: .65rem; font-weight: 700; color: #fff; flex-shrink: 0;
+      background: rgba(255,255,255,.18); display: flex; align-items: center; justify-content: center;
+      font-size: .62rem; font-weight: 700; color: #fff; flex-shrink: 0;
     }
-    .hero-quote__stars { color: var(--accent); font-size: .7rem; letter-spacing: 1px; margin-bottom: var(--s2); }
 
-    /* ════════ RIGHT PANEL — form ════════ */
+    /* ════ RIGHT PANEL — form ════ */
     .form-panel {
       flex: 1; display: flex; flex-direction: column;
       align-items: center; justify-content: flex-start;
       padding: var(--s8) var(--s4) var(--s12);
       background: var(--bg);
       transition: background var(--dur-slow) var(--ease);
+      position: relative;
     }
-    @media (min-width: 640px) { .form-panel { padding: var(--s10) var(--s8) var(--s12); } }
-    @media (min-width: 900px) { .form-panel { justify-content: center; } }
+    @media (min-width: 640px) { .form-panel { padding: var(--s10) var(--s6) var(--s12); } }
+    @media (min-width: 900px) { .form-panel { justify-content: center; padding: var(--s12) var(--s8); } }
 
+    /* Desktop theme toggle */
     .theme-btn {
       display: none;
       position: absolute; top: var(--s5); right: var(--s5);
@@ -355,16 +375,17 @@
       transition: color var(--dur) var(--ease), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
     }
     @media (min-width: 900px) { .theme-btn { display: flex; } }
-    .theme-btn:hover { color: var(--text); transform: rotate(15deg); box-shadow: var(--shadow-md); }
+    .theme-btn:hover { color: var(--text); transform: rotate(18deg); box-shadow: var(--shadow-md); }
+    .theme-btn:active { transform: rotate(18deg) scale(.93); }
 
-    .form-wrap { width: 100%; max-width: 440px; }
+    .form-wrap { width: 100%; max-width: 460px; }
 
-    /* Header */
-    .form-header { margin-bottom: var(--s6); }
+    /* Form header */
+    .form-header { margin-bottom: var(--s5); }
     .form-eyebrow {
       display: inline-flex; align-items: center; gap: var(--s2);
       background: var(--primary-lo); border: 1px solid oklch(0.48 0.08 192 / 0.15);
-      border-radius: var(--r-full); padding: var(--s1) var(--s3);
+      border-radius: var(--r-full); padding: 5px var(--s3);
       font-size: var(--t-xs); font-weight: 600; color: var(--primary);
       letter-spacing: .04em; text-transform: uppercase; margin-bottom: var(--s4);
     }
@@ -375,32 +396,36 @@
     }
     .form-sub { font-size: var(--t-sm); color: var(--text-muted); line-height: 1.65; }
 
-    /* Progress indicator */
-    .progress-bar {
+    /* Step indicator */
+    .step-indicator {
       display: flex; align-items: center; gap: var(--s2);
-      margin-bottom: var(--s6);
+      margin-bottom: var(--s6); padding: var(--s3) var(--s4);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r-lg);
     }
-    .progress-step {
+    .step-item {
       display: flex; align-items: center; gap: var(--s2);
-      font-size: var(--t-xs); color: var(--text-faint);
+      font-size: var(--t-xs); color: var(--text-faint); font-weight: 600;
+      letter-spacing: .03em;
     }
-    .progress-step.active { color: var(--primary); }
-    .progress-step.done { color: var(--success); }
-    .progress-step__dot {
-      width: 24px; height: 24px; border-radius: 50%;
-      background: var(--surface-offset); border: 1.5px solid var(--border);
+    .step-item.is-active { color: var(--primary); }
+    .step-item.is-done { color: var(--success); }
+    .step-dot {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 1.5px solid var(--border-focus);
       display: flex; align-items: center; justify-content: center;
-      font-size: .65rem; font-weight: 700; flex-shrink: 0;
-      transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+      font-size: .62rem; font-weight: 800; flex-shrink: 0;
+      background: var(--surface-offset);
+      transition: all var(--dur) var(--ease);
     }
-    .progress-step.active .progress-step__dot {
+    .step-item.is-active .step-dot {
       background: var(--primary-lo); border-color: var(--primary); color: var(--primary);
     }
-    .progress-step.done .progress-step__dot {
+    .step-item.is-done .step-dot {
       background: var(--success-lo); border-color: var(--success); color: var(--success);
     }
-    .progress-line {
-      flex: 1; height: 1.5px; background: var(--divider); border-radius: 99px;
+    .step-connector {
+      flex: 1; height: 1.5px; background: var(--divider); border-radius: 99px; min-width: var(--s4);
     }
 
     /* Alerts */
@@ -412,22 +437,18 @@
     }
     .alert--error { background: var(--danger-lo); border: 1px solid var(--danger-border); color: var(--danger); }
     .alert--success { background: var(--success-lo); border: 1px solid var(--success-border); color: var(--success); }
-    .alert__icon { flex-shrink: 0; margin-top: 1px; }
+    .alert__icon { flex-shrink: 0; margin-top: 2px; }
     @keyframes slide-down { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:none} }
 
     /* Fields */
     .fields { display: flex; flex-direction: column; gap: var(--s4); margin-bottom: var(--s4); }
-    .fields-row {
-      display: grid; grid-template-columns: 1fr; gap: var(--s4);
-    }
+    .fields-row { display: grid; grid-template-columns: 1fr; gap: var(--s4); }
     @media (min-width: 480px) { .fields-row { grid-template-columns: 1fr 1fr; } }
 
     .field { display: flex; flex-direction: column; gap: var(--s2); }
-    .field-label-row {
-      display: flex; align-items: center; justify-content: space-between; gap: var(--s2);
-    }
+    .field-label-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); }
     .field-label {
-      font-size: .8rem; font-weight: 600;
+      font-size: .78rem; font-weight: 600;
       color: var(--text-muted); letter-spacing: .04em; text-transform: uppercase;
     }
     .field-hint { font-size: .72rem; color: var(--text-faint); }
@@ -436,6 +457,8 @@
       position: absolute; left: var(--s4); color: var(--text-faint);
       pointer-events: none; transition: color var(--dur) var(--ease); display: flex;
     }
+    .input-wrap:focus-within .input-icon { color: var(--primary); }
+
     .control {
       width: 100%;
       padding: var(--s4) var(--s4) var(--s4) calc(var(--s4) + 16px + var(--s3));
@@ -447,16 +470,16 @@
     }
     .control.no-icon { padding-left: var(--s4); }
     .control::placeholder { color: var(--text-faint); }
-    .control:hover:not(:focus) { border-color: var(--border-focus); }
+    .control:hover:not(:focus) { border-color: var(--border-focus); background: var(--surface); }
     .control:focus {
       outline: none; border-color: var(--primary);
       box-shadow: 0 0 0 3px var(--primary-lo);
     }
-    .control.error { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-lo); }
-    .input-wrap:focus-within .input-icon { color: var(--primary); }
+    .control.is-error { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-lo); }
+    .control.is-valid { border-color: var(--success); }
     @media (max-width: 640px) { .control { font-size: 16px; } }
 
-    /* Password strength */
+    /* Password eye toggle */
     .pwd-toggle {
       position: absolute; right: var(--s3);
       width: 32px; height: 32px; border-radius: var(--r-sm);
@@ -466,65 +489,88 @@
     }
     .pwd-toggle:hover { color: var(--text-muted); background: var(--surface-offset); }
 
-    .strength-bar { display: flex; gap: 3px; margin-top: var(--s2); }
-    .strength-seg {
-      flex: 1; height: 3px; border-radius: 99px;
-      background: var(--surface-offset);
-      transition: background var(--dur) var(--ease);
+    /* Password strength meter */
+    .strength-wrap { margin-top: var(--s2); }
+    .strength-track {
+      height: 4px; background: var(--surface-offset); border-radius: 99px; overflow: hidden;
     }
-    .strength-seg.weak    { background: var(--danger); }
-    .strength-seg.fair    { background: var(--accent); }
-    .strength-seg.good    { background: oklch(0.62 0.14 145); }
-    .strength-seg.strong  { background: var(--success); }
-    .strength-label {
-      font-size: .7rem; font-weight: 500; margin-top: 3px;
+    .strength-fill {
+      height: 100%; border-radius: 99px; width: 0%;
+      transition: width .4s var(--ease), background .3s var(--ease);
+    }
+    .strength-fill.s1 { background: var(--danger); }
+    .strength-fill.s2 { background: var(--accent); }
+    .strength-fill.s3 { background: oklch(0.62 0.14 145); }
+    .strength-fill.s4 { background: var(--success); }
+    .strength-meta {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: var(--s2); gap: var(--s2);
+    }
+    .strength-rules {
+      display: flex; gap: var(--s2); flex-wrap: wrap;
+    }
+    .strength-rule {
+      display: flex; align-items: center; gap: 4px;
+      font-size: .68rem; color: var(--text-faint); font-weight: 500;
       transition: color var(--dur) var(--ease);
     }
-    .strength-label.weak    { color: var(--danger); }
-    .strength-label.fair    { color: var(--accent); }
-    .strength-label.good    { color: oklch(0.55 0.12 145); }
-    .strength-label.strong  { color: var(--success); }
-    [data-theme="dark"] .strength-label.good { color: oklch(0.70 0.14 145); }
+    .strength-rule svg { flex-shrink: 0; }
+    .strength-rule.met { color: var(--success); }
+    .strength-label {
+      font-size: .7rem; font-weight: 600; white-space: nowrap;
+      transition: color var(--dur) var(--ease);
+    }
+    .strength-label.s1 { color: var(--danger); }
+    .strength-label.s2 { color: var(--accent); }
+    .strength-label.s3 { color: oklch(0.55 0.12 145); }
+    .strength-label.s4 { color: var(--success); }
+    [data-theme="dark"] .strength-label.s3 { color: oklch(0.72 0.14 145); }
 
     /* Field errors */
     .field-error {
       font-size: .78rem; color: var(--danger);
       display: flex; align-items: center; gap: var(--s1); margin-top: 1px;
+      animation: slide-down .22s var(--ease);
     }
     .field-error svg { flex-shrink: 0; }
 
-    /* Terms checkbox */
-    .terms-field {
-      display: flex; align-items: flex-start; gap: var(--s3);
-      padding: var(--s4); background: var(--surface-2);
-      border: 1.5px solid var(--border); border-radius: var(--r-md);
-      cursor: pointer;
-      transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+    /* Terms card */
+    .terms-card {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: var(--r-md); overflow: hidden;
+      transition: border-color var(--dur) var(--ease);
     }
-    .terms-field:has(input:checked) {
+    .terms-card:has(.terms-checkbox:checked) {
       border-color: oklch(0.48 0.08 192 / 0.30);
       background: var(--primary-lo);
     }
-    [data-theme="dark"] .terms-field:has(input:checked) { border-color: oklch(0.66 0.07 192 / 0.30); }
+    [data-theme="dark"] .terms-card:has(.terms-checkbox:checked) {
+      border-color: oklch(0.66 0.07 192 / 0.30);
+    }
+    .terms-inner {
+      display: flex; align-items: flex-start; gap: var(--s3);
+      padding: var(--s3) var(--s4); cursor: pointer;
+    }
     .terms-checkbox {
       appearance: none; -webkit-appearance: none;
       width: 18px; height: 18px; border-radius: 5px;
       border: 1.5px solid var(--border-focus); background: var(--surface-2);
       cursor: pointer; flex-shrink: 0; margin-top: 1px;
-      transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+      transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
       position: relative;
     }
     .terms-checkbox:checked { background: var(--primary); border-color: var(--primary); }
     .terms-checkbox:checked::after {
-      content: ''; position: absolute; left: 3px; top: 1px;
-      width: 10px; height: 6px; border: 2px solid #fff;
+      content: ''; position: absolute; left: 3px; top: 1.5px;
+      width: 9px; height: 5px; border: 2px solid #fff;
       border-top: none; border-right: none; transform: rotate(-45deg);
     }
+    .terms-checkbox:active { transform: scale(.9); }
     .terms-checkbox:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
     .terms-text { font-size: var(--t-sm); color: var(--text-muted); line-height: 1.55; }
     .terms-text a { font-weight: 600; }
 
-    /* Submit button */
+    /* Submit */
     .btn-submit {
       width: 100%; padding: var(--s4) var(--s6);
       background: var(--primary); color: #fff;
@@ -538,9 +584,9 @@
     }
     .btn-submit::before {
       content: ''; position: absolute; inset: 0;
-      background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.14) 50%, transparent 60%);
+      background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.16) 50%, transparent 65%);
       transform: translateX(-100%);
-      transition: transform .6s var(--ease);
+      transition: transform .55s var(--ease);
     }
     .btn-submit:hover {
       background: var(--primary-h); box-shadow: var(--shadow-primary-h);
@@ -549,63 +595,77 @@
     .btn-submit:hover::before { transform: translateX(100%); }
     .btn-submit:active { transform: translateY(0) scale(.99); }
     .btn-submit .btn-arrow { transition: transform var(--dur) var(--ease); }
-    .btn-submit:hover .btn-arrow { transform: translateX(4px); }
+    .btn-submit:hover .btn-arrow { transform: translateX(5px); }
+    .btn-submit:disabled { opacity: .6; pointer-events: none; }
+
+    /* Spinner */
+    .btn-spinner {
+      width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,.35);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin .6s linear infinite; display: none;
+    }
+    .btn-submit.loading .btn-spinner { display: block; }
+    .btn-submit.loading .btn-text,
+    .btn-submit.loading .btn-icon,
+    .btn-submit.loading .btn-arrow { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Divider */
     .divider {
       display: flex; align-items: center; gap: var(--s3);
-      margin: var(--s6) 0; color: var(--text-faint);
+      margin: var(--s5) 0; color: var(--text-faint);
       font-size: var(--t-xs); letter-spacing: .06em; text-transform: uppercase;
     }
     .divider::before, .divider::after {
       content: ''; flex: 1; height: 1px; background: var(--divider);
     }
 
-    /* Login link */
+    /* Footer links */
     .login-row { text-align: center; font-size: var(--t-sm); color: var(--text-muted); }
     .login-row a { color: var(--primary); font-weight: 600; }
 
-    /* Mini trust */
+    /* Trust row */
     .trust-row {
       display: flex; align-items: center; justify-content: center;
-      gap: var(--s5); margin-top: var(--s6); flex-wrap: wrap;
+      gap: var(--s5); margin-top: var(--s5); flex-wrap: wrap;
     }
     .trust-item {
-      display: flex; align-items: center; gap: var(--s1);
+      display: flex; align-items: center; gap: 5px;
       font-size: .7rem; color: var(--text-faint); font-weight: 500;
     }
 
     /* Entry animations */
     @keyframes fade-up {
-      from { opacity: 0; transform: translateY(14px); }
+      from { opacity: 0; transform: translateY(12px); }
       to   { opacity: 1; transform: none; }
     }
     .form-wrap > * { animation: fade-up var(--dur-slow) var(--ease) both; }
     .form-wrap > *:nth-child(1){animation-delay:0ms}
-    .form-wrap > *:nth-child(2){animation-delay:40ms}
-    .form-wrap > *:nth-child(3){animation-delay:80ms}
-    .form-wrap > *:nth-child(4){animation-delay:120ms}
-    .form-wrap > *:nth-child(5){animation-delay:160ms}
-    .form-wrap > *:nth-child(6){animation-delay:200ms}
-    .form-wrap > *:nth-child(7){animation-delay:240ms}
-    .form-wrap > *:nth-child(8){animation-delay:280ms}
+    .form-wrap > *:nth-child(2){animation-delay:50ms}
+    .form-wrap > *:nth-child(3){animation-delay:100ms}
+    .form-wrap > *:nth-child(4){animation-delay:150ms}
+    .form-wrap > *:nth-child(5){animation-delay:200ms}
+    .form-wrap > *:nth-child(6){animation-delay:250ms}
+    .form-wrap > *:nth-child(7){animation-delay:300ms}
+    .form-wrap > *:nth-child(8){animation-delay:350ms}
+    .form-wrap > *:nth-child(9){animation-delay:400ms}
 
     .hero-content > * { animation: fade-up var(--dur-slow) var(--ease) both; }
-    .hero-content > *:nth-child(1){animation-delay:100ms}
-    .hero-content > *:nth-child(2){animation-delay:180ms}
-    .hero-content > *:nth-child(3){animation-delay:260ms}
-    .hero-content > *:nth-child(4){animation-delay:340ms}
-    .hero-benefits{animation:fade-up var(--dur-slow) var(--ease) 420ms both}
-    .hero-quote{animation:fade-up var(--dur-slow) var(--ease) 500ms both}
+    .hero-content > *:nth-child(1){animation-delay:80ms}
+    .hero-content > *:nth-child(2){animation-delay:160ms}
+    .hero-content > *:nth-child(3){animation-delay:240ms}
+    .hero-content > *:nth-child(4){animation-delay:320ms}
+    .hero-benefits { animation: fade-up var(--dur-slow) var(--ease) 400ms both; }
+    .hero-quote    { animation: fade-up var(--dur-slow) var(--ease) 480ms both; }
   </style>
 </head>
 <body>
 
-<!-- Mobile topbar -->
+{# Mobile topbar #}
 <header class="mobile-topbar">
-  <a href="/" class="topbar-brand">
-    <div class="topbar-brand__icon">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <a href="/" class="topbar-brand" aria-label="Ir para início PulseSMM">
+    <div class="topbar-brand__icon" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
       </svg>
     </div>
@@ -633,7 +693,7 @@
 
       <div class="hero-brand">
         <div class="hero-brand__icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
           </svg>
         </div>
@@ -641,15 +701,15 @@
       </div>
 
       <div>
-        <div class="hero-status">
-          <span class="hero-status__dot"></span>
-          Cadastro grátis e imediato
+        <div class="hero-badge">
+          <span class="hero-badge__dot"></span>
+          Cadastro gratuito e imediato
         </div>
       </div>
 
       <div>
         <h1 class="hero-headline">
-          Comece hoje e<br>cresça mais rápido
+          Comece agora e<br>cresça mais rápido
           <strong>Resultados reais.</strong>
         </h1>
         <p class="hero-desc">
@@ -659,10 +719,10 @@
 
       <div class="hero-steps">
         <div class="hero-step">
-          <div class="hero-step__num">1</div>
+          <div class="hero-step__num active">1</div>
           <div class="hero-step__text">
             <strong>Crie sua conta</strong>
-            <span>Preencha os dados básicos em segundos</span>
+            <span>Preencha os dados básicos agora</span>
           </div>
         </div>
         <div class="hero-step">
@@ -686,38 +746,28 @@
     <div class="hero-benefits">
       <div class="benefit-card">
         <div class="benefit-card__icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </div>
         <div class="benefit-card__title">100% Seguro</div>
         <div class="benefit-card__sub">Dados criptografados e pagamentos protegidos</div>
       </div>
       <div class="benefit-card">
         <div class="benefit-card__icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         </div>
         <div class="benefit-card__title">Entrega Rápida</div>
         <div class="benefit-card__sub">Início em minutos após confirmação</div>
       </div>
       <div class="benefit-card">
         <div class="benefit-card__icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07"/>
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.32a2 2 0 0 1 2-2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.86A16 16 0 0 0 16 16.95l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
-          </svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </div>
         <div class="benefit-card__title">Suporte 24/7</div>
         <div class="benefit-card__sub">Time pronto para te ajudar a qualquer hora</div>
       </div>
       <div class="benefit-card">
         <div class="benefit-card__icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <div class="benefit-card__title">Garantia</div>
         <div class="benefit-card__sub">Reembolso garantido em 30 dias sem perguntas</div>
@@ -762,15 +812,15 @@
         <p class="form-sub">Preencha os dados abaixo. Leva menos de 2 minutos.</p>
       </header>
 
-      {# Progress indicator #}
-      <div class="progress-bar" aria-label="Etapa 1 de 2">
-        <div class="progress-step active">
-          <div class="progress-step__dot">1</div>
-          <span>Dados</span>
+      {# Step indicator #}
+      <div class="step-indicator" aria-label="Progresso do cadastro: etapa 1 de 2">
+        <div class="step-item is-active" aria-current="step">
+          <div class="step-dot">1</div>
+          <span>Seus dados</span>
         </div>
-        <div class="progress-line"></div>
-        <div class="progress-step">
-          <div class="progress-step__dot">2</div>
+        <div class="step-connector"></div>
+        <div class="step-item">
+          <div class="step-dot">2</div>
           <span>Confirmar</span>
         </div>
       </div>
@@ -797,24 +847,24 @@
         </div>
       {% endfor %}
 
-      {# Registration form #}
+      {# Form #}
       {{ form_start(registrationForm, {attr: {class: 'reg-form', novalidate: 'novalidate', id: 'regForm'}}) }}
 
         <div class="fields">
 
-          {# Name #}
+          {# Nome completo #}
           <div class="field">
             <div class="field-label-row">
               <label class="field-label" for="{{ registrationForm.name.vars.id }}">Nome completo</label>
             </div>
             <div class="input-wrap">
-              <span class="input-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                   <circle cx="12" cy="7" r="4"/>
                 </svg>
               </span>
-              {{ form_widget(registrationForm.name, {attr: {class: 'control', placeholder: 'Seu nome completo', autocomplete: 'name'}}) }}
+              {{ form_widget(registrationForm.name, {attr: {class: 'control', placeholder: 'Seu nome completo', autocomplete: 'name', id: 'fieldName'}}) }}
             </div>
             {% if registrationForm.name.vars.errors|length > 0 %}
               <div class="field-error" role="alert">
@@ -824,19 +874,19 @@
             {% endif %}
           </div>
 
-          {# Email #}
+          {# E-mail #}
           <div class="field">
             <div class="field-label-row">
               <label class="field-label" for="{{ registrationForm.email.vars.id }}">E-mail</label>
             </div>
             <div class="input-wrap">
-              <span class="input-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                   <polyline points="22,6 12,13 2,6"/>
                 </svg>
               </span>
-              {{ form_widget(registrationForm.email, {attr: {class: 'control', placeholder: 'seu@email.com.br', autocomplete: 'email'}}) }}
+              {{ form_widget(registrationForm.email, {attr: {class: 'control', placeholder: 'seu@email.com.br', autocomplete: 'email', id: 'fieldEmail'}}) }}
             </div>
             {% if registrationForm.email.vars.errors|length > 0 %}
               <div class="field-error" role="alert">
@@ -846,15 +896,15 @@
             {% endif %}
           </div>
 
-          {# Password #}
+          {# Senha #}
           <div class="field">
             <div class="field-label-row">
               <label class="field-label" for="{{ registrationForm.plainPassword.first.vars.id }}">Senha</label>
               <span class="field-hint">Mínimo 8 caracteres</span>
             </div>
             <div class="input-wrap">
-              <span class="input-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>
@@ -862,18 +912,37 @@
               {{ form_widget(registrationForm.plainPassword.first, {attr: {class: 'control', placeholder: '••••••••', autocomplete: 'new-password', id: 'pwd1', style: 'padding-right:3rem'}}) }}
               <button type="button" class="pwd-toggle" id="pwdToggle1" aria-label="Mostrar senha">
                 <svg id="eyeIcon1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                 </svg>
               </button>
             </div>
-            <div class="strength-bar" id="strengthBar" aria-hidden="true">
-              <div class="strength-seg" id="seg1"></div>
-              <div class="strength-seg" id="seg2"></div>
-              <div class="strength-seg" id="seg3"></div>
-              <div class="strength-seg" id="seg4"></div>
+            {# Strength meter — barra contínua + regras visuais #}
+            <div class="strength-wrap" id="strengthWrap" aria-live="polite">
+              <div class="strength-track">
+                <div class="strength-fill" id="strengthFill"></div>
+              </div>
+              <div class="strength-meta">
+                <div class="strength-rules">
+                  <span class="strength-rule" id="rule-len">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>
+                    8+ chars
+                  </span>
+                  <span class="strength-rule" id="rule-upper">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>
+                    Maiúsc.
+                  </span>
+                  <span class="strength-rule" id="rule-num">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>
+                    Número
+                  </span>
+                  <span class="strength-rule" id="rule-sym">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>
+                    Símbolo
+                  </span>
+                </div>
+                <span class="strength-label" id="strengthLabel"></span>
+              </div>
             </div>
-            <div class="strength-label" id="strengthLabel" aria-live="polite"></div>
             {% if registrationForm.plainPassword.first.vars.errors|length > 0 %}
               <div class="field-error" role="alert">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -882,14 +951,14 @@
             {% endif %}
           </div>
 
-          {# Confirm password #}
+          {# Confirmar senha #}
           <div class="field">
             <div class="field-label-row">
               <label class="field-label" for="{{ registrationForm.plainPassword.second.vars.id }}">Confirmar senha</label>
             </div>
             <div class="input-wrap">
-              <span class="input-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="9 11 12 14 22 4"/>
                   <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
                 </svg>
@@ -897,11 +966,11 @@
               {{ form_widget(registrationForm.plainPassword.second, {attr: {class: 'control', placeholder: 'Repita a senha', autocomplete: 'new-password', id: 'pwd2', style: 'padding-right:3rem'}}) }}
               <button type="button" class="pwd-toggle" id="pwdToggle2" aria-label="Mostrar confirmação de senha">
                 <svg id="eyeIcon2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                 </svg>
               </button>
             </div>
+            <div id="matchHint" style="font-size:.72rem;margin-top:3px;display:none;"></div>
             {% if registrationForm.plainPassword.second.vars.errors|length > 0 %}
               <div class="field-error" role="alert">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -910,34 +979,37 @@
             {% endif %}
           </div>
 
-          {# Terms #}
-          <label class="terms-field">
-            {{ form_widget(registrationForm.agreeTerms, {attr: {class: 'terms-checkbox', id: 'agreeTerms'}}) }}
-            <span class="terms-text">
-              Li e aceito os
-              <a href="/termos" target="_blank" rel="noopener">termos de uso</a>
-              e a
-              <a href="/privacidade" target="_blank" rel="noopener">política de privacidade</a>
-              do PulseSMM
-            </span>
-          </label>
-          {% if registrationForm.agreeTerms.vars.errors|length > 0 %}
-            <div class="field-error" role="alert">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              {{ form_errors(registrationForm.agreeTerms) }}
-            </div>
-          {% endif %}
+          {# Termos #}
+          <div class="terms-card">
+            <label class="terms-inner">
+              {{ form_widget(registrationForm.agreeTerms, {attr: {class: 'terms-checkbox', id: 'agreeTerms'}}) }}
+              <span class="terms-text">
+                Li e aceito os
+                <a href="/termos" target="_blank" rel="noopener">Termos de uso</a>
+                e a
+                <a href="/privacidade" target="_blank" rel="noopener">Política de privacidade</a>
+                do PulseSMM
+              </span>
+            </label>
+            {% if registrationForm.agreeTerms.vars.errors|length > 0 %}
+              <div class="field-error" role="alert" style="padding: 0 var(--s4) var(--s3);">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                {{ form_errors(registrationForm.agreeTerms) }}
+              </div>
+            {% endif %}
+          </div>
 
         </div>
 
-        <button type="submit" class="btn-submit">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <div class="btn-spinner"></div>
+          <svg class="btn-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
             <circle cx="9" cy="7" r="4"/>
             <line x1="19" y1="8" x2="19" y2="14"/>
             <line x1="22" y1="11" x2="16" y2="11"/>
           </svg>
-          Criar minha conta
+          <span class="btn-text">Criar minha conta</span>
           <svg class="btn-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="5" y1="12" x2="19" y2="12"/>
             <polyline points="12 5 19 12 12 19"/>
@@ -953,24 +1025,17 @@
         <a href="{{ path('app_login') }}">Entrar agora →</a>
       </p>
 
-      <div class="trust-row">
+      <div class="trust-row" aria-label="Garantias de segurança">
         <div class="trust-item">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           Dados seguros
         </div>
         <div class="trust-item">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="3" y="11" width="18" height="11" rx="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           Sem spam
         </div>
         <div class="trust-item">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
           Grátis pra sempre
         </div>
       </div>
@@ -984,10 +1049,10 @@
 (function () {
   'use strict';
 
-  /* ── Theme ── */
-  var html    = document.documentElement;
-  var stored  = (function(){ try{ return sessionStorage.getItem('pulse-theme'); }catch(e){ return null; } })();
-  var sys     = matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light';
+  /* ── Theme toggle ── */
+  var html = document.documentElement;
+  var stored = (function(){ try{ return sessionStorage.getItem('pulse-theme'); }catch(e){ return null; } })();
+  var sys = matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light';
   var current = stored || sys;
   html.setAttribute('data-theme', current);
 
@@ -1000,13 +1065,11 @@
       if (el) el.innerHTML = t === 'dark' ? MOON : SUN;
     });
   }
-
   function setTheme(t) {
     html.setAttribute('data-theme', t);
     applyIcons(t);
     try { sessionStorage.setItem('pulse-theme', t); } catch(e){}
   }
-
   setTheme(current);
 
   ['themeToggle','themeToggleMobile'].forEach(function(id){
@@ -1021,54 +1084,93 @@
   var EYE_OFF  = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
 
   function makePwdToggle(btnId, inputId, iconId) {
-    var btn   = document.getElementById(btnId);
-    var input = document.getElementById(inputId);
-    var icon  = document.getElementById(iconId);
-    if (!btn || !input || !icon) return;
+    var btn = document.getElementById(btnId);
+    var inp = document.getElementById(inputId);
+    var ico = document.getElementById(iconId);
+    if (!btn || !inp || !ico) return;
     btn.addEventListener('click', function(){
-      var showing = input.type === 'text';
-      input.type = showing ? 'password' : 'text';
-      icon.innerHTML = showing ? EYE_OPEN : EYE_OFF;
+      var showing = inp.type === 'text';
+      inp.type = showing ? 'password' : 'text';
+      ico.innerHTML = showing ? EYE_OPEN : EYE_OFF;
       btn.setAttribute('aria-label', showing ? 'Mostrar senha' : 'Ocultar senha');
     });
   }
-
   makePwdToggle('pwdToggle1', 'pwd1', 'eyeIcon1');
   makePwdToggle('pwdToggle2', 'pwd2', 'eyeIcon2');
 
-  /* ── Password strength meter ── */
-  var pwdInput    = document.getElementById('pwd1');
-  var segs        = [document.getElementById('seg1'), document.getElementById('seg2'), document.getElementById('seg3'), document.getElementById('seg4')];
-  var strengthLbl = document.getElementById('strengthLabel');
+  /* ── Password strength — barra contínua + regras visuais ── */
+  var pwdInput  = document.getElementById('pwd1');
+  var fill      = document.getElementById('strengthFill');
+  var lbl       = document.getElementById('strengthLabel');
+  var ruleLen   = document.getElementById('rule-len');
+  var ruleUpper = document.getElementById('rule-upper');
+  var ruleNum   = document.getElementById('rule-num');
+  var ruleSym   = document.getElementById('rule-sym');
 
-  var levels = [
-    { label: '', cls: '' },
-    { label: 'Fraca',  cls: 'weak' },
-    { label: 'Razoável', cls: 'fair' },
-    { label: 'Boa',    cls: 'good' },
-    { label: 'Forte',  cls: 'strong' }
-  ];
+  var CHECK_SVG  = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+  var CIRCLE_SVG = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>';
 
-  function getStrength(pwd) {
-    if (!pwd || pwd.length < 1) return 0;
-    var score = 0;
-    if (pwd.length >= 8)  score++;
-    if (/[A-Z]/.test(pwd)) score++;
-    if (/[0-9]/.test(pwd)) score++;
-    if (/[^A-Za-z0-9]/.test(pwd)) score++;
-    return score;
+  function setRule(el, met, text) {
+    if (!el) return;
+    el.className = 'strength-rule' + (met ? ' met' : '');
+    el.innerHTML = (met ? CHECK_SVG : CIRCLE_SVG) + ' ' + text;
   }
 
-  if (pwdInput) {
+  var LEVELS = ['','Fraca','Razoável','Boa','Forte'];
+  var WIDTHS  = ['0%','25%','50%','75%','100%'];
+
+  if (pwdInput && fill) {
     pwdInput.addEventListener('input', function(){
-      var s = getStrength(this.value);
-      segs.forEach(function(seg, i){
-        seg.className = 'strength-seg' + (i < s ? ' ' + levels[s].cls : '');
-      });
-      if (strengthLbl) {
-        strengthLbl.textContent = s > 0 ? levels[s].label : '';
-        strengthLbl.className = 'strength-label' + (s > 0 ? ' ' + levels[s].cls : '');
+      var v = this.value;
+      var len   = v.length >= 8;
+      var upper = /[A-Z]/.test(v);
+      var num   = /[0-9]/.test(v);
+      var sym   = /[^A-Za-z0-9]/.test(v);
+      var score = (v.length > 0 ? 1 : 0) + (len?1:0) + (upper?1:0) + (num&&sym?1:0);
+      score = Math.min(score, 4);
+
+      fill.className = 'strength-fill' + (score > 0 ? ' s' + score : '');
+      fill.style.width = WIDTHS[score];
+
+      if (lbl) {
+        lbl.textContent = score > 0 ? LEVELS[score] : '';
+        lbl.className = 'strength-label' + (score > 0 ? ' s' + score : '');
       }
+
+      setRule(ruleLen,   len,   '8+ chars');
+      setRule(ruleUpper, upper, 'Maiúsc.');
+      setRule(ruleNum,   num,   'Número');
+      setRule(ruleSym,   sym,   'Símbolo');
+    });
+  }
+
+  /* ── Confirm password match hint ── */
+  var pwd2     = document.getElementById('pwd2');
+  var matchHint = document.getElementById('matchHint');
+
+  if (pwd2 && matchHint && pwdInput) {
+    function checkMatch() {
+      if (!pwd2.value) { matchHint.style.display = 'none'; return; }
+      var ok = pwd2.value === pwdInput.value;
+      matchHint.style.display = 'flex';
+      matchHint.style.alignItems = 'center';
+      matchHint.style.gap = '4px';
+      matchHint.style.color = ok ? 'var(--success)' : 'var(--danger)';
+      matchHint.innerHTML = ok
+        ? CHECK_SVG + ' Senhas conferem'
+        : CIRCLE_SVG + ' Senhas não conferem';
+    }
+    pwd2.addEventListener('input', checkMatch);
+    if (pwdInput) pwdInput.addEventListener('input', checkMatch);
+  }
+
+  /* ── Submit loading state ── */
+  var form      = document.getElementById('regForm');
+  var submitBtn = document.getElementById('submitBtn');
+  if (form && submitBtn) {
+    form.addEventListener('submit', function(){
+      submitBtn.classList.add('loading');
+      submitBtn.disabled = true;
     });
   }
 
