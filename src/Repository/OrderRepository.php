@@ -39,6 +39,32 @@ class OrderRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * Pedidos em processamento com externalOrderId definido e sem
+     * atualização de status há mais de $minutes minutos.
+     * Usado pelo SyncStaleOrdersCommand para reenfileirar syncs perdidos.
+     */
+    public function findStale(int $minutes = 30): array
+    {
+        $cutoff = new \DateTimeImmutable("-{$minutes} minutes");
+
+        return $this->createQueryBuilder('o')
+            ->join('o.service', 's')
+            ->where('o.status IN (:statuses)')
+            ->andWhere('o.externalOrderId IS NOT NULL')
+            ->andWhere('o.updatedAt < :cutoff')
+            ->andWhere('s.providerSlug IS NOT NULL')
+            ->setParameter('statuses', [
+                Order::STATUS_PROCESSING,
+                Order::STATUS_IN_PROGRESS,
+                Order::STATUS_PARTIAL,
+            ])
+            ->setParameter('cutoff', $cutoff)
+            ->orderBy('o.updatedAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     public function countByUserSince(User $user, \DateTimeImmutable $since): int
     {
         return (int) $this->createQueryBuilder('o')
@@ -58,7 +84,11 @@ class OrderRepository extends ServiceEntityRepository
             ->andWhere('o.user = :user')
             ->andWhere('o.status IN (:statuses)')
             ->setParameter('user', $user)
-            ->setParameter('statuses', ['pending', 'processing'])
+            ->setParameter('statuses', [
+                Order::STATUS_PENDING,
+                Order::STATUS_PROCESSING,
+                Order::STATUS_IN_PROGRESS,
+            ])
             ->getQuery()
             ->getSingleScalarResult();
     }
@@ -72,7 +102,7 @@ class OrderRepository extends ServiceEntityRepository
             ->andWhere('o.status != :cancelled')
             ->setParameter('user', $user)
             ->setParameter('since', $since)
-            ->setParameter('cancelled', 'cancelled')
+            ->setParameter('cancelled', Order::STATUS_CANCELLED)
             ->getQuery()
             ->getSingleScalarResult() ?? 0;
     }
