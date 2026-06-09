@@ -24,7 +24,6 @@
   margin-bottom: 20px;
   box-shadow: 0 8px 32px rgba(1,105,111,.28);
 }
-/* orbs decorativos */
 .wh::before {
   content: '';
   position: absolute;
@@ -43,7 +42,6 @@
   background: rgba(255,255,255,.04);
   pointer-events: none;
 }
-
 .wh__badge {
   display: inline-flex;
   align-items: center;
@@ -85,7 +83,6 @@
   position: relative;
   z-index: 1;
 }
-/* botões dentro do hero */
 .wh__btn-solid {
   display: inline-flex;
   align-items: center;
@@ -104,10 +101,7 @@
   transition: background 140ms ease, box-shadow 140ms ease;
   white-space: nowrap;
 }
-.wh__btn-solid:hover {
-  background: rgba(255,255,255,.88);
-  box-shadow: 0 4px 20px rgba(0,0,0,.22);
-}
+.wh__btn-solid:hover { background: rgba(255,255,255,.88); box-shadow: 0 4px 20px rgba(0,0,0,.22); }
 .wh__btn-ghost {
   display: inline-flex;
   align-items: center;
@@ -145,37 +139,20 @@
   gap: 8px;
   transition: box-shadow 160ms ease, transform 160ms ease;
 }
-.wkpi:hover {
-  box-shadow: var(--sh-md);
-  transform: translateY(-2px);
-}
+.wkpi:hover { box-shadow: var(--sh-md); transform: translateY(-2px); }
 .wkpi__icon {
   width: 36px; height: 36px;
   border-radius: var(--r2);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 .wkpi__icon--teal  { background: var(--acc-soft); color: var(--acc); }
 .wkpi__icon--blue  { background: color-mix(in oklab,#154f82 12%,transparent); color: var(--blue,#3a7fc1); }
 .wkpi__icon--gold  { background: color-mix(in oklab,#9c7400 12%,transparent); color: var(--gold,#b08a00); }
 .wkpi__icon--green { background: color-mix(in oklab,#1e5e14 12%,transparent); color: var(--green,#437a22); }
-.wkpi__label {
-  font-size: .7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .07em;
-  color: var(--text-2);
-}
-.wkpi__val {
-  font-size: 1.45rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  color: var(--text);
-}
+.wkpi__label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-2); }
+.wkpi__val { font-size: 1.45rem; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1; color: var(--text); }
 .wkpi__val--green { color: var(--green,#437a22); }
 
 /* ─ Tabela extrato ───────────────────────── */
@@ -192,11 +169,7 @@
   padding: 14px 24px;
   border-bottom: 1px solid var(--border);
 }
-.wtcard__head h2 {
-  font-size: .9rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
+.wtcard__head h2 { font-size: .9rem; font-weight: 700; letter-spacing: -0.01em; }
 .wtcard__badge {
   display: inline-flex;
   align-items: center;
@@ -205,21 +178,14 @@
   border-radius: 99px;
   font-size: .7rem;
   font-weight: 700;
-  letter-spacing: .03em;
   background: var(--surface-off);
   color: var(--text-2);
   border: 1px solid var(--border);
 }
 .wtcard__wrap { overflow-x: auto; }
 
-/* Tabela */
-.wt {
-  width: 100%;
-  border-collapse: collapse;
-}
-.wt thead tr {
-  border-bottom: 1.5px solid var(--border);
-}
+.wt { width: 100%; border-collapse: collapse; }
+.wt thead tr { border-bottom: 1.5px solid var(--border); }
 .wt thead th {
   padding: 10px 16px;
   font-size: .68rem;
@@ -231,49 +197,46 @@
   white-space: nowrap;
   background: var(--surface);
 }
-.wt tbody tr {
-  border-bottom: 1px solid var(--border);
-  transition: background 120ms ease;
-}
+.wt tbody tr { border-bottom: 1px solid var(--border); transition: background 120ms ease; }
 .wt tbody tr:last-child { border-bottom: none; }
 .wt tbody tr:hover { background: var(--surface-off); }
-
-/* linha pendente: fundo dourado sutil */
 .wt tbody tr.row--pending {
   background: color-mix(in oklab, var(--gold,#b08a00) 5%, transparent);
 }
 .wt tbody tr.row--pending:hover {
   background: color-mix(in oklab, var(--gold,#b08a00) 9%, transparent);
 }
+.wt td { padding: 12px 16px; font-size: .875rem; vertical-align: middle; }
 
-.wt td {
-  padding: 12px 16px;
-  font-size: .875rem;
-  vertical-align: middle;
-}
+/* larguras */
+.wt .col-date   { width: 140px; white-space: nowrap; }
+.wt .col-type   { width: 120px; }
+.wt .col-method { width: 110px; }
+.wt .col-status { width: 140px; }
+.wt .col-val    { text-align: right; white-space: nowrap; }
 
-/* larguras das colunas */
-.wt .col-date    { width: 130px; white-space: nowrap; }
-.wt .col-gw      { width: 130px; }
-.wt .col-method  { width: 100px; }
-.wt .col-status  { width: 140px; }
-.wt .col-val     { text-align: right; white-space: nowrap; }
+.td-date-main { font-size: .85rem; font-variant-numeric: tabular-nums; color: var(--text); }
+.td-date-sub  { font-size: .72rem; color: var(--text-2); opacity: .7; margin-top: 2px; }
 
-.td-date-main  { font-size: .85rem; font-variant-numeric: tabular-nums; color: var(--text); }
-.td-date-sub   { font-size: .72rem; color: var(--text-2); opacity: .7; margin-top: 2px; }
-.td-gw-pill {
-  display: inline-block;
-  padding: 2px 8px;
+/* badge de tipo */
+.bt {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
   border-radius: 99px;
   font-size: .72rem;
   font-weight: 600;
-  background: var(--surface-off);
-  color: var(--text-2);
-  border: 1px solid var(--border);
+  white-space: nowrap;
+  border: 1px solid transparent;
 }
+.bt--deposit { background: color-mix(in oklab,#01696f 11%,transparent); color: var(--acc,#01696f); border-color: color-mix(in oklab,#01696f 22%,transparent); }
+.bt--expense { background: color-mix(in oklab,#a1364a 10%,transparent); color: var(--red,#a1364a); border-color: color-mix(in oklab,#a1364a 22%,transparent); }
+.bt--refund  { background: color-mix(in oklab,#3a7fc1 11%,transparent); color: var(--blue,#3a7fc1); border-color: color-mix(in oklab,#3a7fc1 22%,transparent); }
+
 .td-method { font-size: .82rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); font-weight: 600; }
 
-/* Badges status */
+/* badges status */
 .bs {
   display: inline-flex;
   align-items: center;
@@ -286,49 +249,39 @@
   white-space: nowrap;
   text-decoration: none;
 }
-.bs--ok    { background: var(--green-bg,rgba(67,122,34,.12)); color: var(--green,#437a22); }
-.bs--pend  { background: color-mix(in oklab,var(--gold,#b08a00) 14%,transparent); color: var(--gold,#b08a00); }
-.bs--cancel{ background: color-mix(in oklab,var(--red,#a1364a) 12%,transparent); color: var(--red,#a1364a); }
+.bs--ok    { background: color-mix(in oklab,#437a22 12%,transparent); color: var(--green,#437a22); }
+.bs--pend  { background: color-mix(in oklab,#b08a00 14%,transparent); color: var(--gold,#b08a00); }
+.bs--cancel{ background: color-mix(in oklab,#a1364a 12%,transparent); color: var(--red,#a1364a); }
 
-.td-val {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  font-size: .92rem;
-  color: var(--text-2);
-}
+.td-val { font-weight: 700; font-variant-numeric: tabular-nums; font-size: .92rem; color: var(--text-2); }
 .td-val--credit { color: var(--green,#437a22); }
+.td-val--debit  { color: var(--red,#a1364a); }
 
-/* ─ Empty state ───────────────────────── */
-.wempty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 60px 32px;
-  gap: 10px;
-}
-.wempty svg  { color: var(--text-2); opacity: .5; }
-.wempty h3   { font-size: .95rem; font-weight: 700; color: var(--text); }
-.wempty p    { font-size: .85rem; color: var(--text-2); max-width: 30ch; }
+/* empty state */
+.wempty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 60px 32px; gap: 10px; }
+.wempty svg { color: var(--text-2); opacity: .5; }
+.wempty h3  { font-size: .95rem; font-weight: 700; color: var(--text); }
+.wempty p   { font-size: .85rem; color: var(--text-2); max-width: 30ch; }
 
-/* ─ Responsivo ───────────────────────── */
-@media (max-width: 900px) {
-  .wkpis { grid-template-columns: repeat(2, 1fr); }
-}
+/* responsivo */
+@media (max-width: 900px) { .wkpis { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 640px) {
   .wh { flex-direction: column; align-items: flex-start; padding: 24px 20px; }
   .wh__actions { flex-direction: row; width: 100%; }
   .wh__btn-solid, .wh__btn-ghost { flex: 1; justify-content: center; }
   .wkpis { grid-template-columns: repeat(2, 1fr); }
   .wt thead th, .wt td { padding: 8px 10px; }
-  .wt .col-gw { display: none; } /* esconde gateway em telas pequenas */
+  .wt .col-type { display: none; }
 }
 </style>
 {% endblock %}
 
 {% block content %}
 
-{# ── HERO SALDO ── #}
+{# Fuso horário: usa timezone do usuário se disponivel, senão UTC-3 (Brasília) #}
+{% set tz = app.user.timezone is defined and app.user.timezone ? app.user.timezone : 'America/Sao_Paulo' %}
+
+{# ── HERO ── #}
 <div class="wh" data-reveal>
   <div class="wh__info">
     <div class="wh__badge">
@@ -363,30 +316,22 @@
 
 <div class="wkpis" data-reveal>
   <div class="wkpi">
-    <div class="wkpi__icon wkpi__icon--teal">
-      <i data-lucide="trending-up" width="18" height="18"></i>
-    </div>
+    <div class="wkpi__icon wkpi__icon--teal"><i data-lucide="trending-up" width="18" height="18"></i></div>
     <div class="wkpi__label">Total depositado</div>
     <div class="wkpi__val">R$&thinsp;{{ (total_dep / 100)|number_format(2, ',', '.') }}</div>
   </div>
   <div class="wkpi">
-    <div class="wkpi__icon wkpi__icon--blue">
-      <i data-lucide="layers" width="18" height="18"></i>
-    </div>
+    <div class="wkpi__icon wkpi__icon--blue"><i data-lucide="layers" width="18" height="18"></i></div>
     <div class="wkpi__label">Transações</div>
     <div class="wkpi__val">{{ transactions|length }}</div>
   </div>
   <div class="wkpi">
-    <div class="wkpi__icon wkpi__icon--gold">
-      <i data-lucide="clock" width="18" height="18"></i>
-    </div>
+    <div class="wkpi__icon wkpi__icon--gold"><i data-lucide="clock" width="18" height="18"></i></div>
     <div class="wkpi__label">Pendentes</div>
     <div class="wkpi__val">{{ transactions|filter(t => t.status == 'pending')|length }}</div>
   </div>
   <div class="wkpi">
-    <div class="wkpi__icon wkpi__icon--green">
-      <i data-lucide="check-circle" width="18" height="18"></i>
-    </div>
+    <div class="wkpi__icon wkpi__icon--green"><i data-lucide="check-circle" width="18" height="18"></i></div>
     <div class="wkpi__label">Aprovadas</div>
     <div class="wkpi__val wkpi__val--green">{{ transactions|filter(t => t.status == 'approved')|length }}</div>
   </div>
@@ -405,8 +350,8 @@
     <table class="wt">
       <thead>
         <tr>
-          <th class="col-date">Data</th>
-          <th class="col-gw">Gateway</th>
+          <th class="col-date">Data (BRT)</th>
+          <th class="col-type">Tipo</th>
           <th class="col-method">Método</th>
           <th class="col-status">Status</th>
           <th class="col-val">Valor</th>
@@ -416,70 +361,77 @@
       {% for tx in transactions %}
         <tr class="{{ tx.status == 'pending' ? 'row--pending' : '' }}">
 
-          {# Data #}
+          {# Data convertida para o fuso do usuário (padrao America/Sao_Paulo = UTC-3) #}
           <td class="col-date">
-            <div class="td-date-main">{{ tx.createdAt|date('d/m/Y') }}</div>
-            <div class="td-date-sub">{{ tx.createdAt|date('H:i') }}</div>
+            <div class="td-date-main">{{ tx.createdAt|date('d/m/Y', tz) }}</div>
+            <div class="td-date-sub">{{ tx.createdAt|date('H:i', tz) }}</div>
           </td>
 
-          {# Gateway #}
-          <td class="col-gw">
-            {% if tx.gateway %}
-              <span class="td-gw-pill">{{ tx.gateway }}</span>
+          {# Tipo: deposit / expense / refund #}
+          <td class="col-type">
+            {% if tx.type == 'deposit' %}
+              <span class="bt bt--deposit"><i data-lucide="arrow-down-circle" width="11" height="11"></i> Depósito</span>
+            {% elseif tx.type == 'expense' %}
+              <span class="bt bt--expense"><i data-lucide="arrow-up-circle" width="11" height="11"></i> Gasto</span>
+            {% elseif tx.type == 'refund' %}
+              <span class="bt bt--refund"><i data-lucide="rotate-ccw" width="11" height="11"></i> Reembolso</span>
             {% else %}
-              <span style="color:var(--text-2);opacity:.4">—</span>
+              <span class="bt bt--deposit">{{ tx.type }}</span>
             {% endif %}
           </td>
 
           {# Método #}
           <td class="col-method">
-            <span class="td-method">{{ tx.method ?? '—' }}</span>
+            {% if tx.method == 'pix' %}
+              <span class="td-method">PIX</span>
+            {% elseif tx.method == 'credit_card' %}
+              <span class="td-method">Cartão Créd.</span>
+            {% elseif tx.method == 'debit_card' %}
+              <span class="td-method">Cartão Déb.</span>
+            {% else %}
+              <span class="td-method">{{ tx.method ?? '—' }}</span>
+            {% endif %}
           </td>
 
           {# Status #}
           <td class="col-status">
             {% if tx.status == 'approved' %}
-              <span class="bs bs--ok">
-                <i data-lucide="check" width="11" height="11"></i> Aprovado
-              </span>
+              <span class="bs bs--ok"><i data-lucide="check" width="11" height="11"></i> Aprovado</span>
             {% elseif tx.status == 'pending' and tx.method == 'pix' %}
               <a href="{{ path('app_wallet_pix_pending', {id: tx.id}) }}"
-                 class="bs bs--pend"
-                 title="Ver QR Code Pix">
+                 class="bs bs--pend" title="Ver QR Code Pix">
                 <i data-lucide="qr-code" width="11" height="11"></i> Pendente
               </a>
             {% elseif tx.status == 'pending' %}
-              <span class="bs bs--pend">
-                <i data-lucide="clock" width="11" height="11"></i> Pendente
-              </span>
-            {% elseif tx.status == 'cancelled' %}
-              <span class="bs bs--cancel">
-                <i data-lucide="x" width="11" height="11"></i> Cancelado
+              <span class="bs bs--pend"><i data-lucide="clock" width="11" height="11"></i> Pendente</span>
+            {% elseif tx.status == 'cancelled' or tx.status == 'failed' %}
+              <span class="bs bs--cancel"><i data-lucide="x" width="11" height="11"></i>
+                {{ tx.status == 'cancelled' ? 'Cancelado' : 'Falhou' }}
               </span>
             {% else %}
               <span class="bs bs--pend">{{ tx.status }}</span>
             {% endif %}
           </td>
 
-          {# Valor #}
+          {# Valor: verde=crédito (deposit/refund), vermelho=débito (expense) #}
           <td class="col-val">
-            <span class="td-val {{ tx.status == 'approved' ? 'td-val--credit' : '' }}">
-              +R$&thinsp;{{ (tx.amountCents / 100)|number_format(2, ',', '.') }}
-            </span>
+            {% if tx.type == 'expense' %}
+              <span class="td-val td-val--debit">−R$&thinsp;{{ (tx.amountCents / 100)|number_format(2, ',', '.') }}</span>
+            {% else %}
+              <span class="td-val {{ tx.status == 'approved' ? 'td-val--credit' : '' }}">+R$&thinsp;{{ (tx.amountCents / 100)|number_format(2, ',', '.') }}</span>
+            {% endif %}
           </td>
 
         </tr>
       {% else %}
-        <tr>
-          <td colspan="5">
-            <div class="wempty">
-              <i data-lucide="credit-card" width="42" height="42"></i>
-              <h3>Nenhuma transação ainda</h3>
-              <p>Faça seu primeiro depósito para ver o extrato aqui.</p>
-              <a href="{{ path('app_wallet_deposit') }}" class="btn btn--ghost btn--sm">Fazer primeiro depósito</a>
-            </div>
-          </td>
-        </tr>
+        <tr><td colspan="5">
+          <div class="wempty">
+            <i data-lucide="credit-card" width="42" height="42"></i>
+            <h3>Nenhuma transação ainda</h3>
+            <p>Faça seu primeiro depósito para ver o extrato aqui.</p>
+            <a href="{{ path('app_wallet_deposit') }}" class="btn btn--ghost btn--sm">Fazer primeiro depósito</a>
+          </div>
+        </td></tr>
       {% endfor %}
       </tbody>
     </table>
