@@ -22,6 +22,149 @@
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('css/app.css') }}">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+
+  <style>
+  /* ────────────────────────────────────────────────────────
+     SIDEBAR REFINEMENTS — base overrides
+     Corrige: footer cortado, labels de seção pesados,
+              badge saldo estourando, visual admin destacado demais
+  ──────────────────────────────────────────────────────── */
+
+  /* Não deixa o footer ser esmagado pelo nav */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar__nav {
+    flex: 1 1 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* scrollbar fina */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border, #2a2a2a) transparent;
+  }
+  .sidebar__nav::-webkit-scrollbar { width: 3px; }
+  .sidebar__nav::-webkit-scrollbar-track { background: transparent; }
+  .sidebar__nav::-webkit-scrollbar-thumb { background: var(--border, #2a2a2a); border-radius: 2px; }
+
+  /* Footer fixo no fundo, nunca cortado */
+  .sidebar__footer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border, rgba(255,255,255,.07));
+    min-height: 52px;
+    overflow: hidden;
+  }
+
+  /* Avatar: inicial com borda sutil em vez de fundo sólido pesado */
+  .sidebar__avatar {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .7rem;
+    font-weight: 700;
+    background: color-mix(in srgb, var(--primary, #01696f) 20%, transparent);
+    color: var(--primary, #4f98a3);
+    border: 1px solid color-mix(in srgb, var(--primary, #01696f) 35%, transparent);
+    flex-shrink: 0;
+  }
+
+  /* Bloco nome+email: nunca vaza para fora */
+  .sidebar__user {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .sidebar__user strong {
+    font-size: .75rem;
+    font-weight: 700;
+    color: var(--text, #cdccca);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+  .sidebar__user span {
+    font-size: .65rem;
+    color: var(--text-3, #5a5957);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+
+  /* Botão logout: flex-shrink para nunca sair da tela */
+  .sidebar__logout {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    color: var(--text-3, #797876);
+    opacity: .7;
+    transition: opacity .15s, background .15s;
+  }
+  .sidebar__logout:hover { opacity: 1; background: var(--surface-2, rgba(255,255,255,.06)); }
+
+  /* Seções do nav: discretas, não parecem título de painel */
+  .sidebar__section {
+    font-size: .58rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-3, #5a5957);
+    padding: 14px 16px 4px;
+    margin: 0;
+    line-height: 1;
+    user-select: none;
+  }
+
+  /* Badge de saldo: max-width para não estourar */
+  .sidebar__badge {
+    font-size: .6rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--primary, #01696f) 15%, transparent);
+    color: var(--primary, #4f98a3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90px;
+    flex-shrink: 0;
+  }
+
+  /* Link admin: pill discreto no label, sem bloco separado destacado */
+  .sidebar__link--admin .sidebar__link-label::after {
+    content: 'admin';
+    display: inline-flex;
+    margin-left: 6px;
+    padding: 1px 5px;
+    font-size: .5rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--primary, #01696f) 18%, transparent);
+    color: var(--primary, #4f98a3);
+    vertical-align: middle;
+    line-height: 1.6;
+    text-transform: uppercase;
+  }
+  </style>
+
   {% block stylesheets %}{% endblock %}
 </head>
 <body>
@@ -77,7 +220,7 @@
         <i data-lucide="wallet" width="16" height="16" aria-hidden="true"></i>
         <span class="sidebar__link-label">Carteira</span>
         {% if app.user.wallet is defined and app.user.wallet %}
-        <span class="sidebar__badge">R$ {{ (app.user.wallet.balanceCents / 100)|number_format(2, ',', '.') }}</span>
+        <span class="sidebar__badge">R$&thinsp;{{ (app.user.wallet.balanceCents / 100)|number_format(2, ',', '.') }}</span>
         {% endif %}
       </a>
 
@@ -102,10 +245,9 @@
       </a>
 
       {% if is_granted('ROLE_ADMIN') %}
-      <p class="sidebar__section">Admin</p>
-      <a href="{{ path('admin') }}" class="sidebar__link">
+      <a href="{{ path('admin') }}" class="sidebar__link sidebar__link--admin">
         <i data-lucide="shield" width="16" height="16" aria-hidden="true"></i>
-        <span class="sidebar__link-label">Painel admin</span>
+        <span class="sidebar__link-label">Painel</span>
       </a>
       {% endif %}
 
@@ -128,15 +270,12 @@
   {# ════════════════════ TOPBAR ════════════════════ #}
   <header class="topbar" role="banner">
 
-    {# Left zone #}
     <div class="topbar__left">
-
       <button class="topbar__toggle" id="sidebarToggle"
               aria-label="Alternar menu lateral" aria-expanded="false" aria-controls="sidebar">
         <i data-lucide="menu" width="18" height="18" aria-hidden="true"></i>
       </button>
 
-      {# Mobile-only brand #}
       <a href="{{ path('app_dashboard') }}" class="topbar__brand" aria-label="PulseSMM home">
         <div class="topbar__brand-logo" aria-hidden="true">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
@@ -147,27 +286,22 @@
         <span><em>Pulse</em>SMM</span>
       </a>
 
-      {# Desktop breadcrumb #}
       <div class="topbar__breadcrumb">
         <span class="topbar__pretitle">PulseSMM</span>
         <span class="topbar__title">{% block page_title %}Dashboard{% endblock %}</span>
       </div>
-
     </div>
 
-    {# Right zone #}
     <div class="topbar__actions">
-
       {% if app.user.wallet is defined and app.user.wallet %}
       <a href="{{ path('app_wallet_index') }}" class="topbar__wallet" aria-label="Saldo da carteira">
         <i data-lucide="wallet" width="13" height="13" aria-hidden="true"></i>
-        <span>R$ {{ (app.user.wallet.balanceCents / 100)|number_format(2, ',', '.') }}</span>
+        <span>R$&thinsp;{{ (app.user.wallet.balanceCents / 100)|number_format(2, ',', '.') }}</span>
       </a>
       {% endif %}
 
       <div class="topbar__sep" aria-hidden="true"></div>
 
-      {# Theme toggle — pill with sun + moon #}
       <div class="topbar__theme-toggle" role="group" aria-label="Tema">
         <button class="topbar__theme-btn" id="themeLight" aria-label="Tema claro" title="Tema claro">
           <i data-lucide="sun" width="14" height="14" aria-hidden="true"></i>
@@ -176,7 +310,6 @@
           <i data-lucide="moon" width="14" height="14" aria-hidden="true"></i>
         </button>
       </div>
-
     </div>
 
   </header>
