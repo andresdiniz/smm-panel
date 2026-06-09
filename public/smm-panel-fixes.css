@@ -1,0 +1,501 @@
+/*
+ * SMM Panel — Layout Fixes
+ * Arquivo: assets/styles/app.css (ou importe no base.html.twig)
+ * Stack: Symfony 7 + Twig + CSS próprio
+ *
+ * Como usar:
+ *   1. Copie este arquivo para assets/styles/smm-fixes.css
+ *   2. No base.html.twig (ou layout principal), adicione antes de </head>:
+ *      <link rel="stylesheet" href="{{ asset('build/smm-fixes.css') }}">
+ *   3. Se usar Webpack Encore, importe no app.js:
+ *      import './styles/smm-fixes.css';
+ */
+
+/* ====================================================
+   1. FUNDO GLOBAL — separa a página dos cards
+   ==================================================== */
+body,
+.dashboard-wrapper,
+main {
+    background-color: #f1f5f9 !important; /* slate-100 */
+}
+
+
+/* ====================================================
+   2. SIDEBAR — contraste e hover
+   ==================================================== */
+
+/* Labels de grupo (FINANCEIRO, CONTA, ADMIN) */
+.sidebar .nav-group-label,
+.sidebar .menu-group-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: #94a3b8; /* mais legível no escuro */
+    text-transform: uppercase;
+    padding: 0 16px;
+    margin-top: 20px;
+    margin-bottom: 4px;
+}
+
+/* Itens do menu */
+.sidebar .nav-item a,
+.sidebar .sidebar-link {
+    border-radius: 8px;
+    margin: 1px 8px;
+    padding: 9px 12px;
+    transition: background-color 0.15s ease;
+    color: #c0cce0;
+}
+
+.sidebar .nav-item a:hover,
+.sidebar .sidebar-link:hover {
+    background-color: rgba(255, 255, 255, 0.07);
+    color: #ffffff;
+}
+
+.sidebar .nav-item.active a,
+.sidebar .sidebar-link.active {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+
+/* ====================================================
+   3. CARDS DE MÉTRICAS (topo) — respiro e proporção
+   ==================================================== */
+
+.metric-cards-grid,
+.stats-row,
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.metric-card,
+.stat-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.metric-card .card-label,
+.stat-card .label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #94a3b8;
+}
+
+.metric-card .card-value,
+.stat-card .value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.1;
+}
+
+.metric-card .card-icon,
+.stat-card .icon {
+    align-self: flex-end;
+    color: #94a3b8;
+    opacity: 0.7;
+}
+
+/* Links de ação nos cards (Recarregar, Novo pedido) */
+.metric-card a,
+.stat-card a {
+    font-size: 12px;
+    font-weight: 500;
+    color: #14b8a6;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.metric-card a:hover,
+.stat-card a:hover {
+    text-decoration: underline;
+}
+
+
+/* ====================================================
+   4. BOTÕES DE AÇÃO RÁPIDA (Novo pedido, Recarregar...)
+   ==================================================== */
+
+.action-cards-grid,
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.action-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: box-shadow 0.15s, border-color 0.15s, transform 0.1s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.action-card:hover {
+    border-color: #14b8a6;
+    box-shadow: 0 4px 16px rgba(20, 184, 166, 0.12);
+    transform: translateY(-1px);
+    color: #14b8a6;
+}
+
+.action-card svg,
+.action-card i {
+    font-size: 24px;
+    color: #64748b;
+    transition: color 0.15s;
+}
+
+.action-card:hover svg,
+.action-card:hover i {
+    color: #14b8a6;
+}
+
+
+/* ====================================================
+   5. TABELA DE PEDIDOS RECENTES — o maior problema
+   ==================================================== */
+
+/* Wrapper com scroll horizontal em telas pequenas */
+.orders-table-wrapper,
+.recent-orders {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.orders-table-wrapper .table-header,
+.recent-orders .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px 14px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.orders-table-wrapper .table-header h5,
+.orders-table-wrapper .table-header h6,
+.recent-orders .card-header h5 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 0;
+}
+
+.orders-table-wrapper table,
+.recent-orders table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed; /* colunas com larguras definidas */
+}
+
+/* Overflow em telas menores */
+.orders-table-scroll {
+    overflow-x: auto;
+}
+
+/* Cabeçalho da tabela */
+.orders-table-wrapper thead th,
+.recent-orders thead th {
+    padding: 10px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+/* Linhas do corpo */
+.orders-table-wrapper tbody tr,
+.recent-orders tbody tr {
+    transition: background-color 0.1s;
+}
+
+.orders-table-wrapper tbody tr:hover,
+.recent-orders tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.orders-table-wrapper tbody td,
+.recent-orders tbody td {
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+/* ---- Larguras das colunas ---- */
+/* Ajuste os seletores :nth-child() conforme a ordem real das colunas do seu Twig */
+
+/* # (ID) */
+.orders-table-wrapper table th:nth-child(1),
+.orders-table-wrapper table td:nth-child(1) {
+    width: 50px;
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+/* Serviço — coluna mais importante, maior espaço */
+.orders-table-wrapper table th:nth-child(2),
+.orders-table-wrapper table td:nth-child(2) {
+    width: 35%;
+    min-width: 220px;
+}
+
+/* URL */
+.orders-table-wrapper table th:nth-child(3),
+.orders-table-wrapper table td:nth-child(3) {
+    width: 20%;
+    min-width: 140px;
+}
+
+/* QTD */
+.orders-table-wrapper table th:nth-child(4),
+.orders-table-wrapper table td:nth-child(4) {
+    width: 70px;
+    text-align: center;
+}
+
+/* Valor */
+.orders-table-wrapper table th:nth-child(5),
+.orders-table-wrapper table td:nth-child(5) {
+    width: 90px;
+    text-align: right;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Status */
+.orders-table-wrapper table th:nth-child(6),
+.orders-table-wrapper table td:nth-child(6) {
+    width: 120px;
+    text-align: center;
+}
+
+/* Data */
+.orders-table-wrapper table th:nth-child(7),
+.orders-table-wrapper table td:nth-child(7) {
+    width: 90px;
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+/* Ação (Ver) */
+.orders-table-wrapper table th:nth-child(8),
+.orders-table-wrapper table td:nth-child(8) {
+    width: 60px;
+    text-align: center;
+}
+
+/* Coluna de Serviço: nome + provedor em linhas separadas, sem cortar */
+.order-service-name {
+    display: block;
+    font-weight: 500;
+    color: #0f172a;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.4;
+    font-size: 13px;
+}
+
+.order-service-provider {
+    display: block;
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 2px;
+}
+
+/* URL truncada com tooltip */
+.order-url-link {
+    display: block;
+    color: #14b8a6;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+    font-size: 12px;
+}
+
+.order-url-link:hover {
+    text-decoration: underline;
+}
+
+
+/* ====================================================
+   6. BADGES DE STATUS
+   ==================================================== */
+
+.badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.badge-status::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+/* Processing */
+.badge-processing,
+.badge-status[data-status="processing"] {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+}
+
+/* Pending */
+.badge-pending,
+.badge-status[data-status="pending"] {
+    background-color: #fef3c7;
+    color: #b45309;
+}
+
+/* Completed / Success */
+.badge-completed,
+.badge-success,
+.badge-status[data-status="completed"] {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+/* Cancelled */
+.badge-cancelled,
+.badge-status[data-status="cancelled"] {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+/* Partial */
+.badge-partial,
+.badge-status[data-status="partial"] {
+    background-color: #f3e8ff;
+    color: #6b21a8;
+}
+
+
+/* ====================================================
+   7. BOTÃO "VER" E OUTROS BOTÕES DE AÇÃO NA TABELA
+   ==================================================== */
+
+.btn-view,
+.btn-action-sm {
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #334155;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-view:hover,
+.btn-action-sm:hover {
+    border-color: #14b8a6;
+    color: #14b8a6;
+    background: #f0fdfb;
+}
+
+
+/* ====================================================
+   8. BOTÃO "+ NOVO" (canto da tabela)
+   ==================================================== */
+
+.btn-new-order,
+.btn-primary {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 10px;
+    background: #0d9488; /* teal-700 */
+    color: #ffffff !important;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s, transform 0.1s;
+    text-decoration: none;
+}
+
+.btn-new-order:hover,
+.btn-primary:hover {
+    background: #0f766e;
+    transform: translateY(-1px);
+}
+
+
+/* ====================================================
+   9. RESPONSIVIDADE MÍNIMA
+   ==================================================== */
+
+@media (max-width: 768px) {
+    .metric-cards-grid,
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .action-cards-grid,
+    .quick-actions {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .orders-table-wrapper table {
+        table-layout: auto;
+    }
+
+    /* Esconde colunas menos importantes em mobile */
+    .orders-table-wrapper table th:nth-child(7),
+    .orders-table-wrapper table td:nth-child(7) {
+        display: none; /* Data */
+    }
+}
+
+@media (max-width: 480px) {
+    .metric-cards-grid,
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+}
