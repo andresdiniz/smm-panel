@@ -1,5 +1,5 @@
 /* ================================================================
-   PULSESMM — Design System v6
+   PULSESMM — Design System v7
    Light default · sidebar sempre escura · dark via toggle
 ================================================================ */
 
@@ -8,16 +8,17 @@
 ---------------------------------------------------------------- */
 :root {
   /* Sidebar — sempre escura */
-  --sb-bg:         #111113;
-  --sb-border:     rgba(255,255,255,.06);
-  --sb-text:       #686868;
-  --sb-text-hover: #d0d0d0;
-  --sb-active-bg:  rgba(255,255,255,.08);
-  --sb-active-txt: #ffffff;
-  --sb-section:    #404040;
-  --sb-badge-bg:   rgba(255,255,255,.06);
-  --sb-badge-txt:  #888;
-  --sb-w:          220px;
+  --sb-bg:         #0e0f11;
+  --sb-border:     rgba(255,255,255,.055);
+  --sb-text:       #5e6370;
+  --sb-text-hover: #c8ccd4;
+  --sb-active-bg:  rgba(13,148,136,.13);
+  --sb-active-txt: #e8faf8;
+  --sb-section:    #383c44;
+  --sb-badge-bg:   rgba(13,148,136,.14);
+  --sb-badge-txt:  #2dd4bf;
+  --sb-badge-bdr:  rgba(13,148,136,.28);
+  --sb-w:          234px;
   --sb-w-col:      52px;
 
   /* Layout */
@@ -283,11 +284,12 @@ p, li { text-wrap:pretty }
 
 .is-collapsed .sidebar { width: var(--sb-w-col) }
 
+/* Brand / Logo */
 .sidebar__brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 14px;
+  padding: 0 16px;
   height: var(--tb-h);
   border-bottom: 1px solid var(--sb-border);
   text-decoration: none;
@@ -295,62 +297,73 @@ p, li { text-wrap:pretty }
   overflow: hidden;
   transition: background var(--fast) var(--ease);
 }
-.sidebar__brand:hover { background:rgba(255,255,255,.04); opacity:1 }
+.sidebar__brand:hover { background:rgba(255,255,255,.035); opacity:1 }
 
 .sidebar__logo {
   width: 28px; height: 28px;
   border-radius: 7px;
-  background: var(--primary);
+  background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);
   display: flex; align-items:center; justify-content:center;
   flex-shrink: 0;
-  box-shadow: 0 2px 10px var(--primary-glow);
-  transition: transform var(--fast) var(--ease);
+  box-shadow: 0 2px 10px rgba(13,148,136,.35);
+  transition: transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
 }
-.sidebar__brand:hover .sidebar__logo { transform:scale(1.06) }
+.sidebar__brand:hover .sidebar__logo {
+  transform: scale(1.07);
+  box-shadow: 0 4px 16px rgba(13,148,136,.5);
+}
 
 .sidebar__brand-name {
-  font-size: .9rem;
+  font-size: .92rem;
   font-weight: 800;
   letter-spacing: -.03em;
-  color: #fff;
+  color: #e8e8e8;
   white-space: nowrap;
   transition: opacity var(--fast) var(--ease), transform var(--fast) var(--ease);
 }
-.sidebar__brand-name em { color:var(--primary); font-style:normal }
+.sidebar__brand-name em { color: #2dd4bf; font-style:normal }
 .is-collapsed .sidebar__brand-name { opacity:0; transform:translateX(-8px); pointer-events:none }
 
+/* Nav scroll area */
 .sidebar__nav {
-  flex: 1;
+  flex: 1 1 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 8px 0 24px;
-  scrollbar-width: none;
+  padding: 6px 0 20px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.07) transparent;
 }
-.sidebar__nav::-webkit-scrollbar { display:none }
+.sidebar__nav::-webkit-scrollbar { width: 3px }
+.sidebar__nav::-webkit-scrollbar-track { background: transparent }
+.sidebar__nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius:2px }
 
+/* Section labels */
 .sidebar__section {
-  padding: 20px 14px 5px;
-  font-size: .58rem;
+  padding: 18px 16px 5px;
+  font-size: .6rem;
   font-weight: 700;
-  letter-spacing: .12em;
+  letter-spacing: .10em;
   text-transform: uppercase;
   color: var(--sb-section);
   white-space: nowrap;
   overflow: hidden;
+  line-height: 1;
+  user-select: none;
   transition: opacity var(--fast) var(--ease), max-height var(--fast) var(--ease), padding var(--fast) var(--ease);
 }
 .is-collapsed .sidebar__section { opacity:0; max-height:0; padding-block:0; pointer-events:none }
 
+/* Nav links */
 .sidebar__link {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 0 10px;
-  height: 36px;
-  margin: 1px 6px;
-  border-radius: 7px;
+  gap: 10px;
+  padding: 0 12px;
+  height: 38px;
+  margin: 1px 7px;
+  border-radius: 8px;
   color: var(--sb-text);
-  font-size: .83rem;
+  font-size: .84rem;
   font-weight: 500;
   text-decoration: none;
   white-space: nowrap;
@@ -358,7 +371,9 @@ p, li { text-wrap:pretty }
   position: relative;
   transition: color var(--fast) var(--ease), background var(--fast) var(--ease);
 }
-.sidebar__link:hover  { color:var(--sb-text-hover); background:rgba(255,255,255,.06); opacity:1 }
+.sidebar__link:hover  { color:var(--sb-text-hover); background:rgba(255,255,255,.07); opacity:1 }
+
+/* Active state */
 .sidebar__link.is-active {
   color: var(--sb-active-txt);
   background: var(--sb-active-bg);
@@ -366,66 +381,80 @@ p, li { text-wrap:pretty }
 }
 .sidebar__link.is-active::before {
   content: '';
-  position: absolute; left:0; top:20%; bottom:20%;
-  width: 2.5px;
+  position: absolute; left:0; top:22%; bottom:22%;
+  width: 3px;
   border-radius: 0 var(--r-full) var(--r-full) 0;
-  background: var(--primary);
+  background: #2dd4bf;
+  box-shadow: 0 0 8px rgba(45,212,191,.6);
 }
 
+/* Link label */
 .sidebar__link-label {
   flex: 1;
   white-space: nowrap;
+  font-size: .84rem;
   transition: opacity var(--fast) var(--ease), transform var(--fast) var(--ease);
 }
 .is-collapsed .sidebar__link-label { opacity:0; transform:translateX(-6px); pointer-events:none; width:0; overflow:hidden }
 .is-collapsed .sidebar__link { justify-content:center; padding:0 }
 
+/* Badge (saldo) */
 .sidebar__badge {
   font-size: .58rem;
   font-weight: 700;
   background: var(--sb-badge-bg);
   color: var(--sb-badge-txt);
   border-radius: var(--r-full);
-  padding: 1px 7px;
+  padding: 2px 7px;
   white-space: nowrap;
+  max-width: 92px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   flex-shrink: 0;
-  border: 1px solid rgba(255,255,255,.07);
+  border: 1px solid var(--sb-badge-bdr);
   transition: opacity var(--fast) var(--ease);
 }
 .is-collapsed .sidebar__badge { opacity:0; pointer-events:none }
 
+/* Footer do usuário */
 .sidebar__footer {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 10px;
+  gap: 10px;
+  padding: 11px 12px;
   border-top: 1px solid var(--sb-border);
   flex-shrink: 0;
   overflow: hidden;
+  background: rgba(0,0,0,.12);
 }
 
 .sidebar__avatar {
-  width: 28px; height: 28px;
+  width: 30px; height: 30px;
+  min-width: 30px;
   border-radius: 50%;
-  background: var(--primary);
-  color: #fff;
-  font-size: .7rem;
+  background: linear-gradient(135deg, rgba(13,148,136,.35) 0%, rgba(8,145,178,.3) 100%);
+  border: 1.5px solid rgba(45,212,191,.25);
+  color: #2dd4bf;
+  font-size: .72rem;
   font-weight: 800;
   display: flex; align-items:center; justify-content:center;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px var(--primary-glow);
+  box-shadow: 0 0 10px rgba(45,212,191,.15);
 }
 
 .sidebar__user {
-  display: flex; flex-direction:column; min-width:0; flex:1;
+  display: flex; flex-direction:column;
+  min-width: 0; flex: 1 1 0;
+  overflow: hidden;
+  gap: 1px;
   transition: opacity var(--fast) var(--ease), transform var(--fast) var(--ease);
 }
 .sidebar__user strong {
-  font-size: .74rem; font-weight:700; color:#e0e0e0;
+  font-size: .74rem; font-weight:700; color:#d8d8d8;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.3;
 }
 .sidebar__user span {
-  font-size: .64rem; color:#555;
+  font-size: .62rem; color:#4a4e56;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.3;
 }
 .is-collapsed .sidebar__user { opacity:0; transform:translateX(-6px); width:0; pointer-events:none }
@@ -434,11 +463,34 @@ p, li { text-wrap:pretty }
   display: flex; align-items:center; justify-content:center;
   width: 28px; height: 28px;
   border-radius: 6px;
-  color: #555;
+  color: #404040;
   flex-shrink: 0;
   transition: color var(--fast) var(--ease), background var(--fast) var(--ease);
 }
 .sidebar__logout:hover { color:#f87171; background:rgba(248,113,113,.12); opacity:1 }
+.is-collapsed .sidebar__logout { margin:0 auto }
+
+/* Collapsed tooltip */
+.is-collapsed .sidebar__link {
+  position: relative;
+}
+.is-collapsed .sidebar__link:hover::after {
+  content: attr(title);
+  position: absolute;
+  left: calc(var(--sb-w-col) + 6px);
+  top: 50%; transform: translateY(-50%);
+  background: #1e2025;
+  color: #e8e8e8;
+  font-size: .75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,.5);
+  border: 1px solid rgba(255,255,255,.08);
+  z-index: 100;
+}
 
 @media (max-width:768px) {
   .sidebar {
@@ -512,9 +564,9 @@ p, li { text-wrap:pretty }
 .topbar__brand-logo {
   width: 26px; height: 26px;
   border-radius: 7px;
-  background: var(--primary);
+  background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);
   display: flex; align-items:center; justify-content:center;
-  box-shadow: 0 2px 8px var(--primary-glow);
+  box-shadow: 0 2px 8px rgba(13,148,136,.3);
 }
 .topbar__brand span {
   font-size: .9rem; font-weight:800; letter-spacing:-.03em; color:var(--tb-title);
@@ -748,6 +800,30 @@ p, li { text-wrap:pretty }
 .btn-lg, .btn--lg { padding:10px 22px; font-size:var(--tb) }
 .btn-full { width:100% }
 
+/* Botao Ver — compacto para caber na coluna de ação */
+.btn-view {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  font-size: .68rem;
+  font-weight: 600;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  color: var(--text-2);
+  white-space: nowrap;
+  text-decoration: none;
+  line-height: 1;
+  transition: background var(--fast) var(--ease), color var(--fast) var(--ease), border-color var(--fast) var(--ease);
+}
+.btn-view:hover {
+  background: var(--primary-bg);
+  border-color: var(--primary-bdr);
+  color: var(--primary);
+  opacity: 1;
+}
+
 /* ----------------------------------------------------------------
    BADGES & STATUS CHIPS
 ---------------------------------------------------------------- */
@@ -793,7 +869,7 @@ p, li { text-wrap:pretty }
 }
 
 /* ----------------------------------------------------------------
-   KPI CARD (base — dashboard overrides in page <style>)
+   KPI CARD
 ---------------------------------------------------------------- */
 .kpi {
   background: var(--surface);
@@ -899,6 +975,13 @@ p, li { text-wrap:pretty }
   color: var(--text-2);
   vertical-align: middle;
 }
+/* Coluna de ação (Ver): padding reduzido e centralizado */
+.data-table tbody td.col-action,
+.table tbody td.col-action {
+  padding: 8px 10px;
+  text-align: center;
+}
+
 .data-table tbody tr:last-child td,
 .table tbody tr:last-child td { border-bottom:none }
 
@@ -907,6 +990,9 @@ p, li { text-wrap:pretty }
   background: var(--surface-2);
   color: var(--text);
 }
+
+/* Coluna de ação no <col> / <th> */
+.col-action { width: 60px !important; text-align: center !important; }
 
 .cell-muted { color:var(--text-3) !important; font-size:var(--tx) }
 .cell-mono  { font-variant-numeric:tabular-nums }
