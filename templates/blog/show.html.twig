@@ -3,79 +3,175 @@
 {% block title %}{{ post.metaTitle ?? post.title }}{% endblock %}
 {% block meta_description %}{{ post.metaDescription ?? post.excerpt ?? '' }}{% endblock %}
 
+{% block head %}
+    <meta property="og:title" content="{{ post.metaTitle ?? post.title }}">
+    <meta property="og:description" content="{{ post.metaDescription ?? post.excerpt ?? '' }}">
+    {% if post.thumbnail %}<meta property="og:image" content="{{ post.thumbnail }}">{% endif %}
+    <meta property="og:type" content="article">
+    {% if post.publishedAt %}<meta property="article:published_time" content="{{ post.publishedAt|date('c') }}">{% endif %}
+{% endblock %}
+
 {% block body %}
-<div class="blog-container">
-    <main class="blog-main">
-        {% if post.thumbnail %}
-            <img src="{{ post.thumbnail }}" alt="{{ post.title }}" class="post-hero" loading="lazy">
-        {% endif %}
+<div id="read-progress" style="position:fixed;top:0;left:0;height:3px;background:var(--primary);z-index:999;width:0;transition:width .1s linear"></div>
 
-        {% if post.category %}
-            <a href="{{ path('blog_category', {slug: post.category.slug}) }}" class="post-card-cat" style="display:inline-block;margin-bottom:0.75rem;">{{ post.category.name }}</a>
-        {% endif %}
-
-        <h1 class="post-title-main">{{ post.title }}</h1>
-
-        <div class="post-meta-bar">
-            <span>📅 {{ post.publishedAt ? post.publishedAt|date('d \d\e F \d\e Y') : 'Sem data' }}</span>
-            <span>👁 {{ post.views }} visualizações</span>
-            {% if post.tags|length > 0 %}
-                <span>🏷 {% for tag in post.tags %}<a href="{{ path('blog_tag', {slug: tag.slug}) }}">{{ tag.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</span>
-            {% endif %}
-        </div>
-
-        <div class="post-content">
-            {{ post.content|raw }}
-        </div>
-
-        {% if post.tags|length > 0 %}
-        <div class="tag-list" style="margin-top:2rem;">
-            {% for tag in post.tags %}
-                <a href="{{ path('blog_tag', {slug: tag.slug}) }}" class="tag-badge">{{ tag.name }}</a>
-            {% endfor %}
-        </div>
-        {% endif %}
-    </main>
-
-    <aside class="blog-sidebar">
-        <div class="sidebar-widget">
-            <h3>Buscar</h3>
-            <form class="search-form" action="{{ path('blog_search') }}" method="get">
-                <input type="search" name="q" placeholder="Buscar posts…">
-                <button type="submit">🔍</button>
-            </form>
-        </div>
-
-        {% if categories|length > 0 %}
-        <div class="sidebar-widget">
-            <h3>Categorias</h3>
-            {% for cat in categories %}
-            <div class="sidebar-cat-item">
-                <a href="{{ path('blog_category', {slug: cat.slug}) }}">{{ cat.name }}</a>
-                <span style="font-size:0.75rem;color:var(--color-text-muted);">{{ cat.posts|length }}</span>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        {% if recent|length > 0 %}
-        <div class="sidebar-widget">
-            <h3>Posts Recentes</h3>
-            {% for p in recent %}
-            <div class="sidebar-post-item">
-                {% if p.thumbnail %}
-                    <img src="{{ p.thumbnail }}" alt="" class="sidebar-post-thumb" loading="lazy">
-                {% else %}
-                    <div class="sidebar-post-thumb" style="background:var(--color-bg);"></div>
+<div class="b-wrap">
+    <div class="b-grid">
+        <main>
+            {# breadcrumb #}
+            <nav style="font-size:.8rem;color:var(--text-faint);margin-bottom:1.5rem;display:flex;gap:.35rem;flex-wrap:wrap;" aria-label="Breadcrumb">
+                <a href="{{ path('blog_index') }}" style="color:var(--text-muted);">Blog</a>
+                <span>›</span>
+                {% if post.category %}
+                    <a href="{{ path('blog_category', {slug: post.category.slug}) }}" style="color:var(--text-muted);">{{ post.category.name }}</a>
+                    <span>›</span>
                 {% endif %}
-                <div>
-                    <a href="{{ path('blog_show', {slug: p.slug}) }}" class="sidebar-post-title">{{ p.title }}</a>
-                    <div class="sidebar-post-date">{{ p.publishedAt ? p.publishedAt|date('d/m/Y') : '' }}</div>
+                <span style="color:var(--text-faint);">{{ post.title|slice(0,40) }}{% if post.title|length > 40 %}…{% endif %}</span>
+            </nav>
+
+            {# categoria badge #}
+            {% if post.category %}
+                <div class="b-article-cats">
+                    <a href="{{ path('blog_category', {slug: post.category.slug}) }}" class="b-article-cat">{{ post.category.name }}</a>
                 </div>
+            {% endif %}
+
+            <h1 class="b-article-title">{{ post.title }}</h1>
+
+            <div class="b-article-meta">
+                {% if post.publishedAt %}
+                    <span>
+                        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        {{ post.publishedAt|date('d \de F \de Y') }}
+                    </span>
+                {% endif %}
+                <span>
+                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    {{ post.views }} visualizaç{{ post.views != 1 ? 'ões' : 'ão' }}
+                </span>
+                <span id="read-time">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span id="read-time-val">…</span> de leitura
+                </span>
             </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-    </aside>
+
+            {# imagem hero #}
+            {% if post.thumbnail %}
+                <img src="{{ post.thumbnail }}" alt="{{ post.title }}" class="b-article-hero" loading="eager" width="800" height="460">
+            {% endif %}
+
+            {# conteúdo #}
+            <div class="b-article-body" id="article-body">
+                {{ post.content|raw }}
+            </div>
+
+            {# tags #}
+            {% if post.tags|length > 0 %}
+                <div style="margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--divider);">
+                    <p style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-faint);margin-bottom:.75rem;">Tags</p>
+                    <div class="b-tags">
+                        {% for tag in post.tags %}
+                            <a href="{{ path('blog_tag', {slug: tag.slug}) }}" class="b-tag">#{{ tag.name }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {# compartilhar #}
+            <div style="margin-top:2rem;padding:1.25rem;background:var(--surface-2);border-radius:var(--r-lg);display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                <span style="font-size:.82rem;font-weight:600;color:var(--text-muted);">Compartilhar:</span>
+                <a href="https://twitter.com/intent/tweet?text={{ post.title|url_encode }}&url={{ app.request.uri|url_encode }}" target="_blank" rel="noopener"
+                   style="font-size:.8rem;padding:.35rem .85rem;border:1px solid var(--border);border-radius:var(--r-full);color:var(--text-muted);">
+                   𝕏 Twitter
+                </a>
+                <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ app.request.uri|url_encode }}" target="_blank" rel="noopener"
+                   style="font-size:.8rem;padding:.35rem .85rem;border:1px solid var(--border);border-radius:var(--r-full);color:var(--text-muted);">
+                   LinkedIn
+                </a>
+                <a href="https://api.whatsapp.com/send?text={{ post.title|url_encode }}%20{{ app.request.uri|url_encode }}" target="_blank" rel="noopener"
+                   style="font-size:.8rem;padding:.35rem .85rem;border:1px solid var(--border);border-radius:var(--r-full);color:var(--text-muted);">
+                   WhatsApp
+                </a>
+            </div>
+        </main>
+
+        {# ── SIDEBAR ── #}
+        <aside>
+            {# TOC #}
+            <div class="b-sidebar-widget" id="toc-widget" style="display:none">
+                <h3>Neste artigo</h3>
+                <nav id="toc" style="font-size:.82rem;line-height:1.6;"></nav>
+            </div>
+
+            {# recentes #}
+            {% if recentPosts is defined and recentPosts|length > 0 %}
+                <div class="b-sidebar-widget">
+                    <h3>Posts Recentes</h3>
+                    {% for rp in recentPosts %}
+                        <div class="b-recent-item">
+                            {% if rp.thumbnail %}
+                                <img src="{{ rp.thumbnail }}" alt="{{ rp.title }}" class="b-recent-thumb" loading="lazy" width="52" height="40">
+                            {% else %}
+                                <div class="b-recent-thumb-placeholder">
+                                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="21 15 16 10 5 21"/></svg>
+                                </div>
+                            {% endif %}
+                            <div class="b-recent-info">
+                                <div class="b-recent-title"><a href="{{ path('blog_show', {slug: rp.slug}) }}">{{ rp.title|slice(0,60) }}{% if rp.title|length > 60 %}…{% endif %}</a></div>
+                                <div class="b-recent-date">{{ rp.publishedAt ? rp.publishedAt|date('d/m/Y') : '' }}</div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {# categorias #}
+            {% if categories is defined and categories|length > 0 %}
+                <div class="b-sidebar-widget">
+                    <h3>Categorias</h3>
+                    {% for cat in categories %}
+                        <div class="b-cat-item">
+                            <a href="{{ path('blog_category', {slug: cat.slug}) }}">{{ cat.name }}</a>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </aside>
+    </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+    // tempo de leitura
+    const body = document.getElementById('article-body');
+    const val  = document.getElementById('read-time-val');
+    if(body && val){
+        const words = body.innerText.trim().split(/\s+/).length;
+        const mins  = Math.max(1, Math.round(words / 200));
+        val.textContent = mins + ' min';
+    }
+
+    // TOC automático
+    const toc    = document.getElementById('toc');
+    const widget = document.getElementById('toc-widget');
+    if(body && toc){
+        const headings = body.querySelectorAll('h2, h3');
+        if(headings.length >= 2){
+            widget.style.display = 'block';
+            headings.forEach(function(h, i){
+                if(!h.id) h.id = 'section-' + i;
+                const a = document.createElement('a');
+                a.href = '#' + h.id;
+                a.textContent = h.textContent;
+                a.style.cssText = 'display:block;padding:.25rem 0;color:var(--text-muted);border-left:2px solid var(--divider);padding-left:.75rem;margin-bottom:.15rem;transition:all .18s;';
+                if(h.tagName === 'H3') a.style.paddingLeft = '1.5rem';
+                a.addEventListener('mouseenter', function(){ this.style.color = 'var(--primary)'; this.style.borderLeftColor = 'var(--primary)'; });
+                a.addEventListener('mouseleave', function(){ this.style.color = 'var(--text-muted)'; this.style.borderLeftColor = 'var(--divider)'; });
+                toc.appendChild(a);
+            });
+        }
+    }
+})();
+</script>
 {% endblock %}
