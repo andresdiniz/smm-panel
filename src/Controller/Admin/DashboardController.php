@@ -82,6 +82,12 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToCrud('Usuários', 'fa fa-users', \App\Entity\User::class);
         yield MenuItem::linkToUrl('CRM', 'fa fa-comments', '/admin/crm');
 
+        yield MenuItem::section('BLOG');
+        yield MenuItem::linkToCrud('Posts',      'fa fa-pen-to-square', \App\Entity\BlogPost::class);
+        yield MenuItem::linkToCrud('Categorias', 'fa fa-folder-open',   \App\Entity\BlogCategory::class);
+        yield MenuItem::linkToCrud('Tags',        'fa fa-hashtag',       \App\Entity\BlogTag::class);
+        yield MenuItem::linkToUrl('Ver Blog', 'fa fa-arrow-up-right-from-square', '/blog', ['target' => '_blank']);
+
         yield MenuItem::section('INTEGRAÇÕES');
         yield MenuItem::linkToCrud('Provedores / APIs', 'fa fa-plug', \App\Entity\ProviderCredential::class);
         yield MenuItem::linkToRoute('Saldo Providers', 'fa fa-dollar-sign', 'admin_provider_balance');
