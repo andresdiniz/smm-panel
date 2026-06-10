@@ -143,7 +143,9 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
      *
      * Segurança: valida header `asaas-access-token`.
      * Idempotência: eventos duplicados são ignorados silenciosamente.
-     * Resposta: sempre retorna o Payment (controller devolve HTTP 200).
+     * Cobranças externas: criadas manualmente no painel Asaas (sem externalReference)
+     *   não existem no banco — retornamos 200 silenciosamente para o Asaas
+     *   não reenviar o evento indefinidamente.
      */
     public function processWebhook(Request $request): Payment
     {
@@ -163,8 +165,19 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             throw new \InvalidArgumentException('Webhook sem payment.id — evento ignorado: ' . $event);
         }
 
-        // 3. Busca o pagamento local pelo ID externo do Asaas
-        $payment = $this->findByExternalId($chargeId);
+        // 3. Busca o pagamento local pelo ID externo do Asaas.
+        //    Cobranças criadas manualmente no painel Asaas não existem no banco.
+        //    Retornamos um Payment fantasma (não persistido) para o controller
+        //    responder HTTP 200 e o Asaas parar de reenviar.
+        $payment = $this->em->getRepository(Payment::class)->findOneBy(['externalId' => $chargeId]);
+
+        if ($payment === null) {
+            $ghost = new Payment();
+            $ghost->setExternalId($chargeId);
+            $ghost->setStatus(Payment::STATUS_PENDING);
+            $ghost->setGatewayResponse(json_encode($data, JSON_UNESCAPED_UNICODE));
+            return $ghost; // sem flush — nada é persistido
+        }
 
         // 4. Salva o payload bruto para auditoria
         $payment->setGatewayResponse(json_encode($data, JSON_UNESCAPED_UNICODE));
@@ -176,14 +189,12 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         if (in_array($currentStatus, $finalStatuses, true)
             && !in_array($event, ['PAYMENT_REFUNDED', 'PAYMENT_PARTIALLY_REFUNDED'], true)
         ) {
-            $this->em->flush(); // persiste apenas o gatewayResponse atualizado
+            $this->em->flush();
             return $payment;
         }
 
         // 6. Máquina de estados conforme fluxos da documentação Asaas
         if (in_array($event, self::EVENTS_APPROVE, true)) {
-            // Pix: PAYMENT_CREATED → PAYMENT_RECEIVED
-            // Cartão: PAYMENT_CREATED → PAYMENT_CONFIRMED → PAYMENT_RECEIVED
             $this->approveAndCredit($payment);
 
         } elseif (in_array($event, self::EVENTS_CANCEL, true)) {
@@ -195,9 +206,7 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             $this->em->flush();
 
         } else {
-            // Eventos informativos (PAYMENT_CREATED, PAYMENT_UPDATED,
-            // PAYMENT_BANK_SLIP_VIEWED, PAYMENT_CHECKOUT_VIEWED, etc.)
-            // Apenas persiste o gatewayResponse, sem mudar status.
+            // Eventos informativos (PAYMENT_CREATED, PAYMENT_UPDATED, etc.)
             $this->em->flush();
         }
 
@@ -225,9 +234,6 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
 
     /**
      * Cria ou reutiliza cliente no Asaas.
-     *
-     * - cpfCnpj: usa o CPF real; se vazio em sandbox usa CPF genérico; em produção lança excessão.
-     * - mobilePhone: somente dígitos sem DDI ("11999990000"), pois Asaas não aceita +55 nesse campo.
      */
     private function ensureCustomer(User $user, string $cpf = '', string $phone = ''): string
     {
@@ -241,7 +247,6 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             }
         }
 
-        // Remove DDI +55 e qualquer não-dígito para o campo mobilePhone
         $mobilePhone = preg_replace('/\D/', '', $phone);
         if (str_starts_with($mobilePhone, '55') && strlen($mobilePhone) > 11) {
             $mobilePhone = substr($mobilePhone, 2);
@@ -269,7 +274,6 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         $statusCode = $response->getStatusCode();
         $data       = $response->toArray(throw: false);
 
-        // Cliente já existente: busca pelo externalReference
         if ($statusCode === 400 && isset($data['errors'])) {
             $existing = $this->http->request('GET', $this->baseUrl . '/customers', [
                 'headers' => ['access_token' => $this->apiKey],
