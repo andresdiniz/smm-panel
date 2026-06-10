@@ -1,0 +1,7 @@
+{%- set map = {
+    'draft':     { label: 'Rascunho',  class: 'badge-warning' },
+    'published': { label: 'Publicado', class: 'badge-success' },
+    'archived':  { label: 'Arquivado', class: 'badge-secondary' },
+} -%}
+{%- set info = map[field.value] ?? { label: field.value, class: 'badge-secondary' } -%}
+<span class="badge {{ info.class }}">{{ info.label }}</span>

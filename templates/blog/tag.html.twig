@@ -1,0 +1,76 @@
+{% extends 'blog/base_blog.html.twig' %}
+
+{% block title %}Tag: {{ tag.name }}{% endblock %}
+
+{% block body %}
+<div class="blog-container">
+    <main class="blog-main">
+        <div class="page-header">
+            <h1>🏷 {{ tag.name }}</h1>
+            <p>{{ total }} post(s) com esta tag</p>
+        </div>
+
+        <div class="post-grid">
+            {% for post in posts %}
+            <article class="post-card">
+                {% if post.thumbnail %}
+                    <img src="{{ post.thumbnail }}" alt="{{ post.title }}" class="post-card-img" loading="lazy">
+                {% else %}
+                    <div class="post-card-img" style="display:flex;align-items:center;justify-content:center;background:#f0eeea;"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#bab9b4" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></div>
+                {% endif %}
+                <div class="post-card-body">
+                    {% if post.category %}<a href="{{ path('blog_category', {slug: post.category.slug}) }}" class="post-card-cat">{{ post.category.name }}</a>{% endif %}
+                    <a href="{{ path('blog_show', {slug: post.slug}) }}"><div class="post-card-title">{{ post.title }}</div></a>
+                    {% if post.excerpt %}<p class="post-card-excerpt">{{ post.excerpt }}</p>{% endif %}
+                    <div class="post-card-meta"><span>{{ post.publishedAt ? post.publishedAt|date('d/m/Y') : '' }}</span></div>
+                </div>
+            </article>
+            {% else %}
+            <p style="color:var(--color-text-muted);">Nenhum post com esta tag ainda.</p>
+            {% endfor %}
+        </div>
+
+        {% if totalPages > 1 %}
+        <nav class="pagination">
+            {% if page > 1 %}<a href="?page={{ page - 1 }}">← Anterior</a>{% endif %}
+            {% for i in 1..totalPages %}
+                {% if i == page %}<span class="current">{{ i }}</span>{% else %}<a href="?page={{ i }}">{{ i }}</a>{% endif %}
+            {% endfor %}
+            {% if page < totalPages %}<a href="?page={{ page + 1 }}">Próxima →</a>{% endif %}
+        </nav>
+        {% endif %}
+    </main>
+
+    <aside class="blog-sidebar">
+        <div class="sidebar-widget">
+            <h3>Buscar</h3>
+            <form class="search-form" action="{{ path('blog_search') }}" method="get">
+                <input type="search" name="q" placeholder="Buscar posts…">
+                <button type="submit">🔍</button>
+            </form>
+        </div>
+        {% if categories|length > 0 %}
+        <div class="sidebar-widget">
+            <h3>Categorias</h3>
+            {% for cat in categories %}
+            <div class="sidebar-cat-item">
+                <a href="{{ path('blog_category', {slug: cat.slug}) }}">{{ cat.name }}</a>
+                <span style="font-size:0.75rem;color:var(--color-text-muted);">{{ cat.posts|length }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if recent|length > 0 %}
+        <div class="sidebar-widget">
+            <h3>Posts Recentes</h3>
+            {% for p in recent %}
+            <div class="sidebar-post-item">
+                <div class="sidebar-post-thumb" style="background:var(--color-bg);">{% if p.thumbnail %}<img src="{{ p.thumbnail }}" alt="" style="width:100%;height:100%;object-fit:cover;">{% endif %}</div>
+                <div><a href="{{ path('blog_show', {slug: p.slug}) }}" class="sidebar-post-title">{{ p.title }}</a><div class="sidebar-post-date">{{ p.publishedAt ? p.publishedAt|date('d/m/Y') : '' }}</div></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </aside>
+</div>
+{% endblock %}

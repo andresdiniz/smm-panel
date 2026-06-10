@@ -1,0 +1,81 @@
+{% extends 'blog/base_blog.html.twig' %}
+
+{% block title %}{{ post.metaTitle ?? post.title }}{% endblock %}
+{% block meta_description %}{{ post.metaDescription ?? post.excerpt ?? '' }}{% endblock %}
+
+{% block body %}
+<div class="blog-container">
+    <main class="blog-main">
+        {% if post.thumbnail %}
+            <img src="{{ post.thumbnail }}" alt="{{ post.title }}" class="post-hero" loading="lazy">
+        {% endif %}
+
+        {% if post.category %}
+            <a href="{{ path('blog_category', {slug: post.category.slug}) }}" class="post-card-cat" style="display:inline-block;margin-bottom:0.75rem;">{{ post.category.name }}</a>
+        {% endif %}
+
+        <h1 class="post-title-main">{{ post.title }}</h1>
+
+        <div class="post-meta-bar">
+            <span>📅 {{ post.publishedAt ? post.publishedAt|date('d \d\e F \d\e Y') : 'Sem data' }}</span>
+            <span>👁 {{ post.views }} visualizações</span>
+            {% if post.tags|length > 0 %}
+                <span>🏷 {% for tag in post.tags %}<a href="{{ path('blog_tag', {slug: tag.slug}) }}">{{ tag.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</span>
+            {% endif %}
+        </div>
+
+        <div class="post-content">
+            {{ post.content|raw }}
+        </div>
+
+        {% if post.tags|length > 0 %}
+        <div class="tag-list" style="margin-top:2rem;">
+            {% for tag in post.tags %}
+                <a href="{{ path('blog_tag', {slug: tag.slug}) }}" class="tag-badge">{{ tag.name }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </main>
+
+    <aside class="blog-sidebar">
+        <div class="sidebar-widget">
+            <h3>Buscar</h3>
+            <form class="search-form" action="{{ path('blog_search') }}" method="get">
+                <input type="search" name="q" placeholder="Buscar posts…">
+                <button type="submit">🔍</button>
+            </form>
+        </div>
+
+        {% if categories|length > 0 %}
+        <div class="sidebar-widget">
+            <h3>Categorias</h3>
+            {% for cat in categories %}
+            <div class="sidebar-cat-item">
+                <a href="{{ path('blog_category', {slug: cat.slug}) }}">{{ cat.name }}</a>
+                <span style="font-size:0.75rem;color:var(--color-text-muted);">{{ cat.posts|length }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if recent|length > 0 %}
+        <div class="sidebar-widget">
+            <h3>Posts Recentes</h3>
+            {% for p in recent %}
+            <div class="sidebar-post-item">
+                {% if p.thumbnail %}
+                    <img src="{{ p.thumbnail }}" alt="" class="sidebar-post-thumb" loading="lazy">
+                {% else %}
+                    <div class="sidebar-post-thumb" style="background:var(--color-bg);"></div>
+                {% endif %}
+                <div>
+                    <a href="{{ path('blog_show', {slug: p.slug}) }}" class="sidebar-post-title">{{ p.title }}</a>
+                    <div class="sidebar-post-date">{{ p.publishedAt ? p.publishedAt|date('d/m/Y') : '' }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </aside>
+</div>
+{% endblock %}
