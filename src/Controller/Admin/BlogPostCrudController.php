@@ -10,15 +10,13 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\BadgeField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextEditorField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 
@@ -41,9 +39,7 @@ class BlogPostCrudController extends AbstractCrudController
             ->setDefaultSort(['publishedAt' => 'DESC'])
             ->setSearchFields(['title', 'excerpt', 'slug'])
             ->showEntityActionsInlined()
-            ->setHelp(Crud::PAGE_NEW, 'Deixe o slug em branco para gerar automaticamente a partir do título.')
-            ->overrideTemplate('crud/new', '@EasyAdmin/crud/new.html.twig')
-            ->overrideTemplate('crud/edit', '@EasyAdmin/crud/edit.html.twig');
+            ->setHelp(Crud::PAGE_NEW, 'Deixe o slug em branco para gerar automaticamente a partir do título.');
     }
 
     public function configureActions(Actions $actions): Actions
@@ -70,6 +66,21 @@ class BlogPostCrudController extends AbstractCrudController
             ]));
     }
 
+    private function statusField(): ChoiceField
+    {
+        return ChoiceField::new('status', 'Status')
+            ->setChoices([
+                'Rascunho'  => BlogPostStatus::Draft,
+                'Publicado' => BlogPostStatus::Published,
+                'Arquivado' => BlogPostStatus::Archived,
+            ])
+            ->renderAsBadges([
+                BlogPostStatus::Draft->value      => 'warning',
+                BlogPostStatus::Published->value  => 'success',
+                BlogPostStatus::Archived->value   => 'secondary',
+            ]);
+    }
+
     public function configureFields(string $pageName): iterable
     {
         // INDEX
@@ -77,12 +88,7 @@ class BlogPostCrudController extends AbstractCrudController
             yield IdField::new('id', '#')->addCssClass('text-muted small');
             yield TextField::new('title', 'Título');
             yield AssociationField::new('category', 'Categoria');
-            yield BadgeField::new('status', 'Status')
-                ->formatValue(fn($v, BlogPost $p) => [
-                    'label' => $p->getStatus()->label(),
-                    $p->getStatus()->badgeClass() => true,
-                ])
-                ->setTemplatePath('admin/blog/badge_status.html.twig');
+            yield $this->statusField();
             yield IntegerField::new('views', 'Views');
             yield DateTimeField::new('publishedAt', 'Publicado em')->setFormat('dd/MM/yy HH:mm');
             return;
@@ -95,7 +101,7 @@ class BlogPostCrudController extends AbstractCrudController
             yield TextField::new('slug', 'Slug');
             yield AssociationField::new('category', 'Categoria');
             yield AssociationField::new('tags', 'Tags');
-            yield TextField::new('status', 'Status')->formatValue(fn($v, BlogPost $p) => $p->getStatus()->label());
+            yield $this->statusField();
             yield IntegerField::new('views', 'Views');
             yield DateTimeField::new('publishedAt', 'Publicado em');
             yield DateTimeField::new('createdAt', 'Criado em');
@@ -115,11 +121,7 @@ class BlogPostCrudController extends AbstractCrudController
         yield TextField::new('thumbnail', 'URL da capa')->setRequired(false);
         yield AssociationField::new('category', 'Categoria')->setRequired(false);
         yield AssociationField::new('tags', 'Tags')->setFormTypeOption('by_reference', false)->setRequired(false);
-        yield ChoiceField::new('status', 'Status')->setChoices([
-            'Rascunho'  => BlogPostStatus::Draft,
-            'Publicado' => BlogPostStatus::Published,
-            'Arquivado' => BlogPostStatus::Archived,
-        ]);
+        yield $this->statusField();
         yield DateTimeField::new('publishedAt', 'Data de publicação')->setRequired(false)->setFormat('dd/MM/yyyy HH:mm');
         yield TextField::new('metaTitle', 'Meta título (SEO)')->setRequired(false);
         yield TextareaField::new('metaDescription', 'Meta descrição (SEO)')->setNumOfRows(2)->setRequired(false);
