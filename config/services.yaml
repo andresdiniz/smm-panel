@@ -29,3 +29,9 @@ services:
     App\Scheduler\DailyReportSchedule:
         arguments:
             $adminEmail: '%admin_email%'
+
+    App\Billing\AsaasGateway:
+    arguments:
+        $apiKey:       '%env(ASAAS_API_KEY)%'
+        $baseUrl:      '%env(ASAAS_BASE_URL)%'
+        $webhookToken: '%env(ASAAS_WEBHOOK_TOKEN)%'
