@@ -48,7 +48,6 @@ class BlogPostCrudController extends AbstractCrudController
 
     public function configureAssets(Assets $assets): Assets
     {
-        // JS inline: gera slug a partir do título e contador de chars SEO
         return $assets->addHtmlContentToBody(<<<'JS'
         <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -122,11 +121,15 @@ class BlogPostCrudController extends AbstractCrudController
         /** @var BlogPost $post */
         $post = $context->getEntity()->getInstance();
         $post->setStatus(BlogPostStatus::Published);
+
         if (!$post->getPublishedAt()) {
             $post->setPublishedAt(new \DateTimeImmutable());
         }
+
         $this->container->get('doctrine')->getManager()->flush();
-        $this->addFlash('success', '"\'.$post->getTitle().'\" foi publicado!');
+
+        $this->addFlash('success', sprintf('"%s" foi publicado!', $post->getTitle()));
+
         return $this->redirect($context->getReferrer() ?? $this->generateUrl('admin'));
     }
 
@@ -206,7 +209,6 @@ class BlogPostCrudController extends AbstractCrudController
         }
 
         // ── NEW / EDIT ───────────────────────────────────────────────────────
-        // Coluna principal (8/12)
         yield FormField::addColumn(8);
 
         yield FormField::addFieldset('📝 Conteúdo');
@@ -237,7 +239,6 @@ class BlogPostCrudController extends AbstractCrudController
             ->setRequired(false)
             ->setHelp('Resumo para motores de busca. Ideal: até 160 caracteres.');
 
-        // Coluna lateral (4/12)
         yield FormField::addColumn(4);
 
         yield FormField::addFieldset('📢 Publicação');
