@@ -74,7 +74,7 @@ class BlogPostCrudController extends AbstractCrudController
     {
         // INDEX
         if ($pageName === Crud::PAGE_INDEX) {
-            yield IdField::new('id', '#')->setMaxWidth(60);
+            yield IdField::new('id', '#')->addCssClass('text-muted small');
             yield TextField::new('title', 'Título');
             yield AssociationField::new('category', 'Categoria');
             yield BadgeField::new('status', 'Status')
