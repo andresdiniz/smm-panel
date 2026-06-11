@@ -111,6 +111,12 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             );
         }
 
+        // Sandbox pode retornar lista de cobranças existentes em vez de criar uma nova.
+        // Reutilizamos a cobrança mais recente nesses casos.
+        if (($data['object'] ?? '') === 'list' && !empty($data['data'][0]['id'])) {
+            $data = $data['data'][0];
+        }
+
         if (!isset($data['id'])) {
             throw new \RuntimeException('Asaas não retornou ID da cobrança: ' . json_encode($data));
         }
