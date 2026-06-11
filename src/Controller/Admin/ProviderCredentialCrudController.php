@@ -148,7 +148,7 @@ class ProviderCredentialCrudController extends AbstractCrudController
 
         yield TextField::new('baseUrl', 'URL Base da API')
             ->setColumns(12)
-            ->setHelp('Endpoint raiz do provedor. Ex: https://sandbox.asaas.com/api/v3');
+            ->setHelp('Endpoint raiz do provedor. Ex: https://asaas.com/api/v3');
 
         // ── Aba: Credenciais ─────────────────────────────────────────────────────────────────
         yield FormField::addTab('Credenciais')->setIcon('fa fa-key');
