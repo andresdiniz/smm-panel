@@ -21,6 +21,16 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
     private const SANDBOX_CPF = '00000000191';
 
     /**
+     * URL canônica de produção — sempre com www para evitar redirect 301
+     * que converte POST→GET e esvazia o body da requisição.
+     */
+    private const URL_PRODUCTION = 'https://www.asaas.com/api/v3';
+    private const URL_SANDBOX    = 'https://sandbox.asaas.com/api/v3';
+
+    /** URL já normalizada usada em todas as requisições. */
+    private readonly string $apiBaseUrl;
+
+    /**
      * Eventos que indicam pagamento confirmado/recebido.
      * Pix: vai direto para PAYMENT_RECEIVED sem passar por CONFIRMED.
      * Cartão: passa por PAYMENT_CONFIRMED antes do RECEIVED (dias depois).
@@ -54,10 +64,35 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         EntityManagerInterface               $em,
         private readonly HttpClientInterface  $http,
         private readonly string               $apiKey,
-        private readonly string               $baseUrl,
+        string                                $baseUrl,
         private readonly string               $webhookToken,
     ) {
         parent::__construct($em);
+
+        // Normaliza qualquer variação de URL do banco para a URL canônica,
+        // evitando o redirect 301 asaas.com → www.asaas.com que converte
+        // POST em GET e esvazia o body da requisição.
+        $this->apiBaseUrl = $this->normalizeBaseUrl($baseUrl);
+    }
+
+    /**
+     * Garante que a URL base seja sempre a canônica (com www ou sandbox correto).
+     * Aceita qualquer variação que o admin possa cadastrar no banco:
+     *   https://asaas.com/api/v3
+     *   https://www.asaas.com/api/v3
+     *   https://sandbox.asaas.com/api/v3
+     *   http://asaas.com/api/v3   (normaliza para https também)
+     */
+    private function normalizeBaseUrl(string $url): string
+    {
+        $url = rtrim($url, '/');
+
+        // Detecta sandbox por qualquer variação
+        if (str_contains($url, 'sandbox')) {
+            return self::URL_SANDBOX;
+        }
+
+        return self::URL_PRODUCTION;
     }
 
     /**
@@ -88,7 +123,7 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
 
         $customerId = $this->ensureCustomer($user, $cpf, $phone);
 
-        $response = $this->http->request('POST', $this->baseUrl . '/payments', [
+        $response = $this->http->request('POST', $this->apiBaseUrl . '/payments', [
             'headers' => [
                 'access_token' => $this->apiKey,
                 'Content-Type' => 'application/json',
@@ -221,7 +256,7 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
 
     public function fetchStatus(Payment $payment): string
     {
-        $response = $this->http->request('GET', $this->baseUrl . '/payments/' . $payment->getExternalId(), [
+        $response = $this->http->request('GET', $this->apiBaseUrl . '/payments/' . $payment->getExternalId(), [
             'headers' => ['access_token' => $this->apiKey],
         ]);
         $data   = $response->toArray(throw: false);
@@ -248,7 +283,7 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
      */
     private function ensureCustomer(User $user, string $cpf = '', string $phone = ''): string
     {
-        $isSandbox = str_contains($this->baseUrl, 'sandbox');
+        $isSandbox = $this->apiBaseUrl === self::URL_SANDBOX;
 
         if ($cpf === '') {
             if ($isSandbox) {
@@ -274,7 +309,7 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             $payload['mobilePhone'] = $mobilePhone;
         }
 
-        $response = $this->http->request('POST', $this->baseUrl . '/customers', [
+        $response = $this->http->request('POST', $this->apiBaseUrl . '/customers', [
             'headers' => [
                 'access_token' => $this->apiKey,
                 'Content-Type' => 'application/json',
@@ -292,7 +327,7 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
 
         // Caso 1: HTTP 400 com errors[] — busca pelo externalReference
         if ($statusCode === 400 && isset($data['errors'])) {
-            $existing = $this->http->request('GET', $this->baseUrl . '/customers', [
+            $existing = $this->http->request('GET', $this->apiBaseUrl . '/customers', [
                 'headers' => ['access_token' => $this->apiKey],
                 'query'   => ['externalReference' => (string) $user->getId()],
             ]);
@@ -317,7 +352,7 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
      */
     private function fetchPixQrWithRetry(string $paymentId, int $maxAttempts = 5): array
     {
-        $url  = $this->baseUrl . '/payments/' . $paymentId . '/pixQrCode';
+        $url  = $this->apiBaseUrl . '/payments/' . $paymentId . '/pixQrCode';
         $data = [];
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
