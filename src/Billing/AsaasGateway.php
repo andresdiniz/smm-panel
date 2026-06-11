@@ -21,29 +21,24 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
     private const SANDBOX_CPF = '00000000191';
 
     /**
-     * URL canônica de produção — sempre com www para evitar redirect 301
-     * que converte POST→GET e esvazia o body da requisição.
+     * URLs canônicas oficiais — sem redirect.
+     *   Produção : https://api.asaas.com/v3
+     *   Sandbox  : https://sandbox.asaas.com/api/v3
+     *
+     * Qualquer outra variação (www.asaas.com, asaas.com, etc.) sofre
+     * redirect 301 que converte POST → GET e esvazia o body.
      */
-    private const URL_PRODUCTION = 'https://www.asaas.com/api/v3';
+    private const URL_PRODUCTION = 'https://api.asaas.com/v3';
     private const URL_SANDBOX    = 'https://sandbox.asaas.com/api/v3';
 
     /** URL já normalizada usada em todas as requisições. */
     private readonly string $apiBaseUrl;
 
-    /**
-     * Eventos que indicam pagamento confirmado/recebido.
-     * Pix: vai direto para PAYMENT_RECEIVED sem passar por CONFIRMED.
-     * Cartão: passa por PAYMENT_CONFIRMED antes do RECEIVED (dias depois).
-     * Aprovamos o crédito já em PAYMENT_CONFIRMED para não atrasar o usuário.
-     *
-     * @see https://docs.asaas.com/docs/webhook-para-cobrancas
-     */
     private const EVENTS_APPROVE = [
         'PAYMENT_RECEIVED',
         'PAYMENT_CONFIRMED',
     ];
 
-    /** Eventos que indicam pagamento cancelado/vencido/excluído. */
     private const EVENTS_CANCEL = [
         'PAYMENT_OVERDUE',
         'PAYMENT_DELETED',
@@ -51,7 +46,6 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         'PAYMENT_REPROVED_BY_RISK_ANALYSIS',
     ];
 
-    /** Eventos de estorno (total ou parcial). */
     private const EVENTS_REFUND = [
         'PAYMENT_REFUNDED',
         'PAYMENT_PARTIALLY_REFUNDED',
@@ -68,26 +62,23 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         private readonly string               $webhookToken,
     ) {
         parent::__construct($em);
-
-        // Normaliza qualquer variação de URL do banco para a URL canônica,
-        // evitando o redirect 301 asaas.com → www.asaas.com que converte
-        // POST em GET e esvazia o body da requisição.
         $this->apiBaseUrl = $this->normalizeBaseUrl($baseUrl);
     }
 
     /**
-     * Garante que a URL base seja sempre a canônica (com www ou sandbox correto).
-     * Aceita qualquer variação que o admin possa cadastrar no banco:
-     *   https://asaas.com/api/v3
-     *   https://www.asaas.com/api/v3
-     *   https://sandbox.asaas.com/api/v3
-     *   http://asaas.com/api/v3   (normaliza para https também)
+     * Normaliza qualquer variação de URL cadastrada no banco para a URL
+     * canônica correta, evitando redirects 301 que quebram POST requests.
+     *
+     * Exemplos aceitos:
+     *   https://api.asaas.com/v3          → produção (canônica)
+     *   https://www.asaas.com/api/v3      → produção (normaliza)
+     *   https://asaas.com/api/v3          → produção (normaliza)
+     *   https://sandbox.asaas.com/api/v3  → sandbox (canônica)
      */
     private function normalizeBaseUrl(string $url): string
     {
         $url = rtrim($url, '/');
 
-        // Detecta sandbox por qualquer variação
         if (str_contains($url, 'sandbox')) {
             return self::URL_SANDBOX;
         }
@@ -95,10 +86,6 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         return self::URL_PRODUCTION;
     }
 
-    /**
-     * @param string $cpf   CPF somente dígitos (ex: "12345678901") — vazio usa fallback sandbox
-     * @param string $phone Telefone com DDI +55 (ex: "+5511999990000") — vazio omite o campo
-     */
     public function createDeposit(
         User   $user,
         int    $amountCents,
@@ -146,8 +133,6 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             );
         }
 
-        // Sandbox pode retornar lista de cobranças existentes em vez de criar uma nova.
-        // Reutilizamos a cobrança mais recente nesses casos.
         if (($data['object'] ?? '') === 'list' && !empty($data['data'][0]['id'])) {
             $data = $data['data'][0];
         }
@@ -170,46 +155,21 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         return $payment;
     }
 
-    /**
-     * Recebe eventos POST do Asaas conforme:
-     * https://docs.asaas.com/docs/receba-eventos-do-asaas-no-seu-endpoint-de-webhook
-     *
-     * Estrutura do body:
-     * {
-     *   "id": "evt_XXXXXXX",
-     *   "event": "PAYMENT_RECEIVED",
-     *   "dateCreated": "2024-06-12 16:45:03",
-     *   "payment": { "id": "pay_XXXXXXX", "status": "RECEIVED", ... }
-     * }
-     *
-     * Segurança: valida header `asaas-access-token`.
-     * Idempotência: eventos duplicados são ignorados silenciosamente.
-     * Cobranças externas: criadas manualmente no painel Asaas (sem externalReference)
-     *   não existem no banco — retornamos 200 silenciosamente para o Asaas
-     *   não reenviar o evento indefinidamente.
-     */
     public function processWebhook(Request $request): Payment
     {
-        // 1. Autenticação via header — doc: "authToken" configurado no painel
         $token = $request->headers->get('asaas-access-token', '');
         if (!hash_equals($this->webhookToken, $token)) {
             throw new \InvalidArgumentException('asaas-access-token inválido.');
         }
 
-        // 2. Parse do payload
         $data     = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
         $event    = $data['event'] ?? '';
         $chargeId = $data['payment']['id'] ?? null;
 
         if (!$chargeId) {
-            // Evento sem cobrança (ex: TRANSFER_*, BILL_*) — ignora silenciosamente
             throw new \InvalidArgumentException('Webhook sem payment.id — evento ignorado: ' . $event);
         }
 
-        // 3. Busca o pagamento local pelo ID externo do Asaas.
-        //    Cobranças criadas manualmente no painel Asaas não existem no banco.
-        //    Retornamos um Payment fantasma (não persistido) para o controller
-        //    responder HTTP 200 e o Asaas parar de reenviar.
         $payment = $this->em->getRepository(Payment::class)->findOneBy(['externalId' => $chargeId]);
 
         if ($payment === null) {
@@ -217,13 +177,11 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             $ghost->setExternalId($chargeId);
             $ghost->setStatus(Payment::STATUS_PENDING);
             $ghost->setGatewayResponse(json_encode($data, JSON_UNESCAPED_UNICODE));
-            return $ghost; // sem flush — nada é persistido
+            return $ghost;
         }
 
-        // 4. Salva o payload bruto para auditoria
         $payment->setGatewayResponse(json_encode($data, JSON_UNESCAPED_UNICODE));
 
-        // 5. Idempotência: não reprocessa status finais
         $currentStatus = $payment->getStatus();
         $finalStatuses = [Payment::STATUS_APPROVED, Payment::STATUS_REFUNDED, Payment::STATUS_CANCELLED];
 
@@ -234,20 +192,15 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             return $payment;
         }
 
-        // 6. Máquina de estados conforme fluxos da documentação Asaas
         if (in_array($event, self::EVENTS_APPROVE, true)) {
             $this->approveAndCredit($payment);
-
         } elseif (in_array($event, self::EVENTS_CANCEL, true)) {
             $payment->setStatus(Payment::STATUS_CANCELLED);
             $this->em->flush();
-
         } elseif (in_array($event, self::EVENTS_REFUND, true)) {
             $payment->setStatus(Payment::STATUS_REFUNDED);
             $this->em->flush();
-
         } else {
-            // Eventos informativos (PAYMENT_CREATED, PAYMENT_UPDATED, etc.)
             $this->em->flush();
         }
 
@@ -273,14 +226,6 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         return $map[$remote] ?? Payment::STATUS_PENDING;
     }
 
-    /**
-     * Cria ou reutiliza cliente no Asaas.
-     *
-     * O Asaas pode retornar de 3 formas quando o cliente já existe:
-     *   1. HTTP 400 com errors[] — duplicata detectada antes de salvar
-     *   2. HTTP 200 com { "object": "list", "data": [...] } — duplicata por CPF/e-mail
-     *   3. HTTP 200 com { "id": "cus_xxx", ... } — cliente criado com sucesso
-     */
     private function ensureCustomer(User $user, string $cpf = '', string $phone = ''): string
     {
         $isSandbox = $this->apiBaseUrl === self::URL_SANDBOX;
@@ -320,12 +265,10 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         $statusCode = $response->getStatusCode();
         $data       = $response->toArray(throw: false);
 
-        // Caso 2: HTTP 200 mas retornou lista (duplicata detectada por CPF/e-mail)
         if (($data['object'] ?? '') === 'list' && !empty($data['data'][0]['id'])) {
             return $data['data'][0]['id'];
         }
 
-        // Caso 1: HTTP 400 com errors[] — busca pelo externalReference
         if ($statusCode === 400 && isset($data['errors'])) {
             $existing = $this->http->request('GET', $this->apiBaseUrl . '/customers', [
                 'headers' => ['access_token' => $this->apiKey],
@@ -337,7 +280,6 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             }
         }
 
-        // Caso 3: cliente criado com sucesso
         if (!isset($data['id'])) {
             throw new \RuntimeException(
                 sprintf('Asaas: falha ao criar cliente (HTTP %d): %s', $statusCode, json_encode($data, JSON_UNESCAPED_UNICODE))
@@ -347,9 +289,6 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         return $data['id'];
     }
 
-    /**
-     * Busca QR Code Pix com até 5 tentativas com backoff progressivo (1–4 s).
-     */
     private function fetchPixQrWithRetry(string $paymentId, int $maxAttempts = 5): array
     {
         $url  = $this->apiBaseUrl . '/payments/' . $paymentId . '/pixQrCode';
