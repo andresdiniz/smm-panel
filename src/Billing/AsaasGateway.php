@@ -234,6 +234,11 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
 
     /**
      * Cria ou reutiliza cliente no Asaas.
+     *
+     * O Asaas pode retornar de 3 formas quando o cliente já existe:
+     *   1. HTTP 400 com errors[] — duplicata detectada antes de salvar
+     *   2. HTTP 200 com { "object": "list", "data": [...] } — duplicata por CPF/e-mail
+     *   3. HTTP 200 com { "id": "cus_xxx", ... } — cliente criado com sucesso
      */
     private function ensureCustomer(User $user, string $cpf = '', string $phone = ''): string
     {
@@ -274,6 +279,12 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         $statusCode = $response->getStatusCode();
         $data       = $response->toArray(throw: false);
 
+        // Caso 2: HTTP 200 mas retornou lista (duplicata detectada por CPF/e-mail)
+        if (($data['object'] ?? '') === 'list' && !empty($data['data'][0]['id'])) {
+            return $data['data'][0]['id'];
+        }
+
+        // Caso 1: HTTP 400 com errors[] — busca pelo externalReference
         if ($statusCode === 400 && isset($data['errors'])) {
             $existing = $this->http->request('GET', $this->baseUrl . '/customers', [
                 'headers' => ['access_token' => $this->apiKey],
@@ -285,6 +296,7 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             }
         }
 
+        // Caso 3: cliente criado com sucesso
         if (!isset($data['id'])) {
             throw new \RuntimeException(
                 sprintf('Asaas: falha ao criar cliente (HTTP %d): %s', $statusCode, json_encode($data, JSON_UNESCAPED_UNICODE))
