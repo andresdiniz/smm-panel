@@ -6,6 +6,8 @@ namespace App\MessageHandler;
 
 use App\Entity\Order;
 use App\Entity\OrderLog;
+use App\Entity\WalletTransaction;
+use App\Enum\TransactionType;
 use App\Message\ProcessOrderMessage;
 use App\Message\Order\SyncOrderStatusMessage;
 use App\Repository\WalletRepository;
@@ -21,10 +23,6 @@ use Symfony\Component\Messenger\Stamp\DelayStamp;
 #[AsMessageHandler]
 final class ProcessOrderHandler
 {
-    /**
-     * Delay do primeiro sync após o provider aceitar o pedido: 2 minutos.
-     * Os syncs seguintes usam backoff exponencial no SyncOrderStatusHandler.
-     */
     private const FIRST_SYNC_DELAY_MS = 120_000;
 
     public function __construct(
@@ -41,19 +39,15 @@ final class ProcessOrderHandler
         $conn->beginTransaction();
 
         try {
-            // Lock pessimista: garante que apenas 1 worker processa este pedido por vez
             /** @var Order|null $order */
             $order = $this->em->find(Order::class, $message->orderId, LockMode::PESSIMISTIC_WRITE);
 
             if (!$order) {
-                $this->logger->warning('ProcessOrderHandler: pedido não encontrado.', [
-                    'order_id' => $message->orderId,
-                ]);
+                $this->logger->warning('ProcessOrderHandler: pedido não encontrado.', ['order_id' => $message->orderId]);
                 $conn->rollBack();
                 return;
             }
 
-            // Guard: se já saiu do status pending outro worker chegou primeiro
             if ($order->getStatus() !== Order::STATUS_PENDING) {
                 $this->logger->info('ProcessOrderHandler: pedido já processado, ignorando.', [
                     'order_id' => $message->orderId,
@@ -66,21 +60,17 @@ final class ProcessOrderHandler
             $service = $order->getService();
             $slug    = $service->getProviderSlug();
 
-            // ── Valida provider ───────────────────────────────────────────
             if (!$slug || !$this->registry->has($slug)) {
-                $this->logger->error('ProcessOrderHandler: provider slug não configurado ou inexistente.', [
-                    'order_id'   => $order->getId(),
-                    'service_id' => $service->getId(),
-                    'slug'       => $slug,
+                $this->logger->error('ProcessOrderHandler: provider slug não configurado.', [
+                    'order_id' => $order->getId(), 'slug' => $slug,
                 ]);
-                $this->saveLog($order, $slug ?? 'unknown', OrderLog::ACTION_ADD, null, null, 'Provider não configurado ou inexistente', null);
-                $this->cancelWithRefund($order, 'Provider não configurado ou inexistente');
+                $this->saveLog($order, $slug ?? 'unknown', OrderLog::ACTION_ADD, null, null, 'Provider não configurado', null);
+                $this->cancelWithRefund($order, 'Provider não configurado');
                 $this->em->flush();
                 $conn->commit();
                 return;
             }
 
-            // ── Envia ao provider ─────────────────────────────────────────
             $provider = $this->registry->get($slug);
 
             $this->logger->info('ProcessOrderHandler: enviando pedido ao provider.', [
@@ -108,9 +98,7 @@ final class ProcessOrderHandler
                 $this->saveLog($order, $slug, OrderLog::ACTION_ADD, 200, ['order' => $externalId], null, $elapsed);
 
                 $this->logger->info('ProcessOrderHandler: pedido aceito pelo provider.', [
-                    'order_id'    => $order->getId(),
-                    'external_id' => $externalId,
-                    'provider'    => $slug,
+                    'order_id' => $order->getId(), 'external_id' => $externalId, 'provider' => $slug,
                 ]);
 
                 $this->em->flush();
@@ -122,20 +110,16 @@ final class ProcessOrderHandler
                 );
 
                 $this->logger->info('ProcessOrderHandler: primeiro sync agendado.', [
-                    'order_id' => $order->getId(),
-                    'delay_ms' => self::FIRST_SYNC_DELAY_MS,
+                    'order_id' => $order->getId(), 'delay_ms' => self::FIRST_SYNC_DELAY_MS,
                 ]);
 
                 return;
 
             } catch (ProviderBusinessException $e) {
-                // ❌ Erro de negócio → cancela e reembolsa; sem retry
                 $elapsed = (int) round(microtime(true) * 1000) - $startMs;
 
-                $this->logger->error('ProcessOrderHandler: erro de negócio do provider → cancelando com reembolso.', [
-                    'order_id' => $order->getId(),
-                    'provider' => $slug,
-                    'error'    => $e->getMessage(),
+                $this->logger->error('ProcessOrderHandler: erro de negócio → cancelando com reembolso.', [
+                    'order_id' => $order->getId(), 'provider' => $slug, 'error' => $e->getMessage(),
                 ]);
 
                 $this->saveLog($order, $slug, OrderLog::ACTION_ADD, null, ['exception' => $e->getMessage()], $e->getMessage(), $elapsed);
@@ -145,23 +129,18 @@ final class ProcessOrderHandler
                 return;
 
             } catch (\Throwable $e) {
-                // ⚠️ Erro técnico (timeout, 5xx, rede…) → marca CANCELLED com reembolso e relança para retry
                 $elapsed = (int) round(microtime(true) * 1000) - $startMs;
 
-                $this->logger->error('ProcessOrderHandler: falha técnica ao enviar pedido → cancelando com reembolso para retry.', [
-                    'order_id'   => $order->getId(),
-                    'provider'   => $slug,
-                    'error'      => $e->getMessage(),
-                    'error_type' => $e::class,
+                $this->logger->error('ProcessOrderHandler: falha técnica → cancelando com reembolso para retry.', [
+                    'order_id' => $order->getId(), 'provider' => $slug,
+                    'error' => $e->getMessage(), 'error_type' => $e::class,
                 ]);
 
                 $this->saveLog($order, $slug, OrderLog::ACTION_ADD, null, ['exception' => $e->getMessage()], $e->getMessage(), $elapsed);
-                // Reembolsa e cancela — pedido não chegou ao provider
                 $this->cancelWithRefund($order, $e->getMessage());
                 $this->em->flush();
                 $conn->commit();
 
-                // Relança para o Messenger capturar e encaminhar ao `failed` transport
                 throw $e;
             }
 
@@ -172,8 +151,6 @@ final class ProcessOrderHandler
             throw $e;
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────
 
     private function cancelWithRefund(Order $order, string $reason): void
     {
@@ -187,19 +164,29 @@ final class ProcessOrderHandler
         $wallet = $this->walletRepo->findOneBy(['user' => $order->getUser()]);
         if (!$wallet) {
             $this->logger->error('ProcessOrderHandler: carteira não encontrada para reembolso.', [
-                'order_id' => $order->getId(),
-                'user_id'  => $order->getUser()->getId(),
+                'order_id' => $order->getId(), 'user_id' => $order->getUser()->getId(),
             ]);
             return;
         }
 
         $wallet->credit($amount);
 
+        $tx = (new WalletTransaction())
+            ->setWallet($wallet)
+            ->setType(TransactionType::REFUND)
+            ->setAmountCents($amount)
+            ->setBalanceAfterCents($wallet->getBalanceCents())
+            ->setDescription(sprintf(
+                'Reembolso automático — pedido #%d não enviado ao provider (%s)',
+                $order->getId(),
+                mb_substr($reason, 0, 150)
+            ));
+
+        $this->em->persist($tx);
+
         $this->logger->info('ProcessOrderHandler: reembolso efetuado.', [
-            'order_id'     => $order->getId(),
-            'user_id'      => $order->getUser()->getId(),
-            'refund_cents' => $amount,
-            'reason'       => $reason,
+            'order_id' => $order->getId(), 'user_id' => $order->getUser()->getId(),
+            'refund_cents' => $amount, 'reason' => $reason,
         ]);
     }
 
@@ -211,6 +198,8 @@ final class ProcessOrderHandler
         ?array  $responseBody,
         ?string $errorMessage,
         ?int    $elapsedMs,
+        ?array  $context = null,
+        int     $retryCount = 0,
     ): void {
         $log = (new OrderLog())
             ->setOrder($order)
@@ -219,7 +208,9 @@ final class ProcessOrderHandler
             ->setHttpStatus($httpStatus)
             ->setResponseBody($responseBody)
             ->setErrorMessage($errorMessage)
-            ->setElapsedMs($elapsedMs);
+            ->setElapsedMs($elapsedMs)
+            ->setContext($context)
+            ->setRetryCount($retryCount);
 
         $this->em->persist($log);
     }

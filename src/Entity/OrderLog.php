@@ -4,21 +4,24 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Repository\OrderLogRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Grava cada retorno bruto do provider para uma ordem.
- * Permite rastrear erros, respostas inesperadas e histórico completo.
+ * Grava cada interação com o provider para uma ordem.
+ * Cada chamada (add, status, balance) gera uma linha nova — nunca sobrescreve.
  */
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: OrderLogRepository::class)]
 #[ORM\Table(name: 'order_logs')]
 #[ORM\Index(columns: ['order_id'], name: 'idx_order_logs_order')]
 #[ORM\Index(columns: ['provider'], name: 'idx_order_logs_provider')]
 #[ORM\Index(columns: ['action'], name: 'idx_order_logs_action')]
+#[ORM\Index(columns: ['created_at'], name: 'idx_order_logs_created_at')]
 class OrderLog
 {
     public const ACTION_ADD    = 'add';
     public const ACTION_STATUS = 'status';
+    public const ACTION_SYNC   = 'sync';   // polling de status
     public const ACTION_OTHER  = 'other';
 
     #[ORM\Id]
@@ -35,7 +38,7 @@ class OrderLog
     #[ORM\Column(type: 'string', length: 64)]
     private string $provider = '';
 
-    /** Ação enviada ao provider: add, status, balance... */
+    /** Ação enviada ao provider: add, status, sync, balance... */
     #[ORM\Column(type: 'string', length: 32)]
     private string $action = self::ACTION_ADD;
 
@@ -55,7 +58,21 @@ class OrderLog
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $elapsedMs = null;
 
-    #[ORM\Column(type: 'datetime_immutable')]
+    /**
+     * Número da tentativa de retry do Messenger (0 = primeira execução).
+     * Permite rastrear quantas vezes o handler já tentou processar este pedido.
+     */
+    #[ORM\Column(type: 'smallint', options: ['default' => 0])]
+    private int $retryCount = 0;
+
+    /**
+     * Contexto livre em JSON: dados extras que não cabem em campos fixos.
+     * Ex: ["sync_attempt" => 3, "external_status" => "In progress", "remains" => 40]
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $context = null;
+
+    #[ORM\Column(type: 'datetime_immutable', name: 'created_at')]
     private \DateTimeImmutable $createdAt;
 
     public function __construct()
@@ -63,7 +80,7 @@ class OrderLog
         $this->createdAt = new \DateTimeImmutable();
     }
 
-    // ── Getters ──────────────────────────────────────────────────────────
+    // ── Getters / Setters ────────────────────────────────────────────────
 
     public function getId(): int { return $this->id; }
 
@@ -87,6 +104,12 @@ class OrderLog
 
     public function getElapsedMs(): ?int { return $this->elapsedMs; }
     public function setElapsedMs(?int $elapsedMs): static { $this->elapsedMs = $elapsedMs; return $this; }
+
+    public function getRetryCount(): int { return $this->retryCount; }
+    public function setRetryCount(int $retryCount): static { $this->retryCount = $retryCount; return $this; }
+
+    public function getContext(): ?array { return $this->context; }
+    public function setContext(?array $context): static { $this->context = $context; return $this; }
 
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
 
