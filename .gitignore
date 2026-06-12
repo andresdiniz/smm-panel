@@ -1,6 +1,5 @@
-/.env.local
+
 /.env.local.php
-/.env.*.local
 /config/secrets/prod/prod.decrypt.private.php
 /public/bundles/
 /var/
@@ -11,16 +10,6 @@
 .vscode/
 .DS_Store
 /coverage/
-
-###> symfony/framework-bundle ###
-/.env.local
-/.env.local.php
-/.env.*.local
-/config/secrets/prod/prod.decrypt.private.php
-/public/bundles/
-/var/
-/vendor/
-###< symfony/framework-bundle ###
 
 ###> phpunit/phpunit ###
 /phpunit.xml
