@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Scheduler;
 
-use App\Message\Billing\ReconcilePaymentMessage;
-use App\Message\Crm\CrmSyncMessage;
+use Symfony\Component\Console\Messenger\RunCommandMessage;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
 use Symfony\Component\Scheduler\RecurringMessage;
 use Symfony\Component\Scheduler\Schedule;
@@ -24,8 +23,8 @@ final class SmmSchedule implements ScheduleProviderInterface
         return (new Schedule())
             ->stateful($this->cache)
             ->add(
-                // Reconcilia pagamentos Pix pendentes a cada 5 min
-                RecurringMessage::every('5 minutes', new ReconcilePaymentMessage(0))
+                // Reconcilia pagamentos Pix pendentes a cada 5 min via Command
+                RecurringMessage::every('5 minutes', new RunCommandMessage('smm:billing:reconcile'))
             )
             ->add(
                 // Sincroniza saldo dos providers a cada hora
