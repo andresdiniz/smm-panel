@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Scheduler;
 
 use App\Entity\Order;
+use App\Message\Order\DispatchOrderToProviderMessage;
 use App\Message\SendOrderCompletedEmailMessage;
 use App\Smm\DynamicSmmProviderLoader;
 use Doctrine\ORM\EntityManagerInterface;
@@ -27,6 +28,55 @@ final class SyncOrdersSchedule
     ) {}
 
     public function __invoke(): void
+    {
+        $this->dispatchPendingOrders();
+        $this->syncActiveOrders();
+    }
+
+    /**
+     * Pedidos pending que ainda nao foram enviados ao provedor (sem external_order_id).
+     * Recoloca na fila de despacho.
+     */
+    private function dispatchPendingOrders(): void
+    {
+        $orders = $this->em->createQueryBuilder()
+            ->select('o')
+            ->from(Order::class, 'o')
+            ->join('o.service', 's')
+            ->where('o.status = :status')
+            ->andWhere('o.externalOrderId IS NULL')
+            ->setParameter('status', Order::STATUS_PENDING)
+            ->setMaxResults(50)
+            ->orderBy('o.createdAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        foreach ($orders as $order) {
+            /** @var Order $order */
+            $slug = $order->getService()->getProviderSlug();
+            if (!$slug) {
+                $this->logger->warning('SyncOrders: pedido sem providerSlug, ignorando.', [
+                    'order_id' => $order->getId(),
+                ]);
+                continue;
+            }
+
+            $this->bus->dispatch(new DispatchOrderToProviderMessage(
+                orderId: $order->getId(),
+                providerSlug: $slug,
+            ));
+
+            $this->logger->info('SyncOrders: pedido pending reenviado para fila.', [
+                'order_id' => $order->getId(),
+                'provider' => $slug,
+            ]);
+        }
+    }
+
+    /**
+     * Pedidos em andamento com external_order_id — sincroniza status com o provedor.
+     */
+    private function syncActiveOrders(): void
     {
         $orders = $this->em->createQueryBuilder()
             ->select('o')
