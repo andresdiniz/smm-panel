@@ -38,10 +38,9 @@ final class DynamicSmmProviderLoader
             $slug = strtolower(trim($cred->getSlug()));
             $providers[$slug] = new GenericSmmProvider(
                 $this->http,
-                $slug,
-                $cred->getBaseUrl(),
-                $cred->getApiKey(),
+                $cred,
                 $this->logger,
+                $slug,
             );
         }
 
@@ -56,7 +55,6 @@ final class DynamicSmmProviderLoader
         $normalized = strtolower(trim($slug));
         $cred = $this->repo->findBySlug(ProviderCredential::TYPE_SMM, $normalized);
         if (!$cred) {
-            // Tenta com o slug original caso o banco armazene com case diferente
             $cred = $this->repo->findBySlug(ProviderCredential::TYPE_SMM, $slug);
         }
         if (!$cred) {
@@ -65,10 +63,9 @@ final class DynamicSmmProviderLoader
 
         return new GenericSmmProvider(
             $this->http,
-            $normalized,
-            $cred->getBaseUrl(),
-            $cred->getApiKey(),
+            $cred,
             $this->logger,
+            $normalized,
         );
     }
 }
