@@ -25,11 +25,11 @@ final class SmmSchedule implements ScheduleProviderInterface
             ->stateful($this->cache)
             ->add(
                 // Reconcilia pagamentos Pix pendentes a cada 5 min
-                RecurringMessage::cron('*/5 * * * *', new ReconcilePaymentMessage(0))
+                RecurringMessage::every('5 minutes', new ReconcilePaymentMessage(0))
             )
             ->add(
                 // Sincroniza saldo dos providers a cada hora
-                RecurringMessage::cron('0 * * * *', new \App\Message\Scheduler\SyncProviderBalanceMessage())
+                RecurringMessage::every('1 hour', new \App\Message\Scheduler\SyncProviderBalanceMessage())
             )
             ->add(
                 // Relatório financeiro diário às 8h
@@ -37,7 +37,7 @@ final class SmmSchedule implements ScheduleProviderInterface
             )
             ->add(
                 // Envia e-mails de remarketing (carrinho abandonado) a cada hora
-                RecurringMessage::cron('0 * * * *', new \App\Message\Scheduler\RemarketingEmailsMessage())
+                RecurringMessage::every('1 hour', new \App\Message\Scheduler\RemarketingEmailsMessage())
             )
             ->add(
                 // Limpa tokens expirados de verificação de e-mail (1x/dia meia-noite)
