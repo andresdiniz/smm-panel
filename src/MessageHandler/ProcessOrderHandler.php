@@ -11,6 +11,7 @@ use App\Message\Order\SyncOrderStatusMessage;
 use App\Repository\WalletRepository;
 use App\Smm\Exception\ProviderBusinessException;
 use App\Smm\SmmProviderRegistry;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -36,121 +37,141 @@ final class ProcessOrderHandler
 
     public function __invoke(ProcessOrderMessage $message): void
     {
-        /** @var Order|null $order */
-        $order = $this->em->find(Order::class, $message->orderId);
-
-        if (!$order) {
-            $this->logger->warning('ProcessOrderHandler: pedido não encontrado.', [
-                'order_id' => $message->orderId,
-            ]);
-            return;
-        }
-
-        if ($order->getStatus() !== Order::STATUS_PENDING) {
-            $this->logger->info('ProcessOrderHandler: pedido já processado, ignorando.', [
-                'order_id' => $message->orderId,
-                'status'   => $order->getStatus(),
-            ]);
-            return;
-        }
-
-        $service = $order->getService();
-        $slug    = $service->getProviderSlug();
-
-        // ── Valida provider ───────────────────────────────────────────────
-        if (!$slug || !$this->registry->has($slug)) {
-            $this->logger->error('ProcessOrderHandler: provider slug não configurado ou inexistente.', [
-                'order_id'   => $order->getId(),
-                'service_id' => $service->getId(),
-                'slug'       => $slug,
-            ]);
-            $this->saveLog($order, $slug ?? 'unknown', OrderLog::ACTION_ADD, null, null, 'Provider não configurado ou inexistente', null);
-            $this->cancelWithRefund($order, 'Provider não configurado ou inexistente');
-            $this->em->flush();
-            return;
-        }
-
-        // ── Envia ao provider ─────────────────────────────────────────────
-        $provider = $this->registry->get($slug);
-
-        $this->logger->info('ProcessOrderHandler: enviando pedido ao provider.', [
-            'order_id'            => $order->getId(),
-            'provider'            => $slug,
-            'external_service_id' => $service->getExternalServiceId(),
-            'target_url'          => $order->getTargetUrl(),
-            'quantity'            => $order->getQuantity(),
-        ]);
-
-        $startMs = (int) round(microtime(true) * 1000);
+        $conn = $this->em->getConnection();
+        $conn->beginTransaction();
 
         try {
-            $externalId = $provider->addOrder(
-                $service->getExternalServiceId(),
-                $order->getTargetUrl(),
-                $order->getQuantity()
-            );
+            // Lock pessimista: garante que apenas 1 worker processa este pedido por vez
+            /** @var Order|null $order */
+            $order = $this->em->find(Order::class, $message->orderId, LockMode::PESSIMISTIC_WRITE);
 
-            $elapsed = (int) round(microtime(true) * 1000) - $startMs;
+            if (!$order) {
+                $this->logger->warning('ProcessOrderHandler: pedido não encontrado.', [
+                    'order_id' => $message->orderId,
+                ]);
+                $conn->rollBack();
+                return;
+            }
 
-            $order->setExternalOrderId($externalId);
-            $order->setStatus(Order::STATUS_PROCESSING);
+            // Guard: se já saiu do status pending outro worker chegou primeiro
+            if ($order->getStatus() !== Order::STATUS_PENDING) {
+                $this->logger->info('ProcessOrderHandler: pedido já processado, ignorando.', [
+                    'order_id' => $message->orderId,
+                    'status'   => $order->getStatus(),
+                ]);
+                $conn->rollBack();
+                return;
+            }
 
-            $this->saveLog($order, $slug, OrderLog::ACTION_ADD, 200, ['order' => $externalId], null, $elapsed);
+            $service = $order->getService();
+            $slug    = $service->getProviderSlug();
 
-            $this->logger->info('ProcessOrderHandler: pedido aceito pelo provider.', [
-                'order_id'    => $order->getId(),
-                'external_id' => $externalId,
-                'provider'    => $slug,
+            // ── Valida provider ───────────────────────────────────────────────
+            if (!$slug || !$this->registry->has($slug)) {
+                $this->logger->error('ProcessOrderHandler: provider slug não configurado ou inexistente.', [
+                    'order_id'   => $order->getId(),
+                    'service_id' => $service->getId(),
+                    'slug'       => $slug,
+                ]);
+                $this->saveLog($order, $slug ?? 'unknown', OrderLog::ACTION_ADD, null, null, 'Provider não configurado ou inexistente', null);
+                $this->cancelWithRefund($order, 'Provider não configurado ou inexistente');
+                $this->em->flush();
+                $conn->commit();
+                return;
+            }
+
+            // ── Envia ao provider ─────────────────────────────────────────────
+            $provider = $this->registry->get($slug);
+
+            $this->logger->info('ProcessOrderHandler: enviando pedido ao provider.', [
+                'order_id'            => $order->getId(),
+                'provider'            => $slug,
+                'external_service_id' => $service->getExternalServiceId(),
+                'target_url'          => $order->getTargetUrl(),
+                'quantity'            => $order->getQuantity(),
             ]);
 
-            $this->em->flush();
-            $this->bus->dispatch(
-                new SyncOrderStatusMessage($order->getId()),
-                [new DelayStamp(self::FIRST_SYNC_DELAY_MS)]
-            );
+            $startMs = (int) round(microtime(true) * 1000);
 
-            $this->logger->info('ProcessOrderHandler: primeiro sync agendado.', [
-                'order_id' => $order->getId(),
-                'delay_ms' => self::FIRST_SYNC_DELAY_MS,
-            ]);
+            try {
+                $externalId = $provider->addOrder(
+                    $service->getExternalServiceId(),
+                    $order->getTargetUrl(),
+                    $order->getQuantity()
+                );
 
-            return;
+                $elapsed = (int) round(microtime(true) * 1000) - $startMs;
 
-        } catch (ProviderBusinessException $e) {
-            // ❌ Erro de negócio (link inválido, duplicado, qtd fora do range…)
-            // → cancela e reembolsa imediatamente; não gera retry
-            $elapsed = (int) round(microtime(true) * 1000) - $startMs;
+                $order->setExternalOrderId($externalId);
+                $order->setStatus(Order::STATUS_PROCESSING);
 
-            $this->logger->error('ProcessOrderHandler: erro de negócio do provider → cancelando com reembolso.', [
-                'order_id'   => $order->getId(),
-                'provider'   => $slug,
-                'error'      => $e->getMessage(),
-            ]);
+                $this->saveLog($order, $slug, OrderLog::ACTION_ADD, 200, ['order' => $externalId], null, $elapsed);
 
-            $this->saveLog($order, $slug, OrderLog::ACTION_ADD, null, ['exception' => $e->getMessage()], $e->getMessage(), $elapsed);
-            $this->cancelWithRefund($order, $e->getMessage());
+                $this->logger->info('ProcessOrderHandler: pedido aceito pelo provider.', [
+                    'order_id'    => $order->getId(),
+                    'external_id' => $externalId,
+                    'provider'    => $slug,
+                ]);
+
+                $this->em->flush();
+                $conn->commit();
+
+                $this->bus->dispatch(
+                    new SyncOrderStatusMessage($order->getId()),
+                    [new DelayStamp(self::FIRST_SYNC_DELAY_MS)]
+                );
+
+                $this->logger->info('ProcessOrderHandler: primeiro sync agendado.', [
+                    'order_id' => $order->getId(),
+                    'delay_ms' => self::FIRST_SYNC_DELAY_MS,
+                ]);
+
+                return;
+
+            } catch (ProviderBusinessException $e) {
+                // ❌ Erro de negócio (link inválido, duplicado, qtd fora do range…)
+                // → cancela e reembolsa imediatamente; não gera retry
+                $elapsed = (int) round(microtime(true) * 1000) - $startMs;
+
+                $this->logger->error('ProcessOrderHandler: erro de negócio do provider → cancelando com reembolso.', [
+                    'order_id'   => $order->getId(),
+                    'provider'   => $slug,
+                    'error'      => $e->getMessage(),
+                ]);
+
+                $this->saveLog($order, $slug, OrderLog::ACTION_ADD, null, ['exception' => $e->getMessage()], $e->getMessage(), $elapsed);
+                $this->cancelWithRefund($order, $e->getMessage());
+                $this->em->flush();
+                $conn->commit();
+                return;
+
+            } catch (\Throwable $e) {
+                // ⚠️ Erro técnico (timeout, 5xx, rede…)
+                // → marca como STATUS_ERROR e relança para o Messenger enviar ao transport `failed`
+                $elapsed = (int) round(microtime(true) * 1000) - $startMs;
+
+                $this->logger->error('ProcessOrderHandler: falha técnica ao enviar pedido → marcando como error para retry.', [
+                    'order_id'   => $order->getId(),
+                    'provider'   => $slug,
+                    'error'      => $e->getMessage(),
+                    'error_type' => $e::class,
+                ]);
+
+                $this->saveLog($order, $slug, OrderLog::ACTION_ADD, null, ['exception' => $e->getMessage()], $e->getMessage(), $elapsed);
+                $order->setStatus(Order::STATUS_ERROR);
+                $this->em->flush();
+                $conn->commit();
+
+                // Relança para o Messenger capturar e encaminhar ao `failed` transport
+                throw $e;
+            }
 
         } catch (\Throwable $e) {
-            // ⚠️ Erro técnico (timeout, 5xx, rede…)
-            // → marca como STATUS_ERROR e relança para o Messenger enviar ao transport `failed`
-            $elapsed = (int) round(microtime(true) * 1000) - $startMs;
-
-            $this->logger->error('ProcessOrderHandler: falha técnica ao enviar pedido → marcando como error para retry.', [
-                'order_id'   => $order->getId(),
-                'provider'   => $slug,
-                'error'      => $e->getMessage(),
-                'error_type' => $e::class,
-            ]);
-
-            $this->saveLog($order, $slug, OrderLog::ACTION_ADD, null, ['exception' => $e->getMessage()], $e->getMessage(), $elapsed);
-            $order->setStatus(Order::STATUS_ERROR);
-            $this->em->flush();
-
-            // Relança para o Messenger capturar e encaminhar ao `failed` transport
+            if ($conn->isTransactionActive()) {
+                $conn->rollBack();
+            }
             throw $e;
         }
-
-        $this->em->flush();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
