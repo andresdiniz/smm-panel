@@ -31,6 +31,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private string $password;
 
+    #[ORM\Column(options: ['default' => true])]
+    private bool $active = true;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -68,6 +71,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getPassword(): string { return $this->password; }
     public function setPassword(string $password): static { $this->password = $password; return $this; }
     public function eraseCredentials(): void {}
+    public function isActive(): bool { return $this->active; }
+    public function setActive(bool $active): static { $this->active = $active; return $this; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
     public function getUpdatedAt(): ?\DateTimeImmutable { return $this->updatedAt; }
     public function getWallet(): ?Wallet { return $this->wallet; }
