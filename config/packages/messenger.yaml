@@ -3,8 +3,13 @@ framework:
         failure_transport: failed
 
         transports:
+            # Schedule "smm" — SmmSchedule (#[AsSchedule('smm')])
             scheduler_smm:
                 dsn: 'schedule://smm'
+
+            # Schedule "default" — DailyReportSchedule, ReconcilePaymentsSchedule, SyncOrdersSchedule
+            scheduler_default:
+                dsn: 'schedule://default'
 
             orders_high:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
