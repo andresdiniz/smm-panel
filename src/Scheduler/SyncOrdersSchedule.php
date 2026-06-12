@@ -16,7 +16,7 @@ use Symfony\Component\Scheduler\Attribute\AsCronTask;
  * Sincroniza status dos pedidos ativos com os providers SMM.
  * Executa a cada 2 minutos.
  */
-#[AsCronTask('*\/2 * * * *')]
+#[AsCronTask('*/2 * * * *')]
 final class SyncOrdersSchedule
 {
     public function __construct(

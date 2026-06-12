@@ -17,9 +17,9 @@ use Symfony\Component\Scheduler\Attribute\AsCronTask;
  * Executa a cada 5 minutos para cobrir webhooks perdidos.
  *
  * Crontab alternativo:
- *   *\/5 * * * * php bin/console app:reconcile-payments
+ *   */5 * * * * php bin/console app:reconcile-payments
  */
-#[AsCronTask('*\/5 * * * *')]
+#[AsCronTask('*/5 * * * *')]
 final class ReconcilePaymentsSchedule
 {
     public function __construct(
@@ -75,7 +75,7 @@ final class ReconcilePaymentsSchedule
     private function resolveGatewaySlug(Payment $payment): string
     {
         return match ($payment->getMethod()) {
-            'pix', 'credit_card', 'debit_card' => 'asaas', // padrão; ajustar por externalId prefix se multiplos gateways
+            'pix', 'credit_card', 'debit_card' => 'asaas',
             default => 'asaas',
         };
     }
