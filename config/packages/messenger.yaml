@@ -3,6 +3,9 @@ framework:
         failure_transport: failed
 
         transports:
+            scheduler_smm:
+                dsn: 'schedule://smm'
+
             orders_high:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
