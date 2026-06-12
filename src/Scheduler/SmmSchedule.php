@@ -25,7 +25,7 @@ final class SmmSchedule implements ScheduleProviderInterface
             ->stateful($this->cache)
             ->add(
                 // Reconcilia pagamentos Pix pendentes a cada 5 min
-                RecurringMessage::every('5 minutes', new ReconcilePaymentMessage(0))
+                RecurringMessage::cron('*/5 * * * *', new ReconcilePaymentMessage(0))
             )
             ->add(
                 // Sincroniza saldo dos providers a cada hora
