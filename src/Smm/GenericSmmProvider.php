@@ -57,14 +57,14 @@ final class GenericSmmProvider implements SmmProviderInterface
 
         $this->logger->debug('[SMM] → REQUEST', [
             'provider' => $this->slug,
-            'url'      => $this->credential->getApiUrl(),
+            'url'      => $this->credential->getBaseUrl(),
             'body'     => array_merge($body, ['key' => '***']),
         ]);
 
         $startMs = (int) round(microtime(true) * 1000);
 
         try {
-            $response = $this->httpClient->request('POST', $this->credential->getApiUrl(), [
+            $response = $this->httpClient->request('POST', $this->credential->getBaseUrl(), [
                 'body'    => $body,
                 'timeout' => 15,
             ]);
@@ -136,7 +136,7 @@ final class GenericSmmProvider implements SmmProviderInterface
         ];
 
         try {
-            $response = $this->httpClient->request('POST', $this->credential->getApiUrl(), [
+            $response = $this->httpClient->request('POST', $this->credential->getBaseUrl(), [
                 'body'    => $body,
                 'timeout' => 10,
             ]);
@@ -175,7 +175,7 @@ final class GenericSmmProvider implements SmmProviderInterface
         ];
 
         try {
-            $response = $this->httpClient->request('POST', $this->credential->getApiUrl(), [
+            $response = $this->httpClient->request('POST', $this->credential->getBaseUrl(), [
                 'body'    => $body,
                 'timeout' => 10,
             ]);
@@ -212,7 +212,7 @@ final class GenericSmmProvider implements SmmProviderInterface
         ];
 
         try {
-            $response = $this->httpClient->request('POST', $this->credential->getApiUrl(), [
+            $response = $this->httpClient->request('POST', $this->credential->getBaseUrl(), [
                 'body'    => $body,
                 'timeout' => 30,
             ]);

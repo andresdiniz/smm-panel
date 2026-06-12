@@ -66,7 +66,7 @@ final class ProcessOrderHandler
             $service = $order->getService();
             $slug    = $service->getProviderSlug();
 
-            // ── Valida provider ───────────────────────────────────────────────
+            // ── Valida provider ───────────────────────────────────────────
             if (!$slug || !$this->registry->has($slug)) {
                 $this->logger->error('ProcessOrderHandler: provider slug não configurado ou inexistente.', [
                     'order_id'   => $order->getId(),
@@ -80,7 +80,7 @@ final class ProcessOrderHandler
                 return;
             }
 
-            // ── Envia ao provider ─────────────────────────────────────────────
+            // ── Envia ao provider ─────────────────────────────────────────
             $provider = $this->registry->get($slug);
 
             $this->logger->info('ProcessOrderHandler: enviando pedido ao provider.', [
@@ -129,14 +129,13 @@ final class ProcessOrderHandler
                 return;
 
             } catch (ProviderBusinessException $e) {
-                // ❌ Erro de negócio (link inválido, duplicado, qtd fora do range…)
-                // → cancela e reembolsa imediatamente; não gera retry
+                // ❌ Erro de negócio → cancela e reembolsa; sem retry
                 $elapsed = (int) round(microtime(true) * 1000) - $startMs;
 
                 $this->logger->error('ProcessOrderHandler: erro de negócio do provider → cancelando com reembolso.', [
-                    'order_id'   => $order->getId(),
-                    'provider'   => $slug,
-                    'error'      => $e->getMessage(),
+                    'order_id' => $order->getId(),
+                    'provider' => $slug,
+                    'error'    => $e->getMessage(),
                 ]);
 
                 $this->saveLog($order, $slug, OrderLog::ACTION_ADD, null, ['exception' => $e->getMessage()], $e->getMessage(), $elapsed);
@@ -146,11 +145,10 @@ final class ProcessOrderHandler
                 return;
 
             } catch (\Throwable $e) {
-                // ⚠️ Erro técnico (timeout, 5xx, rede…)
-                // → marca como STATUS_ERROR e relança para o Messenger enviar ao transport `failed`
+                // ⚠️ Erro técnico (timeout, 5xx, rede…) → marca CANCELLED com reembolso e relança para retry
                 $elapsed = (int) round(microtime(true) * 1000) - $startMs;
 
-                $this->logger->error('ProcessOrderHandler: falha técnica ao enviar pedido → marcando como error para retry.', [
+                $this->logger->error('ProcessOrderHandler: falha técnica ao enviar pedido → cancelando com reembolso para retry.', [
                     'order_id'   => $order->getId(),
                     'provider'   => $slug,
                     'error'      => $e->getMessage(),
@@ -158,7 +156,8 @@ final class ProcessOrderHandler
                 ]);
 
                 $this->saveLog($order, $slug, OrderLog::ACTION_ADD, null, ['exception' => $e->getMessage()], $e->getMessage(), $elapsed);
-                $order->setStatus(Order::STATUS_ERROR);
+                // Reembolsa e cancela — pedido não chegou ao provider
+                $this->cancelWithRefund($order, $e->getMessage());
                 $this->em->flush();
                 $conn->commit();
 
