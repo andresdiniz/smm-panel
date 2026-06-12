@@ -4,159 +4,173 @@ declare(strict_types=1);
 
 namespace App\Smm;
 
+use App\Entity\ProviderCredential;
+use App\Smm\Exception\ProviderBusinessException;
+use App\Smm\Exception\ProviderTechnicalException;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
- * Implementação genérica para APIs SMM padronizadas.
- *
- * Compatível com: JustAnotherPanel, SMMKings, Peakerr, SMMFollows,
- *                 SMMHeaven, GoodSMM, SubMall e qualquer painel
- *                 que siga o protocolo REST padrão do mercado.
- *
- * Protocolo:
- *   POST {base_url}
- *   Content-Type: application/x-www-form-urlencoded
- *   key=API_KEY&action=ACTION[&...params]
- *
- * Para adicionar um novo provider, basta registrar um novo serviço
- * em services.yaml com slug, base_url e api_key diferentes.
+ * Provider genérico compatível com a API padrão SMM (SMMoficial, JustAnotherPanel, etc.).
  */
 final class GenericSmmProvider implements SmmProviderInterface
 {
+    /** Códigos de erro que indicam falha de negócio (não retentáveis). */
+    private const BUSINESS_ERRORS = [
+        'neworder.error.link_duplicate',
+        'neworder.error.invalid_link',
+        'neworder.error.link_not_found',
+        'neworder.error.min_quantity',
+        'neworder.error.max_quantity',
+        'neworder.error.service_inactive',
+        'neworder.error.service_not_found',
+        'error.invalid_service',
+        'error.invalid_link',
+        'error.duplicate_order',
+        'Invalid link',
+        'Duplicate order',
+        'Min quantity',
+        'Max quantity',
+    ];
+
     public function __construct(
-        private readonly HttpClientInterface $http,
-        private readonly string $slug,
-        private readonly string $baseUrl,
-        private readonly string $apiKey,
-        private readonly LoggerInterface $logger,
+        private readonly HttpClientInterface  $httpClient,
+        private readonly ProviderCredential   $credential,
+        private readonly LoggerInterface      $logger,
+        private readonly string               $slug,
     ) {}
 
-    public function getSlug(): string
+    public function addOrder(string $externalServiceId, string $targetUrl, int $quantity): string
     {
-        return $this->slug;
-    }
-
-    public function addOrder(string $serviceId, string $targetUrl, int $quantity): string
-    {
-        $payload = [
+        $body = [
+            'key'      => $this->credential->getApiKey(),
             'action'   => 'add',
-            'service'  => $serviceId,
+            'service'  => $externalServiceId,
             'link'     => $targetUrl,
             'quantity' => $quantity,
         ];
 
-        $data = $this->post($payload);
-
-        if (isset($data['error'])) {
-            throw new \RuntimeException('[' . $this->slug . '] Erro ao criar pedido: ' . $data['error']);
-        }
-
-        return (string) ($data['order'] ?? throw new \RuntimeException('[' . $this->slug . '] Resposta sem order ID.'));
-    }
-
-    public function getOrderStatus(string $orderId): array
-    {
-        $data = $this->post([
-            'action' => 'status',
-            'order'  => $orderId,
-        ]);
-
-        if (isset($data['error'])) {
-            throw new \RuntimeException('[' . $this->slug . '] Erro ao consultar status: ' . $data['error']);
-        }
-
-        return [
-            'status'      => strtolower($data['status'] ?? 'pending'),
-            'start_count' => (int) ($data['start_count'] ?? 0),
-            'remains'     => (int) ($data['remains'] ?? 0),
-            'charge'      => (float) ($data['charge'] ?? 0),
-        ];
-    }
-
-    public function getBalance(): float
-    {
-        $data = $this->post(['action' => 'balance']);
-        return (float) ($data['balance'] ?? 0);
-    }
-
-    public function getServices(): array
-    {
-        return $this->post(['action' => 'services']);
-    }
-
-    /** @param array<string, mixed> $params */
-    private function post(array $params): array
-    {
-        $body = array_merge(['key' => $this->apiKey], $params);
-
-        // Mascara a chave nos logs — nunca logar credenciais em texto puro
-        $safeBody = $body;
-        $safeBody['key'] = '***';
-
         $this->logger->debug('[SMM] → REQUEST', [
             'provider' => $this->slug,
-            'url'      => $this->baseUrl,
-            'body'     => $safeBody,
+            'url'      => $this->credential->getApiUrl(),
+            'body'     => array_merge($body, ['key' => '***']),
         ]);
 
         $startMs = (int) round(microtime(true) * 1000);
 
         try {
-            $response   = $this->http->request('POST', $this->baseUrl, ['body' => $body]);
-            $statusCode = $response->getStatusCode();
-            $rawBody    = $response->getContent(false);   // false = não lança em 4xx/5xx
-            $elapsed    = (int) round(microtime(true) * 1000) - $startMs;
+            $response = $this->httpClient->request('POST', $this->credential->getApiUrl(), [
+                'body'    => $body,
+                'timeout' => 15,
+            ]);
 
-            // Tenta decodificar JSON para o log, mas sem quebrar se vier HTML/texto
-            $decoded = null;
-            try {
-                $decoded = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
-            } catch (\JsonException) {
-                // mantém $decoded = null
-            }
+            $status  = $response->getStatusCode();
+            $raw     = $response->toArray(false);
+            $elapsed = (int) round(microtime(true) * 1000) - $startMs;
 
             $this->logger->debug('[SMM] ← RESPONSE', [
                 'provider'    => $this->slug,
-                'action'      => $params['action'] ?? '?',
-                'http_status' => $statusCode,
+                'action'      => 'add',
+                'http_status' => $status,
                 'elapsed_ms'  => $elapsed,
-                'body_raw'    => $decoded ?? $rawBody,
+                'body_raw'    => $raw,
             ]);
 
-            if ($statusCode >= 400) {
-                $this->logger->error('[SMM] Resposta HTTP de erro', [
-                    'provider'    => $this->slug,
-                    'action'      => $params['action'] ?? '?',
-                    'http_status' => $statusCode,
-                    'body'        => $decoded ?? $rawBody,
-                ]);
+            // HTTP 4xx/5xx → erro técnico
+            if ($status >= 400) {
+                throw new ProviderTechnicalException(
+                    sprintf('[%s] HTTP %d ao criar pedido', $this->slug, $status)
+                );
             }
 
-            // Se 'error' veio no JSON, loga como warning antes de devolver
-            if (is_array($decoded) && isset($decoded['error'])) {
+            // Erro de negócio na resposta JSON
+            if (isset($raw['error'])) {
+                $errorCode = (string) $raw['error'];
+
                 $this->logger->warning('[SMM] API retornou erro de negócio', [
                     'provider' => $this->slug,
-                    'action'   => $params['action'] ?? '?',
-                    'error'    => $decoded['error'],
-                    'request'  => $safeBody,
+                    'action'   => 'add',
+                    'error'    => $errorCode,
+                    'request'  => array_merge($body, ['key' => '***']),
                 ]);
+
+                if ($this->isBusinessError($errorCode)) {
+                    throw new ProviderBusinessException(
+                        sprintf('[%s] Erro ao criar pedido: %s', $this->slug, $errorCode)
+                    );
+                }
+
+                // Erro desconhecido → trata como técnico (retentável)
+                throw new ProviderTechnicalException(
+                    sprintf('[%s] Erro desconhecido ao criar pedido: %s', $this->slug, $errorCode)
+                );
             }
 
-            return $decoded ?? [];
+            if (empty($raw['order'])) {
+                throw new ProviderTechnicalException(
+                    sprintf('[%s] Resposta sem order ID', $this->slug)
+                );
+            }
 
+            return (string) $raw['order'];
+
+        } catch (ProviderBusinessException|ProviderTechnicalException $e) {
+            throw $e; // re-throw sem wrapping
         } catch (\Throwable $e) {
-            $elapsed = (int) round(microtime(true) * 1000) - $startMs;
+            throw new ProviderTechnicalException(
+                sprintf('[%s] Falha de comunicação: %s', $this->slug, $e->getMessage()),
+                0,
+                $e
+            );
+        }
+    }
 
-            $this->logger->critical('[SMM] Exceção na chamada HTTP', [
-                'provider'   => $this->slug,
-                'action'     => $params['action'] ?? '?',
-                'elapsed_ms' => $elapsed,
-                'exception'  => $e->getMessage(),
-                'request'    => $safeBody,
+    public function getOrderStatus(string $externalOrderId): array
+    {
+        $body = [
+            'key'    => $this->credential->getApiKey(),
+            'action' => 'status',
+            'order'  => $externalOrderId,
+        ];
+
+        try {
+            $response = $this->httpClient->request('POST', $this->credential->getApiUrl(), [
+                'body'    => $body,
+                'timeout' => 10,
             ]);
 
+            $raw = $response->toArray(false);
+
+            if (isset($raw['error'])) {
+                throw new ProviderTechnicalException(
+                    sprintf('[%s] Erro ao consultar status: %s', $this->slug, $raw['error'])
+                );
+            }
+
+            return [
+                'status'      => $raw['status']      ?? 'processing',
+                'start_count' => (int) ($raw['start_count'] ?? 0),
+                'remains'     => (int) ($raw['remains']     ?? 0),
+            ];
+
+        } catch (ProviderTechnicalException $e) {
             throw $e;
+        } catch (\Throwable $e) {
+            throw new ProviderTechnicalException(
+                sprintf('[%s] Falha de comunicação (status): %s', $this->slug, $e->getMessage()),
+                0,
+                $e
+            );
         }
+    }
+
+    private function isBusinessError(string $code): bool
+    {
+        foreach (self::BUSINESS_ERRORS as $pattern) {
+            if (stripos($code, $pattern) !== false || $code === $pattern) {
+                return true;
+            }
+        }
+        return false;
     }
 }

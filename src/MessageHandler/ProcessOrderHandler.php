@@ -9,6 +9,7 @@ use App\Entity\OrderLog;
 use App\Message\ProcessOrderMessage;
 use App\Message\Order\SyncOrderStatusMessage;
 use App\Repository\WalletRepository;
+use App\Smm\Exception\ProviderBusinessException;
 use App\Smm\SmmProviderRegistry;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -94,7 +95,6 @@ final class ProcessOrderHandler
             $order->setExternalOrderId($externalId);
             $order->setStatus(Order::STATUS_PROCESSING);
 
-            // ✅ Log de sucesso
             $this->saveLog($order, $slug, OrderLog::ACTION_ADD, 200, ['order' => $externalId], null, $elapsed);
 
             $this->logger->info('ProcessOrderHandler: pedido aceito pelo provider.', [
@@ -103,36 +103,51 @@ final class ProcessOrderHandler
                 'provider'    => $slug,
             ]);
 
-            // 🔄 Agenda o primeiro sync de status após FIRST_SYNC_DELAY_MS (2 min).
-            // O SyncOrderStatusHandler cuida dos re-agendamentos seguintes com backoff
-            // exponencial (2min → 4min → 8min → ... → teto 30min).
-            $this->em->flush(); // persiste externalOrderId antes de despachar
+            $this->em->flush();
             $this->bus->dispatch(
                 new SyncOrderStatusMessage($order->getId()),
                 [new DelayStamp(self::FIRST_SYNC_DELAY_MS)]
             );
 
             $this->logger->info('ProcessOrderHandler: primeiro sync agendado.', [
-                'order_id'  => $order->getId(),
-                'delay_ms'  => self::FIRST_SYNC_DELAY_MS,
+                'order_id' => $order->getId(),
+                'delay_ms' => self::FIRST_SYNC_DELAY_MS,
             ]);
 
-            return; // flush já feito acima
+            return;
 
-        } catch (\Throwable $e) {
+        } catch (ProviderBusinessException $e) {
+            // ❌ Erro de negócio (link inválido, duplicado, qtd fora do range…)
+            // → cancela e reembolsa imediatamente; não gera retry
             $elapsed = (int) round(microtime(true) * 1000) - $startMs;
 
-            $this->logger->error('ProcessOrderHandler: falha ao enviar pedido → cancelando.', [
+            $this->logger->error('ProcessOrderHandler: erro de negócio do provider → cancelando com reembolso.', [
+                'order_id'   => $order->getId(),
+                'provider'   => $slug,
+                'error'      => $e->getMessage(),
+            ]);
+
+            $this->saveLog($order, $slug, OrderLog::ACTION_ADD, null, ['exception' => $e->getMessage()], $e->getMessage(), $elapsed);
+            $this->cancelWithRefund($order, $e->getMessage());
+
+        } catch (\Throwable $e) {
+            // ⚠️ Erro técnico (timeout, 5xx, rede…)
+            // → marca como STATUS_ERROR e relança para o Messenger enviar ao transport `failed`
+            $elapsed = (int) round(microtime(true) * 1000) - $startMs;
+
+            $this->logger->error('ProcessOrderHandler: falha técnica ao enviar pedido → marcando como error para retry.', [
                 'order_id'   => $order->getId(),
                 'provider'   => $slug,
                 'error'      => $e->getMessage(),
                 'error_type' => $e::class,
             ]);
 
-            // ❌ Log de erro
             $this->saveLog($order, $slug, OrderLog::ACTION_ADD, null, ['exception' => $e->getMessage()], $e->getMessage(), $elapsed);
+            $order->setStatus(Order::STATUS_ERROR);
+            $this->em->flush();
 
-            $this->cancelWithRefund($order, $e->getMessage());
+            // Relança para o Messenger capturar e encaminhar ao `failed` transport
+            throw $e;
         }
 
         $this->em->flush();
