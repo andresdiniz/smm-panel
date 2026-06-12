@@ -40,6 +40,11 @@ final class GenericSmmProvider implements SmmProviderInterface
         private readonly string               $slug,
     ) {}
 
+    public function getSlug(): string
+    {
+        return $this->slug;
+    }
+
     public function addOrder(string $externalServiceId, string $targetUrl, int $quantity): string
     {
         $body = [
@@ -76,14 +81,12 @@ final class GenericSmmProvider implements SmmProviderInterface
                 'body_raw'    => $raw,
             ]);
 
-            // HTTP 4xx/5xx → erro técnico
             if ($status >= 400) {
                 throw new ProviderTechnicalException(
                     sprintf('[%s] HTTP %d ao criar pedido', $this->slug, $status)
                 );
             }
 
-            // Erro de negócio na resposta JSON
             if (isset($raw['error'])) {
                 $errorCode = (string) $raw['error'];
 
@@ -100,7 +103,6 @@ final class GenericSmmProvider implements SmmProviderInterface
                     );
                 }
 
-                // Erro desconhecido → trata como técnico (retentável)
                 throw new ProviderTechnicalException(
                     sprintf('[%s] Erro desconhecido ao criar pedido: %s', $this->slug, $errorCode)
                 );
@@ -115,7 +117,7 @@ final class GenericSmmProvider implements SmmProviderInterface
             return (string) $raw['order'];
 
         } catch (ProviderBusinessException|ProviderTechnicalException $e) {
-            throw $e; // re-throw sem wrapping
+            throw $e;
         } catch (\Throwable $e) {
             throw new ProviderTechnicalException(
                 sprintf('[%s] Falha de comunicação: %s', $this->slug, $e->getMessage()),
@@ -151,6 +153,7 @@ final class GenericSmmProvider implements SmmProviderInterface
                 'status'      => $raw['status']      ?? 'processing',
                 'start_count' => (int) ($raw['start_count'] ?? 0),
                 'remains'     => (int) ($raw['remains']     ?? 0),
+                'charge'      => (float) ($raw['charge']    ?? 0.0),
             ];
 
         } catch (ProviderTechnicalException $e) {
@@ -158,6 +161,91 @@ final class GenericSmmProvider implements SmmProviderInterface
         } catch (\Throwable $e) {
             throw new ProviderTechnicalException(
                 sprintf('[%s] Falha de comunicação (status): %s', $this->slug, $e->getMessage()),
+                0,
+                $e
+            );
+        }
+    }
+
+    public function getBalance(): float
+    {
+        $body = [
+            'key'    => $this->credential->getApiKey(),
+            'action' => 'balance',
+        ];
+
+        try {
+            $response = $this->httpClient->request('POST', $this->credential->getApiUrl(), [
+                'body'    => $body,
+                'timeout' => 10,
+            ]);
+
+            $raw = $response->toArray(false);
+
+            if (isset($raw['error'])) {
+                throw new ProviderTechnicalException(
+                    sprintf('[%s] Erro ao consultar saldo: %s', $this->slug, $raw['error'])
+                );
+            }
+
+            return (float) ($raw['balance'] ?? 0.0);
+
+        } catch (ProviderTechnicalException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            throw new ProviderTechnicalException(
+                sprintf('[%s] Falha de comunicação (balance): %s', $this->slug, $e->getMessage()),
+                0,
+                $e
+            );
+        }
+    }
+
+    /**
+     * @return array<int, array{service: string, name: string, type: string, rate: string, min: string, max: string, category: string}>
+     */
+    public function getServices(): array
+    {
+        $body = [
+            'key'    => $this->credential->getApiKey(),
+            'action' => 'services',
+        ];
+
+        try {
+            $response = $this->httpClient->request('POST', $this->credential->getApiUrl(), [
+                'body'    => $body,
+                'timeout' => 30,
+            ]);
+
+            $raw = $response->toArray(false);
+
+            if (isset($raw['error'])) {
+                throw new ProviderTechnicalException(
+                    sprintf('[%s] Erro ao listar serviços: %s', $this->slug, $raw['error'])
+                );
+            }
+
+            if (!is_array($raw)) {
+                throw new ProviderTechnicalException(
+                    sprintf('[%s] Resposta inesperada ao listar serviços', $this->slug)
+                );
+            }
+
+            return array_map(static fn(array $s) => [
+                'service'  => (string) ($s['service']  ?? ''),
+                'name'     => (string) ($s['name']     ?? ''),
+                'type'     => (string) ($s['type']     ?? ''),
+                'rate'     => (string) ($s['rate']     ?? '0'),
+                'min'      => (string) ($s['min']      ?? '0'),
+                'max'      => (string) ($s['max']      ?? '0'),
+                'category' => (string) ($s['category'] ?? ''),
+            ], $raw);
+
+        } catch (ProviderTechnicalException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            throw new ProviderTechnicalException(
+                sprintf('[%s] Falha de comunicação (services): %s', $this->slug, $e->getMessage()),
                 0,
                 $e
             );
