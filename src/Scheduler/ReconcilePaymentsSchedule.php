@@ -15,9 +15,6 @@ use Symfony\Component\Scheduler\Attribute\AsCronTask;
 /**
  * Reconcilia pagamentos pendentes consultando o status diretamente nos gateways.
  * Executa a cada 5 minutos para cobrir webhooks perdidos.
- *
- * Crontab alternativo:
- *   */5 * * * * php bin/console app:reconcile-payments
  */
 #[AsCronTask('*/5 * * * *')]
 final class ReconcilePaymentsSchedule
