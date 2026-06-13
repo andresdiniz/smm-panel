@@ -8,8 +8,8 @@ use App\Entity\Order;
 use App\Entity\OrderLog;
 use App\Entity\WalletTransaction;
 use App\Enum\TransactionType;
-use App\Message\ProcessOrderMessage;
 use App\Message\Order\SyncOrderStatusMessage;
+use App\Message\ProcessOrderMessage;
 use App\Repository\WalletRepository;
 use App\Smm\Exception\ProviderBusinessException;
 use App\Smm\SmmProviderRegistry;
@@ -20,6 +20,19 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 
+/**
+ * Fallback/retry para pedidos que ficaram em STATUS_PENDING.
+ *
+ * Esse handler NÃO é mais invocado no fluxo normal de criação de pedidos.
+ * O OrderController envia ao provider de forma síncrona no request.
+ *
+ * Este handler é acionado apenas em situações de recuperação:
+ *   - Pedidos que ficaram PENDING por crash mid-request
+ *   - Retry manual via admin ou scheduler de cleanup
+ *
+ * Para agendar recovery de pedidos travados, o scheduler pode disparar:
+ *   $bus->dispatch(new ProcessOrderMessage($order->getId()));
+ */
 #[AsMessageHandler]
 final class ProcessOrderHandler
 {
@@ -73,7 +86,7 @@ final class ProcessOrderHandler
 
             $provider = $this->registry->get($slug);
 
-            $this->logger->info('ProcessOrderHandler: enviando pedido ao provider.', [
+            $this->logger->info('ProcessOrderHandler (fallback): reenviando pedido ao provider.', [
                 'order_id'            => $order->getId(),
                 'provider'            => $slug,
                 'external_service_id' => $service->getExternalServiceId(),
@@ -97,7 +110,7 @@ final class ProcessOrderHandler
 
                 $this->saveLog($order, $slug, OrderLog::ACTION_ADD, 200, ['order' => $externalId], null, $elapsed);
 
-                $this->logger->info('ProcessOrderHandler: pedido aceito pelo provider.', [
+                $this->logger->info('ProcessOrderHandler (fallback): pedido aceito pelo provider.', [
                     'order_id' => $order->getId(), 'external_id' => $externalId, 'provider' => $slug,
                 ]);
 
@@ -109,16 +122,12 @@ final class ProcessOrderHandler
                     [new DelayStamp(self::FIRST_SYNC_DELAY_MS)]
                 );
 
-                $this->logger->info('ProcessOrderHandler: primeiro sync agendado.', [
-                    'order_id' => $order->getId(), 'delay_ms' => self::FIRST_SYNC_DELAY_MS,
-                ]);
-
                 return;
 
             } catch (ProviderBusinessException $e) {
                 $elapsed = (int) round(microtime(true) * 1000) - $startMs;
 
-                $this->logger->error('ProcessOrderHandler: erro de negócio → cancelando com reembolso.', [
+                $this->logger->error('ProcessOrderHandler (fallback): erro de negócio → cancelando com reembolso.', [
                     'order_id' => $order->getId(), 'provider' => $slug, 'error' => $e->getMessage(),
                 ]);
 
@@ -131,7 +140,7 @@ final class ProcessOrderHandler
             } catch (\Throwable $e) {
                 $elapsed = (int) round(microtime(true) * 1000) - $startMs;
 
-                $this->logger->error('ProcessOrderHandler: falha técnica → cancelando com reembolso para retry.', [
+                $this->logger->error('ProcessOrderHandler (fallback): falha técnica → cancelando com reembolso.', [
                     'order_id' => $order->getId(), 'provider' => $slug,
                     'error' => $e->getMessage(), 'error_type' => $e::class,
                 ]);

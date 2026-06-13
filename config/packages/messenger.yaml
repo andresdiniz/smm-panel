@@ -11,6 +11,8 @@ framework:
             scheduler_default:
                 dsn: 'schedule://default'
 
+            # Transporte de alta prioridade: envio ao provider (fallback/retry via ProcessOrderMessage)
+            # e webhooks de pagamento.
             orders_high:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
@@ -21,6 +23,7 @@ framework:
                     multiplier: 2
                     max_delay: 60000
 
+            # Transporte de média prioridade: polling de status dos pedidos no provider.
             orders_medium:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
@@ -31,6 +34,7 @@ framework:
                     multiplier: 2
                     max_delay: 300000
 
+            # Transporte de baixa prioridade: notificações, relatórios, CRM, limpeza.
             orders_low:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
@@ -51,12 +55,21 @@ framework:
                     - App\Messenger\Middleware\AuditMiddleware
 
         routing:
+            # Fallback/retry: pedidos que ficaram PENDING (crash mid-request).
+            # O fluxo normal envia ao provider de forma síncrona no OrderController.
             App\Message\ProcessOrderMessage:                   orders_high
-            App\Message\Order\DispatchOrderToProviderMessage:  orders_high
+
+            # Polling de status: consulta ao provider após envio.
             App\Message\Order\SyncOrderStatusMessage:          orders_medium
+
+            # Notificações de pedido (completed, cancelled).
             App\Message\Order\OrderNotificationMessage:        orders_low
+
+            # Billing
             App\Message\Billing\ProcessPaymentWebhookMessage:  orders_high
             App\Message\Billing\ReconcilePaymentMessage:       orders_low
+
+            # CRM e tarefas agendadas
             App\Message\Crm\CrmSyncMessage:                    orders_low
             App\Message\Scheduler\SyncProviderBalanceMessage:  orders_low
             App\Message\Scheduler\DailyFinanceReportMessage:   orders_low
