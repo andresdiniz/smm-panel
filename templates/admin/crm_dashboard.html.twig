@@ -1,92 +1,133 @@
-{% extends 'base.html.twig' %}
+{% extends '@EasyAdmin/page/content.html.twig' %}
+{% block page_title %}CRM{% endblock %}
+{% block content_title %}{% endblock %}
 
-{% block title %}CRM Admin — PulseSMM{% endblock %}
+{% block main %}
+<style>
+.crm-wrap {
+  padding: 28px 36px 64px 28px;
+  max-width: 100%;
+  background: #0f1117;
+  min-height: 100vh;
+  color: #e2e6f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  box-sizing: border-box;
+}
+.crm-hd { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:28px; }
+.crm-hd__title { font-size:1.125rem; font-weight:900; letter-spacing:-.03em; color:#e2e6f0; margin:0; }
 
-{% block body %}
-<section class="admin-page">
-    <div class="container admin-grid">
-        <aside class="admin-nav panel-card" data-reveal>
-            <h2>CRM</h2>
-            <nav class="app-menu">
-                <a href="#overview" class="is-active">Visão geral</a>
-                <a href="#contacts">Contatos</a>
-                <a href="#pipeline">Pipeline</a>
-                <a href="#finance">Financeiro</a>
-            </nav>
-        </aside>
+/* KPI grid */
+.kpi-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:28px; }
+@media(max-width:1100px){ .kpi-grid{ grid-template-columns:repeat(3,1fr) } }
+@media(max-width:640px) { .kpi-grid{ grid-template-columns:1fr } }
+.kpi {
+  background:#1c2233; border:1px solid rgba(255,255,255,.08); border-radius:12px;
+  padding:20px 20px 16px; display:flex; flex-direction:column; gap:8px;
+  position:relative; overflow:hidden;
+}
+.kpi::after { content:''; position:absolute; inset:0 0 auto 0; height:3px; border-radius:12px 12px 0 0; }
+.kpi--teal::after  { background:#01696f; }
+.kpi--blue::after  { background:#1e6fa0; }
+.kpi--green::after { background:#437a22; }
+.kpi--gold::after  { background:#c98a00; }
+.kpi--red::after   { background:#a12c7b; }
+.kpi__label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#8b90a8; }
+.kpi__value { font-size:2rem; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:-.04em; line-height:1; color:#f0f2fa; }
+.kpi__value--green { color:#7abf4a; }
+.kpi__value--gold  { color:#e8af34; }
 
-        <div class="admin-content">
+/* Section label */
+.d-sect { display:flex; align-items:center; gap:10px; font-size:10px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.09em; color:#505570; margin-bottom:12px; }
+.d-sect::after { content:''; flex:1; height:1px; background:rgba(255,255,255,.07); }
 
-            {# KPIs financeiros #}
-            <section id="overview" class="kpi-grid">
-                <article class="kpi-card kpi-card--gradient" data-reveal>
-                    <span>Receita do mês</span>
-                    <strong>R$ {{ (stats.revenueMonthCents / 100)|number_format(2, ',', '.') }}</strong>
-                    <small>Entradas confirmadas</small>
-                </article>
-                <article class="kpi-card" data-reveal>
-                    <span>Saídas</span>
-                    <strong>R$ {{ (stats.expensesMonthCents / 100)|number_format(2, ',', '.') }}</strong>
-                    <small>Custos e operações</small>
-                </article>
-                <article class="kpi-card" data-reveal>
-                    <span>Taxas</span>
-                    <strong>R$ {{ (stats.feesMonthCents / 100)|number_format(2, ',', '.') }}</strong>
-                    <small>Gateways e descontos</small>
-                </article>
-            </section>
+/* Table card */
+.tbl-card { background:#1c2233; border:1px solid rgba(255,255,255,.08); border-radius:12px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,.22); }
+.tbl-card__head { display:flex; align-items:center; justify-content:space-between; padding:13px 18px; border-bottom:1px solid rgba(255,255,255,.07); background:#161b27; }
+.tbl-card__title { font-size:.875rem; font-weight:800; letter-spacing:-.025em; color:#e2e6f0; }
+.tbl-wrap { overflow-x:auto; }
+.tbl { width:100%; border-collapse:collapse; }
+.tbl th { text-align:left; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#505570;
+  padding:8px 14px; border-bottom:1px solid rgba(255,255,255,.07); background:#161b27; white-space:nowrap; }
+.tbl td { padding:9px 14px; border-bottom:1px solid rgba(255,255,255,.04); font-size:.8125rem; color:#e2e6f0; vertical-align:middle; }
+.tbl tbody tr:hover { background:rgba(255,255,255,.03); }
+.tbl tbody tr:last-child td { border-bottom:none; }
+.d-empty { color:#505570; font-size:.8125rem; text-align:center; padding:32px 16px; }
+.badge-tag { display:inline-flex; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700;
+  background:rgba(1,105,111,.18); color:#4fb8be; margin-right:4px; }
+</style>
 
-            {# Pipeline de contatos CRM #}
-            <section id="pipeline" class="panel-card" data-reveal>
-                <div class="panel-card__head">
-                    <h2>Pipeline</h2>
-                    <span class="pill pill--soft">Tracking</span>
-                </div>
-                <div class="crm-columns">
-                    <div class="crm-column">
-                        <h3>Total de contatos</h3>
-                        <p>{{ stats.totalContacts }}</p>
-                    </div>
-                    <div class="crm-column">
-                        <h3>Ativos (30 dias)</h3>
-                        <p>{{ stats.activeContacts }}</p>
-                    </div>
-                </div>
-            </section>
+<div class="crm-wrap">
 
-            {# Lista de contatos recentes #}
-            <section id="contacts" class="panel-card" data-reveal>
-                <div class="panel-card__head">
-                    <h2>Contatos recentes</h2>
-                    <span class="pill pill--soft">CRM</span>
-                </div>
-                <div class="admin-table">
-                    {% for contact in recentContacts %}
-                        <article class="order-item">
-                            <div class="order-item__top">
-                                <div>
-                                    <strong>{{ contact.user.name }}</strong>
-                                    <p>{{ contact.user.email }}</p>
-                                </div>
-                                {% if contact.tags is not empty %}
-                                    <span class="badge badge--processing">{{ contact.tags|join(', ') }}</span>
-                                {% endif %}
-                            </div>
-                            <div class="order-item__meta">
-                                <span>{{ contact.utmSource ?? '—' }}</span>
-                                {% if contact.utmCampaign %}
-                                    <span>{{ contact.utmCampaign }}</span>
-                                {% endif %}
-                                <span>{{ contact.updatedAt|date('d/m/Y H:i') }}</span>
-                            </div>
-                        </article>
-                    {% else %}
-                        <div class="empty-box">Nenhum contato recente nos últimos 30 dias.</div>
-                    {% endfor %}
-                </div>
-            </section>
+  <div class="crm-hd">
+    <h1 class="crm-hd__title">CRM</h1>
+  </div>
 
-        </div>
+  {# KPIs #}
+  <div class="kpi-grid">
+    <div class="kpi kpi--green">
+      <span class="kpi__label">Receita do mês</span>
+      <div class="kpi__value kpi__value--green">R$&nbsp;{{ (stats.revenueMonthCents/100)|number_format(2,',','.') }}</div>
     </div>
-</section>
+    <div class="kpi kpi--red">
+      <span class="kpi__label">Saídas do mês</span>
+      <div class="kpi__value">R$&nbsp;{{ (stats.expensesMonthCents/100)|number_format(2,',','.') }}</div>
+    </div>
+    <div class="kpi kpi--gold">
+      <span class="kpi__label">Taxas do mês</span>
+      <div class="kpi__value kpi__value--gold">R$&nbsp;{{ (stats.feesMonthCents/100)|number_format(2,',','.') }}</div>
+    </div>
+    <div class="kpi kpi--teal">
+      <span class="kpi__label">Total contatos</span>
+      <div class="kpi__value">{{ stats.totalContacts }}</div>
+    </div>
+    <div class="kpi kpi--blue">
+      <span class="kpi__label">Ativos (30d)</span>
+      <div class="kpi__value">{{ stats.activeContacts }}</div>
+    </div>
+  </div>
+
+  {# Contatos recentes #}
+  <div class="d-sect">Contatos recentes — últimos 30 dias</div>
+  <div class="tbl-card">
+    <div class="tbl-card__head">
+      <span class="tbl-card__title">Contatos recentes</span>
+    </div>
+    {% if recentContacts|length > 0 %}
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Usuário</th>
+            <th>E-mail</th>
+            <th>Tags</th>
+            <th>UTM Source</th>
+            <th>UTM Campaign</th>
+            <th>Atualizado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for contact in recentContacts %}
+          <tr>
+            <td style="font-weight:700;white-space:nowrap">{{ contact.user.name }}</td>
+            <td style="color:#8b90a8">{{ contact.user.email }}</td>
+            <td>
+              {% for tag in contact.tags %}
+                <span class="badge-tag">{{ tag }}</span>
+              {% endfor %}
+            </td>
+            <td style="color:#8b90a8">{{ contact.utmSource ?? '—' }}</td>
+            <td style="color:#8b90a8">{{ contact.utmCampaign ?? '—' }}</td>
+            <td style="color:#505570;font-size:.75rem;white-space:nowrap">{{ contact.updatedAt|date('d/m/Y H:i') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <p class="d-empty">Nenhum contato ativo nos últimos 30 dias.</p>
+    {% endif %}
+  </div>
+
+</div>
 {% endblock %}
