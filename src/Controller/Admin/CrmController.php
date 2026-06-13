@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
-use App\Repository\ContactRepository;
+use App\Repository\CrmContactRepository;
 use App\Repository\PaymentRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,8 +16,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class CrmController extends AbstractController
 {
     public function __construct(
-        private readonly PaymentRepository $paymentRepository,
-        private readonly ContactRepository $contactRepository,
+        private readonly PaymentRepository    $paymentRepository,
+        private readonly CrmContactRepository $contactRepository,
     ) {}
 
     #[Route('', name: 'dashboard')]
@@ -29,12 +29,11 @@ class CrmController extends AbstractController
             'revenueMonthCents'  => $this->paymentRepository->sumApprovedSince($month),
             'expensesMonthCents' => $this->paymentRepository->sumExpensesSince($month),
             'feesMonthCents'     => $this->paymentRepository->sumFeesSince($month),
-            'newLeads'           => $this->contactRepository->countByStatus('new'),
-            'inContact'          => $this->contactRepository->countByStatus('in_contact'),
-            'converted'          => $this->contactRepository->countByStatus('converted'),
+            'totalContacts'      => $this->contactRepository->count([]),
+            'activeContacts'     => count($this->contactRepository->findRecentlyActive(30, 999)),
         ];
 
-        $recentContacts = $this->contactRepository->findRecent(20);
+        $recentContacts = $this->contactRepository->findRecentlyActive(30, 20);
 
         return $this->render('admin/crm_dashboard.html.twig', [
             'stats'          => $stats,
