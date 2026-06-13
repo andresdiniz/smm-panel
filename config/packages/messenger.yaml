@@ -75,3 +75,8 @@ framework:
             App\Message\Scheduler\DailyFinanceReportMessage:   orders_low
             App\Message\Scheduler\RemarketingEmailsMessage:    orders_low
             App\Message\Scheduler\CleanupExpiredTokensMessage: orders_low
+
+            # E-mails transacionais — fila assíncrona com retry automático (3x)
+            App\Message\SendWelcomeEmailMessage:               orders_low
+            App\Message\SendDepositConfirmedEmailMessage:      orders_low
+            App\Message\SendOrderCompletedEmailMessage:        orders_low
