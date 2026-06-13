@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Entity\AffiliateCommission;
+use App\Repository\AffiliateCommissionRepository;
 use App\Entity\User;
 use App\Repository\CrmContactRepository;
 use App\Repository\OrderRepository;
 use App\Repository\PaymentRepository;
 use App\Repository\UserRepository;
+use App\Service\AffiliateService;
+use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mailer\MailerInterface;
@@ -24,10 +27,13 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class CrmController extends AbstractDashboardController
 {
     public function __construct(
-        private readonly PaymentRepository    $paymentRepository,
-        private readonly CrmContactRepository $contactRepository,
-        private readonly UserRepository       $userRepository,
-        private readonly OrderRepository      $orderRepository,
+        private readonly PaymentRepository              $paymentRepository,
+        private readonly CrmContactRepository           $contactRepository,
+        private readonly UserRepository                 $userRepository,
+        private readonly OrderRepository                $orderRepository,
+        private readonly AffiliateCommissionRepository  $commissionRepo,
+        private readonly AffiliateService               $affiliateService,
+        private readonly EntityManagerInterface         $em,
     ) {}
 
     public function configureDashboard(): Dashboard
@@ -44,136 +50,60 @@ class CrmController extends AbstractDashboardController
     #[Route('/admin/crm', name: 'app_admin_crm_dashboard', methods: ['GET'])]
     public function dashboard(): Response
     {
-        $now   = new \DateTimeImmutable();
-        $month = new \DateTimeImmutable('first day of this month midnight');
-        $prev  = new \DateTimeImmutable('first day of last month midnight');
-        $y30   = new \DateTimeImmutable('-30 days');
-        $y7    = new \DateTimeImmutable('-7 days');
-
-        $crmUsers   = $this->userRepository->findCrmUsers(500);
-        $totalUsers = count($crmUsers);
-
-        // segmentos
-        $whales  = array_filter($crmUsers, fn($r) => $r['totalSpentCents'] >= 50000);
-        $actives = array_filter($crmUsers, fn($r) => $r['totalSpentCents'] > 0 && $r['totalSpentCents'] < 50000);
-        $news    = array_filter($crmUsers, fn($r) => $r['totalSpentCents'] === 0);
-
-        // LTV medio
-        $totalRevenueCents = array_sum(array_column($crmUsers, 'totalSpentCents'));
-        $ltvAvg = $totalUsers > 0 ? (int)($totalRevenueCents / $totalUsers) : 0;
-
-        // receita por mes (ultimos 6 meses)
-        $monthlyRevenue = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $mStart = new \DateTimeImmutable("first day of -{$i} months midnight");
-            $mEnd   = new \DateTimeImmutable("first day of -" . ($i - 1) . " months midnight");
-            if ($i === 0) { $mEnd = $now; }
-            $monthlyRevenue[] = [
-                'label'  => $mStart->format('M/y'),
-                'amount' => $this->paymentRepository->sumApprovedBetween($mStart, $mEnd),
-            ];
-        }
-
-        // origens UTM
-        $utmMap = [];
-        foreach ($crmUsers as $r) {
-            $src = $r['utmSource'] ?? 'direto';
-            if (!isset($utmMap[$src])) {
-                $utmMap[$src] = ['count' => 0, 'revenue' => 0];
-            }
-            $utmMap[$src]['count']++;
-            $utmMap[$src]['revenue'] += $r['totalSpentCents'];
-        }
-        arsort($utmMap);
-
-        // novos users este mes
-        $newThisMonth = count(array_filter($crmUsers,
-            fn($r) => $r['user']->getCreatedAt() >= $month
-        ));
-
-        $stats = [
-            'totalUsers'        => $totalUsers,
-            'whales'            => count($whales),
-            'actives'           => count($actives),
-            'news'              => count($news),
-            'ltvAvgCents'       => $ltvAvg,
-            'totalRevenueCents' => $totalRevenueCents,
-            'revenueMonthCents' => $this->paymentRepository->sumApprovedSince($month),
-            'newThisMonth'      => $newThisMonth,
-            'activeContacts'    => count($this->contactRepository->findRecentlyActive(30, 999)),
-        ];
-
-        $utmSources = array_keys($utmMap);
-
-        return $this->render('admin/crm_dashboard.html.twig', [
-            'stats'          => $stats,
-            'crmUsers'       => $crmUsers,
-            'utmSources'     => $utmSources,
-            'utmMap'         => $utmMap,
-            'monthlyRevenue' => $monthlyRevenue,
-            'flash'          => null,
-            'profileUser'    => null,
-        ]);
+        return $this->renderCrm(null);
     }
 
     // ─── Perfil de usuario ───────────────────────────────────────────────
     #[Route('/admin/crm/user/{id}', name: 'app_admin_crm_user_profile', methods: ['GET'])]
     public function userProfile(int $id): Response
     {
-        $user    = $this->userRepository->find($id);
+        $user = $this->userRepository->find($id);
         if (!$user) { throw $this->createNotFoundException(); }
 
-        $contact = $this->contactRepository->findOneByUserId($id);
-        $orders  = $this->orderRepository->findRecentByUser($user, 20);
-        $crmUsers = $this->userRepository->findCrmUsers(500);
-
+        $contact    = $this->contactRepository->findOneByUserId($id);
+        $orders     = $this->orderRepository->findRecentByUser($user, 20);
         $totalSpent = array_sum(array_map(
             fn($o) => $o->getStatus() !== 'cancelled' ? $o->getAmountCents() : 0,
             $orders
         ));
 
-        $month = new \DateTimeImmutable('first day of this month midnight');
-        $stats = [
-            'totalUsers'        => count($crmUsers),
-            'whales'            => count(array_filter($crmUsers, fn($r) => $r['totalSpentCents'] >= 50000)),
-            'actives'           => count(array_filter($crmUsers, fn($r) => $r['totalSpentCents'] > 0 && $r['totalSpentCents'] < 50000)),
-            'news'              => count(array_filter($crmUsers, fn($r) => $r['totalSpentCents'] === 0)),
-            'ltvAvgCents'       => 0,
-            'totalRevenueCents' => 0,
-            'revenueMonthCents' => $this->paymentRepository->sumApprovedSince($month),
-            'newThisMonth'      => 0,
-            'activeContacts'    => 0,
-        ];
-
-        $utmMap = [];
-        foreach ($crmUsers as $r) {
-            $src = $r['utmSource'] ?? 'direto';
-            if (!isset($utmMap[$src])) $utmMap[$src] = ['count' => 0, 'revenue' => 0];
-            $utmMap[$src]['count']++;
-            $utmMap[$src]['revenue'] += $r['totalSpentCents'];
-        }
-
-        $monthlyRevenue = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $mStart = new \DateTimeImmutable("first day of -{$i} months midnight");
-            $mEnd   = ($i === 0) ? new \DateTimeImmutable() : new \DateTimeImmutable("first day of -" . ($i-1) . " months midnight");
-            $monthlyRevenue[] = ['label' => $mStart->format('M/y'), 'amount' => $this->paymentRepository->sumApprovedBetween($mStart, $mEnd)];
-        }
-
-        return $this->render('admin/crm_dashboard.html.twig', [
-            'stats'          => $stats,
-            'crmUsers'       => $crmUsers,
-            'utmSources'     => array_keys($utmMap),
-            'utmMap'         => $utmMap,
-            'monthlyRevenue' => $monthlyRevenue,
-            'flash'          => null,
-            'profileUser'    => [
-                'user'       => $user,
-                'contact'    => $contact,
-                'orders'     => $orders,
-                'totalSpent' => $totalSpent,
-            ],
+        return $this->renderCrm([
+            'user'       => $user,
+            'contact'    => $contact,
+            'orders'     => $orders,
+            'totalSpent' => $totalSpent,
         ]);
+    }
+
+    // ─── Pagar comissões pendentes de um afiliado ────────────────────────
+    #[Route('/admin/crm/affiliate/pay/{id}', name: 'app_admin_crm_affiliate_pay', methods: ['POST'])]
+    public function affiliatePay(int $id, Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('aff_pay_' . $id, $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token inválido.');
+            return $this->redirectToRoute('app_admin_crm_dashboard', ['#' => 'affiliates']);
+        }
+
+        $affiliate = $this->userRepository->find($id);
+        if (!$affiliate) { throw $this->createNotFoundException(); }
+
+        $pending = $this->em->getRepository(AffiliateCommission::class)
+            ->findBy(['affiliate' => $affiliate, 'status' => AffiliateCommission::STATUS_PENDING]);
+
+        $totalPaid = 0.0;
+        foreach ($pending as $commission) {
+            $this->affiliateService->payCommission($commission);
+            $totalPaid += (float) $commission->getAmount();
+        }
+
+        $this->addFlash('success', sprintf(
+            '%d comissão(ões) pagas para %s — R$ %.2f creditados na carteira.',
+            count($pending),
+            $affiliate->getName(),
+            $totalPaid
+        ));
+
+        return $this->redirectToRoute('app_admin_crm_dashboard', ['_fragment' => 'affiliates']);
     }
 
     // ─── Envio de campanha de e-mail ────────────────────────────────────
@@ -188,8 +118,8 @@ class CrmController extends AbstractDashboardController
         $segment     = $request->request->get('segment') ?: null;
         $previewOnly = $request->request->getBoolean('preview_only');
 
-        $allUsers    = $this->userRepository->findCrmUsers(500);
-        $recipients  = [];
+        $allUsers   = $this->userRepository->findCrmUsers(500);
+        $recipients = [];
 
         foreach ($allUsers as $row) {
             $spent = $row['totalSpentCents'];
@@ -221,7 +151,126 @@ class CrmController extends AbstractDashboardController
             }
         }
 
-        return $this->redirectAfterCampaign($previewOnly, $recipients, $sent, $errors, $subject, $body);
+        $this->addFlash('crm_campaign', [
+            'preview'    => $previewOnly,
+            'recipients' => $recipients,
+            'sent'       => $sent,
+            'errors'     => $errors,
+            'subject'    => $subject,
+            'body'       => $body,
+        ]);
+        return $this->redirectToRoute('app_admin_crm_dashboard');
+    }
+
+    // ─── Helper: monta todos os dados e renderiza ────────────────────────
+    private function renderCrm(?array $profileUser): Response
+    {
+        $now   = new \DateTimeImmutable();
+        $month = new \DateTimeImmutable('first day of this month midnight');
+
+        $crmUsers   = $this->userRepository->findCrmUsers(500);
+        $totalUsers = count($crmUsers);
+
+        $whales  = array_filter($crmUsers, fn($r) => $r['totalSpentCents'] >= 50000);
+        $actives = array_filter($crmUsers, fn($r) => $r['totalSpentCents'] > 0 && $r['totalSpentCents'] < 50000);
+        $news    = array_filter($crmUsers, fn($r) => $r['totalSpentCents'] === 0);
+
+        $totalRevenueCents = array_sum(array_column($crmUsers, 'totalSpentCents'));
+        $ltvAvg = $totalUsers > 0 ? (int)($totalRevenueCents / $totalUsers) : 0;
+
+        $monthlyRevenue = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $mStart = new \DateTimeImmutable("first day of -{$i} months midnight");
+            $mEnd   = $i === 0 ? $now : new \DateTimeImmutable("first day of -" . ($i - 1) . " months midnight");
+            $monthlyRevenue[] = [
+                'label'  => $mStart->format('M/y'),
+                'amount' => $this->paymentRepository->sumApprovedBetween($mStart, $mEnd),
+            ];
+        }
+
+        $utmMap = [];
+        foreach ($crmUsers as $r) {
+            $src = $r['utmSource'] ?? 'direto';
+            if (!isset($utmMap[$src])) $utmMap[$src] = ['count' => 0, 'revenue' => 0];
+            $utmMap[$src]['count']++;
+            $utmMap[$src]['revenue'] += $r['totalSpentCents'];
+        }
+        arsort($utmMap);
+
+        $newThisMonth = count(array_filter($crmUsers, fn($r) => $r['user']->getCreatedAt() >= $month));
+
+        $stats = [
+            'totalUsers'        => $totalUsers,
+            'whales'            => count($whales),
+            'actives'           => count($actives),
+            'news'              => count($news),
+            'ltvAvgCents'       => $ltvAvg,
+            'totalRevenueCents' => $totalRevenueCents,
+            'revenueMonthCents' => $this->paymentRepository->sumApprovedSince($month),
+            'newThisMonth'      => $newThisMonth,
+            'activeContacts'    => count($this->contactRepository->findRecentlyActive(30, 999)),
+        ];
+
+        // ── Dados de afiliados ──────────────────────────────────────────
+        $globalStats    = $this->commissionRepo->globalStats();
+        $affiliateRows  = $this->buildAffiliateRows();
+
+        return $this->render('admin/crm_dashboard.html.twig', [
+            'stats'          => $stats,
+            'crmUsers'       => $crmUsers,
+            'utmSources'     => array_keys($utmMap),
+            'utmMap'         => $utmMap,
+            'monthlyRevenue' => $monthlyRevenue,
+            'profileUser'    => $profileUser,
+            'affStats'       => $globalStats,
+            'affiliateRows'  => $affiliateRows,
+            'defaultRate'    => $this->affiliateService->getDefaultRate(),
+        ]);
+    }
+
+    /**
+     * Monta a lista de afiliados com saldo pendente, total histórico e nº de indicados.
+     * Retorna apenas usuários que têm ao menos 1 comissão.
+     */
+    private function buildAffiliateRows(): array
+    {
+        $commissions = $this->em->getRepository(AffiliateCommission::class)
+            ->createQueryBuilder('c')
+            ->select('c', 'aff', 'cust')
+            ->join('c.affiliate', 'aff')
+            ->join('c.customer', 'cust')
+            ->orderBy('c.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+
+        $rows = [];
+        foreach ($commissions as $c) {
+            $affId = $c->getAffiliate()->getId();
+            if (!isset($rows[$affId])) {
+                $rows[$affId] = [
+                    'user'          => $c->getAffiliate(),
+                    'totalEarned'   => 0.0,  // histórico total (pago + pendente)
+                    'pending'       => 0.0,  // saldo devedor atual
+                    'paid'          => 0.0,  // já pago
+                    'commissions'   => 0,
+                    'referredCount' => $c->getAffiliate()->getReferredUsers()->count(),
+                    'rate'          => $c->getAffiliate()->getEffectiveCommissionRate($this->affiliateService->getDefaultRate()),
+                ];
+            }
+            $amount = (float) $c->getAmount();
+            $rows[$affId]['totalEarned'] += $amount;
+            $rows[$affId]['commissions']++;
+            if ($c->getStatus() === AffiliateCommission::STATUS_PENDING) {
+                $rows[$affId]['pending'] += $amount;
+            } elseif ($c->getStatus() === AffiliateCommission::STATUS_PAID) {
+                $rows[$affId]['paid'] += $amount;
+            }
+        }
+
+        // Ordena por pendente desc
+        uasort($rows, fn($a, $b) => $b['pending'] <=> $a['pending']);
+
+        return array_values($rows);
     }
 
     private function renderEmailHtml(string $name, string $subject, string $body): string
@@ -242,20 +291,5 @@ class CrmController extends AbstractDashboardController
           </div>
         </div>
         HTML;
-    }
-
-    private function redirectAfterCampaign(bool $preview, array $recipients, int $sent, array $errors, string $subject, string $body): Response
-    {
-        // Salva o array direto na flash — a sessão do Symfony serializa automaticamente.
-        // NÃO usar json_encode aqui, pois o Twig não tem filtro json_decode.
-        $this->addFlash('crm_campaign', [
-            'preview'    => $preview,
-            'recipients' => $recipients,
-            'sent'       => $sent,
-            'errors'     => $errors,
-            'subject'    => $subject,
-            'body'       => $body,
-        ]);
-        return $this->redirectToRoute('app_admin_crm_dashboard');
     }
 }

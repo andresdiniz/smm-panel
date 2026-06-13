@@ -44,10 +44,11 @@
 .kpi--teal::before{background:#01696f} .kpi--green::before{background:#437a22}
 .kpi--gold::before{background:#c98a00}  .kpi--blue::before{background:#1a5f8f}
 .kpi--red::before{background:#8e1f5e}   .kpi--purple::before{background:#6b3fa0}
+.kpi--orange::before{background:#da7101}
 .kpi__l{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#505570;margin-bottom:6px}
 .kpi__v{font-size:1.7rem;font-weight:900;letter-spacing:-.04em;line-height:1;color:#f0f4ff;font-variant-numeric:tabular-nums}
 .kpi__v--teal{color:#4fb8be} .kpi__v--green{color:#7abf4a} .kpi__v--gold{color:#e8af34}
-.kpi__v--red{color:#e06fc0}  .kpi__v--muted{color:#8b90a8}
+.kpi__v--red{color:#e06fc0}  .kpi__v--muted{color:#8b90a8} .kpi__v--orange{color:#fdab43}
 .kpi__delta{font-size:.7rem;color:#505570;margin-top:4px}
 
 /* ══ SECTION HEADING ════════════════════════════════════════════════════════ */
@@ -123,6 +124,8 @@
 .btn--ghost{background:rgba(255,255,255,.07);color:#dde1f0}
 .btn--ghost:hover{background:rgba(255,255,255,.12)}
 .btn--danger{background:rgba(142,31,94,.2);color:#e06fc0}
+.btn--pay{background:rgba(67,122,34,.15);color:#7abf4a;border:1px solid rgba(67,122,34,.3)}
+.btn--pay:hover{background:rgba(67,122,34,.28)}
 .btn--sm{padding:5px 12px;font-size:.74rem}
 .btn--profile{background:rgba(79,184,190,.1);color:#4fb8be}
 .btn--profile:hover{background:rgba(79,184,190,.2)}
@@ -186,10 +189,14 @@
 
 /* ══ RESPONSIVE HIDE ════════════════════════════════════════════════════════ */
 @media(max-width:900px){.sidebar{display:none}.crm-wrap{flex-direction:column}}
+
+/* ══ AFFILIATE PAY BAR ══════════════════════════════════════════════════════ */
+.aff-bar{display:flex;align-items:center;gap:8px;}
+.aff-pending-zero{color:#505570;font-size:.75rem;font-style:italic}
 </style>
 
-{# Flash de campanha — o controller salva um array diretamente (sem json_encode) #}
 {% set cf = app.flashes('crm_campaign')|first|default(null) %}
+{% set flashSuccess = app.flashes('success')|first|default(null) %}
 
 <div class="crm">
 <div class="crm-wrap">
@@ -208,6 +215,11 @@
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
         <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
       </svg>Usu&#225;rios
+    </button>
+    <button class="nav-item" data-view="affiliates" onclick="switchView('affiliates')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg>Afiliados
     </button>
     <button class="nav-item" data-view="campaigns" onclick="switchView('campaigns')">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -248,6 +260,9 @@
       <span class="ph-sub">{{ 'now'|date('d/m/Y H:i') }}</span>
     </div>
 
+    {% if flashSuccess %}
+      <div class="flash flash--success">&#10003; {{ flashSuccess }}</div>
+    {% endif %}
     {% if cf %}
       <div class="flash flash--{{ cf.preview ? 'info' : (cf.errors|length ? 'warn' : 'success') }}">
         {% if cf.preview %}
@@ -263,7 +278,6 @@
       </div>
     {% endif %}
 
-    {# KPIs #}
     <div class="kpi-grid">
       <div class="kpi kpi--green">
         <div class="kpi__l">Receita este m&#234;s</div>
@@ -292,7 +306,6 @@
       </div>
     </div>
 
-    {# Chart Row #}
     <div class="analytics-grid">
       <div class="card">
         <div class="card-head"><span class="card-title">Receita mensal</span></div>
@@ -304,7 +317,6 @@
       </div>
     </div>
 
-    {# Top 5 clientes #}
     <div class="sh">Top clientes</div>
     <div class="card">
       <div class="tw">
@@ -429,6 +441,112 @@
   </div>{# /view-users #}
 
   {# ══════════════════════════════════════════════════════════════════════
+     VIEW: AFILIADOS
+  ══════════════════════════════════════════════════════════════════════ #}
+  <div class="view" id="view-affiliates">
+    <div class="ph">
+      <h1>&#128200; Afiliados</h1>
+      <span class="ph-sub">Taxa padr&#227;o: {{ (defaultRate * 100)|number_format(1) }}%</span>
+    </div>
+
+    {% if flashSuccess %}
+      <div class="flash flash--success">&#10003; {{ flashSuccess }}</div>
+    {% endif %}
+
+    {# KPIs globais #}
+    <div class="kpi-grid">
+      <div class="kpi kpi--orange">
+        <div class="kpi__l">Saldo devedor (pendente)</div>
+        <div class="kpi__v kpi__v--orange">R$&#160;{{ affStats.pending.total|number_format(2,',','.') }}</div>
+        <div class="kpi__delta">{{ affStats.pending.qty }} comiss&#245;es</div>
+      </div>
+      <div class="kpi kpi--green">
+        <div class="kpi__l">Total j&#225; pago</div>
+        <div class="kpi__v kpi__v--green">R$&#160;{{ affStats.paid.total|number_format(2,',','.') }}</div>
+        <div class="kpi__delta">{{ affStats.paid.qty }} comiss&#245;es</div>
+      </div>
+      <div class="kpi kpi--teal">
+        <div class="kpi__l">Hist&#243;rico total gerado</div>
+        <div class="kpi__v kpi__v--teal">R$&#160;{{ (affStats.pending.total + affStats.paid.total)|number_format(2,',','.') }}</div>
+      </div>
+      <div class="kpi kpi--blue">
+        <div class="kpi__l">Afiliados ativos</div>
+        <div class="kpi__v">{{ affiliateRows|length }}</div>
+      </div>
+    </div>
+
+    {# Tabela de afiliados #}
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Afiliados com comiss&#245;es</span>
+        <span class="card-meta">ordenado por saldo pendente</span>
+      </div>
+      <div class="tw">
+        <table class="t">
+          <thead><tr>
+            <th>Afiliado</th>
+            <th>E-mail</th>
+            <th style="text-align:center">Taxa</th>
+            <th style="text-align:center">Indicados</th>
+            <th style="text-align:center">Comiss&#245;es</th>
+            <th style="text-align:right">Hist&#243;rico total</th>
+            <th style="text-align:right">J&#225; pago</th>
+            <th style="text-align:right">&#128308; Saldo devedor</th>
+            <th style="text-align:center">A&#231;&#227;o</th>
+          </tr></thead>
+          <tbody>
+          {% for row in affiliateRows %}
+          <tr>
+            <td>
+              <strong>{{ row.user.name }}</strong>
+              {% if row.user.affiliateCode %}
+                <br><span style="font-size:.68rem;color:#505570;font-family:monospace">{{ row.user.affiliateCode }}</span>
+              {% endif %}
+            </td>
+            <td style="color:#8b90a8">{{ row.user.email }}</td>
+            <td style="text-align:center">
+              <span class="badge b-teal">{{ (row.rate * 100)|number_format(1) }}%</span>
+            </td>
+            <td style="text-align:center;color:#8b90a8">{{ row.referredCount }}</td>
+            <td style="text-align:center;color:#8b90a8">{{ row.commissions }}</td>
+            {# Hist&#243;rico total — nunca zera, soma cumulativa de tudo que gerou #}
+            <td style="text-align:right;font-weight:700;color:#8b90a8;font-variant-numeric:tabular-nums">
+              R$&#160;{{ row.totalEarned|number_format(2,',','.') }}
+            </td>
+            {# J&#225; pago ao afiliado #}
+            <td style="text-align:right;color:#7abf4a;font-variant-numeric:tabular-nums">
+              R$&#160;{{ row.paid|number_format(2,',','.') }}
+            </td>
+            {# Saldo devedor — zera ap&#243;s pagar #}
+            <td style="text-align:right;font-variant-numeric:tabular-nums">
+              {% if row.pending > 0 %}
+                <strong style="color:#fdab43">R$&#160;{{ row.pending|number_format(2,',','.') }}</strong>
+              {% else %}
+                <span class="aff-pending-zero">&#10003; quitado</span>
+              {% endif %}
+            </td>
+            <td style="text-align:center">
+              {% if row.pending > 0 %}
+                <form method="post" action="/admin/crm/affiliate/pay/{{ row.user.id }}"
+                      onsubmit="return confirm('Pagar R$ {{ row.pending|number_format(2,',','.') }} para {{ row.user.name }}?')">
+                  <input type="hidden" name="_token" value="{{ csrf_token('aff_pay_' ~ row.user.id) }}">
+                  <button type="submit" class="btn btn--sm btn--pay">&#128181; Pagar</button>
+                </form>
+              {% else %}
+                <span style="color:#505570;font-size:.72rem">&#8212;</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+            <tr><td colspan="9" class="t-empty">Nenhum afiliado com comiss&#245;es ainda.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>{# /view-affiliates #}
+
+  {# ══════════════════════════════════════════════════════════════════════
      VIEW: CAMPANHAS
   ══════════════════════════════════════════════════════════════════════ #}
   <div class="view" id="view-campaigns">
@@ -467,13 +585,12 @@
       <div class="card-head"><span class="card-title">&#128231; Novo disparo</span></div>
       <form class="form" method="post" action="/admin/crm/send-marketing">
         <input type="hidden" name="_token" value="{{ csrf_token('crm_marketing') }}">
-
         <div class="sh">Segmenta&#231;&#227;o</div>
         <div class="form-row form-row--4">
           <label>Gasto m&#237;nimo (R$)
             <input type="number" name="min_spent" id="c-min" value="0" min="0" step="0.01" oninput="updateAudiencePreview()">
           </label>
-          <label>Gasto m&#225;ximo (R$) — opcional
+          <label>Gasto m&#225;ximo (R$) &#8212; opcional
             <input type="number" name="max_spent" id="c-max" value="" min="0" step="0.01" placeholder="sem limite" oninput="updateAudiencePreview()">
           </label>
           <label>Origem UTM
@@ -491,16 +608,13 @@
             </select>
           </label>
         </div>
-
         <div style="background:#0b0d14;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px 14px;
           font-size:.8rem;color:#8b90a8;display:flex;gap:8px;align-items:center">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4fb8be" stroke-width="2">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
           Audi&#234;ncia estimada:&#160;
-          <strong id="audience-count" style="color:#4fb8be;font-size:1rem">{{ crmUsers|length }}</strong>
-          &#160;destinat&#225;rios
+          <strong id="audience-count" style="color:#4fb8be;font-size:1rem">{{ crmUsers|length }}</strong>&#160;destinat&#225;rios
         </div>
-
         <div class="sh">Conte&#250;do</div>
         <div class="form-row form-row--2">
           <label>Assunto
@@ -513,7 +627,6 @@
         <label>Corpo do e-mail
           <textarea name="body" required id="c-body" placeholder="Escreva o conte&#250;do. Use {{nome}} para personalizar com o nome do usu&#225;rio."></textarea>
         </label>
-
         <div class="sh">Preview do e-mail</div>
         <div id="email-preview" style="background:#fff;border-radius:8px;overflow:hidden;font-family:Arial,sans-serif;font-size:14px;color:#333;min-height:80px">
           <div style="background:#01696f;padding:16px 24px"><strong style="color:#fff;font-size:15px">AcheiReviews</strong></div>
@@ -521,11 +634,8 @@
             <p>Ol&#225;, <strong>[Nome]</strong>!</p>
             <div id="preview-body" style="margin-top:12px;white-space:pre-wrap;color:#444"></div>
           </div>
-          <div style="background:#f5f5f5;padding:12px 24px;font-size:11px;color:#999">
-            AcheiReviews — Para cancelar recebimentos, entre em contato.
-          </div>
+          <div style="background:#f5f5f5;padding:12px 24px;font-size:11px;color:#999">AcheiReviews &#8212; Para cancelar recebimentos, entre em contato.</div>
         </div>
-
         <div class="btn-row">
           <button type="submit" class="btn btn--primary">&#128231; Enviar campanha</button>
           <button type="submit" name="preview_only" value="1" class="btn btn--ghost">&#128270; Apenas preview</button>
@@ -542,7 +652,6 @@
       <h1>Analytics de Origem</h1>
       <span class="ph-sub">UTM sources e segmentos</span>
     </div>
-
     <div class="analytics-grid">
       <div class="card">
         <div class="card-head"><span class="card-title">Receita por m&#234;s</span></div>
@@ -553,10 +662,9 @@
         <div style="padding:16px"><div class="chart-wrap"><canvas id="chart-segments-2"></canvas></div></div>
       </div>
     </div>
-
     <div class="card">
       <div class="card-head">
-        <span class="card-title">Origens UTM — usu&#225;rios &amp; receita</span>
+        <span class="card-title">Origens UTM &#8212; usu&#225;rios &amp; receita</span>
         <span class="card-meta">{{ utmSources|length }} origens</span>
       </div>
       {% if utmMap %}
@@ -567,7 +675,7 @@
           <div class="utm-row">
             <div class="utm-label">
               <span class="utm-name">{{ src }}</span>
-              <span class="utm-val">{{ data.count }} user(s) — R$&#160;{{ (data.revenue/100)|number_format(2,',','.') }}</span>
+              <span class="utm-val">{{ data.count }} user(s) &#8212; R$&#160;{{ (data.revenue/100)|number_format(2,',','.') }}</span>
             </div>
             <div class="utm-track">
               <div class="utm-fill" style="width:{{ maxCount > 0 ? ((data.count/maxCount)*100)|round : 0 }}%"></div>
@@ -579,7 +687,6 @@
         <div class="t-empty">Nenhum dado de UTM dispon&#237;vel ainda.</div>
       {% endif %}
     </div>
-
     <div class="card">
       <div class="card-head"><span class="card-title">Usu&#225;rios recentes (&#250;ltimos 30 dias)</span></div>
       <div class="tw">
@@ -617,13 +724,11 @@
       <h1>Perfil do Usu&#225;rio</h1>
       <a class="btn btn--ghost btn--sm" href="/admin/crm">&#8592; Voltar</a>
     </div>
-
     {% set u = profileUser.user %}
     {% set c = profileUser.contact %}
     {% set orders = profileUser.orders %}
     {% set totalSpent = profileUser.totalSpent %}
     {% set seg = totalSpent >= 50000 ? 'whale' : (totalSpent > 0 ? 'active' : 'new') %}
-
     <div class="profile-hero">
       <div class="avatar">{{ u.name|first|upper }}</div>
       <div>
@@ -635,9 +740,7 @@
           {% else %}<span class="badge b-grey">&#127381; Novo</span>{% endif %}
           {% if c and c.utmSource %}<span class="badge b-teal">{{ c.utmSource }}</span>{% endif %}
           {% if not u.active %}<span class="badge b-red">Inativo</span>{% endif %}
-          {% if c %}
-            {% for tag in c.tags %}<span class="badge b-blue">{{ tag }}</span>{% endfor %}
-          {% endif %}
+          {% if c %}{% for tag in c.tags %}<span class="badge b-blue">{{ tag }}</span>{% endfor %}{% endif %}
         </div>
       </div>
       <div style="margin-left:auto;text-align:right">
@@ -647,54 +750,35 @@
         </div>
       </div>
     </div>
-
     <div class="profile-grid">
-      {# Dados gerais #}
       <div class="card">
         <div class="card-head"><span class="card-title">Informa&#231;&#245;es gerais</span></div>
         <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
-          {% macro row(label, value) %}
-            <div style="display:flex;justify-content:space-between;font-size:.8rem;border-bottom:1px solid rgba(255,255,255,.05);padding-bottom:8px">
-              <span style="color:#8b90a8">{{ label }}</span>
-              <span style="color:#dde1f0;font-weight:600">{{ value }}</span>
-            </div>
-          {% endmacro %}
+          {% macro row(label, value) %}<div style="display:flex;justify-content:space-between;font-size:.8rem;border-bottom:1px solid rgba(255,255,255,.05);padding-bottom:8px">
+            <span style="color:#8b90a8">{{ label }}</span><span style="color:#dde1f0;font-weight:600">{{ value }}</span></div>{% endmacro %}
           {{ _self.row('ID', '#'~u.id) }}
           {{ _self.row('Nome', u.name) }}
           {{ _self.row('E-mail', u.email) }}
           {{ _self.row('Status', u.active ? 'Ativo' : 'Inativo') }}
           {{ _self.row('Cadastro', u.createdAt|date('d/m/Y H:i')) }}
-          {% if u.wallet %}
-            {{ _self.row('Saldo', 'R$ '~(u.wallet.balanceCents/100)|number_format(2,',','.')) }}
-          {% endif %}
+          {% if u.wallet %}{{ _self.row('Saldo', 'R$ '~(u.wallet.balanceCents/100)|number_format(2,',','.')) }}{% endif %}
           {{ _self.row('Pedidos', orders|length) }}
+          {% if u.referredBy %}{{ _self.row('Indicado por', u.referredBy.name) }}{% endif %}
         </div>
       </div>
-
-      {# UTM #}
       <div class="card">
         <div class="card-head"><span class="card-title">Origem &amp; UTM</span></div>
         <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
-          {% macro row(label, value) %}
-            <div style="display:flex;justify-content:space-between;font-size:.8rem;border-bottom:1px solid rgba(255,255,255,.05);padding-bottom:8px">
-              <span style="color:#8b90a8">{{ label }}</span>
-              <span style="color:#dde1f0;font-weight:600">{{ value }}</span>
-            </div>
-          {% endmacro %}
+          {% macro row(label, value) %}<div style="display:flex;justify-content:space-between;font-size:.8rem;border-bottom:1px solid rgba(255,255,255,.05);padding-bottom:8px">
+            <span style="color:#8b90a8">{{ label }}</span><span style="color:#dde1f0;font-weight:600">{{ value }}</span></div>{% endmacro %}
           {{ _self.row('Source', c ? (c.utmSource ?? 'direto') : 'sem CRM') }}
           {{ _self.row('Medium', c ? (c.utmMedium ?? '—') : '—') }}
           {{ _self.row('Campanha', c ? (c.utmCampaign ?? '—') : '—') }}
-          {% if c %}
-            {{ _self.row('CRM desde', c.createdAt|date('d/m/Y')) }}
-            {{ _self.row('&#250;lt. update', c.updatedAt|date('d/m/Y H:i')) }}
-          {% endif %}
+          {% if c %}{{ _self.row('CRM desde', c.createdAt|date('d/m/Y')) }}{{ _self.row('últ. update', c.updatedAt|date('d/m/Y H:i')) }}{% endif %}
         </div>
       </div>
     </div>
-
     <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:16px">
-
-      {# Timeline #}
       <div class="card">
         <div class="card-head"><span class="card-title">Timeline de eventos</span></div>
         {% if c and c.timeline %}
@@ -705,9 +789,7 @@
               <div class="tl-content">
                 <div class="tl-event">{{ ev.event }}</div>
                 <div class="tl-at">{{ ev.at }}</div>
-                {% if ev.payload %}
-                  <div class="tl-payload">{{ ev.payload|json_encode(constant('JSON_UNESCAPED_UNICODE')) }}</div>
-                {% endif %}
+                {% if ev.payload %}<div class="tl-payload">{{ ev.payload|json_encode(constant('JSON_UNESCAPED_UNICODE')) }}</div>{% endif %}
               </div>
             </div>
             {% endfor %}
@@ -716,8 +798,6 @@
           <div class="t-empty">Sem eventos registrados.</div>
         {% endif %}
       </div>
-
-      {# Pedidos #}
       <div class="card">
         <div class="card-head">
           <span class="card-title">Pedidos recentes</span>
@@ -725,23 +805,15 @@
         </div>
         <div class="tw">
           <table class="t">
-            <thead><tr>
-              <th>#</th><th>Servi&#231;o</th><th>Status</th>
-              <th style="text-align:right">Valor</th><th>Data</th>
-            </tr></thead>
+            <thead><tr><th>#</th><th>Servi&#231;o</th><th>Status</th><th style="text-align:right">Valor</th><th>Data</th></tr></thead>
             <tbody>
             {% for o in orders %}
-              {% set sc = {
-                'completed': 'b-green', 'pending': 'b-grey', 'processing': 'b-teal',
-                'in_progress': 'b-blue', 'partial': 'b-orange', 'cancelled': 'b-red', 'refunded': 'b-red'
-              } %}
+              {% set sc = {'completed': 'b-green', 'pending': 'b-grey', 'processing': 'b-teal','in_progress': 'b-blue', 'partial': 'b-orange', 'cancelled': 'b-red', 'refunded': 'b-red'} %}
               <tr>
                 <td style="color:#505570;font-size:.72rem">{{ o.id }}</td>
                 <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ o.service.name }}</td>
                 <td><span class="badge {{ sc[o.status]|default('b-grey') }}">{{ o.status }}</span></td>
-                <td style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">
-                  R$&#160;{{ (o.amountCents/100)|number_format(2,',','.') }}
-                </td>
+                <td style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">R$&#160;{{ (o.amountCents/100)|number_format(2,',','.') }}</td>
                 <td style="color:#505570;font-size:.72rem">{{ o.createdAt|date('d/m/Y') }}</td>
               </tr>
             {% else %}
@@ -760,123 +832,84 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-/* ── DATA (PHP → JS) ─────────────────────────────────────────────── */
 const MONTHLY = {{ monthlyRevenue|json_encode|raw }};
 const SEGS    = { whale: {{ stats.whales }}, active: {{ stats.actives }}, new: {{ stats.news }} };
 const USERS   = {{ crmUsers|map(r => {
-  spent:    r.totalSpentCents,
-  orders:   r.orderCount,
-  origin:   r.utmSource ?? '__direct',
-  seg:      r.totalSpentCents >= 50000 ? 'whale' : (r.totalSpentCents > 0 ? 'active' : 'new')
+  spent:  r.totalSpentCents,
+  orders: r.orderCount,
+  origin: r.utmSource ?? '__direct',
+  seg:    r.totalSpentCents >= 50000 ? 'whale' : (r.totalSpentCents > 0 ? 'active' : 'new')
 })|json_encode|raw }};
 
-/* ── ROUTING ─────────────────────────────────────────────────────── */
-const VIEWS = ['overview','users','campaigns','analytics'{% if profileUser %},'profile'{% endif %}];
+const VIEWS = ['overview','users','affiliates','campaigns','analytics'{% if profileUser %},'profile'{% endif %}];
 function switchView(v){
-  VIEWS.forEach(id => {
+  VIEWS.forEach(id=>{
     document.getElementById('view-'+id)?.classList.remove('active');
     document.querySelector(`[data-view="${id}"]`)?.classList.remove('active');
   });
   document.getElementById('view-'+v)?.classList.add('active');
   document.querySelector(`[data-view="${v}"]`)?.classList.add('active');
-  location.hash = v;
+  location.hash=v;
 }
-const hash = (location.hash.replace('#','')||'') ;
-const initView = VIEWS.includes(hash) ? hash : {% if profileUser %}'profile'{% else %}'overview'{% endif %};
+const hash=(location.hash.replace('#','')||'');
+const initView=VIEWS.includes(hash)?hash:{% if profileUser %}'profile'{% else %}'overview'{% endif %};
 switchView(initView);
 
-/* ── CHART.JS DEFAULTS ────────────────────────────────────────────── */
-Chart.defaults.color = '#8b90a8';
-Chart.defaults.font.family = '-apple-system,sans-serif';
-Chart.defaults.font.size = 11;
+Chart.defaults.color='#8b90a8';
+Chart.defaults.font.family='-apple-system,sans-serif';
+Chart.defaults.font.size=11;
 
 function makeRevChart(id){
-  const ctx = document.getElementById(id);
-  if (!ctx) return;
-  new Chart(ctx, {
-    type:'bar',
-    data:{
-      labels: MONTHLY.map(m=>m.label),
-      datasets:[{
-        label:'Receita (R$)',
-        data: MONTHLY.map(m=>m.amount/100),
-        backgroundColor:'rgba(1,105,111,.5)',
-        borderColor:'#01696f',
-        borderWidth:2,
-        borderRadius:6,
-        borderSkipped:false
-      }]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{
-        label: c=>'R$ '+c.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:2})
-      }}},
-      scales:{
-        x:{grid:{color:'rgba(255,255,255,.05)'},border:{display:false}},
-        y:{grid:{color:'rgba(255,255,255,.05)'},border:{display:false},
-           ticks:{callback:v=>'R$'+v.toLocaleString('pt-BR')}}
-      }
-    }
-  });
+  const ctx=document.getElementById(id); if(!ctx)return;
+  new Chart(ctx,{type:'bar',data:{labels:MONTHLY.map(m=>m.label),datasets:[{label:'Receita (R$)',
+    data:MONTHLY.map(m=>m.amount/100),backgroundColor:'rgba(1,105,111,.5)',borderColor:'#01696f',
+    borderWidth:2,borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'R$ '+c.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:2})}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,.05)'},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,.05)'},border:{display:false},ticks:{callback:v=>'R$'+v.toLocaleString('pt-BR')}}}}});
 }
 function makeSegChart(id){
-  const ctx = document.getElementById(id);
-  if (!ctx) return;
-  new Chart(ctx,{
-    type:'doughnut',
-    data:{
-      labels:['Whales','Ativos','Novos'],
-      datasets:[{data:[SEGS.whale,SEGS.active,SEGS.new],
-        backgroundColor:['rgba(232,175,52,.7)','rgba(122,191,74,.7)','rgba(139,144,168,.4)'],
-        borderColor:['#e8af34','#7abf4a','#8b90a8'],borderWidth:2}]
-    },
+  const ctx=document.getElementById(id); if(!ctx)return;
+  new Chart(ctx,{type:'doughnut',data:{labels:['Whales','Ativos','Novos'],
+    datasets:[{data:[SEGS.whale,SEGS.active,SEGS.new],
+      backgroundColor:['rgba(232,175,52,.7)','rgba(122,191,74,.7)','rgba(139,144,168,.4)'],
+      borderColor:['#e8af34','#7abf4a','#8b90a8'],borderWidth:2}]},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'bottom',labels:{padding:12,font:{size:11}}}}}
-  });
+      plugins:{legend:{position:'bottom',labels:{padding:12,font:{size:11}}}}}});
 }
 makeRevChart('chart-revenue'); makeSegChart('chart-segments');
 makeRevChart('chart-revenue-2'); makeSegChart('chart-segments-2');
 
-/* ── FILTER USERS ───────────────────────────────────────────────── */
 function filterUsers(){
   const q=(document.getElementById('u-search').value||'').toLowerCase();
   const org=document.getElementById('u-origin').value.toLowerCase();
   const seg=document.getElementById('u-seg').value;
   let vis=0;
   document.querySelectorAll('#u-tbody tr[data-id]').forEach(tr=>{
-    const ok=(!q||(tr.dataset.name+' '+tr.dataset.email).includes(q))
-      &&(!org||tr.dataset.origin===org)
-      &&(!seg||tr.dataset.seg===seg);
-    tr.style.display=ok?'':'none';
-    if(ok)vis++;
+    const ok=(!q||(tr.dataset.name+' '+tr.dataset.email).includes(q))&&(!org||tr.dataset.origin===org)&&(!seg||tr.dataset.seg===seg);
+    tr.style.display=ok?'':'none'; if(ok)vis++;
   });
   document.getElementById('u-count').textContent=vis+' visíveis';
 }
 function sortUsers(){
   const v=document.getElementById('u-sort').value;
-  const [col,dir]=v.split('-');
-  const map={spent:'spent',orders:'orders',date:'date'};
-  sortByCol(map[col]||col,dir==='asc');
+  const[col,dir]=v.split('-');
+  sortByCol({spent:'spent',orders:'orders',date:'date'}[col]||col,dir==='asc');
 }
 let _sortCol='',_sortAsc=false;
 function sortByCol(col,asc){
   if(col===_sortCol)_sortAsc=!_sortAsc; else{_sortCol=col;_sortAsc=asc??false;}
   const tbody=document.getElementById('u-tbody');
   const rows=[...tbody.querySelectorAll('tr[data-id]')];
-  rows.sort((a,b)=>{
-    let av=a.dataset[col]??'',bv=b.dataset[col]??'';
+  rows.sort((a,b)=>{let av=a.dataset[col]??'',bv=b.dataset[col]??'';
     if(['spent','orders','id'].includes(col)){av=+av;bv=+bv;}
-    return _sortAsc?(av>bv?1:-1):(av<bv?1:-1);
-  });
+    return _sortAsc?(av>bv?1:-1):(av<bv?1:-1);});
   rows.forEach(r=>tbody.appendChild(r));
 }
-
-/* ── CAMPAIGN AUDIENCE PREVIEW ──────────────────────────────────── */
 function setSegFilter(s){document.getElementById('c-seg').value=s;}
 function filterCampaign(){
-  if(!document.getElementById('view-campaigns').classList.contains('active'))
-    switchView('campaigns');
+  if(!document.getElementById('view-campaigns').classList.contains('active'))switchView('campaigns');
 }
 function updateAudiencePreview(){
   const minC=(+document.getElementById('c-min').value||0)*100;
@@ -892,8 +925,6 @@ function updateAudiencePreview(){
   }).length;
   document.getElementById('audience-count').textContent=count;
 }
-
-/* ── EMAIL PREVIEW ──────────────────────────────────────────────── */
 document.getElementById('c-body')?.addEventListener('input',function(){
   document.getElementById('preview-body').textContent=this.value;
 });
