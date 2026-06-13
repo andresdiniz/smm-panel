@@ -188,12 +188,8 @@
 @media(max-width:900px){.sidebar{display:none}.crm-wrap{flex-direction:column}}
 </style>
 
-{% set campaignFlash = app.flashes('crm_campaign')|first|default(null) %}
-{% if campaignFlash %}
-  {% set cf = campaignFlash|json_decode %}
-{% else %}
-  {% set cf = null %}
-{% endif %}
+{# Flash de campanha — o controller salva um array diretamente (sem json_encode) #}
+{% set cf = app.flashes('crm_campaign')|first|default(null) %}
 
 <div class="crm">
 <div class="crm-wrap">
@@ -819,4 +815,87 @@ function makeRevChart(id){
       scales:{
         x:{grid:{color:'rgba(255,255,255,.05)'},border:{display:false}},
         y:{grid:{color:'rgba(255,255,255,.05)'},border:{display:false},
-     
+           ticks:{callback:v=>'R$'+v.toLocaleString('pt-BR')}}
+      }
+    }
+  });
+}
+function makeSegChart(id){
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:['Whales','Ativos','Novos'],
+      datasets:[{data:[SEGS.whale,SEGS.active,SEGS.new],
+        backgroundColor:['rgba(232,175,52,.7)','rgba(122,191,74,.7)','rgba(139,144,168,.4)'],
+        borderColor:['#e8af34','#7abf4a','#8b90a8'],borderWidth:2}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{padding:12,font:{size:11}}}}}
+  });
+}
+makeRevChart('chart-revenue'); makeSegChart('chart-segments');
+makeRevChart('chart-revenue-2'); makeSegChart('chart-segments-2');
+
+/* ── FILTER USERS ───────────────────────────────────────────────── */
+function filterUsers(){
+  const q=(document.getElementById('u-search').value||'').toLowerCase();
+  const org=document.getElementById('u-origin').value.toLowerCase();
+  const seg=document.getElementById('u-seg').value;
+  let vis=0;
+  document.querySelectorAll('#u-tbody tr[data-id]').forEach(tr=>{
+    const ok=(!q||(tr.dataset.name+' '+tr.dataset.email).includes(q))
+      &&(!org||tr.dataset.origin===org)
+      &&(!seg||tr.dataset.seg===seg);
+    tr.style.display=ok?'':'none';
+    if(ok)vis++;
+  });
+  document.getElementById('u-count').textContent=vis+' visíveis';
+}
+function sortUsers(){
+  const v=document.getElementById('u-sort').value;
+  const [col,dir]=v.split('-');
+  const map={spent:'spent',orders:'orders',date:'date'};
+  sortByCol(map[col]||col,dir==='asc');
+}
+let _sortCol='',_sortAsc=false;
+function sortByCol(col,asc){
+  if(col===_sortCol)_sortAsc=!_sortAsc; else{_sortCol=col;_sortAsc=asc??false;}
+  const tbody=document.getElementById('u-tbody');
+  const rows=[...tbody.querySelectorAll('tr[data-id]')];
+  rows.sort((a,b)=>{
+    let av=a.dataset[col]??'',bv=b.dataset[col]??'';
+    if(['spent','orders','id'].includes(col)){av=+av;bv=+bv;}
+    return _sortAsc?(av>bv?1:-1):(av<bv?1:-1);
+  });
+  rows.forEach(r=>tbody.appendChild(r));
+}
+
+/* ── CAMPAIGN AUDIENCE PREVIEW ──────────────────────────────────── */
+function setSegFilter(s){document.getElementById('c-seg').value=s;}
+function filterCampaign(){
+  if(!document.getElementById('view-campaigns').classList.contains('active'))
+    switchView('campaigns');
+}
+function updateAudiencePreview(){
+  const minC=(+document.getElementById('c-min').value||0)*100;
+  const maxS=document.getElementById('c-max').value;
+  const maxC=maxS!==''?(+maxS)*100:Infinity;
+  const utm=document.getElementById('c-utm').value;
+  const seg=document.getElementById('c-seg').value;
+  const count=USERS.filter(u=>{
+    if(u.spent<minC||u.spent>maxC)return false;
+    if(utm&&u.origin!==utm)return false;
+    if(seg&&u.seg!==seg)return false;
+    return true;
+  }).length;
+  document.getElementById('audience-count').textContent=count;
+}
+
+/* ── EMAIL PREVIEW ──────────────────────────────────────────────── */
+document.getElementById('c-body')?.addEventListener('input',function(){
+  document.getElementById('preview-body').textContent=this.value;
+});
+</script>
+{% endblock %}

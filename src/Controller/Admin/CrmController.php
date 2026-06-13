@@ -246,15 +246,16 @@ class CrmController extends AbstractDashboardController
 
     private function redirectAfterCampaign(bool $preview, array $recipients, int $sent, array $errors, string $subject, string $body): Response
     {
-        // redireciona de volta para a view de campanhas com dados no flash session
-        $this->addFlash('crm_campaign', json_encode([
+        // Salva o array direto na flash — a sessão do Symfony serializa automaticamente.
+        // NÃO usar json_encode aqui, pois o Twig não tem filtro json_decode.
+        $this->addFlash('crm_campaign', [
             'preview'    => $preview,
             'recipients' => $recipients,
             'sent'       => $sent,
             'errors'     => $errors,
             'subject'    => $subject,
             'body'       => $body,
-        ]));
+        ]);
         return $this->redirectToRoute('app_admin_crm_dashboard');
     }
 }
