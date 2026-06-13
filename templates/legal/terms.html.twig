@@ -1,0 +1,171 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Termos de Uso — PulseSMM{% endblock %}
+{% block og_title %}Termos de Uso — PulseSMM{% endblock %}
+{% block page_title %}Termos de Uso{% endblock %}
+
+{% block auth_body %}
+<div class="legal-page">
+  <div class="legal-container">
+    <header class="legal-header">
+      <a href="{{ path('app_login') }}" class="legal-back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Voltar
+      </a>
+      <div class="legal-logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      <h1>Termos de Uso</h1>
+      <p>Última atualização: junho de 2025</p>
+    </header>
+
+    <div class="legal-body">
+
+      <section>
+        <h2>1. Aceitação dos Termos</h2>
+        <p>Ao acessar ou usar o PulseSMM, você concorda em cumprir e estar vinculado a estes Termos de Uso. Se você não concordar com alguma parte dos termos, não poderá usar nossos serviços.</p>
+      </section>
+
+      <section>
+        <h2>2. Descrição do Serviço</h2>
+        <p>O PulseSMM é uma plataforma de gerenciamento de mídias sociais (SMM Panel) que oferece serviços de engajamento para redes sociais, incluindo seguidores, curtidas, visualizações e outros serviços relacionados.</p>
+      </section>
+
+      <section>
+        <h2>3. Uso Aceitável</h2>
+        <p>Você concorda em usar o serviço apenas para fins legais e de acordo com estes Termos. É proibido:</p>
+        <ul>
+          <li>Usar o serviço para atividades ilegais ou fraudulentas</li>
+          <li>Tentar acessar contas de outros usuários sem autorização</li>
+          <li>Usar bots ou scripts automáticos para abusar do sistema</li>
+          <li>Revender os serviços sem autorização prévia</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. Pagamentos e Reembolsos</h2>
+        <p>Todos os pagamentos são processados de forma segura. Os créditos adquiridos não são reembolsáveis após o início da prestação dos serviços. Em caso de falha técnica comprovada da nossa parte, analisaremos cada caso individualmente.</p>
+      </section>
+
+      <section>
+        <h2>5. Entrega dos Serviços</h2>
+        <p>Os prazos de entrega são estimativos. Variações podem ocorrer dependendo da demanda e das políticas das plataformas de destino. Não nos responsabilizamos por alterações nas plataformas de terceiros que afetem a entrega.</p>
+      </section>
+
+      <section>
+        <h2>6. Limitação de Responsabilidade</h2>
+        <p>O PulseSMM não se responsabiliza por eventuais penalizações aplicadas pelas plataformas de redes sociais em contas que utilizem nossos serviços. O uso é de inteira responsabilidade do usuário.</p>
+      </section>
+
+      <section>
+        <h2>7. Alterações nos Termos</h2>
+        <p>Reservamo-nos o direito de modificar estes termos a qualquer momento. As alterações entram em vigor imediatamente após a publicação. O uso continuado do serviço constitui aceite das novas condições.</p>
+      </section>
+
+      <section>
+        <h2>8. Contato</h2>
+        <p>Para dúvidas sobre estes Termos, entre em contato através do nosso <a href="{{ path('support_index') }}">suporte</a>.</p>
+      </section>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{# fallback quando usuário já está logado #}
+<div style="max-width:760px;margin:0 auto;padding:var(--space-8) var(--space-4)">
+  <a href="{{ path('app_dashboard') }}" style="display:inline-flex;align-items:center;gap:6px;color:var(--color-text-muted);font-size:var(--text-sm);margin-bottom:var(--space-6);text-decoration:none;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Voltar ao painel
+  </a>
+  <h1 style="font-size:var(--text-xl);margin-bottom:var(--space-6)">Termos de Uso</h1>
+  <p style="color:var(--color-text-muted);font-size:var(--text-sm);margin-bottom:var(--space-8)">Última atualização: junho de 2025</p>
+  {# conteúdo igual ao bloco auth_body acima, renderizado dentro do app shell #}
+  <p>Veja a versão completa acessando sem estar autenticado ou consulte nosso suporte.</p>
+</div>
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+.legal-page {
+  min-height: 100dvh;
+  background: var(--color-bg, #f7f6f2);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-8) var(--space-4);
+}
+.legal-container {
+  width: 100%;
+  max-width: 760px;
+  background: var(--color-surface, #f9f8f5);
+  border: 1px solid var(--color-border, #d4d1ca);
+  border-radius: var(--radius-xl, 1rem);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+.legal-header {
+  padding: var(--space-8) var(--space-8) var(--space-6);
+  border-bottom: 1px solid var(--color-divider, #dcd9d5);
+  position: relative;
+}
+.legal-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm, .875rem);
+  color: var(--color-text-muted, #7a7974);
+  text-decoration: none;
+  margin-bottom: var(--space-4);
+  transition: color .15s;
+}
+.legal-back:hover { color: var(--color-text, #28251d); }
+.legal-logo {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary, #01696f);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: var(--space-4);
+}
+.legal-header h1 {
+  font-size: var(--text-xl, 1.5rem);
+  font-weight: 700;
+  color: var(--color-text, #28251d);
+  margin-bottom: var(--space-1);
+}
+.legal-header p {
+  font-size: var(--text-sm, .875rem);
+  color: var(--color-text-muted, #7a7974);
+}
+.legal-body {
+  padding: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.legal-body section h2 {
+  font-size: var(--text-base, 1rem);
+  font-weight: 700;
+  color: var(--color-text, #28251d);
+  margin-bottom: var(--space-2);
+}
+.legal-body section p,
+.legal-body section li {
+  font-size: var(--text-sm, .875rem);
+  color: var(--color-text-muted, #7a7974);
+  line-height: 1.7;
+  max-width: 100%;
+}
+.legal-body section ul {
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+.legal-body a { color: var(--color-primary, #01696f); }
+</style>
+{% endblock %}
