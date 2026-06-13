@@ -1,0 +1,140 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Termos de Uso — PulseSMM{% endblock %}
+{% block description %}Leia os Termos de Uso da plataforma PulseSMM. Saiba seus direitos e responsabilidades ao usar nossos serviços.{% endblock %}
+
+{% block auth_body %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Termos de Uso — PulseSMM</title>
+  <script>(function(){var s;try{s=sessionStorage.getItem('pulse-theme');}catch(e){}var sys=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',s||sys);})();</script>
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet">
+  <style>
+    :root,[data-theme="light"]{--bg:#f2f0ec;--surface:#fafaf8;--surface-2:#ffffff;--border:oklch(0.2 0.005 80/0.09);--text:#1c1a17;--text-muted:#6e6c66;--text-faint:#b0ada6;--primary:#016870;--primary-lo:oklch(0.48 0.08 192/0.10);--r-md:12px;--r-full:9999px;--s2:.5rem;--s3:.75rem;--s4:1rem;--s6:1.5rem;--s8:2rem;--s10:2.5rem;--s12:3rem;--font-body:'Satoshi',system-ui,sans-serif;--t-sm:clamp(0.875rem,0.82rem + 0.25vw,1rem);--t-base:clamp(1rem,0.95rem + 0.25vw,1.125rem);--t-lg:clamp(1.125rem,1rem + 0.6vw,1.375rem);--t-xl:clamp(1.5rem,1.2rem + 1.2vw,2rem);--shadow-sm:0 2px 6px oklch(0.2 0.01 80/0.07);--dur:180ms;--ease:cubic-bezier(0.16,1,0.3,1);color-scheme:light;}
+    [data-theme="dark"]{--bg:#111010;--surface:#181716;--surface-2:#1e1d1c;--border:oklch(1 0 0/0.07);--text:#d6d4cf;--text-muted:#7a7874;--text-faint:#4e4c49;--primary:#4ca3aa;--primary-lo:oklch(0.66 0.07 192/0.12);--shadow-sm:0 2px 6px oklch(0 0 0/0.22);color-scheme:dark;}
+    @media(prefers-color-scheme:dark){:root:not([data-theme]){--bg:#111010;--surface:#181716;--surface-2:#1e1d1c;--border:oklch(1 0 0/0.07);--text:#d6d4cf;--text-muted:#7a7874;--text-faint:#4e4c49;--primary:#4ca3aa;--primary-lo:oklch(0.66 0.07 192/0.12);color-scheme:dark;}}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{font-family:var(--font-body);font-size:16px;-webkit-font-smoothing:antialiased;background:var(--bg);color:var(--text);}
+    body{min-height:100dvh;background:var(--bg);color:var(--text);}
+    a{color:var(--primary);text-decoration:none;}
+    a:hover{opacity:.8;}
+    :focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:4px;}
+
+    .page-nav{display:flex;align-items:center;justify-content:space-between;gap:var(--s4);padding:var(--s4) var(--s6);border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:10;}
+    .nav-brand{display:flex;align-items:center;gap:var(--s2);text-decoration:none;}
+    .nav-brand__icon{width:32px;height:32px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center;}
+    .nav-brand__name{font-size:.95rem;font-weight:800;letter-spacing:-.02em;color:var(--text);}
+    .nav-brand__name em{font-style:normal;color:var(--primary);}
+    .nav-back{display:inline-flex;align-items:center;gap:var(--s2);font-size:var(--t-sm);color:var(--text-muted);font-weight:500;transition:color var(--dur) var(--ease);}
+    .nav-back:hover{color:var(--text);opacity:1;}
+
+    .doc-wrap{max-width:720px;margin:0 auto;padding:var(--s10) var(--s6) var(--s12);}
+    .doc-eyebrow{display:inline-flex;align-items:center;gap:var(--s2);background:var(--primary-lo);border:1px solid oklch(0.48 0.08 192/0.15);border-radius:var(--r-full);padding:4px 12px;font-size:.72rem;font-weight:600;color:var(--primary);letter-spacing:.06em;text-transform:uppercase;margin-bottom:var(--s4);}
+    .doc-title{font-size:var(--t-xl);font-weight:800;letter-spacing:-.03em;color:var(--text);margin-bottom:var(--s2);line-height:1.15;}
+    .doc-meta{font-size:var(--t-sm);color:var(--text-faint);margin-bottom:var(--s10);}
+    .doc-section{margin-bottom:var(--s8);}
+    .doc-section h2{font-size:var(--t-lg);font-weight:700;color:var(--text);margin-bottom:var(--s3);padding-bottom:var(--s2);border-bottom:1px solid var(--border);}
+    .doc-section p{font-size:var(--t-base);color:var(--text-muted);line-height:1.8;margin-bottom:var(--s3);}
+    .doc-section ul{padding-left:var(--s6);margin-bottom:var(--s3);}
+    .doc-section ul li{font-size:var(--t-base);color:var(--text-muted);line-height:1.8;margin-bottom:var(--s2);}
+    .doc-section strong{color:var(--text);font-weight:600;}
+    .doc-contact{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s6);margin-top:var(--s10);}
+    .doc-contact h3{font-size:var(--t-lg);font-weight:700;margin-bottom:var(--s2);color:var(--text);}
+    .doc-contact p{font-size:var(--t-sm);color:var(--text-muted);line-height:1.7;}
+    .doc-contact a{color:var(--primary);font-weight:600;}
+  </style>
+</head>
+<body>
+
+<nav class="page-nav">
+  <a href="{{ path('app_login') }}" class="nav-brand" aria-label="PulseSMM home">
+    <div class="nav-brand__icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    </div>
+    <span class="nav-brand__name"><em>Pulse</em>SMM</span>
+  </a>
+  <a href="{{ path('app_login') }}" class="nav-back">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Voltar ao login
+  </a>
+</nav>
+
+<article class="doc-wrap">
+  <div class="doc-eyebrow">
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Documento legal
+  </div>
+  <h1 class="doc-title">Termos de Uso</h1>
+  <p class="doc-meta">Última atualização: junho de 2026 · PulseSMM</p>
+
+  <div class="doc-section">
+    <h2>1. Aceitação dos Termos</h2>
+    <p>Ao acessar ou utilizar a plataforma PulseSMM (<strong>acheireviews.com.br</strong>), você concorda com estes Termos de Uso. Se não concordar com qualquer parte, não utilize nossos serviços.</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>2. Descrição dos Serviços</h2>
+    <p>O PulseSMM é um painel de gerenciamento de mídias sociais (SMM Panel) que permite a compra de serviços de engajamento digital, incluindo:</p>
+    <ul>
+      <li>Seguidores para Instagram, TikTok, YouTube e outras plataformas</li>
+      <li>Curtidas, visualizações e comentários em publicações</li>
+      <li>Serviços de impulsionamento de perfil e conteúdo</li>
+    </ul>
+    <p>Todos os serviços são entregues de forma automatizada após a confirmação do pagamento.</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>3. Elegibilidade</h2>
+    <p>Para usar o PulseSMM, você deve:</p>
+    <ul>
+      <li>Ter no mínimo 18 anos ou ter autorização de um responsável legal</li>
+      <li>Fornecer informações verdadeiras no cadastro</li>
+      <li>Não usar a plataforma para atividades ilegais ou fraudulentas</li>
+    </ul>
+  </div>
+
+  <div class="doc-section">
+    <h2>4. Pagamentos e Reembolsos</h2>
+    <p>Os pagamentos são processados via <strong>PIX</strong> de forma segura. Após a confirmação, o saldo é creditado em sua carteira virtual para uso nos serviços disponíveis.</p>
+    <p>Reembolsos são analisados caso a caso. Serviços já entregues ou em andamento não são reembolsáveis. Para solicitar, entre em contato com nosso suporte em até 7 dias após a compra.</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>5. Uso Aceitável</h2>
+    <p>É <strong>proibido</strong> utilizar o PulseSMM para:</p>
+    <ul>
+      <li>Violar os Termos de Serviço das plataformas de mídia social</li>
+      <li>Praticar fraude, spam ou comportamento abusivo</li>
+      <li>Compartilhar conteúdo ilegal, odioso ou que promova violência</li>
+      <li>Tentar acessar sistemas de outros usuários ou do servidor</li>
+    </ul>
+  </div>
+
+  <div class="doc-section">
+    <h2>6. Responsabilidades</h2>
+    <p>O PulseSMM não se responsabiliza por eventuais ações tomadas pelas plataformas de mídia social (como remoção de seguidores ou bloqueio de conta) decorrentes do uso de nossos serviços. O usuário assume total responsabilidade pelo uso da plataforma.</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>7. Suspensão e Cancelamento</h2>
+    <p>Reservamo-nos o direito de suspender ou encerrar contas que violem estes Termos, sem aviso prévio e sem direito a reembolso dos valores não utilizados.</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>8. Alterações nos Termos</h2>
+    <p>Podemos atualizar estes Termos a qualquer momento. A data de última atualização será revisada e, ao continuar usando a plataforma, você aceita os novos termos.</p>
+  </div>
+
+  <div class="doc-contact">
+    <h3>Dúvidas?</h3>
+    <p>Entre em contato com nossa equipe de suporte pelo <a href="{{ path('support_index') }}">painel de suporte</a> ou acesse nossa <a href="{{ path('app_privacy') }}">Política de Privacidade</a>.</p>
+  </div>
+</article>
+
+</body>
+</html>
+{% endblock %}
