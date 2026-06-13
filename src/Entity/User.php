@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -43,6 +45,40 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
     private ?Wallet $wallet = null;
 
+    // ── Affiliate fields ────────────────────────────────────────────────────
+
+    /** Código único do afiliado (ex: "ab3f9x") */
+    #[ORM\Column(length: 16, unique: true, nullable: true)]
+    private ?string $affiliateCode = null;
+
+    /**
+     * Taxa de comissão personalizada (ex: 0.10 = 10%).
+     * null = usa a taxa padrão definida no .env (AFFILIATE_DEFAULT_RATE).
+     */
+    #[ORM\Column(type: 'decimal', precision: 5, scale: 4, nullable: true)]
+    private ?string $affiliateCommissionRate = null;
+
+    /** Quem indicou este usuário */
+    #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'referredUsers')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $referredBy = null;
+
+    /** Usuários que foram indicados por este afiliado */
+    #[ORM\OneToMany(mappedBy: 'referredBy', targetEntity: self::class)]
+    private Collection $referredUsers;
+
+    /** Comissões geradas por este afiliado */
+    #[ORM\OneToMany(mappedBy: 'affiliate', targetEntity: AffiliateCommission::class, cascade: ['remove'])]
+    private Collection $affiliateCommissions;
+
+    // ────────────────────────────────────────────────────────────────────────
+
+    public function __construct()
+    {
+        $this->referredUsers        = new ArrayCollection();
+        $this->affiliateCommissions = new ArrayCollection();
+    }
+
     #[ORM\PrePersist]
     public function onPrePersist(): void
     {
@@ -77,4 +113,53 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getUpdatedAt(): ?\DateTimeImmutable { return $this->updatedAt; }
     public function getWallet(): ?Wallet { return $this->wallet; }
     public function setWallet(?Wallet $wallet): static { $this->wallet = $wallet; return $this; }
+
+    // ── Affiliate getters/setters ────────────────────────────────────────────
+
+    public function getAffiliateCode(): ?string { return $this->affiliateCode; }
+    public function setAffiliateCode(?string $code): static { $this->affiliateCode = $code; return $this; }
+
+    public function getAffiliateCommissionRate(): ?string { return $this->affiliateCommissionRate; }
+    public function setAffiliateCommissionRate(?string $rate): static { $this->affiliateCommissionRate = $rate; return $this; }
+
+    public function getReferredBy(): ?User { return $this->referredBy; }
+    public function setReferredBy(?User $referredBy): static { $this->referredBy = $referredBy; return $this; }
+
+    /** @return Collection<int, User> */
+    public function getReferredUsers(): Collection { return $this->referredUsers; }
+
+    /** @return Collection<int, AffiliateCommission> */
+    public function getAffiliateCommissions(): Collection { return $this->affiliateCommissions; }
+
+    /** Retorna a taxa efetiva (personalizada ou padrão do .env) */
+    public function getEffectiveCommissionRate(float $defaultRate): float
+    {
+        return $this->affiliateCommissionRate !== null
+            ? (float) $this->affiliateCommissionRate
+            : $defaultRate;
+    }
+
+    /** Saldo pendente de comissões (status=pending) */
+    public function getPendingCommissionAmount(): float
+    {
+        $total = 0.0;
+        foreach ($this->affiliateCommissions as $c) {
+            if ($c->getStatus() === AffiliateCommission::STATUS_PENDING) {
+                $total += (float) $c->getAmount();
+            }
+        }
+        return $total;
+    }
+
+    /** Total já pago ao afiliado */
+    public function getPaidCommissionAmount(): float
+    {
+        $total = 0.0;
+        foreach ($this->affiliateCommissions as $c) {
+            if ($c->getStatus() === AffiliateCommission::STATUS_PAID) {
+                $total += (float) $c->getAmount();
+            }
+        }
+        return $total;
+    }
 }

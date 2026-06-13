@@ -1,0 +1,11 @@
+# Parâmetros e injeção de dependência para o sistema de afiliados
+# Inclua este arquivo em config/services.yaml com: imports: [{resource: services_affiliate.yaml}]
+# OU copie o conteúdo diretamente no services.yaml
+
+parameters:
+    affiliate.default_rate: '%env(float:AFFILIATE_DEFAULT_RATE)%'
+
+services:
+    App\Service\AffiliateService:
+        arguments:
+            $defaultRate: '%affiliate.default_rate%'

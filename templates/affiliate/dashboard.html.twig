@@ -1,0 +1,107 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Programa de Afiliados{% endblock %}
+
+{% block body %}
+<div class="container" style="max-width:900px;margin:2rem auto;padding:0 1rem">
+
+  <h1 class="mb-4">💸 Programa de Afiliados</h1>
+
+  {# ── KPIs ── #}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
+    <div class="card">
+      <div class="card-body text-center">
+        <div style="font-size:2rem;font-weight:700;color:var(--color-primary)">R$ {{ paid|number_format(2,',','.') }}</div>
+        <div class="text-muted small">Total Recebido</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body text-center">
+        <div style="font-size:2rem;font-weight:700;color:var(--color-warning)">R$ {{ pending|number_format(2,',','.') }}</div>
+        <div class="text-muted small">Aguardando Pagamento</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body text-center">
+        <div style="font-size:2rem;font-weight:700">{{ referredCount }}</div>
+        <div class="text-muted small">Indicados cadastrados</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body text-center">
+        <div style="font-size:2rem;font-weight:700">{{ (rate * 100)|number_format(1) }}%</div>
+        <div class="text-muted small">Sua taxa de comissão</div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Seu link ── #}
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5>🔗 Seu link de indicação</h5>
+      <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+        <input type="text" readonly id="affLink"
+               value="{{ url('affiliate_click', {code: user.affiliateCode}) }}"
+               style="flex:1;min-width:200px;padding:.5rem .75rem;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface-offset);font-size:.9rem">
+        <button onclick="copyLink()" class="btn btn-primary btn-sm" style="white-space:nowrap">📋 Copiar</button>
+      </div>
+      <p class="text-muted small mt-2">Compartilhe esse link. Quando alguém se cadastrar por ele e fizer pedidos, você recebe {{ (rate * 100)|number_format(1) }}% de comissão.</p>
+    </div>
+  </div>
+
+  {# ── Histórico de comissões ── #}
+  <div class="card">
+    <div class="card-body">
+      <h5>📋 Histórico de comissões</h5>
+      {% if commissions is empty %}
+        <p class="text-muted">Nenhuma comissão ainda. Compartilhe seu link para começar!</p>
+      {% else %}
+        <div style="overflow-x:auto">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Cliente</th>
+                <th>Pedido</th>
+                <th>Taxa</th>
+                <th class="text-end">Valor</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in commissions %}
+              <tr>
+                <td>{{ c.createdAt|date('d/m/Y') }}</td>
+                <td>{{ c.customer.name }}</td>
+                <td>#{{ c.order.id }}</td>
+                <td>{{ (c.rate * 100)|number_format(1) }}%</td>
+                <td class="text-end">R$ {{ c.amount|number_format(2,',','.') }}</td>
+                <td>
+                  {% if c.status == 'paid' %}
+                    <span class="badge" style="background:var(--color-success);color:#fff">Pago</span>
+                  {% elseif c.status == 'pending' %}
+                    <span class="badge" style="background:var(--color-warning);color:#fff">Pendente</span>
+                  {% else %}
+                    <span class="badge" style="background:var(--color-error);color:#fff">Cancelado</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+function copyLink() {
+  var inp = document.getElementById('affLink');
+  navigator.clipboard.writeText(inp.value).then(function() {
+    alert('Link copiado!');
+  });
+}
+</script>
+{% endblock %}
