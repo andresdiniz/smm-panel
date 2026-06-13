@@ -1079,15 +1079,21 @@
     });
   });
 
-  /* ── Password toggles ── */
+  /* ── Password toggles ──
+     Symfony pode gerar IDs diferentes do que passamos via attr (ex: registration_form_plainPassword_first).
+     Por isso buscamos o input dentro do mesmo .input-wrap que o botão toggle, garantindo sempre o alvo correto.
+  */
   var EYE_OPEN = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
   var EYE_OFF  = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
 
-  function makePwdToggle(btnId, inputId, iconId) {
+  function makePwdToggle(btnId, iconId) {
     var btn = document.getElementById(btnId);
-    var inp = document.getElementById(inputId);
     var ico = document.getElementById(iconId);
-    if (!btn || !inp || !ico) return;
+    if (!btn || !ico) return;
+    /* Encontra o input de senha dentro do mesmo contêiner .input-wrap */
+    var wrap = btn.closest('.input-wrap');
+    var inp  = wrap ? wrap.querySelector('input') : null;
+    if (!inp) return;
     btn.addEventListener('click', function(){
       var showing = inp.type === 'text';
       inp.type = showing ? 'password' : 'text';
@@ -1095,17 +1101,19 @@
       btn.setAttribute('aria-label', showing ? 'Mostrar senha' : 'Ocultar senha');
     });
   }
-  makePwdToggle('pwdToggle1', 'pwd1', 'eyeIcon1');
-  makePwdToggle('pwdToggle2', 'pwd2', 'eyeIcon2');
+  makePwdToggle('pwdToggle1', 'eyeIcon1');
+  makePwdToggle('pwdToggle2', 'eyeIcon2');
 
   /* ── Password strength — barra contínua + regras visuais ── */
-  var pwdInput  = document.getElementById('pwd1');
-  var fill      = document.getElementById('strengthFill');
-  var lbl       = document.getElementById('strengthLabel');
-  var ruleLen   = document.getElementById('rule-len');
-  var ruleUpper = document.getElementById('rule-upper');
-  var ruleNum   = document.getElementById('rule-num');
-  var ruleSym   = document.getElementById('rule-sym');
+  /* Busca o input de senha pelo contêiner do toggle 1 para não depender de id fixo */
+  var pwdWrap1   = document.getElementById('pwdToggle1');
+  var pwdInput   = pwdWrap1 ? pwdWrap1.closest('.input-wrap').querySelector('input') : null;
+  var fill       = document.getElementById('strengthFill');
+  var lbl        = document.getElementById('strengthLabel');
+  var ruleLen    = document.getElementById('rule-len');
+  var ruleUpper  = document.getElementById('rule-upper');
+  var ruleNum    = document.getElementById('rule-num');
+  var ruleSym    = document.getElementById('rule-sym');
 
   var CHECK_SVG  = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
   var CIRCLE_SVG = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>';
@@ -1141,28 +1149,29 @@
       setRule(ruleUpper, upper, 'Maiúsc.');
       setRule(ruleNum,   num,   'Número');
       setRule(ruleSym,   sym,   'Símbolo');
+
+      /* Atualiza o check de confirmação se já preenchido */
+      if (pwd2 && matchHint && pwd2.value) checkMatch();
     });
   }
 
   /* ── Confirm password match hint ── */
-  var pwd2     = document.getElementById('pwd2');
+  var pwdWrap2  = document.getElementById('pwdToggle2');
+  var pwd2      = pwdWrap2 ? pwdWrap2.closest('.input-wrap').querySelector('input') : null;
   var matchHint = document.getElementById('matchHint');
 
-  if (pwd2 && matchHint && pwdInput) {
-    function checkMatch() {
-      if (!pwd2.value) { matchHint.style.display = 'none'; return; }
-      var ok = pwd2.value === pwdInput.value;
-      matchHint.style.display = 'flex';
-      matchHint.style.alignItems = 'center';
-      matchHint.style.gap = '4px';
-      matchHint.style.color = ok ? 'var(--success)' : 'var(--danger)';
-      matchHint.innerHTML = ok
-        ? CHECK_SVG + ' Senhas conferem'
-        : CIRCLE_SVG + ' Senhas não conferem';
-    }
-    pwd2.addEventListener('input', checkMatch);
-    if (pwdInput) pwdInput.addEventListener('input', checkMatch);
+  function checkMatch() {
+    if (!pwd2 || !matchHint || !pwd2.value) { if(matchHint) matchHint.style.display='none'; return; }
+    var ok = pwd2.value === (pwdInput ? pwdInput.value : '');
+    matchHint.style.display = 'flex';
+    matchHint.style.alignItems = 'center';
+    matchHint.style.gap = '4px';
+    matchHint.style.color = ok ? 'var(--success)' : 'var(--danger)';
+    matchHint.innerHTML = ok
+      ? CHECK_SVG + ' Senhas conferem'
+      : CIRCLE_SVG + ' Senhas não conferem';
   }
+  if (pwd2) pwd2.addEventListener('input', checkMatch);
 
   /* ── Submit loading state ── */
   var form      = document.getElementById('regForm');
