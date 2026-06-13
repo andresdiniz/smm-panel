@@ -6,6 +6,23 @@
   <meta name="description" content="{% block description %}PulseSMM — Painel de serviços de redes sociais{% endblock %}">
   <title>{% block title %}PulseSMM{% endblock %}</title>
 
+  {# ─ Open Graph / Social sharing ─ #}
+  <meta property="og:type"        content="website">
+  <meta property="og:site_name"   content="PulseSMM">
+  <meta property="og:title"       content="{% block og_title %}PulseSMM — Impulsione suas redes sociais{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Compre seguidores, curtidas e visualizações reais para Instagram, TikTok, YouTube e muito mais. Rápido, seguro e com suporte 24h.{% endblock %}">
+  <meta property="og:url"         content="{{ app.request.uri }}">
+  <meta property="og:image"       content="{{ absolute_url(asset('images/og-cover.png')) }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale"      content="pt_BR">
+
+  {# ─ Twitter/X Card ─ #}
+  <meta name="twitter:card"        content="summary_large_image">
+  <meta name="twitter:title"       content="{% block twitter_title %}PulseSMM — Impulsione suas redes sociais{% endblock %}">
+  <meta name="twitter:description" content="{% block twitter_description %}Seguidores, curtidas e visualizações reais para Instagram, TikTok, YouTube e mais. Entrega rápida e suporte 24h.{% endblock %}">
+  <meta name="twitter:image"       content="{{ absolute_url(asset('images/og-cover.png')) }}">
+
   {# ─ Favicons ─ #}
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
