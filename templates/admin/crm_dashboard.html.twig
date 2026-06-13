@@ -3,321 +3,820 @@
 {% block content_title %}{% endblock %}
 
 {% block main %}
+<!DOCTYPE html>
 <style>
-.crm { padding:28px 36px 80px 28px; background:#0f1117; min-height:100vh; color:#e2e6f0;
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; box-sizing:border-box; }
+/* ══ RESET & BASE ══════════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+.crm{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  background:#0b0d14;min-height:100vh;color:#dde1f0;padding:0}
 
-/* header */
-.crm-hd { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
-.crm-hd h1 { font-size:1.125rem; font-weight:900; letter-spacing:-.03em; color:#e2e6f0; margin:0; }
+/* ══ SIDEBAR ═══════════════════════════════════════════════════════════════ */
+.crm-wrap{display:flex;min-height:100vh}
+.sidebar{width:220px;background:#0f1220;border-right:1px solid rgba(255,255,255,.06);
+  display:flex;flex-direction:column;gap:2px;padding:20px 10px;flex-shrink:0;
+  position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar-logo{font-size:.8rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase;
+  color:#4fb8be;padding:0 8px 18px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:10px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;
+  font-size:.8rem;font-weight:600;color:#8b90a8;cursor:pointer;
+  transition:background .15s,color .15s;text-decoration:none;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:rgba(255,255,255,.05);color:#dde1f0}
+.nav-item.active{background:rgba(79,184,190,.12);color:#4fb8be}
+.nav-icon{width:16px;height:16px;flex-shrink:0}
+.nav-sep{height:1px;background:rgba(255,255,255,.06);margin:8px 0}
 
-/* KPI */
-.kpi-row { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:28px; }
-@media(max-width:1100px){ .kpi-row{ grid-template-columns:repeat(3,1fr) } }
-@media(max-width:640px) { .kpi-row{ grid-template-columns:1fr } }
-.kpi { background:#1c2233; border:1px solid rgba(255,255,255,.08); border-radius:12px;
-  padding:18px 20px 14px; display:flex; flex-direction:column; gap:6px; position:relative; overflow:hidden; }
-.kpi::after { content:''; position:absolute; inset:0 0 auto 0; height:3px; border-radius:12px 12px 0 0; }
-.kpi--teal::after  { background:#01696f; } .kpi--blue::after { background:#1e6fa0; }
-.kpi--green::after { background:#437a22; } .kpi--gold::after  { background:#c98a00; }
-.kpi--red::after   { background:#a12c7b; }
-.kpi__lbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#8b90a8; }
-.kpi__val { font-size:1.875rem; font-weight:900; font-variant-numeric:tabular-nums;
-  letter-spacing:-.04em; line-height:1; color:#f0f2fa; }
-.kpi__val--green { color:#7abf4a; } .kpi__val--gold { color:#e8af34; }
+/* ══ MAIN CONTENT ══════════════════════════════════════════════════════════ */
+.crm-main{flex:1;overflow:hidden}
+.view{display:none;padding:28px 32px;animation:fadeIn .2s ease}
+.view.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-/* section header */
-.sect { display:flex; align-items:center; gap:10px; font-size:10px; font-weight:700;
-  text-transform:uppercase; letter-spacing:.09em; color:#505570; margin-bottom:14px; }
-.sect::after { content:''; flex:1; height:1px; background:rgba(255,255,255,.07); }
+/* ══ PAGE HEADER ═══════════════════════════════════════════════════════════ */
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.ph h1{font-size:1.1rem;font-weight:900;letter-spacing:-.025em;color:#f0f4ff}
+.ph-sub{font-size:.75rem;color:#505570}
 
-/* card */
-.card { background:#1c2233; border:1px solid rgba(255,255,255,.08); border-radius:12px;
-  overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,.22); margin-bottom:28px; }
-.card__head { display:flex; align-items:center; justify-content:space-between;
-  padding:12px 18px; border-bottom:1px solid rgba(255,255,255,.07); background:#161b27; }
-.card__title { font-size:.875rem; font-weight:800; letter-spacing:-.025em; color:#e2e6f0; }
+/* ══ KPI GRID ═══════════════════════════════════════════════════════════════ */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:28px}
+.kpi{background:#141724;border:1px solid rgba(255,255,255,.07);border-radius:12px;
+  padding:16px 18px 12px;position:relative;overflow:hidden;cursor:default}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi--teal::before{background:#01696f} .kpi--green::before{background:#437a22}
+.kpi--gold::before{background:#c98a00}  .kpi--blue::before{background:#1a5f8f}
+.kpi--red::before{background:#8e1f5e}   .kpi--purple::before{background:#6b3fa0}
+.kpi__l{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#505570;margin-bottom:6px}
+.kpi__v{font-size:1.7rem;font-weight:900;letter-spacing:-.04em;line-height:1;color:#f0f4ff;font-variant-numeric:tabular-nums}
+.kpi__v--teal{color:#4fb8be} .kpi__v--green{color:#7abf4a} .kpi__v--gold{color:#e8af34}
+.kpi__v--red{color:#e06fc0}  .kpi__v--muted{color:#8b90a8}
+.kpi__delta{font-size:.7rem;color:#505570;margin-top:4px}
 
-/* filters bar */
-.filters { display:flex; flex-wrap:wrap; gap:10px; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,.07); }
-.filters input, .filters select {
-  background:#0f1117; border:1px solid rgba(255,255,255,.12); border-radius:8px;
-  color:#e2e6f0; font-size:.8rem; padding:6px 12px; outline:none;
-  transition:border-color .15s;
-}
-.filters input:focus, .filters select:focus { border-color:#4fb8be; }
-.filters input[type=search] { min-width:200px; }
-.filters select option { background:#1c2233; }
+/* ══ SECTION HEADING ════════════════════════════════════════════════════════ */
+.sh{display:flex;align-items:center;gap:10px;font-size:9.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.1em;color:#505570;margin-bottom:14px}
+.sh::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.06)}
 
-/* table */
-.tbl-wrap { overflow-x:auto; }
-.tbl { width:100%; border-collapse:collapse; }
-.tbl th { text-align:left; font-size:9.5px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.08em; color:#505570; padding:8px 14px;
-  border-bottom:1px solid rgba(255,255,255,.07); background:#161b27; white-space:nowrap; }
-.tbl td { padding:9px 14px; border-bottom:1px solid rgba(255,255,255,.04);
-  font-size:.8125rem; color:#e2e6f0; vertical-align:middle; }
-.tbl tbody tr:hover { background:rgba(255,255,255,.03); }
-.tbl tbody tr:last-child td { border-bottom:none; }
-.d-empty { color:#505570; font-size:.8125rem; text-align:center; padding:32px 16px; }
+/* ══ CARD ═══════════════════════════════════════════════════════════════════ */
+.card{background:#141724;border:1px solid rgba(255,255,255,.07);border-radius:12px;
+  overflow:hidden;margin-bottom:24px}
+.card-head{display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;background:#0f1220;border-bottom:1px solid rgba(255,255,255,.06)}
+.card-title{font-size:.8125rem;font-weight:800;letter-spacing:-.02em;color:#dde1f0}
+.card-meta{font-size:.7rem;color:#505570}
 
-/* badges */
-.badge { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px;
-  font-size:10px; font-weight:700; white-space:nowrap; }
-.badge--teal   { background:rgba(1,105,111,.2);   color:#4fb8be; }
-.badge--green  { background:rgba(67,122,34,.2);   color:#7abf4a; }
-.badge--gold   { background:rgba(201,138,0,.2);   color:#e8af34; }
-.badge--grey   { background:rgba(255,255,255,.07);color:#8b90a8; }
-.badge--blue   { background:rgba(30,111,160,.2);  color:#5ba8d4; }
-.badge--red    { background:rgba(161,44,123,.2);  color:#e06fc0; }
-.badge--orange { background:rgba(218,113,1,.2);   color:#fdab43; }
+/* ══ TABLE ═══════════════════════════════════════════════════════════════════ */
+.tw{overflow-x:auto}
+.t{width:100%;border-collapse:collapse}
+.t th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+  color:#505570;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06);
+  background:#0f1220;white-space:nowrap;cursor:pointer;user-select:none}
+.t th:hover{color:#dde1f0}
+.t td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04);
+  font-size:.79rem;color:#dde1f0;vertical-align:middle}
+.t tbody tr:hover{background:rgba(255,255,255,.03)}
+.t tbody tr:last-child td{border-bottom:none}
+.t-empty{text-align:center;padding:40px;color:#505570;font-size:.8rem}
 
-/* segment label helpers */
-.seg-whale  { color:#e8af34; font-weight:800; }
-.seg-active { color:#7abf4a; }
-.seg-new    { color:#5ba8d4; }
+/* ══ BADGE ═══════════════════════════════════════════════════════════════════ */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;
+  border-radius:999px;font-size:9.5px;font-weight:700;white-space:nowrap}
+.b-teal{background:rgba(1,105,111,.2);color:#4fb8be}
+.b-green{background:rgba(67,122,34,.2);color:#7abf4a}
+.b-gold{background:rgba(201,138,0,.2);color:#e8af34}
+.b-grey{background:rgba(255,255,255,.07);color:#8b90a8}
+.b-blue{background:rgba(26,95,143,.2);color:#5ba8d4}
+.b-red{background:rgba(142,31,94,.2);color:#e06fc0}
+.b-orange{background:rgba(218,113,1,.2);color:#fdab43}
 
-/* marketing form */
-.mkt-form { padding:20px 18px; display:flex; flex-direction:column; gap:14px; }
-.mkt-form label { font-size:11px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.07em; color:#8b90a8; display:flex; flex-direction:column; gap:6px; }
-.mkt-form input[type=text], .mkt-form textarea, .mkt-form select, .mkt-form input[type=number] {
-  background:#0f1117; border:1px solid rgba(255,255,255,.12); border-radius:8px;
-  color:#e2e6f0; font-size:.875rem; padding:8px 12px; outline:none; width:100%;
-  transition:border-color .15s; resize:vertical;
-}
-.mkt-form input:focus, .mkt-form textarea:focus, .mkt-form select:focus { border-color:#4fb8be; }
-.mkt-form textarea { min-height:120px; }
-.mkt-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
-@media(max-width:720px){ .mkt-row{ grid-template-columns:1fr } }
-.btn-group { display:flex; gap:10px; flex-wrap:wrap; }
-.btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px;
-  border-radius:8px; font-size:.8125rem; font-weight:700; border:none; cursor:pointer;
-  transition:opacity .15s; }
-.btn--primary { background:#01696f; color:#fff; }
-.btn--primary:hover { opacity:.85; }
-.btn--secondary { background:rgba(255,255,255,.08); color:#e2e6f0; }
-.btn--secondary:hover { background:rgba(255,255,255,.13); }
+/* ══ FILTERS ═══════════════════════════════════════════════════════════════ */
+.filters{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;
+  border-bottom:1px solid rgba(255,255,255,.06)}
+.filters input,.filters select{background:#0b0d14;border:1px solid rgba(255,255,255,.1);
+  border-radius:7px;color:#dde1f0;font-size:.775rem;padding:6px 10px;outline:none;
+  transition:border-color .15s}
+.filters input:focus,.filters select:focus{border-color:#4fb8be}
+.fi-search{min-width:220px}
+.fi-count{font-size:.7rem;color:#505570;margin-left:auto;align-self:center}
 
-/* flash */
-.flash { padding:14px 18px; border-radius:10px; font-size:.875rem; margin-bottom:20px; }
-.flash--success { background:rgba(67,122,34,.15); border:1px solid rgba(67,122,34,.3); color:#7abf4a; }
-.flash--warning { background:rgba(201,138,0,.12);  border:1px solid rgba(201,138,0,.25); color:#e8af34; }
-.flash--info    { background:rgba(30,111,160,.12); border:1px solid rgba(30,111,160,.25); color:#5ba8d4; }
-.flash ul { margin:8px 0 0 18px; font-size:.8rem; color:#e2e6f0; }
+/* ══ FORM ════════════════════════════════════════════════════════════════════ */
+.form{padding:20px 18px;display:flex;flex-direction:column;gap:16px}
+.form-row{display:grid;gap:14px}
+.form-row--2{grid-template-columns:1fr 1fr}
+.form-row--3{grid-template-columns:1fr 1fr 1fr}
+.form-row--4{grid-template-columns:1fr 1fr 1fr 1fr}
+@media(max-width:860px){.form-row--3,.form-row--4{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.form-row--2,.form-row--3,.form-row--4{grid-template-columns:1fr}}
+.form label{font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:#8b90a8;display:flex;flex-direction:column;gap:6px}
+.form input[type=text],.form input[type=number],.form textarea,.form select{
+  background:#0b0d14;border:1px solid rgba(255,255,255,.1);border-radius:8px;
+  color:#dde1f0;font-size:.85rem;padding:9px 12px;outline:none;width:100%;
+  transition:border-color .15s;resize:vertical;font-family:inherit}
+.form input:focus,.form textarea:focus,.form select:focus{border-color:#4fb8be}
+.form textarea{min-height:130px}
+
+/* ══ BUTTONS ════════════════════════════════════════════════════════════════ */
+.btn-row{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;
+  border-radius:8px;font-size:.8rem;font-weight:700;border:none;cursor:pointer;
+  transition:opacity .15s,background .15s;text-decoration:none}
+.btn--primary{background:#01696f;color:#fff} .btn--primary:hover{opacity:.82}
+.btn--ghost{background:rgba(255,255,255,.07);color:#dde1f0}
+.btn--ghost:hover{background:rgba(255,255,255,.12)}
+.btn--danger{background:rgba(142,31,94,.2);color:#e06fc0}
+.btn--sm{padding:5px 12px;font-size:.74rem}
+.btn--profile{background:rgba(79,184,190,.1);color:#4fb8be}
+.btn--profile:hover{background:rgba(79,184,190,.2)}
+
+/* ══ FLASH ════════════════════════════════════════════════════════════════ */
+.flash{padding:12px 16px;border-radius:8px;font-size:.82rem;margin-bottom:20px}
+.flash--success{background:rgba(67,122,34,.12);border:1px solid rgba(67,122,34,.25);color:#7abf4a}
+.flash--info{background:rgba(26,95,143,.12);border:1px solid rgba(26,95,143,.25);color:#5ba8d4}
+.flash--warn{background:rgba(201,138,0,.12);border:1px solid rgba(201,138,0,.25);color:#e8af34}
+.flash ul{margin:8px 0 0 18px;font-size:.76rem;color:#dde1f0}
+
+/* ══ PROFILE ═══════════════════════════════════════════════════════════════ */
+.profile-hero{display:flex;align-items:center;gap:20px;padding:24px;
+  background:#141724;border:1px solid rgba(255,255,255,.07);border-radius:12px;margin-bottom:20px}
+.avatar{width:56px;height:56px;border-radius:50%;background:#01696f;
+  display:flex;align-items:center;justify-content:center;font-size:1.3rem;
+  font-weight:900;color:#fff;flex-shrink:0}
+.profile-name{font-size:1rem;font-weight:800;color:#f0f4ff}
+.profile-email{font-size:.78rem;color:#8b90a8;margin-top:2px}
+.profile-meta{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:720px){.profile-grid{grid-template-columns:1fr}}
+
+/* timeline */
+.timeline{padding:16px 18px;display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;gap:12px;position:relative;padding-bottom:16px}
+.tl-item:last-child{padding-bottom:0}
+.tl-item:not(:last-child)::before{content:'';position:absolute;left:8px;top:20px;
+  bottom:0;width:1px;background:rgba(255,255,255,.08)}
+.tl-dot{width:17px;height:17px;border-radius:50%;background:#01696f;flex-shrink:0;margin-top:2px;
+  display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;z-index:1}
+.tl-content{flex:1}
+.tl-event{font-size:.79rem;font-weight:700;color:#dde1f0}
+.tl-at{font-size:.7rem;color:#505570;margin-top:2px}
+.tl-payload{font-size:.72rem;color:#8b90a8;margin-top:4px}
+
+/* ══ ANALYTICS ═════════════════════════════════════════════════════════════ */
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+@media(max-width:800px){.analytics-grid{grid-template-columns:1fr}}
+.chart-wrap{position:relative;height:240px}
+
+.utm-bar{display:flex;flex-direction:column;gap:10px;padding:16px 18px}
+.utm-row{display:flex;flex-direction:column;gap:4px}
+.utm-label{display:flex;justify-content:space-between;font-size:.775rem}
+.utm-name{color:#dde1f0;font-weight:600}
+.utm-val{color:#8b90a8}
+.utm-track{height:6px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden}
+.utm-fill{height:100%;border-radius:999px;background:#01696f;transition:width .6s ease}
+
+/* ══ STATUS DOTS ════════════════════════════════════════════════════════════ */
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
+.dot--green{background:#7abf4a} .dot--gold{background:#e8af34}
+.dot--blue{background:#5ba8d4}  .dot--red{background:#e06fc0}
+.dot--grey{background:#505570}  .dot--teal{background:#4fb8be}
+
+/* ══ PREVIEW BOX ═══════════════════════════════════════════════════════════ */
+.preview-box{background:#0b0d14;border:1px solid rgba(255,255,255,.08);border-radius:8px;
+  padding:14px 16px;max-height:240px;overflow-y:auto}
+.preview-box li{font-size:.76rem;color:#8b90a8;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.preview-box li:last-child{border-bottom:none}
+
+/* ══ RESPONSIVE HIDE ════════════════════════════════════════════════════════ */
+@media(max-width:900px){.sidebar{display:none}.crm-wrap{flex-direction:column}}
 </style>
 
+{% set campaignFlash = app.flashes('crm_campaign')|first|default(null) %}
+{% if campaignFlash %}
+  {% set cf = campaignFlash|json_decode %}
+{% else %}
+  {% set cf = null %}
+{% endif %}
+
 <div class="crm">
+<div class="crm-wrap">
 
-  {# ── HEADER ── #}
-  <div class="crm-hd">
-    <h1>CRM</h1>
-    <span style="font-size:.75rem;color:#505570">{{ 'now'|date('d/m/Y H:i') }}</span>
-  </div>
+  {# ══ SIDEBAR ══ #}
+  <nav class="sidebar">
+    <div class="sidebar-logo">&#9673; CRM</div>
+    <button class="nav-item" data-view="overview" onclick="switchView('overview')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+      </svg>Dashboard
+    </button>
+    <button class="nav-item" data-view="users" onclick="switchView('users')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>Usu&#225;rios
+    </button>
+    <button class="nav-item" data-view="campaigns" onclick="switchView('campaigns')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+        <polyline points="22,6 12,13 2,6"/>
+      </svg>Campanhas
+    </button>
+    <button class="nav-item" data-view="analytics" onclick="switchView('analytics')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>Analytics
+    </button>
+    {% if profileUser %}
+    <div class="nav-sep"></div>
+    <button class="nav-item" data-view="profile" onclick="switchView('profile')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>Perfil
+    </button>
+    {% endif %}
+    <div class="nav-sep"></div>
+    <a class="nav-item" href="/admin">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 5l-7 7 7 7"/>
+      </svg>Voltar ao admin
+    </a>
+  </nav>
 
-  {# ── FLASH ── #}
-  {% if flash %}
-    <div class="flash flash--{{ flash.type }}">
-      {% if flash.preview %}
-        <strong>Preview:</strong> {{ flash.recipients|length }} destinatário(s) seriam impactados com o assunto "{{ flash.subject }}".
-        <ul>{% for r in flash.recipients|slice(0,10) %}<li>{{ r.name }} &lt;{{ r.email }}&gt;</li>{% endfor %}
-        {% if flash.recipients|length > 10 %}<li>… e mais {{ flash.recipients|length - 10 }}</li>{% endif %}</ul>
-      {% elseif flash.type == 'success' %}
-        <strong>✓ Enviado!</strong> {{ flash.sent }} e-mail(s) enviado(s) com sucesso.
-      {% else %}
-        <strong>Parcialmente enviado.</strong> {{ flash.sent }} enviados.
-        {% if flash.errors %}<ul>{% for e in flash.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-      {% endif %}
-    </div>
-  {% endif %}
+  <div class="crm-main">
 
-  {# ── KPIs ── #}
-  <div class="kpi-row">
-    <div class="kpi kpi--green">
-      <span class="kpi__lbl">Receita mês</span>
-      <div class="kpi__val kpi__val--green">R$&nbsp;{{ (stats.revenueMonthCents/100)|number_format(2,',','.') }}</div>
-    </div>
-    <div class="kpi kpi--red">
-      <span class="kpi__lbl">Saídas mês</span>
-      <div class="kpi__val">R$&nbsp;{{ (stats.expensesMonthCents/100)|number_format(2,',','.') }}</div>
-    </div>
-    <div class="kpi kpi--gold">
-      <span class="kpi__lbl">Taxas mês</span>
-      <div class="kpi__val kpi__val--gold">R$&nbsp;{{ (stats.feesMonthCents/100)|number_format(2,',','.') }}</div>
-    </div>
-    <div class="kpi kpi--teal">
-      <span class="kpi__lbl">Total contatos</span>
-      <div class="kpi__val">{{ stats.totalContacts }}</div>
-    </div>
-    <div class="kpi kpi--blue">
-      <span class="kpi__lbl">Ativos 30d</span>
-      <div class="kpi__val">{{ stats.activeContacts }}</div>
-    </div>
-  </div>
-
-  {# ── TABELA DE USUÁRIOS ── #}
-  <div class="sect">Usuários — gasto total &amp; origem</div>
-  <div class="card">
-    <div class="card__head">
-      <span class="card__title">Todos os usuários ({{ crmUsers|length }})</span>
-      <span style="font-size:.75rem;color:#505570">Ordenado por maior gasto</span>
-    </div>
-
-    {# filtro client-side #}
-    <div class="filters">
-      <input type="search" id="crm-search" placeholder="🔍 Buscar nome / e-mail / origem…">
-      <select id="crm-filter-origin">
-        <option value="">Todas as origens</option>
-        {% for src in utmSources %}<option value="{{ src }}">{{ src }}</option>{% endfor %}
-        <option value="__direct">Direto / sem UTM</option>
-      </select>
-      <select id="crm-filter-seg">
-        <option value="">Todos os segmentos</option>
-        <option value="whale">🐋 Whale (+R$500)</option>
-        <option value="active">✅ Ativo (comprou)</option>
-        <option value="new">🆕 Sem pedidos</option>
-      </select>
+  {# ══════════════════════════════════════════════════════════════════════
+     VIEW: OVERVIEW
+  ══════════════════════════════════════════════════════════════════════ #}
+  <div class="view" id="view-overview">
+    <div class="ph">
+      <h1>Dashboard CRM</h1>
+      <span class="ph-sub">{{ 'now'|date('d/m/Y H:i') }}</span>
     </div>
 
-    <div class="tbl-wrap">
-      <table class="tbl" id="crm-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Usuário</th>
+    {% if cf %}
+      <div class="flash flash--{{ cf.preview ? 'info' : (cf.errors|length ? 'warn' : 'success') }}">
+        {% if cf.preview %}
+          <strong>Preview:</strong> {{ cf.recipients|length }} destinat&#225;rio(s) seriam impactados.
+          <ul>{% for r in cf.recipients|slice(0,8) %}<li>{{ r.name }} &lt;{{ r.email }}&gt;</li>{% endfor %}
+          {% if cf.recipients|length > 8 %}<li>&#8230; e mais {{ cf.recipients|length - 8 }}</li>{% endif %}</ul>
+        {% elseif cf.errors|length %}
+          <strong>Parcialmente enviado.</strong> {{ cf.sent }} ok, {{ cf.errors|length }} erro(s).
+          <ul>{% for e in cf.errors|slice(0,5) %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% else %}
+          <strong>&#10003; Enviado!</strong> {{ cf.sent }} e-mail(s) enviados com sucesso.
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {# KPIs #}
+    <div class="kpi-grid">
+      <div class="kpi kpi--green">
+        <div class="kpi__l">Receita este m&#234;s</div>
+        <div class="kpi__v kpi__v--green">R$&#160;{{ (stats.revenueMonthCents/100)|number_format(2,',','.') }}</div>
+      </div>
+      <div class="kpi kpi--teal">
+        <div class="kpi__l">Receita total (CRM)</div>
+        <div class="kpi__v kpi__v--teal">R$&#160;{{ (stats.totalRevenueCents/100)|number_format(2,',','.') }}</div>
+      </div>
+      <div class="kpi kpi--gold">
+        <div class="kpi__l">LTV m&#233;dio</div>
+        <div class="kpi__v kpi__v--gold">R$&#160;{{ (stats.ltvAvgCents/100)|number_format(2,',','.') }}</div>
+      </div>
+      <div class="kpi kpi--blue">
+        <div class="kpi__l">Total usu&#225;rios</div>
+        <div class="kpi__v">{{ stats.totalUsers }}</div>
+        <div class="kpi__delta">+{{ stats.newThisMonth }} este m&#234;s</div>
+      </div>
+      <div class="kpi kpi--red">
+        <div class="kpi__l">Whales (&gt;R$500)</div>
+        <div class="kpi__v kpi__v--red">{{ stats.whales }}</div>
+      </div>
+      <div class="kpi kpi--purple">
+        <div class="kpi__l">Ativos 30d</div>
+        <div class="kpi__v">{{ stats.activeContacts }}</div>
+      </div>
+    </div>
+
+    {# Chart Row #}
+    <div class="analytics-grid">
+      <div class="card">
+        <div class="card-head"><span class="card-title">Receita mensal</span></div>
+        <div style="padding:16px"><div class="chart-wrap"><canvas id="chart-revenue"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Segmentos de clientes</span></div>
+        <div style="padding:16px"><div class="chart-wrap"><canvas id="chart-segments"></canvas></div></div>
+      </div>
+    </div>
+
+    {# Top 5 clientes #}
+    <div class="sh">Top clientes</div>
+    <div class="card">
+      <div class="tw">
+        <table class="t">
+          <thead><tr>
+            <th>Usu&#225;rio</th><th>E-mail</th><th>Origem</th>
+            <th style="text-align:right">Gasto total</th><th>Segmento</th><th></th>
+          </tr></thead>
+          <tbody>
+          {% for row in crmUsers|slice(0,10) %}
+            {% set spent = row.totalSpentCents %}
+            {% set seg = spent >= 50000 ? 'whale' : (spent > 0 ? 'active' : 'new') %}
+            <tr>
+              <td><strong>{{ row.user.name }}</strong></td>
+              <td style="color:#8b90a8">{{ row.user.email }}</td>
+              <td>{% if row.utmSource %}<span class="badge b-teal">{{ row.utmSource }}</span>{% else %}<span style="color:#505570">direto</span>{% endif %}</td>
+              <td style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;
+                color:{{ seg=='whale'?'#e8af34':(seg=='active'?'#7abf4a':'#8b90a8') }}">
+                R$&#160;{{ (spent/100)|number_format(2,',','.') }}
+              </td>
+              <td>
+                {% if seg=='whale' %}<span class="badge b-gold">&#128011; Whale</span>
+                {% elseif seg=='active' %}<span class="badge b-green">&#10003; Ativo</span>
+                {% else %}<span class="badge b-grey">&#127381; Novo</span>{% endif %}
+              </td>
+              <td><a class="btn btn--sm btn--profile" href="/admin/crm/user/{{ row.user.id }}">Ver</a></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>{# /view-overview #}
+
+  {# ══════════════════════════════════════════════════════════════════════
+     VIEW: USUARIOS
+  ══════════════════════════════════════════════════════════════════════ #}
+  <div class="view" id="view-users">
+    <div class="ph">
+      <h1>Usu&#225;rios</h1>
+      <span class="ph-sub">{{ crmUsers|length }} no total</span>
+    </div>
+    <div class="card">
+      <div class="filters">
+        <input class="fi-search" type="search" id="u-search" placeholder="&#128269; Nome, e-mail ou origem&#8230;" oninput="filterUsers()">
+        <select id="u-origin" onchange="filterUsers()">
+          <option value="">Todas as origens</option>
+          {% for src in utmSources %}<option>{{ src }}</option>{% endfor %}
+          <option value="__direct">Direto</option>
+        </select>
+        <select id="u-seg" onchange="filterUsers()">
+          <option value="">Todos segmentos</option>
+          <option value="whale">&#128011; Whale</option>
+          <option value="active">&#10003; Ativo</option>
+          <option value="new">&#127381; Novo</option>
+        </select>
+        <select id="u-sort" onchange="sortUsers()">
+          <option value="spent-desc">Maior gasto</option>
+          <option value="spent-asc">Menor gasto</option>
+          <option value="orders-desc">Mais pedidos</option>
+          <option value="date-desc">Mais recente</option>
+        </select>
+        <span class="fi-count" id="u-count">{{ crmUsers|length }} vis&#237;veis</span>
+      </div>
+      <div class="tw">
+        <table class="t" id="u-table">
+          <thead><tr>
+            <th onclick="sortByCol('id')">ID &#8597;</th>
+            <th onclick="sortByCol('name')">Usu&#225;rio &#8597;</th>
             <th>E-mail</th>
-            <th>Origem UTM</th>
+            <th onclick="sortByCol('origin')">Origem &#8597;</th>
             <th>Campanha</th>
             <th>Tags</th>
-            <th style="text-align:right">Gasto total</th>
-            <th style="text-align:right">Pedidos</th>
-            <th>Saldo</th>
-            <th>Cadastro</th>
-            <th>Segmento</th>
-          </tr>
-        </thead>
-        <tbody>
+            <th onclick="sortByCol('spent')" style="text-align:right">Gasto &#8597;</th>
+            <th onclick="sortByCol('orders')" style="text-align:right">Pedidos &#8597;</th>
+            <th style="text-align:right">Saldo</th>
+            <th onclick="sortByCol('date')">Cadastro &#8597;</th>
+            <th>Seg.</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="u-tbody">
           {% for row in crmUsers %}
             {% set spent = row.totalSpentCents %}
             {% set seg = spent >= 50000 ? 'whale' : (spent > 0 ? 'active' : 'new') %}
-            <tr data-name="{{ row.user.name|lower }}"
-                data-email="{{ row.user.email|lower }}"
-                data-origin="{{ row.utmSource|lower|default('__direct') }}"
-                data-seg="{{ seg }}">
-              <td style="color:#505570;font-size:.75rem">{{ row.user.id }}</td>
-              <td style="font-weight:700;white-space:nowrap">{{ row.user.name }}</td>
+            <tr
+              data-id="{{ row.user.id }}"
+              data-name="{{ row.user.name|lower }}"
+              data-email="{{ row.user.email|lower }}"
+              data-origin="{{ row.utmSource|lower|default('__direct') }}"
+              data-seg="{{ seg }}"
+              data-spent="{{ spent }}"
+              data-orders="{{ row.orderCount }}"
+              data-date="{{ row.user.createdAt|date('Y-m-d') }}"
+            >
+              <td style="color:#505570;font-size:.72rem">{{ row.user.id }}</td>
+              <td><strong>{{ row.user.name }}</strong></td>
               <td style="color:#8b90a8">{{ row.user.email }}</td>
-              <td>
-                {% if row.utmSource %}
-                  <span class="badge badge--teal">{{ row.utmSource }}</span>
-                {% else %}
-                  <span style="color:#505570">direto</span>
-                {% endif %}
-              </td>
-              <td style="color:#8b90a8;font-size:.75rem">{{ row.utmCampaign ?? '—' }}</td>
-              <td>
-                {% for tag in row.tags %}
-                  <span class="badge badge--blue">{{ tag }}</span>
-                {% endfor %}
-              </td>
-              <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700"
-                  class="{{ seg == 'whale' ? 'seg-whale' : (seg == 'active' ? 'seg-active' : '') }}">
-                R$&nbsp;{{ (spent/100)|number_format(2,',','.') }}
+              <td>{% if row.utmSource %}<span class="badge b-teal">{{ row.utmSource }}</span>{% else %}<span style="color:#505570">direto</span>{% endif %}</td>
+              <td style="color:#8b90a8;font-size:.72rem">{{ row.utmCampaign ?? '&#8212;' }}</td>
+              <td>{% for tag in row.tags %}<span class="badge b-blue" style="margin-right:2px">{{ tag }}</span>{% endfor %}</td>
+              <td style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;
+                color:{{ seg=='whale'?'#e8af34':(seg=='active'?'#7abf4a':'#8b90a8') }}">
+                R$&#160;{{ (spent/100)|number_format(2,',','.') }}
               </td>
               <td style="text-align:right;color:#8b90a8">{{ row.orderCount }}</td>
-              <td style="font-size:.75rem;color:#8b90a8">
-                R$&nbsp;{{ row.user.wallet ? (row.user.wallet.balanceCents/100)|number_format(2,',','.') : '0,00' }}
+              <td style="text-align:right;font-size:.72rem;color:#8b90a8">
+                R$&#160;{{ row.user.wallet ? (row.user.wallet.balanceCents/100)|number_format(2,',','.') : '0,00' }}
               </td>
-              <td style="font-size:.75rem;color:#505570;white-space:nowrap">{{ row.user.createdAt|date('d/m/Y') }}</td>
-              <td>
-                {% if seg == 'whale' %}
-                  <span class="badge badge--gold">🐋 Whale</span>
-                {% elseif seg == 'active' %}
-                  <span class="badge badge--green">✅ Ativo</span>
-                {% else %}
-                  <span class="badge badge--grey">🆕 Novo</span>
-                {% endif %}
-              </td>
+              <td style="font-size:.72rem;color:#505570;white-space:nowrap">{{ row.user.createdAt|date('d/m/Y') }}</td>
+              <td>{% if seg=='whale' %}<span class="badge b-gold">&#128011;</span>
+                {% elseif seg=='active' %}<span class="badge b-green">&#10003;</span>
+                {% else %}<span class="badge b-grey">&#127381;</span>{% endif %}</td>
+              <td><a class="btn btn--sm btn--profile" href="/admin/crm/user/{{ row.user.id }}">&#128270; Ver</a></td>
             </tr>
           {% else %}
-            <tr><td colspan="11" class="d-empty">Nenhum usuário encontrado.</td></tr>
+            <tr><td colspan="12" class="t-empty">Nenhum usu&#225;rio.</td></tr>
           {% endfor %}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
+  </div>{# /view-users #}
 
-  {# ── E-MAIL MARKETING ── #}
-  <div class="sect">Disparo de e-mail marketing</div>
-  <div class="card">
-    <div class="card__head">
-      <span class="card__title">Enviar campanha</span>
-      <span style="font-size:.75rem;color:#505570">Filtre o segmento antes de enviar</span>
+  {# ══════════════════════════════════════════════════════════════════════
+     VIEW: CAMPANHAS
+  ══════════════════════════════════════════════════════════════════════ #}
+  <div class="view" id="view-campaigns">
+    <div class="ph">
+      <h1>Campanhas de E-mail</h1>
+      <span class="ph-sub">Segmente e dispare</span>
     </div>
-    <form class="mkt-form" method="post" action="/admin/crm/send-marketing">
-      <input type="hidden" name="_token" value="{{ csrf_token('crm_marketing') }}">
 
-      <div class="mkt-row">
-        <label>Gasto mínimo (R$)
-          <input type="number" name="min_spent" value="0" min="0" step="0.01" placeholder="0.00">
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-head"><span class="card-title">&#128202; Estim&#228;tiva de audi&#234;ncia</span></div>
+      <div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px">
+        <div class="kpi kpi--gold" style="cursor:pointer" onclick="setSegFilter('whale');filterCampaign()">
+          <div class="kpi__l">Whales</div>
+          <div class="kpi__v kpi__v--gold">{{ stats.whales }}</div>
+          <div class="kpi__delta">&gt;R$500 gasto</div>
+        </div>
+        <div class="kpi kpi--green" style="cursor:pointer" onclick="setSegFilter('active');filterCampaign()">
+          <div class="kpi__l">Ativos</div>
+          <div class="kpi__v kpi__v--green">{{ stats.actives }}</div>
+          <div class="kpi__delta">Compraram algo</div>
+        </div>
+        <div class="kpi kpi--blue" style="cursor:pointer" onclick="setSegFilter('new');filterCampaign()">
+          <div class="kpi__l">Sem compra</div>
+          <div class="kpi__v">{{ stats.news }}</div>
+          <div class="kpi__delta">Primeiro pedido</div>
+        </div>
+        <div class="kpi kpi--teal" style="cursor:pointer" onclick="setSegFilter('');filterCampaign()">
+          <div class="kpi__l">Todos</div>
+          <div class="kpi__v kpi__v--teal">{{ stats.totalUsers }}</div>
+          <div class="kpi__delta">Usu&#225;rios ativos</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-title">&#128231; Novo disparo</span></div>
+      <form class="form" method="post" action="/admin/crm/send-marketing">
+        <input type="hidden" name="_token" value="{{ csrf_token('crm_marketing') }}">
+
+        <div class="sh">Segmenta&#231;&#227;o</div>
+        <div class="form-row form-row--4">
+          <label>Gasto m&#237;nimo (R$)
+            <input type="number" name="min_spent" id="c-min" value="0" min="0" step="0.01" oninput="updateAudiencePreview()">
+          </label>
+          <label>Gasto m&#225;ximo (R$) — opcional
+            <input type="number" name="max_spent" id="c-max" value="" min="0" step="0.01" placeholder="sem limite" oninput="updateAudiencePreview()">
+          </label>
+          <label>Origem UTM
+            <select name="utm_source" id="c-utm" onchange="updateAudiencePreview()">
+              <option value="">Todas</option>
+              {% for src in utmSources %}<option>{{ src }}</option>{% endfor %}
+            </select>
+          </label>
+          <label>Segmento
+            <select name="segment" id="c-seg" onchange="updateAudiencePreview()">
+              <option value="">Todos</option>
+              <option value="whale">&#128011; Whale</option>
+              <option value="active">&#10003; Ativo</option>
+              <option value="new">&#127381; Novo (sem compra)</option>
+            </select>
+          </label>
+        </div>
+
+        <div style="background:#0b0d14;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px 14px;
+          font-size:.8rem;color:#8b90a8;display:flex;gap:8px;align-items:center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4fb8be" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          Audi&#234;ncia estimada:&#160;
+          <strong id="audience-count" style="color:#4fb8be;font-size:1rem">{{ crmUsers|length }}</strong>
+          &#160;destinat&#225;rios
+        </div>
+
+        <div class="sh">Conte&#250;do</div>
+        <div class="form-row form-row--2">
+          <label>Assunto
+            <input type="text" name="subject" required placeholder="Ex: Oferta exclusiva para voc&#234;!" id="c-subject">
+          </label>
+          <label>De (remetente vis&#237;vel)
+            <input type="text" name="from_name" value="AcheiReviews" placeholder="Nome do remetente">
+          </label>
+        </div>
+        <label>Corpo do e-mail
+          <textarea name="body" required id="c-body" placeholder="Escreva o conte&#250;do. Use {{nome}} para personalizar com o nome do usu&#225;rio."></textarea>
         </label>
-        <label>Origem UTM (opcional)
-          <select name="utm_source">
-            <option value="">Todas as origens</option>
-            {% for src in utmSources %}
-              <option value="{{ src }}">{{ src }}</option>
+
+        <div class="sh">Preview do e-mail</div>
+        <div id="email-preview" style="background:#fff;border-radius:8px;overflow:hidden;font-family:Arial,sans-serif;font-size:14px;color:#333;min-height:80px">
+          <div style="background:#01696f;padding:16px 24px"><strong style="color:#fff;font-size:15px">AcheiReviews</strong></div>
+          <div style="padding:20px 24px">
+            <p>Ol&#225;, <strong>[Nome]</strong>!</p>
+            <div id="preview-body" style="margin-top:12px;white-space:pre-wrap;color:#444"></div>
+          </div>
+          <div style="background:#f5f5f5;padding:12px 24px;font-size:11px;color:#999">
+            AcheiReviews — Para cancelar recebimentos, entre em contato.
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="submit" class="btn btn--primary">&#128231; Enviar campanha</button>
+          <button type="submit" name="preview_only" value="1" class="btn btn--ghost">&#128270; Apenas preview</button>
+        </div>
+      </form>
+    </div>
+  </div>{# /view-campaigns #}
+
+  {# ══════════════════════════════════════════════════════════════════════
+     VIEW: ANALYTICS
+  ══════════════════════════════════════════════════════════════════════ #}
+  <div class="view" id="view-analytics">
+    <div class="ph">
+      <h1>Analytics de Origem</h1>
+      <span class="ph-sub">UTM sources e segmentos</span>
+    </div>
+
+    <div class="analytics-grid">
+      <div class="card">
+        <div class="card-head"><span class="card-title">Receita por m&#234;s</span></div>
+        <div style="padding:16px"><div class="chart-wrap"><canvas id="chart-revenue-2"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Distribui&#231;&#227;o de segmentos</span></div>
+        <div style="padding:16px"><div class="chart-wrap"><canvas id="chart-segments-2"></canvas></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Origens UTM — usu&#225;rios &amp; receita</span>
+        <span class="card-meta">{{ utmSources|length }} origens</span>
+      </div>
+      {% if utmMap %}
+        {% set maxCount = 0 %}
+        {% for k,v in utmMap %}{% if v.count > maxCount %}{% set maxCount = v.count %}{% endif %}{% endfor %}
+        <div class="utm-bar">
+          {% for src, data in utmMap %}
+          <div class="utm-row">
+            <div class="utm-label">
+              <span class="utm-name">{{ src }}</span>
+              <span class="utm-val">{{ data.count }} user(s) — R$&#160;{{ (data.revenue/100)|number_format(2,',','.') }}</span>
+            </div>
+            <div class="utm-track">
+              <div class="utm-fill" style="width:{{ maxCount > 0 ? ((data.count/maxCount)*100)|round : 0 }}%"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="t-empty">Nenhum dado de UTM dispon&#237;vel ainda.</div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-title">Usu&#225;rios recentes (&#250;ltimos 30 dias)</span></div>
+      <div class="tw">
+        <table class="t">
+          <thead><tr><th>Usu&#225;rio</th><th>Origem</th><th>Gasto</th><th>Cadastro</th><th>Seg.</th></tr></thead>
+          <tbody>
+          {% for row in crmUsers|filter(r => r.user.createdAt >= date('-30 days'))|slice(0,20) %}
+            {% set seg = row.totalSpentCents >= 50000 ? 'whale' : (row.totalSpentCents > 0 ? 'active' : 'new') %}
+            <tr>
+              <td><strong>{{ row.user.name }}</strong><br><span style="color:#8b90a8;font-size:.72rem">{{ row.user.email }}</span></td>
+              <td>{% if row.utmSource %}<span class="badge b-teal">{{ row.utmSource }}</span>{% else %}<span style="color:#505570">direto</span>{% endif %}</td>
+              <td style="font-weight:700;color:{{ seg=='whale'?'#e8af34':(seg=='active'?'#7abf4a':'#8b90a8') }}">
+                R$&#160;{{ (row.totalSpentCents/100)|number_format(2,',','.') }}
+              </td>
+              <td style="color:#505570;font-size:.72rem">{{ row.user.createdAt|date('d/m/Y H:i') }}</td>
+              <td>{% if seg=='whale' %}<span class="badge b-gold">&#128011; Whale</span>
+                {% elseif seg=='active' %}<span class="badge b-green">&#10003; Ativo</span>
+                {% else %}<span class="badge b-grey">&#127381; Novo</span>{% endif %}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5" class="t-empty">Nenhum usu&#225;rio novo nos &#250;ltimos 30 dias.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>{# /view-analytics #}
+
+  {# ══════════════════════════════════════════════════════════════════════
+     VIEW: PERFIL
+  ══════════════════════════════════════════════════════════════════════ #}
+  {% if profileUser %}
+  <div class="view" id="view-profile">
+    <div class="ph">
+      <h1>Perfil do Usu&#225;rio</h1>
+      <a class="btn btn--ghost btn--sm" href="/admin/crm">&#8592; Voltar</a>
+    </div>
+
+    {% set u = profileUser.user %}
+    {% set c = profileUser.contact %}
+    {% set orders = profileUser.orders %}
+    {% set totalSpent = profileUser.totalSpent %}
+    {% set seg = totalSpent >= 50000 ? 'whale' : (totalSpent > 0 ? 'active' : 'new') %}
+
+    <div class="profile-hero">
+      <div class="avatar">{{ u.name|first|upper }}</div>
+      <div>
+        <div class="profile-name">{{ u.name }}</div>
+        <div class="profile-email">{{ u.email }}</div>
+        <div class="profile-meta">
+          {% if seg=='whale' %}<span class="badge b-gold">&#128011; Whale</span>
+          {% elseif seg=='active' %}<span class="badge b-green">&#10003; Ativo</span>
+          {% else %}<span class="badge b-grey">&#127381; Novo</span>{% endif %}
+          {% if c and c.utmSource %}<span class="badge b-teal">{{ c.utmSource }}</span>{% endif %}
+          {% if not u.active %}<span class="badge b-red">Inativo</span>{% endif %}
+          {% if c %}
+            {% for tag in c.tags %}<span class="badge b-blue">{{ tag }}</span>{% endfor %}
+          {% endif %}
+        </div>
+      </div>
+      <div style="margin-left:auto;text-align:right">
+        <div style="font-size:.7rem;color:#505570;margin-bottom:4px">Gasto total</div>
+        <div style="font-size:1.8rem;font-weight:900;color:{{ seg=='whale'?'#e8af34':(seg=='active'?'#7abf4a':'#8b90a8') }};font-variant-numeric:tabular-nums">
+          R$&#160;{{ (totalSpent/100)|number_format(2,',','.') }}
+        </div>
+      </div>
+    </div>
+
+    <div class="profile-grid">
+      {# Dados gerais #}
+      <div class="card">
+        <div class="card-head"><span class="card-title">Informa&#231;&#245;es gerais</span></div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+          {% macro row(label, value) %}
+            <div style="display:flex;justify-content:space-between;font-size:.8rem;border-bottom:1px solid rgba(255,255,255,.05);padding-bottom:8px">
+              <span style="color:#8b90a8">{{ label }}</span>
+              <span style="color:#dde1f0;font-weight:600">{{ value }}</span>
+            </div>
+          {% endmacro %}
+          {{ _self.row('ID', '#'~u.id) }}
+          {{ _self.row('Nome', u.name) }}
+          {{ _self.row('E-mail', u.email) }}
+          {{ _self.row('Status', u.active ? 'Ativo' : 'Inativo') }}
+          {{ _self.row('Cadastro', u.createdAt|date('d/m/Y H:i')) }}
+          {% if u.wallet %}
+            {{ _self.row('Saldo', 'R$ '~(u.wallet.balanceCents/100)|number_format(2,',','.')) }}
+          {% endif %}
+          {{ _self.row('Pedidos', orders|length) }}
+        </div>
+      </div>
+
+      {# UTM #}
+      <div class="card">
+        <div class="card-head"><span class="card-title">Origem &amp; UTM</span></div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+          {% macro row(label, value) %}
+            <div style="display:flex;justify-content:space-between;font-size:.8rem;border-bottom:1px solid rgba(255,255,255,.05);padding-bottom:8px">
+              <span style="color:#8b90a8">{{ label }}</span>
+              <span style="color:#dde1f0;font-weight:600">{{ value }}</span>
+            </div>
+          {% endmacro %}
+          {{ _self.row('Source', c ? (c.utmSource ?? 'direto') : 'sem CRM') }}
+          {{ _self.row('Medium', c ? (c.utmMedium ?? '—') : '—') }}
+          {{ _self.row('Campanha', c ? (c.utmCampaign ?? '—') : '—') }}
+          {% if c %}
+            {{ _self.row('CRM desde', c.createdAt|date('d/m/Y')) }}
+            {{ _self.row('&#250;lt. update', c.updatedAt|date('d/m/Y H:i')) }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:16px">
+
+      {# Timeline #}
+      <div class="card">
+        <div class="card-head"><span class="card-title">Timeline de eventos</span></div>
+        {% if c and c.timeline %}
+          <div class="timeline">
+            {% for ev in c.timeline|reverse|slice(0,20) %}
+            <div class="tl-item">
+              <div class="tl-dot">&#9679;</div>
+              <div class="tl-content">
+                <div class="tl-event">{{ ev.event }}</div>
+                <div class="tl-at">{{ ev.at }}</div>
+                {% if ev.payload %}
+                  <div class="tl-payload">{{ ev.payload|json_encode(constant('JSON_UNESCAPED_UNICODE')) }}</div>
+                {% endif %}
+              </div>
+            </div>
             {% endfor %}
-          </select>
-        </label>
-        <label style="justify-content:flex-end;flex-direction:row;align-items:center;gap:8px">
-          <input type="checkbox" name="preview_only" value="1" style="width:16px;height:16px">
-          <span style="font-size:.8rem;color:#e2e6f0">Apenas preview (não envia)</span>
-        </label>
+          </div>
+        {% else %}
+          <div class="t-empty">Sem eventos registrados.</div>
+        {% endif %}
       </div>
 
-      <label>Assunto do e-mail
-        <input type="text" name="subject" required placeholder="Ex: Novidade exclusiva para você!">
-      </label>
-
-      <label>Corpo do e-mail
-        <textarea name="body" required placeholder="Escreva o conteúdo do e-mail. Você pode usar quebras de linha."></textarea>
-      </label>
-
-      <div class="btn-group">
-        <button type="submit" class="btn btn--primary">📨 Enviar campanha</button>
-        <button type="submit" name="preview_only" value="1" class="btn btn--secondary">🔍 Pré-visualizar destinatários</button>
+      {# Pedidos #}
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Pedidos recentes</span>
+          <span class="card-meta">{{ orders|length }} pedidos</span>
+        </div>
+        <div class="tw">
+          <table class="t">
+            <thead><tr>
+              <th>#</th><th>Servi&#231;o</th><th>Status</th>
+              <th style="text-align:right">Valor</th><th>Data</th>
+            </tr></thead>
+            <tbody>
+            {% for o in orders %}
+              {% set sc = {
+                'completed': 'b-green', 'pending': 'b-grey', 'processing': 'b-teal',
+                'in_progress': 'b-blue', 'partial': 'b-orange', 'cancelled': 'b-red', 'refunded': 'b-red'
+              } %}
+              <tr>
+                <td style="color:#505570;font-size:.72rem">{{ o.id }}</td>
+                <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ o.service.name }}</td>
+                <td><span class="badge {{ sc[o.status]|default('b-grey') }}">{{ o.status }}</span></td>
+                <td style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">
+                  R$&#160;{{ (o.amountCents/100)|number_format(2,',','.') }}
+                </td>
+                <td style="color:#505570;font-size:.72rem">{{ o.createdAt|date('d/m/Y') }}</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="5" class="t-empty">Nenhum pedido.</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </form>
-  </div>
+    </div>
+  </div>{% endif %}{# /view-profile #}
 
-</div>
+  </div>{# /crm-main #}
+</div>{# /crm-wrap #}
+</div>{# /crm #}
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-(function(){
-  const search  = document.getElementById('crm-search');
-  const fOrigin = document.getElementById('crm-filter-origin');
-  const fSeg    = document.getElementById('crm-filter-seg');
-  const rows    = document.querySelectorAll('#crm-table tbody tr[data-name]');
+/* ── DATA (PHP → JS) ─────────────────────────────────────────────── */
+const MONTHLY = {{ monthlyRevenue|json_encode|raw }};
+const SEGS    = { whale: {{ stats.whales }}, active: {{ stats.actives }}, new: {{ stats.news }} };
+const USERS   = {{ crmUsers|map(r => {
+  spent:    r.totalSpentCents,
+  orders:   r.orderCount,
+  origin:   r.utmSource ?? '__direct',
+  seg:      r.totalSpentCents >= 50000 ? 'whale' : (r.totalSpentCents > 0 ? 'active' : 'new')
+})|json_encode|raw }};
 
-  function filter(){
-    const q  = search.value.toLowerCase();
-    const or = fOrigin.value.toLowerCase();
-    const sg = fSeg.value.toLowerCase();
-    rows.forEach(tr => {
-      const name   = tr.dataset.name   || '';
-      const email  = tr.dataset.email  || '';
-      const origin = tr.dataset.origin || '';
-      const seg    = tr.dataset.seg    || '';
-      const matchQ  = !q  || name.includes(q) || email.includes(q) || origin.includes(q);
-      const matchOr = !or || origin === or;
-      const matchSg = !sg || seg === sg;
-      tr.style.display = (matchQ && matchOr && matchSg) ? '' : 'none';
-    });
-  }
+/* ── ROUTING ─────────────────────────────────────────────────────── */
+const VIEWS = ['overview','users','campaigns','analytics'{% if profileUser %},'profile'{% endif %}];
+function switchView(v){
+  VIEWS.forEach(id => {
+    document.getElementById('view-'+id)?.classList.remove('active');
+    document.querySelector(`[data-view="${id}"]`)?.classList.remove('active');
+  });
+  document.getElementById('view-'+v)?.classList.add('active');
+  document.querySelector(`[data-view="${v}"]`)?.classList.add('active');
+  location.hash = v;
+}
+const hash = (location.hash.replace('#','')||'') ;
+const initView = VIEWS.includes(hash) ? hash : {% if profileUser %}'profile'{% else %}'overview'{% endif %};
+switchView(initView);
 
-  search .addEventListener('input',  filter);
-  fOrigin.addEventListener('change', filter);
-  fSeg   .addEventListener('change', filter);
-})();
-</script>
-{% endblock %}
+/* ── CHART.JS DEFAULTS ────────────────────────────────────────────── */
+Chart.defaults.color = '#8b90a8';
+Chart.defaults.font.family = '-apple-system,sans-serif';
+Chart.defaults.font.size = 11;
+
+function makeRevChart(id){
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: MONTHLY.map(m=>m.label),
+      datasets:[{
+        label:'Receita (R$)',
+        data: MONTHLY.map(m=>m.amount/100),
+        backgroundColor:'rgba(1,105,111,.5)',
+        borderColor:'#01696f',
+        borderWidth:2,
+        borderRadius:6,
+        borderSkipped:false
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label: c=>'R$ '+c.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:2})
+      }}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.05)'},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,.05)'},border:{display:false},
+     
