@@ -4,130 +4,320 @@
 
 {% block main %}
 <style>
-.crm-wrap {
-  padding: 28px 36px 64px 28px;
-  max-width: 100%;
-  background: #0f1117;
-  min-height: 100vh;
-  color: #e2e6f0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  box-sizing: border-box;
-}
-.crm-hd { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:28px; }
-.crm-hd__title { font-size:1.125rem; font-weight:900; letter-spacing:-.03em; color:#e2e6f0; margin:0; }
+.crm { padding:28px 36px 80px 28px; background:#0f1117; min-height:100vh; color:#e2e6f0;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; box-sizing:border-box; }
 
-/* KPI grid */
-.kpi-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:28px; }
-@media(max-width:1100px){ .kpi-grid{ grid-template-columns:repeat(3,1fr) } }
-@media(max-width:640px) { .kpi-grid{ grid-template-columns:1fr } }
-.kpi {
-  background:#1c2233; border:1px solid rgba(255,255,255,.08); border-radius:12px;
-  padding:20px 20px 16px; display:flex; flex-direction:column; gap:8px;
-  position:relative; overflow:hidden;
-}
+/* header */
+.crm-hd { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
+.crm-hd h1 { font-size:1.125rem; font-weight:900; letter-spacing:-.03em; color:#e2e6f0; margin:0; }
+
+/* KPI */
+.kpi-row { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:28px; }
+@media(max-width:1100px){ .kpi-row{ grid-template-columns:repeat(3,1fr) } }
+@media(max-width:640px) { .kpi-row{ grid-template-columns:1fr } }
+.kpi { background:#1c2233; border:1px solid rgba(255,255,255,.08); border-radius:12px;
+  padding:18px 20px 14px; display:flex; flex-direction:column; gap:6px; position:relative; overflow:hidden; }
 .kpi::after { content:''; position:absolute; inset:0 0 auto 0; height:3px; border-radius:12px 12px 0 0; }
-.kpi--teal::after  { background:#01696f; }
-.kpi--blue::after  { background:#1e6fa0; }
-.kpi--green::after { background:#437a22; }
-.kpi--gold::after  { background:#c98a00; }
+.kpi--teal::after  { background:#01696f; } .kpi--blue::after { background:#1e6fa0; }
+.kpi--green::after { background:#437a22; } .kpi--gold::after  { background:#c98a00; }
 .kpi--red::after   { background:#a12c7b; }
-.kpi__label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#8b90a8; }
-.kpi__value { font-size:2rem; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:-.04em; line-height:1; color:#f0f2fa; }
-.kpi__value--green { color:#7abf4a; }
-.kpi__value--gold  { color:#e8af34; }
+.kpi__lbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#8b90a8; }
+.kpi__val { font-size:1.875rem; font-weight:900; font-variant-numeric:tabular-nums;
+  letter-spacing:-.04em; line-height:1; color:#f0f2fa; }
+.kpi__val--green { color:#7abf4a; } .kpi__val--gold { color:#e8af34; }
 
-/* Section label */
-.d-sect { display:flex; align-items:center; gap:10px; font-size:10px; font-weight:700;
-  text-transform:uppercase; letter-spacing:.09em; color:#505570; margin-bottom:12px; }
-.d-sect::after { content:''; flex:1; height:1px; background:rgba(255,255,255,.07); }
+/* section header */
+.sect { display:flex; align-items:center; gap:10px; font-size:10px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.09em; color:#505570; margin-bottom:14px; }
+.sect::after { content:''; flex:1; height:1px; background:rgba(255,255,255,.07); }
 
-/* Table card */
-.tbl-card { background:#1c2233; border:1px solid rgba(255,255,255,.08); border-radius:12px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,.22); }
-.tbl-card__head { display:flex; align-items:center; justify-content:space-between; padding:13px 18px; border-bottom:1px solid rgba(255,255,255,.07); background:#161b27; }
-.tbl-card__title { font-size:.875rem; font-weight:800; letter-spacing:-.025em; color:#e2e6f0; }
+/* card */
+.card { background:#1c2233; border:1px solid rgba(255,255,255,.08); border-radius:12px;
+  overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,.22); margin-bottom:28px; }
+.card__head { display:flex; align-items:center; justify-content:space-between;
+  padding:12px 18px; border-bottom:1px solid rgba(255,255,255,.07); background:#161b27; }
+.card__title { font-size:.875rem; font-weight:800; letter-spacing:-.025em; color:#e2e6f0; }
+
+/* filters bar */
+.filters { display:flex; flex-wrap:wrap; gap:10px; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,.07); }
+.filters input, .filters select {
+  background:#0f1117; border:1px solid rgba(255,255,255,.12); border-radius:8px;
+  color:#e2e6f0; font-size:.8rem; padding:6px 12px; outline:none;
+  transition:border-color .15s;
+}
+.filters input:focus, .filters select:focus { border-color:#4fb8be; }
+.filters input[type=search] { min-width:200px; }
+.filters select option { background:#1c2233; }
+
+/* table */
 .tbl-wrap { overflow-x:auto; }
 .tbl { width:100%; border-collapse:collapse; }
-.tbl th { text-align:left; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#505570;
-  padding:8px 14px; border-bottom:1px solid rgba(255,255,255,.07); background:#161b27; white-space:nowrap; }
-.tbl td { padding:9px 14px; border-bottom:1px solid rgba(255,255,255,.04); font-size:.8125rem; color:#e2e6f0; vertical-align:middle; }
+.tbl th { text-align:left; font-size:9.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.08em; color:#505570; padding:8px 14px;
+  border-bottom:1px solid rgba(255,255,255,.07); background:#161b27; white-space:nowrap; }
+.tbl td { padding:9px 14px; border-bottom:1px solid rgba(255,255,255,.04);
+  font-size:.8125rem; color:#e2e6f0; vertical-align:middle; }
 .tbl tbody tr:hover { background:rgba(255,255,255,.03); }
 .tbl tbody tr:last-child td { border-bottom:none; }
 .d-empty { color:#505570; font-size:.8125rem; text-align:center; padding:32px 16px; }
-.badge-tag { display:inline-flex; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700;
-  background:rgba(1,105,111,.18); color:#4fb8be; margin-right:4px; }
+
+/* badges */
+.badge { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px;
+  font-size:10px; font-weight:700; white-space:nowrap; }
+.badge--teal   { background:rgba(1,105,111,.2);   color:#4fb8be; }
+.badge--green  { background:rgba(67,122,34,.2);   color:#7abf4a; }
+.badge--gold   { background:rgba(201,138,0,.2);   color:#e8af34; }
+.badge--grey   { background:rgba(255,255,255,.07);color:#8b90a8; }
+.badge--blue   { background:rgba(30,111,160,.2);  color:#5ba8d4; }
+.badge--red    { background:rgba(161,44,123,.2);  color:#e06fc0; }
+.badge--orange { background:rgba(218,113,1,.2);   color:#fdab43; }
+
+/* segment label helpers */
+.seg-whale  { color:#e8af34; font-weight:800; }
+.seg-active { color:#7abf4a; }
+.seg-new    { color:#5ba8d4; }
+
+/* marketing form */
+.mkt-form { padding:20px 18px; display:flex; flex-direction:column; gap:14px; }
+.mkt-form label { font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.07em; color:#8b90a8; display:flex; flex-direction:column; gap:6px; }
+.mkt-form input[type=text], .mkt-form textarea, .mkt-form select, .mkt-form input[type=number] {
+  background:#0f1117; border:1px solid rgba(255,255,255,.12); border-radius:8px;
+  color:#e2e6f0; font-size:.875rem; padding:8px 12px; outline:none; width:100%;
+  transition:border-color .15s; resize:vertical;
+}
+.mkt-form input:focus, .mkt-form textarea:focus, .mkt-form select:focus { border-color:#4fb8be; }
+.mkt-form textarea { min-height:120px; }
+.mkt-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+@media(max-width:720px){ .mkt-row{ grid-template-columns:1fr } }
+.btn-group { display:flex; gap:10px; flex-wrap:wrap; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px;
+  border-radius:8px; font-size:.8125rem; font-weight:700; border:none; cursor:pointer;
+  transition:opacity .15s; }
+.btn--primary { background:#01696f; color:#fff; }
+.btn--primary:hover { opacity:.85; }
+.btn--secondary { background:rgba(255,255,255,.08); color:#e2e6f0; }
+.btn--secondary:hover { background:rgba(255,255,255,.13); }
+
+/* flash */
+.flash { padding:14px 18px; border-radius:10px; font-size:.875rem; margin-bottom:20px; }
+.flash--success { background:rgba(67,122,34,.15); border:1px solid rgba(67,122,34,.3); color:#7abf4a; }
+.flash--warning { background:rgba(201,138,0,.12);  border:1px solid rgba(201,138,0,.25); color:#e8af34; }
+.flash--info    { background:rgba(30,111,160,.12); border:1px solid rgba(30,111,160,.25); color:#5ba8d4; }
+.flash ul { margin:8px 0 0 18px; font-size:.8rem; color:#e2e6f0; }
 </style>
 
-<div class="crm-wrap">
+<div class="crm">
 
+  {# ── HEADER ── #}
   <div class="crm-hd">
-    <h1 class="crm-hd__title">CRM</h1>
+    <h1>CRM</h1>
+    <span style="font-size:.75rem;color:#505570">{{ 'now'|date('d/m/Y H:i') }}</span>
   </div>
 
-  {# KPIs #}
-  <div class="kpi-grid">
+  {# ── FLASH ── #}
+  {% if flash %}
+    <div class="flash flash--{{ flash.type }}">
+      {% if flash.preview %}
+        <strong>Preview:</strong> {{ flash.recipients|length }} destinatário(s) seriam impactados com o assunto "{{ flash.subject }}".
+        <ul>{% for r in flash.recipients|slice(0,10) %}<li>{{ r.name }} &lt;{{ r.email }}&gt;</li>{% endfor %}
+        {% if flash.recipients|length > 10 %}<li>… e mais {{ flash.recipients|length - 10 }}</li>{% endif %}</ul>
+      {% elseif flash.type == 'success' %}
+        <strong>✓ Enviado!</strong> {{ flash.sent }} e-mail(s) enviado(s) com sucesso.
+      {% else %}
+        <strong>Parcialmente enviado.</strong> {{ flash.sent }} enviados.
+        {% if flash.errors %}<ul>{% for e in flash.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# ── KPIs ── #}
+  <div class="kpi-row">
     <div class="kpi kpi--green">
-      <span class="kpi__label">Receita do mês</span>
-      <div class="kpi__value kpi__value--green">R$&nbsp;{{ (stats.revenueMonthCents/100)|number_format(2,',','.') }}</div>
+      <span class="kpi__lbl">Receita mês</span>
+      <div class="kpi__val kpi__val--green">R$&nbsp;{{ (stats.revenueMonthCents/100)|number_format(2,',','.') }}</div>
     </div>
     <div class="kpi kpi--red">
-      <span class="kpi__label">Saídas do mês</span>
-      <div class="kpi__value">R$&nbsp;{{ (stats.expensesMonthCents/100)|number_format(2,',','.') }}</div>
+      <span class="kpi__lbl">Saídas mês</span>
+      <div class="kpi__val">R$&nbsp;{{ (stats.expensesMonthCents/100)|number_format(2,',','.') }}</div>
     </div>
     <div class="kpi kpi--gold">
-      <span class="kpi__label">Taxas do mês</span>
-      <div class="kpi__value kpi__value--gold">R$&nbsp;{{ (stats.feesMonthCents/100)|number_format(2,',','.') }}</div>
+      <span class="kpi__lbl">Taxas mês</span>
+      <div class="kpi__val kpi__val--gold">R$&nbsp;{{ (stats.feesMonthCents/100)|number_format(2,',','.') }}</div>
     </div>
     <div class="kpi kpi--teal">
-      <span class="kpi__label">Total contatos</span>
-      <div class="kpi__value">{{ stats.totalContacts }}</div>
+      <span class="kpi__lbl">Total contatos</span>
+      <div class="kpi__val">{{ stats.totalContacts }}</div>
     </div>
     <div class="kpi kpi--blue">
-      <span class="kpi__label">Ativos (30d)</span>
-      <div class="kpi__value">{{ stats.activeContacts }}</div>
+      <span class="kpi__lbl">Ativos 30d</span>
+      <div class="kpi__val">{{ stats.activeContacts }}</div>
     </div>
   </div>
 
-  {# Contatos recentes #}
-  <div class="d-sect">Contatos recentes — últimos 30 dias</div>
-  <div class="tbl-card">
-    <div class="tbl-card__head">
-      <span class="tbl-card__title">Contatos recentes</span>
+  {# ── TABELA DE USUÁRIOS ── #}
+  <div class="sect">Usuários — gasto total &amp; origem</div>
+  <div class="card">
+    <div class="card__head">
+      <span class="card__title">Todos os usuários ({{ crmUsers|length }})</span>
+      <span style="font-size:.75rem;color:#505570">Ordenado por maior gasto</span>
     </div>
-    {% if recentContacts|length > 0 %}
+
+    {# filtro client-side #}
+    <div class="filters">
+      <input type="search" id="crm-search" placeholder="🔍 Buscar nome / e-mail / origem…">
+      <select id="crm-filter-origin">
+        <option value="">Todas as origens</option>
+        {% for src in utmSources %}<option value="{{ src }}">{{ src }}</option>{% endfor %}
+        <option value="__direct">Direto / sem UTM</option>
+      </select>
+      <select id="crm-filter-seg">
+        <option value="">Todos os segmentos</option>
+        <option value="whale">🐋 Whale (+R$500)</option>
+        <option value="active">✅ Ativo (comprou)</option>
+        <option value="new">🆕 Sem pedidos</option>
+      </select>
+    </div>
+
     <div class="tbl-wrap">
-      <table class="tbl">
+      <table class="tbl" id="crm-table">
         <thead>
           <tr>
+            <th>#</th>
             <th>Usuário</th>
             <th>E-mail</th>
+            <th>Origem UTM</th>
+            <th>Campanha</th>
             <th>Tags</th>
-            <th>UTM Source</th>
-            <th>UTM Campaign</th>
-            <th>Atualizado</th>
+            <th style="text-align:right">Gasto total</th>
+            <th style="text-align:right">Pedidos</th>
+            <th>Saldo</th>
+            <th>Cadastro</th>
+            <th>Segmento</th>
           </tr>
         </thead>
         <tbody>
-          {% for contact in recentContacts %}
-          <tr>
-            <td style="font-weight:700;white-space:nowrap">{{ contact.user.name }}</td>
-            <td style="color:#8b90a8">{{ contact.user.email }}</td>
-            <td>
-              {% for tag in contact.tags %}
-                <span class="badge-tag">{{ tag }}</span>
-              {% endfor %}
-            </td>
-            <td style="color:#8b90a8">{{ contact.utmSource ?? '—' }}</td>
-            <td style="color:#8b90a8">{{ contact.utmCampaign ?? '—' }}</td>
-            <td style="color:#505570;font-size:.75rem;white-space:nowrap">{{ contact.updatedAt|date('d/m/Y H:i') }}</td>
-          </tr>
+          {% for row in crmUsers %}
+            {% set spent = row.totalSpentCents %}
+            {% set seg = spent >= 50000 ? 'whale' : (spent > 0 ? 'active' : 'new') %}
+            <tr data-name="{{ row.user.name|lower }}"
+                data-email="{{ row.user.email|lower }}"
+                data-origin="{{ row.utmSource|lower|default('__direct') }}"
+                data-seg="{{ seg }}">
+              <td style="color:#505570;font-size:.75rem">{{ row.user.id }}</td>
+              <td style="font-weight:700;white-space:nowrap">{{ row.user.name }}</td>
+              <td style="color:#8b90a8">{{ row.user.email }}</td>
+              <td>
+                {% if row.utmSource %}
+                  <span class="badge badge--teal">{{ row.utmSource }}</span>
+                {% else %}
+                  <span style="color:#505570">direto</span>
+                {% endif %}
+              </td>
+              <td style="color:#8b90a8;font-size:.75rem">{{ row.utmCampaign ?? '—' }}</td>
+              <td>
+                {% for tag in row.tags %}
+                  <span class="badge badge--blue">{{ tag }}</span>
+                {% endfor %}
+              </td>
+              <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700"
+                  class="{{ seg == 'whale' ? 'seg-whale' : (seg == 'active' ? 'seg-active' : '') }}">
+                R$&nbsp;{{ (spent/100)|number_format(2,',','.') }}
+              </td>
+              <td style="text-align:right;color:#8b90a8">{{ row.orderCount }}</td>
+              <td style="font-size:.75rem;color:#8b90a8">
+                R$&nbsp;{{ row.user.wallet ? (row.user.wallet.balanceCents/100)|number_format(2,',','.') : '0,00' }}
+              </td>
+              <td style="font-size:.75rem;color:#505570;white-space:nowrap">{{ row.user.createdAt|date('d/m/Y') }}</td>
+              <td>
+                {% if seg == 'whale' %}
+                  <span class="badge badge--gold">🐋 Whale</span>
+                {% elseif seg == 'active' %}
+                  <span class="badge badge--green">✅ Ativo</span>
+                {% else %}
+                  <span class="badge badge--grey">🆕 Novo</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="11" class="d-empty">Nenhum usuário encontrado.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    {% else %}
-      <p class="d-empty">Nenhum contato ativo nos últimos 30 dias.</p>
-    {% endif %}
+  </div>
+
+  {# ── E-MAIL MARKETING ── #}
+  <div class="sect">Disparo de e-mail marketing</div>
+  <div class="card">
+    <div class="card__head">
+      <span class="card__title">Enviar campanha</span>
+      <span style="font-size:.75rem;color:#505570">Filtre o segmento antes de enviar</span>
+    </div>
+    <form class="mkt-form" method="post" action="/admin/crm/send-marketing">
+      <input type="hidden" name="_token" value="{{ csrf_token('crm_marketing') }}">
+
+      <div class="mkt-row">
+        <label>Gasto mínimo (R$)
+          <input type="number" name="min_spent" value="0" min="0" step="0.01" placeholder="0.00">
+        </label>
+        <label>Origem UTM (opcional)
+          <select name="utm_source">
+            <option value="">Todas as origens</option>
+            {% for src in utmSources %}
+              <option value="{{ src }}">{{ src }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label style="justify-content:flex-end;flex-direction:row;align-items:center;gap:8px">
+          <input type="checkbox" name="preview_only" value="1" style="width:16px;height:16px">
+          <span style="font-size:.8rem;color:#e2e6f0">Apenas preview (não envia)</span>
+        </label>
+      </div>
+
+      <label>Assunto do e-mail
+        <input type="text" name="subject" required placeholder="Ex: Novidade exclusiva para você!">
+      </label>
+
+      <label>Corpo do e-mail
+        <textarea name="body" required placeholder="Escreva o conteúdo do e-mail. Você pode usar quebras de linha."></textarea>
+      </label>
+
+      <div class="btn-group">
+        <button type="submit" class="btn btn--primary">📨 Enviar campanha</button>
+        <button type="submit" name="preview_only" value="1" class="btn btn--secondary">🔍 Pré-visualizar destinatários</button>
+      </div>
+    </form>
   </div>
 
 </div>
+
+<script>
+(function(){
+  const search  = document.getElementById('crm-search');
+  const fOrigin = document.getElementById('crm-filter-origin');
+  const fSeg    = document.getElementById('crm-filter-seg');
+  const rows    = document.querySelectorAll('#crm-table tbody tr[data-name]');
+
+  function filter(){
+    const q  = search.value.toLowerCase();
+    const or = fOrigin.value.toLowerCase();
+    const sg = fSeg.value.toLowerCase();
+    rows.forEach(tr => {
+      const name   = tr.dataset.name   || '';
+      const email  = tr.dataset.email  || '';
+      const origin = tr.dataset.origin || '';
+      const seg    = tr.dataset.seg    || '';
+      const matchQ  = !q  || name.includes(q) || email.includes(q) || origin.includes(q);
+      const matchOr = !or || origin === or;
+      const matchSg = !sg || seg === sg;
+      tr.style.display = (matchQ && matchOr && matchSg) ? '' : 'none';
+    });
+  }
+
+  search .addEventListener('input',  filter);
+  fOrigin.addEventListener('change', filter);
+  fSeg   .addEventListener('change', filter);
+})();
+</script>
 {% endblock %}
