@@ -1,8 +1,8 @@
-
 /.env.local.php
 /config/secrets/prod/prod.decrypt.private.php
 /public/bundles/
-/var/
+/var/cache/
+/var/sessions/
 /vendor/
 /node_modules/
 *.log
@@ -10,6 +10,9 @@
 .vscode/
 .DS_Store
 /coverage/
+
+# Manter diretorio var/log no repositorio via .gitkeep
+!var/log/.gitkeep
 
 ###> phpunit/phpunit ###
 /phpunit.xml
