@@ -1,12 +1,12 @@
 {#
-  TemplateField renderizado dentro do detalhe de Order no EasyAdmin.
-  Recebe a Collection de OrderLog diretamente via field.value (getOrderLogs()).
+  Renderizado via TextField::setTemplatePath() no EasyAdmin 4.10.
+  Acessa o Order via ea.entity.instance e chama getOrderLogs().
 #}
-{% set logs = field.value %}
+{% set logs = ea.entity.instance.orderLogs %}
 
 <div class="mt-3">
 
-  {# ── Cabeçalho ────────────────────────────────────────────── #}
+  {# ── Cabeçalho ─────────────────────────────────────── #}
   <div class="d-flex align-items-center gap-2 mb-2 border-bottom pb-2">
     <i class="fa fa-rotate text-muted"></i>
     <strong>Logs do Provider</strong>
@@ -38,7 +38,6 @@
           {% for log in logs %}
             {% set hasErr = log.errorMessage is not null %}
 
-            {# Linha principal — clicável para expandir #}
             <tr class="{% if hasErr %}table-danger{% endif %}"
                 style="cursor:pointer"
                 data-bs-toggle="collapse"
