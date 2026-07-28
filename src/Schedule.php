@@ -2,7 +2,9 @@
 
 namespace App;
 
+use App\Scheduler\SyncServicesMessage;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
+use Symfony\Component\Scheduler\RecurringMessage;
 use Symfony\Component\Scheduler\Schedule as SymfonySchedule;
 use Symfony\Component\Scheduler\ScheduleProviderInterface;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -18,11 +20,11 @@ class Schedule implements ScheduleProviderInterface
     public function getSchedule(): SymfonySchedule
     {
         return (new SymfonySchedule())
-            ->stateful($this->cache) // ensure missed tasks are executed
-            ->processOnlyLastMissedRun(true) // ensure only last missed task is run
+            ->stateful($this->cache)
+            ->processOnlyLastMissedRun(true)
 
-            // add your own tasks here
-            // see https://symfony.com/doc/current/scheduler.html#attaching-recurring-messages-to-a-schedule
+            // Sincroniza minQty/maxQty de todos os serviços com a API dos providers a cada 6h
+            ->add(RecurringMessage::every('6 hours', new SyncServicesMessage()))
         ;
     }
 }
