@@ -98,21 +98,21 @@ class OrderCrudController extends AbstractCrudController
             ->setColumns(6)
             ->hideOnIndex();
 
-        // Campos nullable — esconde quando vazio em vez de mostrar "Null"
+        // Campos nullable — exibe ‘—’ quando vazio (compatível com EA 4.10+)
         yield TextField::new('externalOrderId', 'ID Externo')
             ->setColumns(4)
             ->hideOnIndex()
-            ->hideWhenEmpty();
+            ->formatValue(fn ($v) => $v ?? '\u2014');
 
         yield IntegerField::new('startCount', 'Start Count')
             ->setColumns(3)
             ->hideOnIndex()
-            ->hideWhenEmpty();
+            ->formatValue(fn ($v) => $v !== null ? $v : '\u2014');
 
         yield IntegerField::new('remains', 'Restante')
             ->setColumns(3)
             ->hideOnIndex()
-            ->hideWhenEmpty();
+            ->formatValue(fn ($v) => $v !== null ? $v : '\u2014');
 
         yield DateTimeField::new('createdAt', 'Criado em')
             ->setColumns(4)
@@ -122,15 +122,15 @@ class OrderCrudController extends AbstractCrudController
             ->setColumns(4)
             ->hideOnForm()
             ->hideOnIndex()
-            ->hideWhenEmpty();
+            ->formatValue(fn ($v) => $v ? $v->format('d/m/Y H:i:s') : '\u2014');
 
         yield DateTimeField::new('completedAt', 'Conclu\u00eddo em')
             ->setColumns(4)
             ->hideOnForm()
             ->hideOnIndex()
-            ->hideWhenEmpty();
+            ->formatValue(fn ($v) => $v ? $v->format('d/m/Y H:i:s') : '\u2014');
 
-        // ── Logs do Provider: s\u00f3 na p\u00e1gina de detalhe via getter getOrderLogs() ──
+        // ── Logs do Provider: só na página de detalhe ──
         if ($pageName === Crud::PAGE_DETAIL) {
             yield TemplateField::new('orderLogs', false)
                 ->setTemplatePath('admin/fields/order_logs.html.twig')
