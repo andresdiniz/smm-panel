@@ -5,122 +5,183 @@
 
 {% block main %}
 <style>
+/* ── force full width ────────────────────────────────────────── */
+.content-header-wrapper,
 .content-header { display: none !important; }
-.content-wrapper { padding: 0 !important; }
 
+.content-wrapper,
+.content-wrapper > .container,
+.content-wrapper > .container-fluid,
+.content-wrapper > .container-xxl,
+.main-content-wrapper,
+.content { max-width: 100% !important; padding: 0 !important; }
+
+/* ── page shell ─────────────────────────────────────────────── */
 .ord-page {
-  padding: 28px 28px 72px;
-  background: #0d1016;
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 56px);
+  background: #0c0f14;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  color: #dde1f0;
-  --r: 10px;
-  --card: #141921;
-  --card-border: rgba(255,255,255,.07);
-  --card-head: #111720;
-  --muted: #5c617a;
-  --bright: #f0f3ff;
-  --dim: #9196b0;
+  color: #d4d8ee;
+  --card: #111620;
+  --card-b: rgba(255,255,255,.06);
+  --head-bg: #0e1219;
+  --muted: #4e5470;
+  --dim: #8288a8;
+  --bright: #eef0ff;
+  --r: 12px;
+  --accent: #01868d;
+  --accent-lit: #4eccd3;
 }
 
+/* ── topbar ─────────────────────────────────────────────────── */
 .ord-topbar {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 16px; flex-wrap: wrap; margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 20px 24px 0;
 }
-.ord-topbar h1 {
-  font-size: 1.2rem; font-weight: 900; letter-spacing: -.04em;
-  color: var(--bright); margin: 0;
+.ord-title {
+  display: flex; align-items: baseline; gap: 10px;
+}
+.ord-title h1 {
+  font-size: 1.35rem; font-weight: 900;
+  letter-spacing: -.04em; color: var(--bright); margin: 0;
+}
+.ord-title .ord-badge-count {
+  font-size: .6875rem; font-weight: 700;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.1);
+  color: var(--dim);
+  padding: 2px 9px; border-radius: 999px;
 }
 .ord-topbar__right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
+/* search */
 .ord-search-form {
-  display: flex; gap: 0;
+  display: flex;
   border-radius: 8px; overflow: hidden;
-  border: 1px solid rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.09);
+  background: var(--card);
 }
 .ord-search-form input[type="search"] {
-  background: var(--card); border: none;
+  background: transparent; border: none;
   color: var(--bright); font-size: .8125rem;
-  padding: 7px 14px; min-width: 200px; outline: none;
+  padding: 8px 14px; width: 240px; outline: none;
 }
 .ord-search-form input[type="search"]::placeholder { color: var(--muted); }
-.ord-search-form input[type="search"]:focus { background: #1a2030; }
 .ord-search-form button {
-  background: rgba(1,134,141,.18); border: none;
-  border-left: 1px solid rgba(255,255,255,.08);
-  color: #4eccd3; font-size: .8125rem; padding: 7px 14px;
-  cursor: pointer; transition: background .18s;
+  background: rgba(1,134,141,.15);
+  border: none; border-left: 1px solid rgba(255,255,255,.07);
+  color: var(--accent-lit); padding: 8px 13px;
+  cursor: pointer; transition: background .15s; flex-shrink: 0;
 }
-.ord-search-form button:hover { background: rgba(1,134,141,.32); }
+.ord-search-form button:hover { background: rgba(1,134,141,.28); }
 
-.ord-stats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+/* ── stats row ────────────────────────────────────────────────── */
+.ord-stats {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 14px 24px 0;
+}
 .stat-chip {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 5px 12px; border-radius: 999px;
+  padding: 4px 11px; border-radius: 999px;
   font-size: .6875rem; font-weight: 700;
   border: 1px solid; white-space: nowrap;
 }
 .stat-chip__dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.sc--total     { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.1); color: var(--dim); }
-.sc--completed { background: rgba(77,143,37,.12);   border-color: rgba(77,143,37,.25);  color: #82c84e; }
-.sc--processing{ background: rgba(30,114,160,.12);  border-color: rgba(30,114,160,.3);  color: #5ba8d4; }
-.sc--pending   { background: rgba(201,138,0,.12);   border-color: rgba(201,138,0,.3);   color: #e8b430; }
-.sc--cancelled { background: rgba(176,48,48,.12);   border-color: rgba(176,48,48,.3);   color: #e06060; }
-.sc--partial   { background: rgba(220,120,64,.12);  border-color: rgba(220,120,64,.3);  color: #e07840; }
-.sc--refunded  { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.12); color: var(--muted); }
+.sc--total     { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.09); color: var(--dim); }
+.sc--completed { background: rgba(77,143,37,.1);   border-color: rgba(77,143,37,.22);  color: #82c84e; }
+.sc--processing{ background: rgba(30,114,160,.1);  border-color: rgba(30,114,160,.25); color: #5ba8d4; }
+.sc--pending   { background: rgba(201,138,0,.1);   border-color: rgba(201,138,0,.25);  color: #e8b430; }
+.sc--cancelled { background: rgba(176,48,48,.1);   border-color: rgba(176,48,48,.25);  color: #e06060; }
+.sc--partial   { background: rgba(220,120,64,.1);  border-color: rgba(220,120,64,.25); color: #e07840; }
+.sc--refunded  { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.1); color: var(--muted); }
 
+/* ── main table area ──────────────────────────────────────────── */
+.ord-body {
+  flex: 1;
+  padding: 16px 24px 32px;
+}
 .ord-card {
   background: var(--card);
-  border: 1px solid var(--card-border);
-  border-radius: var(--r); overflow: hidden;
+  border: 1px solid var(--card-b);
+  border-radius: var(--r);
+  overflow: hidden;
 }
+
+/* table */
 .ord-tbl-wrap { overflow-x: auto; }
-.ord-tbl { width: 100%; border-collapse: collapse; table-layout: auto; }
+.ord-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* column widths — fixed layout allows precise control */
+.ord-tbl .tc-id    { width: 64px; }
+.ord-tbl .tc-user  { width: 22%; }
+.ord-tbl .tc-svc   { width: auto; }
+.ord-tbl .tc-status{ width: 130px; }
+.ord-tbl .tc-val   { width: 100px; }
+.ord-tbl .tc-qty   { width: 64px; }
+.ord-tbl .tc-ext   { width: 110px; }
+.ord-tbl .tc-date  { width: 110px; }
+.ord-tbl .tc-acts  { width: 156px; }
+
 .ord-tbl th {
-  text-align: left; font-size: 9px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .1em;
-  color: var(--muted); padding: 10px 14px;
-  background: var(--card-head);
-  border-bottom: 1px solid var(--card-border);
-  white-space: nowrap; user-select: none;
+  text-align: left;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--muted);
+  padding: 11px 14px;
+  background: var(--head-bg);
+  border-bottom: 1px solid var(--card-b);
+  white-space: nowrap;
 }
 .ord-tbl td {
-  padding: 11px 14px;
+  padding: 12px 14px;
   border-bottom: 1px solid rgba(255,255,255,.03);
-  vertical-align: middle; font-size: .8125rem; color: var(--dim);
+  vertical-align: middle;
+  font-size: .8125rem;
+  color: var(--dim);
+  overflow: hidden;
 }
 .ord-tbl tbody tr { transition: background .1s; }
-.ord-tbl tbody tr:hover { background: rgba(255,255,255,.03); }
+.ord-tbl tbody tr:hover { background: rgba(255,255,255,.025); }
 .ord-tbl tbody tr:last-child td { border-bottom: none; }
 
-.tc-id    { width: 56px; white-space: nowrap; }
-.tc-user  { min-width: 160px; }
-.tc-svc   { min-width: 180px; max-width: 260px; }
-.tc-status{ width: 130px; white-space: nowrap; }
-.tc-val   { width: 90px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.tc-qty   { width: 60px; text-align: right; white-space: nowrap; }
-.tc-ext   { width: 110px; white-space: nowrap; }
-.tc-date  { width: 110px; white-space: nowrap; }
-.tc-acts  { width: 130px; white-space: nowrap; }
+.tc-val, .tc-qty { text-align: right; }
 
-.cell-id { font-size: .75rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--muted); letter-spacing: .01em; }
-a.cell-id:hover { color: #4eccd3; text-decoration: none; }
+/* id */
+.cell-id {
+  display: inline-flex; align-items: center;
+  font-size: .75rem; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted); letter-spacing: .01em;
+  text-decoration: none;
+}
+.cell-id:hover { color: var(--accent-lit); }
 
-.av-cell { display: flex; align-items: center; gap: 9px; }
+/* user */
+.av-cell { display: flex; align-items: center; gap: 9px; overflow: hidden; }
 .av {
-  width: 28px; height: 28px; border-radius: 50%;
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   font-size: .5625rem; font-weight: 800;
-  text-transform: uppercase; flex-shrink: 0;
-  letter-spacing: -.01em; user-select: none;
+  text-transform: uppercase; letter-spacing: -.01em; user-select: none;
 }
-.av-info { display: flex; flex-direction: column; gap: 1px; }
-.av-name  { font-weight: 700; color: #ccd0e8; font-size: .8125rem; white-space: nowrap; }
-.av-email { font-size: .6875rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
+.av-info { display: flex; flex-direction: column; gap: 1px; overflow: hidden; }
+.av-name  { font-weight: 700; color: #ccd0e8; font-size: .8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.av-email { font-size: .6875rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.svc-cell { display: flex; align-items: center; gap: 8px; }
-.svc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; color: #b0b5cc; font-size: .8125rem; }
+/* service */
+.svc-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #b0b5cc; }
 
+/* status */
 .st-badge {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 4px 10px; border-radius: 999px;
@@ -128,61 +189,72 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
   text-transform: uppercase; letter-spacing: .05em; white-space: nowrap;
 }
 .st-badge::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
-.sb-completed  { background: rgba(77,143,37,.16);  color: #82c84e; }
-.sb-processing { background: rgba(30,114,160,.16); color: #5ba8d4; }
+.sb-completed  { background: rgba(77,143,37,.15);  color: #82c84e; }
+.sb-processing { background: rgba(30,114,160,.15); color: #5ba8d4; }
 .sb-in_progress{ background: rgba(30,114,160,.12); color: #5ba8d4; }
-.sb-cancelled  { background: rgba(176,48,48,.15);  color: #e06060; }
-.sb-pending    { background: rgba(201,138,0,.15);  color: #e8b430; }
-.sb-partial    { background: rgba(220,120,64,.15); color: #e07840; }
+.sb-cancelled  { background: rgba(176,48,48,.14);  color: #e06060; }
+.sb-pending    { background: rgba(201,138,0,.14);  color: #e8b430; }
+.sb-partial    { background: rgba(220,120,64,.14); color: #e07840; }
 .sb-refunded   { background: rgba(255,255,255,.07); color: var(--muted); }
 
-.cell-val { font-weight: 700; color: #ccd0e8; font-size: .8125rem; }
+/* value */
+.cell-val { font-weight: 700; color: #ccd0e8; font-variant-numeric: tabular-nums; }
 
+/* qty */
+.cell-qty { font-weight: 700; color: #b0b5cc; font-variant-numeric: tabular-nums; }
+
+/* ext id */
 .cell-ext {
+  display: inline-block; max-width: 100%;
   font-size: .6875rem;
   font-family: 'SFMono-Regular', Consolas, monospace;
   color: var(--muted);
   background: rgba(255,255,255,.04);
   border: 1px solid rgba(255,255,255,.08);
   padding: 2px 7px; border-radius: 5px;
-  display: inline-block; max-width: 100px;
-  overflow: hidden; text-overflow: ellipsis;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-.cell-date { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* date */
+.cell-date { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.4; }
+.cell-date small { font-size: .65rem; opacity: .6; display: block; }
 
+/* actions */
 .cell-acts { display: flex; align-items: center; gap: 4px; }
 .act-btn {
   display: inline-flex; align-items: center; gap: 4px;
-  padding: 5px 10px; border-radius: 7px;
+  padding: 5px 9px; border-radius: 6px;
   font-size: .6875rem; font-weight: 700;
-  text-decoration: none; transition: all .15s; white-space: nowrap;
-  border: 1px solid transparent;
+  text-decoration: none; transition: all .14s; white-space: nowrap;
+  border: 1px solid transparent; line-height: 1;
 }
-.act-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
-.act-show  { background: rgba(1,134,141,.12);  border-color: rgba(1,134,141,.2);  color: #4eccd3; }
-.act-show:hover  { background: rgba(1,134,141,.25); }
-.act-edit  { background: rgba(201,138,0,.12);  border-color: rgba(201,138,0,.2);  color: #e8b430; }
-.act-edit:hover  { background: rgba(201,138,0,.25); }
-.act-del   { background: rgba(176,48,48,.1);   border-color: rgba(176,48,48,.2);  color: #e06060; }
-.act-del:hover   { background: rgba(176,48,48,.22); }
+.act-btn svg { width: 11px; height: 11px; flex-shrink: 0; }
+.act-show  { background: rgba(1,134,141,.1);  border-color: rgba(1,134,141,.18); color: #4eccd3; }
+.act-show:hover  { background: rgba(1,134,141,.22); }
+.act-edit  { background: rgba(201,138,0,.1);  border-color: rgba(201,138,0,.18); color: #e8b430; }
+.act-edit:hover  { background: rgba(201,138,0,.22); }
+.act-del   { background: rgba(176,48,48,.08); border-color: rgba(176,48,48,.18); color: #e06060; }
+.act-del:hover   { background: rgba(176,48,48,.2); }
 
+/* ── footer ──────────────────────────────────────────────────── */
 .ord-footer {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 18px; border-top: 1px solid var(--card-border);
+  padding: 11px 16px; border-top: 1px solid var(--card-b);
   gap: 12px; flex-wrap: wrap;
 }
 .ord-count { font-size: .75rem; color: var(--muted); }
+.ord-footer .pagination { margin: 0; }
 .ord-footer .pagination .page-link {
   background: transparent; border-color: rgba(255,255,255,.1); color: var(--dim);
-  font-size: .75rem; padding: 5px 11px; border-radius: 7px; transition: all .15s;
+  font-size: .75rem; padding: 5px 10px; border-radius: 6px; transition: all .14s;
 }
-.ord-footer .pagination .page-link:hover { background: rgba(255,255,255,.08); color: var(--bright); }
-.ord-footer .pagination .page-item.active .page-link { background: #01868d; border-color: #01868d; color: #fff; }
-.ord-footer .pagination .page-item.disabled .page-link { opacity: .35; }
+.ord-footer .pagination .page-link:hover { background: rgba(255,255,255,.07); color: var(--bright); }
+.ord-footer .pagination .page-item.active .page-link { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ord-footer .pagination .page-item.disabled .page-link { opacity: .3; }
 
-.ord-empty { text-align: center; padding: 64px 32px; color: var(--muted); }
-.ord-empty svg { width: 40px; height: 40px; margin: 0 auto 12px; opacity: .35; }
+/* empty */
+.ord-empty { text-align: center; padding: 80px 32px; color: var(--muted); }
+.ord-empty svg { width: 44px; height: 44px; margin: 0 auto 14px; opacity: .25; display: block; }
 .ord-empty p { font-size: .875rem; }
 </style>
 
@@ -207,18 +279,34 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
   'refunded':    ['sb-refunded',   'Reembolsado'],
 } %}
 
-{#
-  EasyAdmin passes 'entities' as an iterable of EntityDto objects.
-  To access the real entity instance use entityDto.getInstance().
-  The variable 'paginator' is injected directly (not via ea.paginator).
-#}
 {% set totalCount = paginator.numResults %}
 {% set searchQuery = app.request.query.get('query', '') %}
 
+{# count by status from current page #}
+{% set statusGroups = {
+  'completed':  ['#82c84e','sc--completed',  'Concluídos'],
+  'processing': ['#5ba8d4','sc--processing', 'Processando'],
+  'in_progress':['#5ba8d4','sc--processing', 'Em andamento'],
+  'pending':    ['#e8b430','sc--pending',    'Pendentes'],
+  'cancelled':  ['#e06060','sc--cancelled',  'Cancelados'],
+  'partial':    ['#e07840','sc--partial',    'Parciais'],
+  'refunded':   ['#8b90a8','sc--refunded',   'Reembolsados'],
+} %}
+{% set counted = {} %}
+{% for entityDto in entities %}
+  {% set o = entityDto.getInstance() %}
+  {% set s = o.status %}
+  {% set counted = counted|merge({(s): (counted[s] ?? 0) + 1}) %}
+{% endfor %}
+
 <div class="ord-page">
 
+  {# ── topbar ──────────────────────────────────────────── #}
   <div class="ord-topbar">
-    <h1>Pedidos</h1>
+    <div class="ord-title">
+      <h1>Pedidos</h1>
+      <span class="ord-badge-count">{{ totalCount }}</span>
+    </div>
     <div class="ord-topbar__right">
       <form class="ord-search-form" method="get" action="">
         {% for key, val in app.request.query.all %}
@@ -234,27 +322,12 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
     </div>
   </div>
 
-  {# stats chips — iterate EntityDto, call getInstance() to get the real Order #}
+  {# ── stats ─────────────────────────────────────────────── #}
   <div class="ord-stats">
     <span class="stat-chip sc--total">
-      <span class="stat-chip__dot" style="background:#5c617a"></span>
+      <span class="stat-chip__dot" style="background:#4e5470"></span>
       {{ totalCount }} total
     </span>
-    {% set statusGroups = {
-      'completed':  ['#82c84e','sc--completed',  'Concluídos'],
-      'processing': ['#5ba8d4','sc--processing', 'Processando'],
-      'in_progress':['#5ba8d4','sc--processing', 'Em andamento'],
-      'pending':    ['#e8b430','sc--pending',    'Pendentes'],
-      'cancelled':  ['#e06060','sc--cancelled',  'Cancelados'],
-      'partial':    ['#e07840','sc--partial',    'Parciais'],
-      'refunded':   ['#8b90a8','sc--refunded',   'Reembolsados'],
-    } %}
-    {% set counted = {} %}
-    {% for entityDto in entities %}
-      {% set order = entityDto.getInstance() %}
-      {% set s = order.status %}
-      {% set counted = counted|merge({(s): (counted[s] ?? 0) + 1}) %}
-    {% endfor %}
     {% for statusKey, info in statusGroups %}
       {% if counted[statusKey] is defined and counted[statusKey] > 0 %}
       <span class="stat-chip {{ info[1] }}">
@@ -265,105 +338,111 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
     {% endfor %}
   </div>
 
-  <div class="ord-card">
-    {% if entities|length > 0 %}
-    <div class="ord-tbl-wrap">
-      <table class="ord-tbl">
-        <thead>
-          <tr>
-            <th class="tc-id">#</th>
-            <th class="tc-user">Usuário</th>
-            <th class="tc-svc">Serviço</th>
-            <th class="tc-status">Status</th>
-            <th class="tc-val" style="text-align:right">Valor</th>
-            <th class="tc-qty" style="text-align:right">Qtd</th>
-            <th class="tc-ext">ID Externo</th>
-            <th class="tc-date">Criado em</th>
-            <th class="tc-acts"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for entityDto in entities %}
-          {% set order = entityDto.getInstance() %}
-          {% set av = avPalette[loop.index0 % avPalette|length] %}
-          {% set stInfo = stMap[order.status] ?? ['sb-refunded', order.status] %}
-          <tr>
-            <td class="tc-id">
-              <a class="cell-id"
-                 href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(order.id).generateUrl() }}"
-              >#{{ order.id }}</a>
-            </td>
-            <td class="tc-user">
-              <div class="av-cell">
-                <div class="av" style="background:{{ av[0] }};color:{{ av[1] }}">{{ order.user.name|slice(0,2)|upper }}</div>
-                <div class="av-info">
-                  <span class="av-name">{{ order.user.name }}</span>
-                  <span class="av-email" title="{{ order.user.email }}">{{ order.user.email }}</span>
+  {# ── body ──────────────────────────────────────────────── #}
+  <div class="ord-body">
+    <div class="ord-card">
+      {% if entities|length > 0 %}
+      <div class="ord-tbl-wrap">
+        <table class="ord-tbl">
+          <thead>
+            <tr>
+              <th class="tc-id">#</th>
+              <th class="tc-user">Usuário</th>
+              <th class="tc-svc">Serviço</th>
+              <th class="tc-status">Status</th>
+              <th class="tc-val">Valor</th>
+              <th class="tc-qty">Qtd</th>
+              <th class="tc-ext">ID Ext.</th>
+              <th class="tc-date">Criado em</th>
+              <th class="tc-acts"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entityDto in entities %}
+            {% set order = entityDto.getInstance() %}
+            {% set av = avPalette[loop.index0 % avPalette|length] %}
+            {% set stInfo = stMap[order.status] ?? ['sb-refunded', order.status] %}
+            <tr>
+              <td class="tc-id">
+                <a class="cell-id"
+                   href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(order.id).generateUrl() }}"
+                >#{{ order.id }}</a>
+              </td>
+              <td class="tc-user">
+                <div class="av-cell">
+                  <div class="av" style="background:{{ av[0] }};color:{{ av[1] }}">{{ order.user.name|slice(0,2)|upper }}</div>
+                  <div class="av-info">
+                    <span class="av-name">{{ order.user.name }}</span>
+                    <span class="av-email">{{ order.user.email }}</span>
+                  </div>
                 </div>
-              </div>
-            </td>
-            <td class="tc-svc">
-              <span class="svc-name" title="{{ order.service.name }}">{{ order.service.name }}</span>
-            </td>
-            <td class="tc-status">
-              <span class="st-badge {{ stInfo[0] }}">{{ stInfo[1] }}</span>
-            </td>
-            <td class="tc-val">
-              <span class="cell-val">R$&nbsp;{{ (order.amountCents / 100)|number_format(2, ',', '.') }}</span>
-            </td>
-            <td class="tc-qty" style="text-align:right; color:#b0b5cc; font-weight:700">
-              {{ order.quantity }}
-            </td>
-            <td class="tc-ext">
-              {% if order.externalOrderId %}
-                <span class="cell-ext" title="{{ order.externalOrderId }}">{{ order.externalOrderId }}</span>
-              {% else %}
-                <span style="color:rgba(255,255,255,.15)">—</span>
-              {% endif %}
-            </td>
-            <td class="tc-date">
-              <span class="cell-date">{{ order.createdAt|date('d/m/Y') }}<br><small style="font-size:.65rem;opacity:.6">{{ order.createdAt|date('H:i') }}</small></span>
-            </td>
-            <td class="tc-acts">
-              <div class="cell-acts">
-                <a class="act-btn act-show"
-                   href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(order.id).generateUrl() }}">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
-                  Show
-                </a>
-                <a class="act-btn act-edit"
-                   href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('edit').setEntityId(order.id).generateUrl() }}">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  Edit
-                </a>
-                <a class="act-btn act-del"
-                   href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('delete').setEntityId(order.id).generateUrl() }}"
-                   onclick="return confirm('Excluir pedido #{{ order.id }}?')"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-                  Del
-                </a>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+              </td>
+              <td class="tc-svc">
+                <span class="svc-name" title="{{ order.service.name }}">{{ order.service.name }}</span>
+              </td>
+              <td class="tc-status">
+                <span class="st-badge {{ stInfo[0] }}">{{ stInfo[1] }}</span>
+              </td>
+              <td class="tc-val">
+                <span class="cell-val">R$&nbsp;{{ (order.amountCents / 100)|number_format(2, ',', '.') }}</span>
+              </td>
+              <td class="tc-qty">
+                <span class="cell-qty">{{ order.quantity }}</span>
+              </td>
+              <td class="tc-ext">
+                {% if order.externalOrderId %}
+                  <span class="cell-ext" title="{{ order.externalOrderId }}">{{ order.externalOrderId }}</span>
+                {% else %}
+                  <span style="color:rgba(255,255,255,.12)">—</span>
+                {% endif %}
+              </td>
+              <td class="tc-date">
+                <span class="cell-date">
+                  {{ order.createdAt|date('d/m/Y') }}
+                  <small>{{ order.createdAt|date('H:i') }}</small>
+                </span>
+              </td>
+              <td class="tc-acts">
+                <div class="cell-acts">
+                  <a class="act-btn act-show"
+                     href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(order.id).generateUrl() }}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
+                    Show
+                  </a>
+                  <a class="act-btn act-edit"
+                     href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('edit').setEntityId(order.id).generateUrl() }}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit
+                  </a>
+                  <a class="act-btn act-del"
+                     href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('delete').setEntityId(order.id).generateUrl() }}"
+                     onclick="return confirm('Excluir pedido #{{ order.id }}?')"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                    Del
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
-    <div class="ord-footer">
-      <span class="ord-count">
-        {{ paginator.numResults }} resultado{{ paginator.numResults != 1 ? 's' : '' }}
-      </span>
-      {{ include('@EasyAdmin/crud/paginator.html.twig') }}
-    </div>
+      <div class="ord-footer">
+        <span class="ord-count">
+          {{ paginator.numResults }} resultado{{ paginator.numResults != 1 ? 's' : '' }}
+        </span>
+        {{ include('@EasyAdmin/crud/paginator.html.twig') }}
+      </div>
 
-    {% else %}
-    <div class="ord-empty">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-      <p>Nenhum pedido encontrado.</p>
+      {% else %}
+      <div class="ord-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        <p>Nenhum pedido encontrado.</p>
+      </div>
+      {% endif %}
     </div>
-    {% endif %}
   </div>
 
 </div>
