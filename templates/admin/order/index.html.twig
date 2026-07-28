@@ -1,296 +1,82 @@
 {% extends '@EasyAdmin/crud/index.html.twig' %}
 
 {% block page_title %}Pedidos{% endblock %}
-{% block content_title %}{% endblock %}
 
+{# ── only override the table itself, keep EasyAdmin shell ── #}
 {% block main %}
 <style>
-/* ── force full width ────────────────────────────────────────── */
-.content-header-wrapper,
-.content-header { display: none !important; }
-
-.content-wrapper,
+/* full-width container */
 .content-wrapper > .container,
 .content-wrapper > .container-fluid,
-.content-wrapper > .container-xxl,
-.main-content-wrapper,
-.content { max-width: 100% !important; padding: 0 !important; }
+.content-wrapper > .container-xxl { max-width: 100% !important; }
 
-/* ── page shell ─────────────────────────────────────────────── */
-.ord-page {
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100vh - 56px);
-  background: #0c0f14;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  color: #d4d8ee;
-  --card: #111620;
-  --card-b: rgba(255,255,255,.06);
-  --head-bg: #0e1219;
-  --muted: #4e5470;
-  --dim: #8288a8;
-  --bright: #eef0ff;
-  --r: 12px;
-  --accent: #01868d;
-  --accent-lit: #4eccd3;
-}
+/* tighter top padding */
+.content-panel { padding-top: 0 !important; }
 
-/* ── topbar ─────────────────────────────────────────────────── */
-.ord-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 20px 24px 0;
-}
-.ord-title {
-  display: flex; align-items: baseline; gap: 10px;
-}
-.ord-title h1 {
-  font-size: 1.35rem; font-weight: 900;
-  letter-spacing: -.04em; color: var(--bright); margin: 0;
-}
-.ord-title .ord-badge-count {
-  font-size: .6875rem; font-weight: 700;
-  background: rgba(255,255,255,.07);
-  border: 1px solid rgba(255,255,255,.1);
-  color: var(--dim);
-  padding: 2px 9px; border-radius: 999px;
-}
-.ord-topbar__right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* search bar full width */
+.datagrid-search form { max-width: 360px; }
 
-/* search */
-.ord-search-form {
-  display: flex;
-  border-radius: 8px; overflow: hidden;
-  border: 1px solid rgba(255,255,255,.09);
-  background: var(--card);
-}
-.ord-search-form input[type="search"] {
-  background: transparent; border: none;
-  color: var(--bright); font-size: .8125rem;
-  padding: 8px 14px; width: 240px; outline: none;
-}
-.ord-search-form input[type="search"]::placeholder { color: var(--muted); }
-.ord-search-form button {
-  background: rgba(1,134,141,.15);
-  border: none; border-left: 1px solid rgba(255,255,255,.07);
-  color: var(--accent-lit); padding: 8px 13px;
-  cursor: pointer; transition: background .15s; flex-shrink: 0;
-}
-.ord-search-form button:hover { background: rgba(1,134,141,.28); }
+/* table fills available width */
+.table-responsive { overflow-x: auto; }
+.datagrid table  { width: 100%; table-layout: fixed; }
 
-/* ── stats row ────────────────────────────────────────────────── */
-.ord-stats {
-  display: flex; gap: 8px; flex-wrap: wrap;
-  padding: 14px 24px 0;
-}
-.stat-chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 11px; border-radius: 999px;
-  font-size: .6875rem; font-weight: 700;
-  border: 1px solid; white-space: nowrap;
-}
-.stat-chip__dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.sc--total     { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.09); color: var(--dim); }
-.sc--completed { background: rgba(77,143,37,.1);   border-color: rgba(77,143,37,.22);  color: #82c84e; }
-.sc--processing{ background: rgba(30,114,160,.1);  border-color: rgba(30,114,160,.25); color: #5ba8d4; }
-.sc--pending   { background: rgba(201,138,0,.1);   border-color: rgba(201,138,0,.25);  color: #e8b430; }
-.sc--cancelled { background: rgba(176,48,48,.1);   border-color: rgba(176,48,48,.25);  color: #e06060; }
-.sc--partial   { background: rgba(220,120,64,.1);  border-color: rgba(220,120,64,.25); color: #e07840; }
-.sc--refunded  { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.1); color: var(--muted); }
+/* column sizing */
+.datagrid table th:nth-child(1) { width: 60px; }   /* # */
+.datagrid table th:nth-child(2) { width: 18%; }    /* usuário */
+.datagrid table th:nth-child(3) { width: auto; }   /* serviço */
+.datagrid table th:nth-child(4) { width: 120px; }  /* status */
+.datagrid table th:nth-child(5) { width: 90px; }   /* valor */
+.datagrid table th:nth-child(6) { width: 60px; }   /* qtd */
+.datagrid table th:nth-child(7) { width: 100px; }  /* id ext */
+.datagrid table th:nth-child(8) { width: 105px; }  /* data */
+.datagrid table th:nth-child(9) { width: 150px; }  /* ações */
 
-/* ── main table area ──────────────────────────────────────────── */
-.ord-body {
-  flex: 1;
-  padding: 16px 24px 32px;
-}
-.ord-card {
-  background: var(--card);
-  border: 1px solid var(--card-b);
-  border-radius: var(--r);
-  overflow: hidden;
-}
+/* truncate long text cells */
+.datagrid table td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
 
-/* table */
-.ord-tbl-wrap { overflow-x: auto; }
-.ord-tbl {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-
-/* column widths — fixed layout allows precise control */
-.ord-tbl .tc-id    { width: 64px; }
-.ord-tbl .tc-user  { width: 22%; }
-.ord-tbl .tc-svc   { width: auto; }
-.ord-tbl .tc-status{ width: 130px; }
-.ord-tbl .tc-val   { width: 100px; }
-.ord-tbl .tc-qty   { width: 64px; }
-.ord-tbl .tc-ext   { width: 110px; }
-.ord-tbl .tc-date  { width: 110px; }
-.ord-tbl .tc-acts  { width: 156px; }
-
-.ord-tbl th {
-  text-align: left;
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .08em;
-  color: var(--muted);
-  padding: 11px 14px;
-  background: var(--head-bg);
-  border-bottom: 1px solid var(--card-b);
-  white-space: nowrap;
-}
-.ord-tbl td {
-  padding: 12px 14px;
-  border-bottom: 1px solid rgba(255,255,255,.03);
-  vertical-align: middle;
-  font-size: .8125rem;
-  color: var(--dim);
-  overflow: hidden;
-}
-.ord-tbl tbody tr { transition: background .1s; }
-.ord-tbl tbody tr:hover { background: rgba(255,255,255,.025); }
-.ord-tbl tbody tr:last-child td { border-bottom: none; }
-
-.tc-val, .tc-qty { text-align: right; }
-
-/* id */
-.cell-id {
-  display: inline-flex; align-items: center;
-  font-size: .75rem; font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted); letter-spacing: .01em;
-  text-decoration: none;
-}
-.cell-id:hover { color: var(--accent-lit); }
-
-/* user */
-.av-cell { display: flex; align-items: center; gap: 9px; overflow: hidden; }
-.av {
-  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: .5625rem; font-weight: 800;
-  text-transform: uppercase; letter-spacing: -.01em; user-select: none;
-}
-.av-info { display: flex; flex-direction: column; gap: 1px; overflow: hidden; }
-.av-name  { font-weight: 700; color: #ccd0e8; font-size: .8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.av-email { font-size: .6875rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* service */
-.svc-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #b0b5cc; }
-
-/* status */
-.st-badge {
+/* status badges */
+.order-badge {
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 10px; border-radius: 999px;
+  padding: 3px 9px; border-radius: 999px;
   font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .05em; white-space: nowrap;
+  text-transform: uppercase; letter-spacing: .04em; white-space: nowrap;
+  line-height: 1.5;
 }
-.st-badge::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
-.sb-completed  { background: rgba(77,143,37,.15);  color: #82c84e; }
-.sb-processing { background: rgba(30,114,160,.15); color: #5ba8d4; }
-.sb-in_progress{ background: rgba(30,114,160,.12); color: #5ba8d4; }
-.sb-cancelled  { background: rgba(176,48,48,.14);  color: #e06060; }
-.sb-pending    { background: rgba(201,138,0,.14);  color: #e8b430; }
-.sb-partial    { background: rgba(220,120,64,.14); color: #e07840; }
-.sb-refunded   { background: rgba(255,255,255,.07); color: var(--muted); }
+.order-badge::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
+.ob-completed  { background: rgba(77,143,37,.15);  color: #5aaa2a; }
+.ob-processing { background: rgba(30,114,160,.15); color: #3a8fc4; }
+.ob-in_progress{ background: rgba(30,114,160,.12); color: #3a8fc4; }
+.ob-cancelled  { background: rgba(176,48,48,.14);  color: #cc3a3a; }
+.ob-pending    { background: rgba(201,138,0,.14);  color: #c08400; }
+.ob-partial    { background: rgba(220,120,64,.14); color: #c06020; }
+.ob-refunded   { background: rgba(100,100,120,.12); color: #707090; }
 
-/* value */
-.cell-val { font-weight: 700; color: #ccd0e8; font-variant-numeric: tabular-nums; }
-
-/* qty */
-.cell-qty { font-weight: 700; color: #b0b5cc; font-variant-numeric: tabular-nums; }
-
-/* ext id */
-.cell-ext {
-  display: inline-block; max-width: 100%;
-  font-size: .6875rem;
-  font-family: 'SFMono-Regular', Consolas, monospace;
-  color: var(--muted);
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.08);
-  padding: 2px 7px; border-radius: 5px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
-/* date */
-.cell-date { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.4; }
-.cell-date small { font-size: .65rem; opacity: .6; display: block; }
-
-/* actions */
-.cell-acts { display: flex; align-items: center; gap: 4px; }
-.act-btn {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 5px 9px; border-radius: 6px;
-  font-size: .6875rem; font-weight: 700;
-  text-decoration: none; transition: all .14s; white-space: nowrap;
-  border: 1px solid transparent; line-height: 1;
-}
-.act-btn svg { width: 11px; height: 11px; flex-shrink: 0; }
-.act-show  { background: rgba(1,134,141,.1);  border-color: rgba(1,134,141,.18); color: #4eccd3; }
-.act-show:hover  { background: rgba(1,134,141,.22); }
-.act-edit  { background: rgba(201,138,0,.1);  border-color: rgba(201,138,0,.18); color: #e8b430; }
-.act-edit:hover  { background: rgba(201,138,0,.22); }
-.act-del   { background: rgba(176,48,48,.08); border-color: rgba(176,48,48,.18); color: #e06060; }
-.act-del:hover   { background: rgba(176,48,48,.2); }
-
-/* ── footer ──────────────────────────────────────────────────── */
-.ord-footer {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 11px 16px; border-top: 1px solid var(--card-b);
-  gap: 12px; flex-wrap: wrap;
-}
-.ord-count { font-size: .75rem; color: var(--muted); }
-.ord-footer .pagination { margin: 0; }
-.ord-footer .pagination .page-link {
-  background: transparent; border-color: rgba(255,255,255,.1); color: var(--dim);
-  font-size: .75rem; padding: 5px 10px; border-radius: 6px; transition: all .14s;
-}
-.ord-footer .pagination .page-link:hover { background: rgba(255,255,255,.07); color: var(--bright); }
-.ord-footer .pagination .page-item.active .page-link { background: var(--accent); border-color: var(--accent); color: #fff; }
-.ord-footer .pagination .page-item.disabled .page-link { opacity: .3; }
-
-/* empty */
-.ord-empty { text-align: center; padding: 80px 32px; color: var(--muted); }
-.ord-empty svg { width: 44px; height: 44px; margin: 0 auto 14px; opacity: .25; display: block; }
-.ord-empty p { font-size: .875rem; }
+/* actions: keep EasyAdmin's but make them a bit tighter */
+.datagrid-row-actions { white-space: nowrap; }
 </style>
 
-{% set avPalette = [
-  ['rgba(1,134,141,.22)','#4eccd3'],
-  ['rgba(30,114,160,.22)','#5ba8d4'],
-  ['rgba(77,143,37,.22)','#82c84e'],
-  ['rgba(201,138,0,.22)','#e8b430'],
-  ['rgba(176,48,48,.22)','#e06060'],
-  ['rgba(110,70,200,.22)','#a07ee0'],
-  ['rgba(200,80,160,.22)','#e07ec8'],
-  ['rgba(0,130,100,.22)','#3ec89e'],
-] %}
-
 {% set stMap = {
-  'pending':     ['sb-pending',    'Pendente'],
-  'processing':  ['sb-processing', 'Processando'],
-  'in_progress': ['sb-in_progress','Em andamento'],
-  'completed':   ['sb-completed',  'Concluído'],
-  'partial':     ['sb-partial',    'Parcial'],
-  'cancelled':   ['sb-cancelled',  'Cancelado'],
-  'refunded':    ['sb-refunded',   'Reembolsado'],
+  'pending':     ['ob-pending',    'Pendente'],
+  'processing':  ['ob-processing', 'Processando'],
+  'in_progress': ['ob-in_progress','Em andamento'],
+  'completed':   ['ob-completed',  'Concluído'],
+  'partial':     ['ob-partial',    'Parcial'],
+  'cancelled':   ['ob-cancelled',  'Cancelado'],
+  'refunded':    ['ob-refunded',   'Reembolsado'],
 } %}
 
-{% set totalCount = paginator.numResults %}
 {% set searchQuery = app.request.query.get('query', '') %}
+{% set totalCount  = paginator.numResults %}
 
-{# count by status from current page #}
+{# count visible page statuses for the chips #}
 {% set statusGroups = {
-  'completed':  ['#82c84e','sc--completed',  'Concluídos'],
-  'processing': ['#5ba8d4','sc--processing', 'Processando'],
-  'in_progress':['#5ba8d4','sc--processing', 'Em andamento'],
-  'pending':    ['#e8b430','sc--pending',    'Pendentes'],
-  'cancelled':  ['#e06060','sc--cancelled',  'Cancelados'],
-  'partial':    ['#e07840','sc--partial',    'Parciais'],
-  'refunded':   ['#8b90a8','sc--refunded',   'Reembolsados'],
+  'completed':   ['#5aaa2a','ob-completed',   'Concluídos'],
+  'processing':  ['#3a8fc4','ob-processing',  'Processando'],
+  'in_progress': ['#3a8fc4','ob-in_progress', 'Em andamento'],
+  'pending':     ['#c08400','ob-pending',     'Pendentes'],
+  'cancelled':   ['#cc3a3a','ob-cancelled',   'Cancelados'],
+  'partial':     ['#c06020','ob-partial',     'Parciais'],
+  'refunded':    ['#707090','ob-refunded',    'Reembolsados'],
 } %}
 {% set counted = {} %}
 {% for entityDto in entities %}
@@ -299,151 +85,109 @@
   {% set counted = counted|merge({(s): (counted[s] ?? 0) + 1}) %}
 {% endfor %}
 
-<div class="ord-page">
-
-  {# ── topbar ──────────────────────────────────────────── #}
-  <div class="ord-topbar">
-    <div class="ord-title">
-      <h1>Pedidos</h1>
-      <span class="ord-badge-count">{{ totalCount }}</span>
-    </div>
-    <div class="ord-topbar__right">
-      <form class="ord-search-form" method="get" action="">
-        {% for key, val in app.request.query.all %}
-          {% if key != 'query' and key != 'page' %}
-            <input type="hidden" name="{{ key }}" value="{{ val }}">
-          {% endif %}
-        {% endfor %}
-        <input type="search" name="query" placeholder="Buscar pedidos…" value="{{ searchQuery }}" autocomplete="off">
-        <button type="submit">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        </button>
-      </form>
-    </div>
-  </div>
-
-  {# ── stats ─────────────────────────────────────────────── #}
-  <div class="ord-stats">
-    <span class="stat-chip sc--total">
-      <span class="stat-chip__dot" style="background:#4e5470"></span>
-      {{ totalCount }} total
-    </span>
+{# ── page header (EasyAdmin-native style) ── #}
+<div class="content-header d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <h1 class="h4 mb-0">Pedidos</h1>
+    <span class="badge bg-secondary">{{ totalCount }}</span>
     {% for statusKey, info in statusGroups %}
       {% if counted[statusKey] is defined and counted[statusKey] > 0 %}
-      <span class="stat-chip {{ info[1] }}">
-        <span class="stat-chip__dot" style="background:{{ info[0] }}"></span>
-        {{ counted[statusKey] }} {{ info[2] }}
-      </span>
+        <span class="order-badge {{ info[1] }}">{{ counted[statusKey] }} {{ info[2] }}</span>
       {% endif %}
     {% endfor %}
   </div>
-
-  {# ── body ──────────────────────────────────────────────── #}
-  <div class="ord-body">
-    <div class="ord-card">
-      {% if entities|length > 0 %}
-      <div class="ord-tbl-wrap">
-        <table class="ord-tbl">
-          <thead>
-            <tr>
-              <th class="tc-id">#</th>
-              <th class="tc-user">Usuário</th>
-              <th class="tc-svc">Serviço</th>
-              <th class="tc-status">Status</th>
-              <th class="tc-val">Valor</th>
-              <th class="tc-qty">Qtd</th>
-              <th class="tc-ext">ID Ext.</th>
-              <th class="tc-date">Criado em</th>
-              <th class="tc-acts"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for entityDto in entities %}
-            {% set order = entityDto.getInstance() %}
-            {% set av = avPalette[loop.index0 % avPalette|length] %}
-            {% set stInfo = stMap[order.status] ?? ['sb-refunded', order.status] %}
-            <tr>
-              <td class="tc-id">
-                <a class="cell-id"
-                   href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(order.id).generateUrl() }}"
-                >#{{ order.id }}</a>
-              </td>
-              <td class="tc-user">
-                <div class="av-cell">
-                  <div class="av" style="background:{{ av[0] }};color:{{ av[1] }}">{{ order.user.name|slice(0,2)|upper }}</div>
-                  <div class="av-info">
-                    <span class="av-name">{{ order.user.name }}</span>
-                    <span class="av-email">{{ order.user.email }}</span>
-                  </div>
-                </div>
-              </td>
-              <td class="tc-svc">
-                <span class="svc-name" title="{{ order.service.name }}">{{ order.service.name }}</span>
-              </td>
-              <td class="tc-status">
-                <span class="st-badge {{ stInfo[0] }}">{{ stInfo[1] }}</span>
-              </td>
-              <td class="tc-val">
-                <span class="cell-val">R$&nbsp;{{ (order.amountCents / 100)|number_format(2, ',', '.') }}</span>
-              </td>
-              <td class="tc-qty">
-                <span class="cell-qty">{{ order.quantity }}</span>
-              </td>
-              <td class="tc-ext">
-                {% if order.externalOrderId %}
-                  <span class="cell-ext" title="{{ order.externalOrderId }}">{{ order.externalOrderId }}</span>
-                {% else %}
-                  <span style="color:rgba(255,255,255,.12)">—</span>
-                {% endif %}
-              </td>
-              <td class="tc-date">
-                <span class="cell-date">
-                  {{ order.createdAt|date('d/m/Y') }}
-                  <small>{{ order.createdAt|date('H:i') }}</small>
-                </span>
-              </td>
-              <td class="tc-acts">
-                <div class="cell-acts">
-                  <a class="act-btn act-show"
-                     href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(order.id).generateUrl() }}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
-                    Show
-                  </a>
-                  <a class="act-btn act-edit"
-                     href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('edit').setEntityId(order.id).generateUrl() }}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Edit
-                  </a>
-                  <a class="act-btn act-del"
-                     href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('delete').setEntityId(order.id).generateUrl() }}"
-                     onclick="return confirm('Excluir pedido #{{ order.id }}?')"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-                    Del
-                  </a>
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      <div class="ord-footer">
-        <span class="ord-count">
-          {{ paginator.numResults }} resultado{{ paginator.numResults != 1 ? 's' : '' }}
-        </span>
-        {{ include('@EasyAdmin/crud/paginator.html.twig') }}
-      </div>
-
-      {% else %}
-      <div class="ord-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-        <p>Nenhum pedido encontrado.</p>
-      </div>
+  <form method="get" action="" class="d-flex">
+    {% for key, val in app.request.query.all %}
+      {% if key != 'query' and key != 'page' %}
+        <input type="hidden" name="{{ key }}" value="{{ val }}">
       {% endif %}
+    {% endfor %}
+    <div class="input-group input-group-sm">
+      <input type="search" name="query" class="form-control" placeholder="Buscar pedidos…" value="{{ searchQuery }}" autocomplete="off" style="min-width:220px">
+      <button class="btn btn-secondary" type="submit">&#128269;</button>
     </div>
-  </div>
-
+  </form>
 </div>
+
+{# ── table ── #}
+<div class="table-responsive">
+  <table class="table table-sm table-hover align-middle datagrid">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Usuário</th>
+        <th>Serviço</th>
+        <th>Status</th>
+        <th class="text-end">Valor</th>
+        <th class="text-end">Qtd</th>
+        <th>ID Ext.</th>
+        <th>Criado em</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% if entities|length > 0 %}
+      {% for entityDto in entities %}
+      {% set order = entityDto.getInstance() %}
+      {% set stInfo = stMap[order.status] ?? ['ob-refunded', order.status] %}
+      <tr>
+        <td><small class="text-muted fw-bold">#{{ order.id }}</small></td>
+        <td>
+          <div>
+            <span class="fw-semibold">{{ order.user.name }}</span><br>
+            <small class="text-muted">{{ order.user.email }}</small>
+          </div>
+        </td>
+        <td>
+          <span title="{{ order.service.name }}">{{ order.service.name }}</span>
+        </td>
+        <td>
+          <span class="order-badge {{ stInfo[0] }}">{{ stInfo[1] }}</span>
+        </td>
+        <td class="text-end fw-bold">
+          R$&nbsp;{{ (order.amountCents / 100)|number_format(2, ',', '.') }}
+        </td>
+        <td class="text-end">{{ order.quantity }}</td>
+        <td>
+          {% if order.externalOrderId %}
+            <code class="text-muted" style="font-size:.7rem">{{ order.externalOrderId }}</code>
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          <small class="text-muted">
+            {{ order.createdAt|date('d/m/Y') }}<br>
+            {{ order.createdAt|date('H:i') }}
+          </small>
+        </td>
+        <td class="datagrid-row-actions">
+          <a class="btn btn-sm btn-outline-secondary"
+             href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(order.id).generateUrl() }}">
+            Show
+          </a>
+          <a class="btn btn-sm btn-outline-warning"
+             href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('edit').setEntityId(order.id).generateUrl() }}">
+            Edit
+          </a>
+          <a class="btn btn-sm btn-outline-danger"
+             href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('delete').setEntityId(order.id).generateUrl() }}"
+             onclick="return confirm('Excluir pedido #{{ order.id }}?')">
+            Del
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    {% else %}
+      <tr><td colspan="9" class="text-center text-muted py-5">Nenhum pedido encontrado.</td></tr>
+    {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+  <small class="text-muted">{{ totalCount }} resultado{{ totalCount != 1 ? 's' : '' }}</small>
+  {{ include('@EasyAdmin/crud/paginator.html.twig') }}
+</div>
+
 {% endblock %}
