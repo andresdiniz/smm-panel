@@ -1,0 +1,491 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Pedidos{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block main %}
+<style>
+/* ── reset within this page ────────────────────────────────── */
+.content-header { display: none !important; }
+.content-wrapper { padding: 0 !important; }
+
+/* ── page wrapper ──────────────────────────────────────────── */
+.ord-page {
+  padding: 28px 28px 72px;
+  background: #0d1016;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  color: #dde1f0;
+  --r: 10px;
+  --card: #141921;
+  --card-border: rgba(255,255,255,.07);
+  --card-head: #111720;
+  --muted: #5c617a;
+  --bright: #f0f3ff;
+  --dim: #9196b0;
+}
+
+/* ── top bar ───────────────────────────────────────────────── */
+.ord-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.ord-topbar h1 {
+  font-size: 1.2rem;
+  font-weight: 900;
+  letter-spacing: -.04em;
+  color: var(--bright);
+  margin: 0;
+}
+.ord-topbar__right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* search form native do EasyAdmin */
+.ord-search-wrap .ea-search-form .form-control {
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,.1);
+  color: var(--bright);
+  border-radius: 8px;
+  font-size: .8125rem;
+  padding: 7px 14px;
+  min-width: 220px;
+}
+.ord-search-wrap .ea-search-form .form-control:focus {
+  border-color: #01868d;
+  box-shadow: 0 0 0 3px rgba(1,134,141,.18);
+  outline: none;
+}
+.ord-search-wrap .ea-search-form .btn {
+  background: rgba(1,134,141,.18);
+  border: 1px solid rgba(1,134,141,.3);
+  color: #4eccd3;
+  border-radius: 8px;
+  font-size: .8125rem;
+  padding: 7px 14px;
+  transition: all .18s;
+}
+.ord-search-wrap .ea-search-form .btn:hover { background: rgba(1,134,141,.32); }
+
+.btn-filter {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: .75rem; font-weight: 700;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  color: var(--dim);
+  text-decoration: none;
+  transition: all .18s;
+  cursor: pointer;
+}
+.btn-filter:hover { background: rgba(255,255,255,.1); color: var(--bright); }
+
+/* ── stats chips ────────────────────────────────────────────── */
+.ord-stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.stat-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: .6875rem; font-weight: 700;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.stat-chip__dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.sc--total     { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.1); color: var(--dim); }
+.sc--completed { background: rgba(77,143,37,.12);  border-color: rgba(77,143,37,.25);  color: #82c84e; }
+.sc--processing{ background: rgba(30,114,160,.12); border-color: rgba(30,114,160,.3);  color: #5ba8d4; }
+.sc--pending   { background: rgba(201,138,0,.12);  border-color: rgba(201,138,0,.3);   color: #e8b430; }
+.sc--cancelled { background: rgba(176,48,48,.12);  border-color: rgba(176,48,48,.3);   color: #e06060; }
+.sc--partial   { background: rgba(220,120,64,.12); border-color: rgba(220,120,64,.3);  color: #e07840; }
+.sc--refunded  { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.12); color: var(--muted); }
+
+/* ── table card ─────────────────────────────────────────────── */
+.ord-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+
+.ord-tbl-wrap { overflow-x: auto; }
+
+.ord-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+.ord-tbl th {
+  text-align: left;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--muted);
+  padding: 10px 14px;
+  background: var(--card-head);
+  border-bottom: 1px solid var(--card-border);
+  white-space: nowrap;
+  user-select: none;
+}
+.ord-tbl th a {
+  color: inherit;
+  text-decoration: none;
+  display: flex; align-items: center; gap: 4px;
+}
+.ord-tbl th a:hover { color: #4eccd3; }
+
+.ord-tbl td {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.03);
+  vertical-align: middle;
+  font-size: .8125rem;
+  color: var(--dim);
+}
+.ord-tbl tbody tr { transition: background .1s; }
+.ord-tbl tbody tr:hover { background: rgba(255,255,255,.03); }
+.ord-tbl tbody tr:last-child td { border-bottom: none; }
+
+/* column widths */
+.tc-id    { width: 56px; white-space: nowrap; }
+.tc-user  { min-width: 160px; }
+.tc-svc   { min-width: 180px; max-width: 260px; }
+.tc-status{ width: 130px; white-space: nowrap; }
+.tc-val   { width: 90px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tc-qty   { width: 60px; text-align: right; white-space: nowrap; }
+.tc-ext   { width: 110px; white-space: nowrap; }
+.tc-date  { width: 110px; white-space: nowrap; }
+.tc-acts  { width: 130px; white-space: nowrap; }
+
+/* id cell */
+.cell-id {
+  font-size: .75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  letter-spacing: .01em;
+}
+a.cell-id:hover { color: #4eccd3; text-decoration: none; }
+
+/* user avatar */
+.av-cell { display: flex; align-items: center; gap: 9px; }
+.av {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .5625rem; font-weight: 800;
+  text-transform: uppercase; flex-shrink: 0;
+  letter-spacing: -.01em;
+  user-select: none;
+}
+.av-info { display: flex; flex-direction: column; gap: 1px; }
+.av-name  { font-weight: 700; color: #ccd0e8; font-size: .8125rem; white-space: nowrap; }
+.av-email { font-size: .6875rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
+
+/* service cell */
+.svc-cell { display: flex; align-items: center; gap: 8px; }
+.svc-name {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 220px;
+  color: #b0b5cc;
+  font-size: .8125rem;
+}
+
+/* status badge */
+.st-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em;
+  white-space: nowrap;
+}
+.st-badge::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
+.sb-completed  { background: rgba(77,143,37,.16);  color: #82c84e; }
+.sb-processing { background: rgba(30,114,160,.16); color: #5ba8d4; }
+.sb-in_progress{ background: rgba(30,114,160,.12); color: #5ba8d4; }
+.sb-cancelled  { background: rgba(176,48,48,.15);  color: #e06060; }
+.sb-pending    { background: rgba(201,138,0,.15);  color: #e8b430; }
+.sb-partial    { background: rgba(220,120,64,.15); color: #e07840; }
+.sb-refunded   { background: rgba(255,255,255,.07); color: var(--muted); }
+
+/* value */
+.cell-val { font-weight: 700; color: #ccd0e8; font-size: .8125rem; }
+
+/* external id */
+.cell-ext {
+  font-size: .6875rem;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  color: var(--muted);
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  padding: 2px 7px;
+  border-radius: 5px;
+  display: inline-block;
+  max-width: 100px;
+  overflow: hidden; text-overflow: ellipsis;
+}
+
+/* date */
+.cell-date { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* actions */
+.cell-acts { display: flex; align-items: center; gap: 4px; }
+.act-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: .6875rem; font-weight: 700;
+  text-decoration: none;
+  transition: all .15s;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.act-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+.act-show  { background: rgba(1,134,141,.12);  border-color: rgba(1,134,141,.2);  color: #4eccd3; }
+.act-show:hover  { background: rgba(1,134,141,.25); }
+.act-edit  { background: rgba(201,138,0,.12);  border-color: rgba(201,138,0,.2);  color: #e8b430; }
+.act-edit:hover  { background: rgba(201,138,0,.25); }
+.act-del   { background: rgba(176,48,48,.1);   border-color: rgba(176,48,48,.2);  color: #e06060; }
+.act-del:hover   { background: rgba(176,48,48,.22); }
+
+/* ── footer / pagination ────────────────────────────────────── */
+.ord-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-top: 1px solid var(--card-border);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ord-count { font-size: .75rem; color: var(--muted); }
+
+/* override EasyAdmin pagination pills */
+.ord-footer .pagination .page-link {
+  background: transparent;
+  border-color: rgba(255,255,255,.1);
+  color: var(--dim);
+  font-size: .75rem;
+  padding: 5px 11px;
+  border-radius: 7px;
+  transition: all .15s;
+}
+.ord-footer .pagination .page-link:hover { background: rgba(255,255,255,.08); color: var(--bright); }
+.ord-footer .pagination .page-item.active .page-link {
+  background: #01868d;
+  border-color: #01868d;
+  color: #fff;
+}
+.ord-footer .pagination .page-item.disabled .page-link { opacity: .35; }
+
+/* empty */
+.ord-empty {
+  text-align: center;
+  padding: 64px 32px;
+  color: var(--muted);
+}
+.ord-empty svg { width: 40px; height: 40px; margin: 0 auto 12px; opacity: .35; }
+.ord-empty p { font-size: .875rem; }
+</style>
+
+{# ── avatar palette ───────────────────────────────────────── #}
+{% set avPalette = [
+  ['rgba(1,134,141,.22)','#4eccd3'],
+  ['rgba(30,114,160,.22)','#5ba8d4'],
+  ['rgba(77,143,37,.22)','#82c84e'],
+  ['rgba(201,138,0,.22)','#e8b430'],
+  ['rgba(176,48,48,.22)','#e06060'],
+  ['rgba(110,70,200,.22)','#a07ee0'],
+  ['rgba(200,80,160,.22)','#e07ec8'],
+  ['rgba(0,130,100,.22)','#3ec89e'],
+] %}
+
+{# ── status map ────────────────────────────────────────────── #}
+{% set stMap = {
+  'pending':     ['sb-pending',    'Pendente'],
+  'processing':  ['sb-processing', 'Processando'],
+  'in_progress': ['sb-in_progress','Em andamento'],
+  'completed':   ['sb-completed',  'Concluído'],
+  'partial':     ['sb-partial',    'Parcial'],
+  'cancelled':   ['sb-cancelled',  'Cancelado'],
+  'refunded':    ['sb-refunded',   'Reembolsado'],
+} %}
+
+{# ── count by status ────────────────────────────────────────── #}
+{% set entities = ea.paginator.currentPageResults %}
+{% set totalCount = ea.paginator.numResults %}
+
+<div class="ord-page">
+
+  {# ── top bar ────────────────────────────────────────────── #}
+  <div class="ord-topbar">
+    <h1>Pedidos</h1>
+    <div class="ord-topbar__right">
+      <div class="ord-search-wrap">
+        {{ include('@EasyAdmin/crud/search.html.twig') }}
+      </div>
+      {{ include('@EasyAdmin/crud/filters.html.twig') }}
+    </div>
+  </div>
+
+  {# ── stats chips ────────────────────────────────────────── #}
+  <div class="ord-stats">
+    <span class="stat-chip sc--total">
+      <span class="stat-chip__dot" style="background:#5c617a"></span>
+      {{ totalCount }} total
+    </span>
+    {% set statusGroups = {
+      'completed':  ['#82c84e','sc--completed',  'Concluídos'],
+      'processing': ['#5ba8d4','sc--processing', 'Processando'],
+      'in_progress':['#5ba8d4','sc--processing', 'Em andamento'],
+      'pending':    ['#e8b430','sc--pending',    'Pendentes'],
+      'cancelled':  ['#e06060','sc--cancelled',  'Cancelados'],
+      'partial':    ['#e07840','sc--partial',    'Parciais'],
+      'refunded':   ['#8b90a8','sc--refunded',   'Reembolsados'],
+    } %}
+    {% set counted = {} %}
+    {% for entity in entities %}
+      {% set s = entity.status %}
+      {% set counted = counted|merge({(s): (counted[s] ?? 0) + 1}) %}
+    {% endfor %}
+    {% for statusKey, info in statusGroups %}
+      {% if counted[statusKey] is defined and counted[statusKey] > 0 %}
+      <span class="stat-chip {{ info[1] }}">
+        <span class="stat-chip__dot" style="background:{{ info[0] }}"></span>
+        {{ counted[statusKey] }} {{ info[2] }}
+      </span>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  {# ── table card ─────────────────────────────────────────── #}
+  <div class="ord-card">
+    {% if entities|length > 0 %}
+    <div class="ord-tbl-wrap">
+      <table class="ord-tbl">
+        <thead>
+          <tr>
+            <th class="tc-id">#</th>
+            <th class="tc-user">Usuário</th>
+            <th class="tc-svc">Serviço</th>
+            <th class="tc-status">Status</th>
+            <th class="tc-val" style="text-align:right">Valor</th>
+            <th class="tc-qty" style="text-align:right">Qtd</th>
+            <th class="tc-ext">ID Externo</th>
+            <th class="tc-date">Criado em</th>
+            <th class="tc-acts"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entity in entities %}
+          {% set av = avPalette[loop.index0 % avPalette|length] %}
+          {% set stInfo = stMap[entity.status] ?? ['sb-refunded', entity.status] %}
+          <tr>
+            {# ID #}
+            <td class="tc-id">
+              <a class="cell-id"
+                 href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(entity.id).generateUrl() }}"
+              >#{{ entity.id }}</a>
+            </td>
+
+            {# Usuário #}
+            <td class="tc-user">
+              <div class="av-cell">
+                <div class="av" style="background:{{ av[0] }};color:{{ av[1] }}">{{ entity.user.name|slice(0,2)|upper }}</div>
+                <div class="av-info">
+                  <span class="av-name">{{ entity.user.name }}</span>
+                  <span class="av-email" title="{{ entity.user.email }}">{{ entity.user.email }}</span>
+                </div>
+              </div>
+            </td>
+
+            {# Serviço #}
+            <td class="tc-svc">
+              <div class="svc-cell">
+                <span class="svc-name" title="{{ entity.service.name }}">{{ entity.service.name }}</span>
+              </div>
+            </td>
+
+            {# Status #}
+            <td class="tc-status">
+              <span class="st-badge {{ stInfo[0] }}">{{ stInfo[1] }}</span>
+            </td>
+
+            {# Valor #}
+            <td class="tc-val">
+              <span class="cell-val">R$&nbsp;{{ (entity.amountCents / 100)|number_format(2, ',', '.') }}</span>
+            </td>
+
+            {# Quantidade #}
+            <td class="tc-qty" style="text-align:right; color:#b0b5cc; font-weight:700">
+              {{ entity.quantity }}
+            </td>
+
+            {# ID Externo #}
+            <td class="tc-ext">
+              {% if entity.externalOrderId %}
+                <span class="cell-ext" title="{{ entity.externalOrderId }}">{{ entity.externalOrderId }}</span>
+              {% else %}
+                <span style="color:rgba(255,255,255,.15)">—</span>
+              {% endif %}
+            </td>
+
+            {# Data #}
+            <td class="tc-date">
+              <span class="cell-date">{{ entity.createdAt|date('d/m/Y') }}<br><small style="font-size:.65rem;opacity:.6">{{ entity.createdAt|date('H:i') }}</small></span>
+            </td>
+
+            {# Ações #}
+            <td class="tc-acts">
+              <div class="cell-acts">
+                <a class="act-btn act-show"
+                   href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(entity.id).generateUrl() }}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
+                  Show
+                </a>
+                <a class="act-btn act-edit"
+                   href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('edit').setEntityId(entity.id).generateUrl() }}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Edit
+                </a>
+                <a class="act-btn act-del"
+                   href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('delete').setEntityId(entity.id).generateUrl() }}"
+                   onclick="return confirm('Excluir pedido #{{ entity.id }}?')"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                  Del
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# ── footer / paginação ─────────────────────────────── #}
+    <div class="ord-footer">
+      <span class="ord-count">
+        {{ ea.paginator.numResults }} resultado{{ ea.paginator.numResults != 1 ? 's' : '' }}
+      </span>
+      {{ include('@EasyAdmin/crud/paginator.html.twig') }}
+    </div>
+
+    {% else %}
+    <div class="ord-empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      <p>Nenhum pedido encontrado.</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
