@@ -5,11 +5,9 @@
 
 {% block main %}
 <style>
-/* ── reset within this page ────────────────────────────────── */
 .content-header { display: none !important; }
 .content-wrapper { padding: 0 !important; }
 
-/* ── page wrapper ──────────────────────────────────────────── */
 .ord-page {
   padding: 28px 28px 72px;
   background: #0d1016;
@@ -25,117 +23,76 @@
   --dim: #9196b0;
 }
 
-/* ── top bar ───────────────────────────────────────────────── */
 .ord-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 20px;
 }
 .ord-topbar h1 {
-  font-size: 1.2rem;
-  font-weight: 900;
-  letter-spacing: -.04em;
-  color: var(--bright);
-  margin: 0;
+  font-size: 1.2rem; font-weight: 900; letter-spacing: -.04em;
+  color: var(--bright); margin: 0;
 }
 .ord-topbar__right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-/* search form */
 .ord-search-form {
-  display: flex;
-  gap: 0;
-  border-radius: 8px;
-  overflow: hidden;
+  display: flex; gap: 0;
+  border-radius: 8px; overflow: hidden;
   border: 1px solid rgba(255,255,255,.1);
 }
 .ord-search-form input[type="search"] {
-  background: var(--card);
-  border: none;
-  color: var(--bright);
-  font-size: .8125rem;
-  padding: 7px 14px;
-  min-width: 200px;
-  outline: none;
+  background: var(--card); border: none;
+  color: var(--bright); font-size: .8125rem;
+  padding: 7px 14px; min-width: 200px; outline: none;
 }
 .ord-search-form input[type="search"]::placeholder { color: var(--muted); }
 .ord-search-form input[type="search"]:focus { background: #1a2030; }
 .ord-search-form button {
-  background: rgba(1,134,141,.18);
-  border: none;
+  background: rgba(1,134,141,.18); border: none;
   border-left: 1px solid rgba(255,255,255,.08);
-  color: #4eccd3;
-  font-size: .8125rem;
-  padding: 7px 14px;
-  cursor: pointer;
-  transition: background .18s;
+  color: #4eccd3; font-size: .8125rem; padding: 7px 14px;
+  cursor: pointer; transition: background .18s;
 }
 .ord-search-form button:hover { background: rgba(1,134,141,.32); }
 
-/* ── stats chips ────────────────────────────────────────────── */
-.ord-stats {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 18px;
-}
+.ord-stats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
 .stat-chip {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 5px 12px;
-  border-radius: 999px;
+  padding: 5px 12px; border-radius: 999px;
   font-size: .6875rem; font-weight: 700;
-  border: 1px solid;
-  white-space: nowrap;
+  border: 1px solid; white-space: nowrap;
 }
 .stat-chip__dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .sc--total     { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.1); color: var(--dim); }
-.sc--completed { background: rgba(77,143,37,.12);  border-color: rgba(77,143,37,.25);  color: #82c84e; }
-.sc--processing{ background: rgba(30,114,160,.12); border-color: rgba(30,114,160,.3);  color: #5ba8d4; }
-.sc--pending   { background: rgba(201,138,0,.12);  border-color: rgba(201,138,0,.3);   color: #e8b430; }
-.sc--cancelled { background: rgba(176,48,48,.12);  border-color: rgba(176,48,48,.3);   color: #e06060; }
-.sc--partial   { background: rgba(220,120,64,.12); border-color: rgba(220,120,64,.3);  color: #e07840; }
+.sc--completed { background: rgba(77,143,37,.12);   border-color: rgba(77,143,37,.25);  color: #82c84e; }
+.sc--processing{ background: rgba(30,114,160,.12);  border-color: rgba(30,114,160,.3);  color: #5ba8d4; }
+.sc--pending   { background: rgba(201,138,0,.12);   border-color: rgba(201,138,0,.3);   color: #e8b430; }
+.sc--cancelled { background: rgba(176,48,48,.12);   border-color: rgba(176,48,48,.3);   color: #e06060; }
+.sc--partial   { background: rgba(220,120,64,.12);  border-color: rgba(220,120,64,.3);  color: #e07840; }
 .sc--refunded  { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.12); color: var(--muted); }
 
-/* ── table card ─────────────────────────────────────────────── */
 .ord-card {
   background: var(--card);
   border: 1px solid var(--card-border);
-  border-radius: var(--r);
-  overflow: hidden;
+  border-radius: var(--r); overflow: hidden;
 }
 .ord-tbl-wrap { overflow-x: auto; }
-.ord-tbl {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: auto;
-}
+.ord-tbl { width: 100%; border-collapse: collapse; table-layout: auto; }
 .ord-tbl th {
-  text-align: left;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .1em;
-  color: var(--muted);
-  padding: 10px 14px;
+  text-align: left; font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--muted); padding: 10px 14px;
   background: var(--card-head);
   border-bottom: 1px solid var(--card-border);
-  white-space: nowrap;
-  user-select: none;
+  white-space: nowrap; user-select: none;
 }
 .ord-tbl td {
   padding: 11px 14px;
   border-bottom: 1px solid rgba(255,255,255,.03);
-  vertical-align: middle;
-  font-size: .8125rem;
-  color: var(--dim);
+  vertical-align: middle; font-size: .8125rem; color: var(--dim);
 }
 .ord-tbl tbody tr { transition: background .1s; }
 .ord-tbl tbody tr:hover { background: rgba(255,255,255,.03); }
 .ord-tbl tbody tr:last-child td { border-bottom: none; }
 
-/* column widths */
 .tc-id    { width: 56px; white-space: nowrap; }
 .tc-user  { min-width: 160px; }
 .tc-svc   { min-width: 180px; max-width: 260px; }
@@ -250,21 +207,20 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
   'refunded':    ['sb-refunded',   'Reembolsado'],
 } %}
 
-{% set currentEntities = entities %}
+{#
+  EasyAdmin passes 'entities' as an iterable of EntityDto objects.
+  To access the real entity instance use entityDto.getInstance().
+  The variable 'paginator' is injected directly (not via ea.paginator).
+#}
 {% set totalCount = paginator.numResults %}
-
-{# Build current page URL base for search form #}
 {% set searchQuery = app.request.query.get('query', '') %}
-{% set currentUrl = app.request.uri %}
 
 <div class="ord-page">
 
-  {# ── top bar ────────────────────────────────────────────── #}
   <div class="ord-topbar">
     <h1>Pedidos</h1>
     <div class="ord-topbar__right">
       <form class="ord-search-form" method="get" action="">
-        {# preserve all existing query params except 'query' and 'page' #}
         {% for key, val in app.request.query.all %}
           {% if key != 'query' and key != 'page' %}
             <input type="hidden" name="{{ key }}" value="{{ val }}">
@@ -278,7 +234,7 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
     </div>
   </div>
 
-  {# ── stats chips ────────────────────────────────────────── #}
+  {# stats chips — iterate EntityDto, call getInstance() to get the real Order #}
   <div class="ord-stats">
     <span class="stat-chip sc--total">
       <span class="stat-chip__dot" style="background:#5c617a"></span>
@@ -294,8 +250,9 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
       'refunded':   ['#8b90a8','sc--refunded',   'Reembolsados'],
     } %}
     {% set counted = {} %}
-    {% for entity in currentEntities %}
-      {% set s = entity.status %}
+    {% for entityDto in entities %}
+      {% set order = entityDto.getInstance() %}
+      {% set s = order.status %}
       {% set counted = counted|merge({(s): (counted[s] ?? 0) + 1}) %}
     {% endfor %}
     {% for statusKey, info in statusGroups %}
@@ -308,9 +265,8 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
     {% endfor %}
   </div>
 
-  {# ── table card ─────────────────────────────────────────── #}
   <div class="ord-card">
-    {% if currentEntities|length > 0 %}
+    {% if entities|length > 0 %}
     <div class="ord-tbl-wrap">
       <table class="ord-tbl">
         <thead>
@@ -327,63 +283,62 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
           </tr>
         </thead>
         <tbody>
-          {% for entity in currentEntities %}
+          {% for entityDto in entities %}
+          {% set order = entityDto.getInstance() %}
           {% set av = avPalette[loop.index0 % avPalette|length] %}
-          {% set stInfo = stMap[entity.status] ?? ['sb-refunded', entity.status] %}
+          {% set stInfo = stMap[order.status] ?? ['sb-refunded', order.status] %}
           <tr>
             <td class="tc-id">
               <a class="cell-id"
-                 href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(entity.id).generateUrl() }}"
-              >#{{ entity.id }}</a>
+                 href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(order.id).generateUrl() }}"
+              >#{{ order.id }}</a>
             </td>
             <td class="tc-user">
               <div class="av-cell">
-                <div class="av" style="background:{{ av[0] }};color:{{ av[1] }}">{{ entity.user.name|slice(0,2)|upper }}</div>
+                <div class="av" style="background:{{ av[0] }};color:{{ av[1] }}">{{ order.user.name|slice(0,2)|upper }}</div>
                 <div class="av-info">
-                  <span class="av-name">{{ entity.user.name }}</span>
-                  <span class="av-email" title="{{ entity.user.email }}">{{ entity.user.email }}</span>
+                  <span class="av-name">{{ order.user.name }}</span>
+                  <span class="av-email" title="{{ order.user.email }}">{{ order.user.email }}</span>
                 </div>
               </div>
             </td>
             <td class="tc-svc">
-              <div class="svc-cell">
-                <span class="svc-name" title="{{ entity.service.name }}">{{ entity.service.name }}</span>
-              </div>
+              <span class="svc-name" title="{{ order.service.name }}">{{ order.service.name }}</span>
             </td>
             <td class="tc-status">
               <span class="st-badge {{ stInfo[0] }}">{{ stInfo[1] }}</span>
             </td>
             <td class="tc-val">
-              <span class="cell-val">R$&nbsp;{{ (entity.amountCents / 100)|number_format(2, ',', '.') }}</span>
+              <span class="cell-val">R$&nbsp;{{ (order.amountCents / 100)|number_format(2, ',', '.') }}</span>
             </td>
             <td class="tc-qty" style="text-align:right; color:#b0b5cc; font-weight:700">
-              {{ entity.quantity }}
+              {{ order.quantity }}
             </td>
             <td class="tc-ext">
-              {% if entity.externalOrderId %}
-                <span class="cell-ext" title="{{ entity.externalOrderId }}">{{ entity.externalOrderId }}</span>
+              {% if order.externalOrderId %}
+                <span class="cell-ext" title="{{ order.externalOrderId }}">{{ order.externalOrderId }}</span>
               {% else %}
                 <span style="color:rgba(255,255,255,.15)">—</span>
               {% endif %}
             </td>
             <td class="tc-date">
-              <span class="cell-date">{{ entity.createdAt|date('d/m/Y') }}<br><small style="font-size:.65rem;opacity:.6">{{ entity.createdAt|date('H:i') }}</small></span>
+              <span class="cell-date">{{ order.createdAt|date('d/m/Y') }}<br><small style="font-size:.65rem;opacity:.6">{{ order.createdAt|date('H:i') }}</small></span>
             </td>
             <td class="tc-acts">
               <div class="cell-acts">
                 <a class="act-btn act-show"
-                   href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(entity.id).generateUrl() }}">
+                   href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(order.id).generateUrl() }}">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
                   Show
                 </a>
                 <a class="act-btn act-edit"
-                   href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('edit').setEntityId(entity.id).generateUrl() }}">
+                   href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('edit').setEntityId(order.id).generateUrl() }}">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   Edit
                 </a>
                 <a class="act-btn act-del"
-                   href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('delete').setEntityId(entity.id).generateUrl() }}"
-                   onclick="return confirm('Excluir pedido #{{ entity.id }}?')"
+                   href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('delete').setEntityId(order.id).generateUrl() }}"
+                   onclick="return confirm('Excluir pedido #{{ order.id }}?')"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
                   Del
