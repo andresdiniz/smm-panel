@@ -669,7 +669,7 @@ a.ord-link:hover { color: #4eccd3; }
             {% set av = avPalette[loop.index0 % avPalette|length] %}
             <tr>
               <td class="col-id">
-                <a class="ord-link" href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('detail').setEntityId(o.id).generateUrl() }}">#{{ o.id }}</a>
+                <a class="ord-link" href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(o.id).generateUrl() }}">#{{ o.id }}</a>
               </td>
               <td>
                 <div class="av-cell">
