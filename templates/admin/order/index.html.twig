@@ -319,9 +319,9 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
   'refunded':    ['sb-refunded',   'Reembolsado'],
 } %}
 
-{# ── count by status ────────────────────────────────────────── #}
-{% set entities = ea.paginator.currentPageResults %}
-{% set totalCount = ea.paginator.numResults %}
+{# ── use the 'paginator' and 'entities' variables injected by EasyAdmin ── #}
+{% set currentEntities = entities %}
+{% set totalCount = paginator.numResults %}
 
 <div class="ord-page">
 
@@ -352,7 +352,7 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
       'refunded':   ['#8b90a8','sc--refunded',   'Reembolsados'],
     } %}
     {% set counted = {} %}
-    {% for entity in entities %}
+    {% for entity in currentEntities %}
       {% set s = entity.status %}
       {% set counted = counted|merge({(s): (counted[s] ?? 0) + 1}) %}
     {% endfor %}
@@ -368,7 +368,7 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
 
   {# ── table card ─────────────────────────────────────────── #}
   <div class="ord-card">
-    {% if entities|length > 0 %}
+    {% if currentEntities|length > 0 %}
     <div class="ord-tbl-wrap">
       <table class="ord-tbl">
         <thead>
@@ -385,7 +385,7 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
           </tr>
         </thead>
         <tbody>
-          {% for entity in entities %}
+          {% for entity in currentEntities %}
           {% set av = avPalette[loop.index0 % avPalette|length] %}
           {% set stInfo = stMap[entity.status] ?? ['sb-refunded', entity.status] %}
           <tr>
@@ -474,7 +474,7 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
     {# ── footer / paginação ─────────────────────────────── #}
     <div class="ord-footer">
       <span class="ord-count">
-        {{ ea.paginator.numResults }} resultado{{ ea.paginator.numResults != 1 ? 's' : '' }}
+        {{ paginator.numResults }} resultado{{ paginator.numResults != 1 ? 's' : '' }}
       </span>
       {{ include('@EasyAdmin/crud/paginator.html.twig') }}
     </div>
