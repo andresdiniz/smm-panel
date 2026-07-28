@@ -1,6 +1,7 @@
 # config/services.yaml
 parameters:
     admin_email: '%env(ADMIN_EMAIL)%'
+    affiliate.default_rate: '%env(float:AFFILIATE_DEFAULT_RATE)%'
 
 services:
     _defaults:
@@ -31,7 +32,12 @@ services:
             $adminEmail: '%admin_email%'
 
     App\Billing\AsaasGateway:
-        arguments:              # ← 4 espaços a mais, dentro do serviço
+        arguments:
             $apiKey:       '%env(ASAAS_API_KEY)%'
             $baseUrl:      '%env(ASAAS_BASE_URL)%'
             $webhookToken: '%env(ASAAS_WEBHOOK_TOKEN)%'
+
+    # ─── AffiliateService: taxa padrão de comissão (ex.: 0.05 = 5%) ───
+    App\Service\AffiliateService:
+        arguments:
+            $defaultRate: '%affiliate.default_rate%'
