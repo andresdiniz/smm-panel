@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Order;
+use App\Entity\OrderLog;
 use App\Smm\SmmProviderRegistry;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 
 /**
  * Lógica central de sincronização de status de pedidos com providers SMM.
- * Usada tanto pelo SyncOrderStatusCommand quanto pelo Scheduler automático.
+ * Grava um OrderLog a cada chamada ao provider, incluindo mudanças de status.
  */
 final class OrderSyncService
 {
@@ -84,9 +85,12 @@ final class OrderSyncService
                 continue;
             }
 
+            $start = microtime(true);
+
             try {
                 $provider  = $this->registry->get($slug);
                 $status    = $provider->getOrderStatus($order->getExternalOrderId());
+                $elapsedMs = (int) round((microtime(true) - $start) * 1000);
                 $newStatus = $this->mapProviderStatus($status['status']);
 
                 if (isset($status['start_count'])) {
@@ -96,7 +100,9 @@ final class OrderSyncService
                     $order->setRemains((int) $status['remains']);
                 }
 
-                if ($newStatus !== $order->getStatus()) {
+                $statusChanged = $newStatus !== $order->getStatus();
+
+                if ($statusChanged) {
                     $this->logger->info('OrderSyncService: status atualizado.', [
                         'order_id'   => $order->getId(),
                         'old_status' => $order->getStatus(),
@@ -105,12 +111,40 @@ final class OrderSyncService
                     $order->setStatus($newStatus);
                     ++$updated;
                 }
+
+                // Grava log de sincronização (toda chamada ao provider)
+                $log = new OrderLog();
+                $log->setOrder($order);
+                $log->setAction('status');
+                $log->setProvider($slug);
+                $log->setHttpStatus(200);
+                $log->setElapsedMs($elapsedMs);
+                $log->setResponseBody($status);
+                $log->setContext([
+                    'external_status'  => $status['status'],
+                    'mapped_status'    => $newStatus,
+                    'status_changed'   => $statusChanged,
+                    'start_count'      => $status['start_count'] ?? null,
+                    'remains'          => $status['remains'] ?? null,
+                ]);
+                $this->em->persist($log);
+
             } catch (\Throwable $e) {
+                $elapsedMs = (int) round((microtime(true) - $start) * 1000);
                 ++$errors;
                 $this->logger->error('OrderSyncService: erro ao sincronizar.', [
                     'order_id' => $order->getId(),
                     'error'    => $e->getMessage(),
                 ]);
+
+                // Grava log de erro também
+                $log = new OrderLog();
+                $log->setOrder($order);
+                $log->setAction('status');
+                $log->setProvider($slug);
+                $log->setElapsedMs($elapsedMs);
+                $log->setErrorMessage($e->getMessage());
+                $this->em->persist($log);
             }
         }
 

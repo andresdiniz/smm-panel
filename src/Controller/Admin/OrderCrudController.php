@@ -29,7 +29,7 @@ class OrderCrudController extends AbstractCrudController
         'Pendente'     => Order::STATUS_PENDING,
         'Processando'  => Order::STATUS_PROCESSING,
         'Em andamento' => Order::STATUS_IN_PROGRESS,
-        'Conclu\u00eddo'    => Order::STATUS_COMPLETED,
+        'Concluído'    => Order::STATUS_COMPLETED,
         'Parcial'      => Order::STATUS_PARTIAL,
         'Cancelado'    => Order::STATUS_CANCELLED,
         'Reembolsado'  => Order::STATUS_REFUNDED,
@@ -39,7 +39,7 @@ class OrderCrudController extends AbstractCrudController
         'Pendente'     => 'warning',
         'Processando'  => 'info',
         'Em andamento' => 'primary',
-        'Conclu\u00eddo'    => 'success',
+        'Concluído'    => 'success',
         'Parcial'      => 'secondary',
         'Cancelado'    => 'danger',
         'Reembolsado'  => 'dark',
@@ -70,8 +70,8 @@ class OrderCrudController extends AbstractCrudController
     {
         return $filters
             ->add(ChoiceFilter::new('status', 'Status')->setChoices(self::STATUS_CHOICES))
-            ->add(EntityFilter::new('user', 'Usu\u00e1rio'))
-            ->add(EntityFilter::new('service', 'Servi\u00e7o'))
+            ->add(EntityFilter::new('user', 'Usuário'))
+            ->add(EntityFilter::new('service', 'Serviço'))
             ->add(DateTimeFilter::new('createdAt', 'Criado em'));
     }
 
@@ -79,8 +79,8 @@ class OrderCrudController extends AbstractCrudController
     {
         yield IdField::new('id')->setLabel('ID')->setMaxLength(6);
 
-        yield AssociationField::new('user', 'Usu\u00e1rio')->setColumns(4);
-        yield AssociationField::new('service', 'Servi\u00e7o')->setColumns(4);
+        yield AssociationField::new('user', 'Usuário')->setColumns(4);
+        yield AssociationField::new('service', 'Serviço')->setColumns(4);
 
         yield ChoiceField::new('status', 'Status')
             ->setChoices(self::STATUS_CHOICES)
@@ -98,21 +98,21 @@ class OrderCrudController extends AbstractCrudController
             ->setColumns(6)
             ->hideOnIndex();
 
-        // Campos nullable — exibe '—' quando vazio (compatível com EA 4.10+)
+        // Campos nullable — exibe '—' quando vazio
         yield TextField::new('externalOrderId', 'ID Externo')
             ->setColumns(4)
             ->hideOnIndex()
-            ->formatValue(fn ($v) => $v ?? '\u2014');
+            ->formatValue(fn ($v) => $v ?? '—');
 
         yield IntegerField::new('startCount', 'Start Count')
             ->setColumns(3)
             ->hideOnIndex()
-            ->formatValue(fn ($v) => $v !== null ? $v : '\u2014');
+            ->formatValue(fn ($v) => $v !== null ? $v : '—');
 
         yield IntegerField::new('remains', 'Restante')
             ->setColumns(3)
             ->hideOnIndex()
-            ->formatValue(fn ($v) => $v !== null ? $v : '\u2014');
+            ->formatValue(fn ($v) => $v !== null ? $v : '—');
 
         yield DateTimeField::new('createdAt', 'Criado em')
             ->setColumns(4)
@@ -122,17 +122,15 @@ class OrderCrudController extends AbstractCrudController
             ->setColumns(4)
             ->hideOnForm()
             ->hideOnIndex()
-            ->formatValue(fn ($v) => $v ? $v->format('d/m/Y H:i:s') : '\u2014');
+            ->formatValue(fn ($v) => $v ? $v->format('d/m/Y H:i:s') : '—');
 
-        yield DateTimeField::new('completedAt', 'Conclu\u00eddo em')
+        yield DateTimeField::new('completedAt', 'Concluído em')
             ->setColumns(4)
             ->hideOnForm()
             ->hideOnIndex()
-            ->formatValue(fn ($v) => $v ? $v->format('d/m/Y H:i:s') : '\u2014');
+            ->formatValue(fn ($v) => $v ? $v->format('d/m/Y H:i:s') : '—');
 
         // ── Logs do Provider: só na página de detalhe ──
-        // TextareaField sobre 'targetUrl' (string garantida) + setTemplatePath.
-        // O template ignora o field.value e acessa ea.entity.instance.orderLogs.
         if ($pageName === Crud::PAGE_DETAIL) {
             yield TextareaField::new('targetUrl', 'Logs do Provider')
                 ->setTemplatePath('admin/fields/order_logs.html.twig')
