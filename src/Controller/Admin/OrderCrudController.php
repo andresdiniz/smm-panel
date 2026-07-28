@@ -11,12 +11,12 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\BadgeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\TemplateField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
@@ -25,10 +25,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 
 class OrderCrudController extends AbstractCrudController
 {
-    /**
-     * Chaves s\u00e3o os LABELS (o que o EasyAdmin exibe / usa para lookup no renderAsBadges).
-     * Valores s\u00e3o os valores gravados no banco.
-     */
     private const STATUS_CHOICES = [
         'Pendente'     => Order::STATUS_PENDING,
         'Processando'  => Order::STATUS_PROCESSING,
@@ -39,10 +35,6 @@ class OrderCrudController extends AbstractCrudController
         'Reembolsado'  => Order::STATUS_REFUNDED,
     ];
 
-    /**
-     * renderAsBadges() faz lookup pelo LABEL (chave do array passado para setChoices),
-     * portanto as chaves aqui tamb\u00e9m devem ser os labels.
-     */
     private const STATUS_BADGE = [
         'Pendente'     => 'warning',
         'Processando'  => 'info',
@@ -99,7 +91,6 @@ class OrderCrudController extends AbstractCrudController
         yield AssociationField::new('service', 'Servi\u00e7o')
             ->setColumns(4);
 
-        // ChoiceField com renderAsBadges: chaves do mapa DEVEM ser os labels
         yield ChoiceField::new('status', 'Status')
             ->setChoices(self::STATUS_CHOICES)
             ->renderAsBadges(self::STATUS_BADGE)
@@ -137,5 +128,13 @@ class OrderCrudController extends AbstractCrudController
             ->setColumns(4)
             ->hideOnForm()
             ->hideOnIndex();
+
+        // ── Logs do Provider: s\u00f3 na p\u00e1gina de detalhe ──────────────────────
+        if ($pageName === Crud::PAGE_DETAIL) {
+            yield TemplateField::new('orderLogs', 'Logs do Provider')
+                ->setTemplatePath('admin/fields/order_logs.html.twig')
+                ->setColumns(12)
+                ->setLabel(false);
+        }
     }
 }
