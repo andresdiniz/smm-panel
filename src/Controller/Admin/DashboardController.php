@@ -72,6 +72,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToCrud('Pagamentos', 'fa fa-credit-card',   \App\Entity\Payment::class);
         yield MenuItem::linkToCrud('Transações', 'fa fa-arrow-right-arrow-left', \App\Entity\WalletTransaction::class);
         yield MenuItem::linkToCrud('Logs de Pedidos', 'fa fa-list-alt', \App\Entity\OrderLog::class);
+        yield MenuItem::linkToRoute('Erros de Provider (24h)', 'fa fa-triangle-exclamation', 'admin_order_logs_errors');
 
         yield MenuItem::section('CATÁLOGO');
         yield MenuItem::linkToCrud('Serviços',   'fa fa-list', \App\Entity\Service::class);
