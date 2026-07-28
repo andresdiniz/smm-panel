@@ -5,14 +5,20 @@
 
 {% block content %}
 
-{# ── KPIs ── #}
+{# ── Calcula KPIs a partir do feed unificado ── #}
 {% set total_entradas = 0 %}
 {% set total_saidas   = 0 %}
-{% for t in transactions %}
-  {% if t.type.value == 'credit' %}
-    {% set total_entradas = total_entradas + t.amountCents %}
-  {% else %}
-    {% set total_saidas = total_saidas + t.amountCents %}
+{% set total_pendente = 0 %}
+
+{% for row in feed %}
+  {% if row.type == 'wallet' %}
+    {% if row.subtype in ['credit','bonus','refund'] %}
+      {% set total_entradas = total_entradas + row.amountCents %}
+    {% elseif row.subtype == 'debit' %}
+      {% set total_saidas = total_saidas + row.amountCents %}
+    {% endif %}
+  {% elseif row.type == 'payment' and row.subtype == 'pending' %}
+    {% set total_pendente = total_pendente + row.amountCents %}
   {% endif %}
 {% endfor %}
 
@@ -23,7 +29,7 @@
       <i data-lucide="repeat" width="18" height="18"></i>
     </div>
     <div class="kpi__label">Total de registros</div>
-    <div class="kpi__value">{{ transactions|length }}</div>
+    <div class="kpi__value">{{ feed|length }}</div>
   </div>
 
   <div class="kpi">
@@ -34,7 +40,6 @@
     <div class="kpi__value" style="color:var(--success)">
       R$&nbsp;{{ (total_entradas / 100)|number_format(2, ',', '.') }}
     </div>
-    <div class="kpi__delta">{{ transactions|filter(t => t.type.value == 'credit')|length }} transações</div>
   </div>
 
   <div class="kpi">
@@ -45,7 +50,16 @@
     <div class="kpi__value" style="color:var(--error)">
       R$&nbsp;{{ (total_saidas / 100)|number_format(2, ',', '.') }}
     </div>
-    <div class="kpi__delta">{{ transactions|filter(t => t.type.value == 'debit')|length }} transações</div>
+  </div>
+
+  <div class="kpi">
+    <div class="kpi__icon kpi__icon--yellow">
+      <i data-lucide="clock" width="18" height="18"></i>
+    </div>
+    <div class="kpi__label">Pagamentos pendentes</div>
+    <div class="kpi__value" style="color:var(--warning)">
+      R$&nbsp;{{ (total_pendente / 100)|number_format(2, ',', '.') }}
+    </div>
   </div>
 
   <div class="kpi">
@@ -60,12 +74,12 @@
 
 </div>
 
-{# ── TABELA ── #}
+{# ── FEED UNIFICADO ── #}
 <div class="card tx-table-card" data-reveal>
 
   <div class="card__head">
-    <h2>Transações</h2>
-    <span class="badge badge--pending">{{ transactions|length }} registro(s)</span>
+    <h2>Feed de movimentações</h2>
+    <span class="badge badge--pending">{{ feed|length }} registro(s)</span>
     <a href="{{ path('app_wallet_deposit') }}" class="btn btn--primary btn--sm" style="margin-left:auto">
       <i data-lucide="plus" width="14" height="14"></i>
       Adicionar saldo
@@ -77,49 +91,163 @@
       <thead>
         <tr>
           <th>Data</th>
+          <th>Origem</th>
           <th>Descrição</th>
-          <th>Tipo</th>
+          <th>Status</th>
           <th style="text-align:right">Valor</th>
           <th style="text-align:right">Saldo após</th>
         </tr>
       </thead>
       <tbody>
-      {% for t in transactions %}
-        <tr>
+      {% for row in feed %}
+        <tr class="tx-row tx-row--{{ row.type }}">
+
+          {# Data #}
           <td class="cell-muted cell-mono" style="white-space:nowrap">
-            {{ t.createdAt|date('d/m/Y') }}
-            <br><small>{{ t.createdAt|date('H:i') }}</small>
+            {{ row.date|date('d/m/Y') }}<br>
+            <small>{{ row.date|date('H:i') }}</small>
           </td>
-          <td>{{ t.description }}</td>
+
+          {# Origem (ícone + rótulo) #}
           <td>
-            {% if t.type.value == 'credit' %}
-              <span class="badge badge--completed">
-                <i data-lucide="arrow-down-left" width="11" height="11"></i>
-                Entrada
+            {% if row.type == 'wallet' %}
+              <span class="origin-badge origin-badge--wallet">
+                <i data-lucide="wallet" width="12" height="12"></i>
+                Carteira
               </span>
-            {% elseif t.type.value == 'debit' %}
-              <span class="badge badge--cancelled">
-                <i data-lucide="arrow-up-right" width="11" height="11"></i>
-                Saída
+            {% elseif row.type == 'payment' %}
+              <span class="origin-badge origin-badge--pix">
+                <i data-lucide="qr-code" width="12" height="12"></i>
+                {{ row.source.method|upper }}
               </span>
-            {% else %}
-              <span class="badge badge--pending">{{ t.type.value }}</span>
+            {% elseif row.type == 'order' %}
+              <span class="origin-badge origin-badge--order">
+                <i data-lucide="shopping-bag" width="12" height="12"></i>
+                Pedido #{{ row.source.id }}
+              </span>
             {% endif %}
           </td>
-          <td style="text-align:right" class="cell-mono tx-amount {{ t.type.value == 'credit' ? 'tx-amount--credit' : 'tx-amount--debit' }}">
-            {{ t.type.value == 'credit' ? '+' : '−' }}R$&nbsp;{{ (t.amountCents / 100)|number_format(2, ',', '.') }}
+
+          {# Descrição #}
+          <td>{{ row.description }}</td>
+
+          {# Status / badge #}
+          <td>
+            {% if row.type == 'wallet' %}
+              {% if row.subtype == 'credit' %}
+                <span class="badge badge--completed">
+                  <i data-lucide="arrow-down-left" width="11" height="11"></i> Entrada
+                </span>
+              {% elseif row.subtype == 'debit' %}
+                <span class="badge badge--cancelled">
+                  <i data-lucide="arrow-up-right" width="11" height="11"></i> Débito
+                </span>
+              {% elseif row.subtype == 'refund' %}
+                <span class="badge badge--refund">
+                  <i data-lucide="rotate-ccw" width="11" height="11"></i> Estorno
+                </span>
+              {% elseif row.subtype == 'bonus' %}
+                <span class="badge badge--bonus">
+                  <i data-lucide="gift" width="11" height="11"></i> Bônus
+                </span>
+              {% else %}
+                <span class="badge badge--pending">{{ row.subtype }}</span>
+              {% endif %}
+
+            {% elseif row.type == 'payment' %}
+              {% if row.subtype == 'approved' %}
+                <span class="badge badge--completed">
+                  <i data-lucide="check-circle" width="11" height="11"></i> Aprovado
+                </span>
+              {% elseif row.subtype == 'pending' %}
+                <span class="badge badge--pending">
+                  <i data-lucide="clock" width="11" height="11"></i> Pendente
+                </span>
+              {% elseif row.subtype == 'failed' %}
+                <span class="badge badge--cancelled">
+                  <i data-lucide="x-circle" width="11" height="11"></i> Falhou
+                </span>
+              {% elseif row.subtype == 'cancelled' %}
+                <span class="badge badge--cancelled">
+                  <i data-lucide="ban" width="11" height="11"></i> Cancelado
+                </span>
+              {% elseif row.subtype == 'refunded' %}
+                <span class="badge badge--refund">
+                  <i data-lucide="rotate-ccw" width="11" height="11"></i> Estornado
+                </span>
+              {% else %}
+                <span class="badge badge--pending">{{ row.subtype }}</span>
+              {% endif %}
+
+            {% elseif row.type == 'order' %}
+              {% if row.subtype == 'completed' %}
+                <span class="badge badge--completed">
+                  <i data-lucide="check" width="11" height="11"></i> Concluído
+                </span>
+              {% elseif row.subtype == 'partial' %}
+                <span class="badge badge--partial">
+                  <i data-lucide="git-branch" width="11" height="11"></i> Parcial
+                </span>
+              {% elseif row.subtype == 'pending' %}
+                <span class="badge badge--pending">
+                  <i data-lucide="clock" width="11" height="11"></i> Pendente
+                </span>
+              {% elseif row.subtype == 'processing' %}
+                <span class="badge badge--processing">
+                  <i data-lucide="loader" width="11" height="11"></i> Processando
+                </span>
+              {% elseif row.subtype == 'in_progress' %}
+                <span class="badge badge--processing">
+                  <i data-lucide="activity" width="11" height="11"></i> Em andamento
+                </span>
+              {% elseif row.subtype == 'cancelled' %}
+                <span class="badge badge--cancelled">
+                  <i data-lucide="x-circle" width="11" height="11"></i> Cancelado
+                </span>
+              {% elseif row.subtype == 'refunded' %}
+                <span class="badge badge--refund">
+                  <i data-lucide="rotate-ccw" width="11" height="11"></i> Estornado
+                </span>
+              {% else %}
+                <span class="badge badge--pending">{{ row.subtype }}</span>
+              {% endif %}
+            {% endif %}
           </td>
+
+          {# Valor #}
+          <td style="text-align:right" class="cell-mono tx-amount
+            {%- if row.type == 'wallet' and row.subtype in ['credit','bonus','refund'] %} tx-amount--credit
+            {%- elseif row.type == 'wallet' and row.subtype == 'debit' %} tx-amount--debit
+            {%- elseif row.type == 'payment' and row.subtype == 'approved' %} tx-amount--credit
+            {%- elseif row.type == 'payment' and row.subtype == 'pending' %} tx-amount--pending
+            {%- elseif row.type == 'order' %} tx-amount--debit
+            {%- endif %}">
+            {%- if row.type == 'wallet' -%}
+              {{ row.subtype in ['credit','bonus','refund'] ? '+' : '−' }}R$&nbsp;{{ (row.amountCents / 100)|number_format(2, ',', '.') }}
+            {%- elseif row.type == 'payment' -%}
+              +R$&nbsp;{{ (row.amountCents / 100)|number_format(2, ',', '.') }}
+            {%- else -%}
+              −R$&nbsp;{{ (row.amountCents / 100)|number_format(2, ',', '.') }}
+            {%- endif -%}
+          </td>
+
+          {# Saldo após (só disponível em WalletTransaction) #}
           <td style="text-align:right" class="cell-muted cell-mono">
-            R$&nbsp;{{ (t.balanceAfterCents / 100)|number_format(2, ',', '.') }}
+            {% if row.balanceCents is not null %}
+              R$&nbsp;{{ (row.balanceCents / 100)|number_format(2, ',', '.') }}
+            {% else %}
+              <span style="color:var(--text-faint)">—</span>
+            {% endif %}
           </td>
+
         </tr>
       {% else %}
         <tr>
-          <td colspan="5">
+          <td colspan="6">
             <div class="empty-state">
               <i data-lucide="inbox" width="40" height="40"></i>
-              <h3>Nenhuma transação ainda</h3>
-              <p>Seu histórico de entradas e saídas aparecerá aqui.</p>
+              <h3>Nenhuma movimentação ainda</h3>
+              <p>Seu histórico de depósitos, pedidos e estornos aparecerá aqui.</p>
               <a href="{{ path('app_wallet_deposit') }}" class="btn btn--ghost btn--sm">Fazer primeiro depósito</a>
             </div>
           </td>
@@ -132,7 +260,7 @@
 </div>
 
 <style>
-/* Estilos locais — valores monétarios da tabela */
+/* ── Tabela de transações ── */
 .tx-table-card { overflow: hidden; }
 .tx-table-card .card__head {
   padding: var(--sp5) var(--sp6);
@@ -140,12 +268,38 @@
   margin-bottom: 0;
 }
 .tx-table-card .table-wrap { padding: 0; }
-.tx-amount {
-  font-weight: 800;
+
+/* Faixa colorida sutil por tipo de origem */
+.tx-row--payment td:first-child { border-left: 3px solid var(--warning); }
+.tx-row--order   td:first-child { border-left: 3px solid var(--blue, #4e8cbf); }
+.tx-row--wallet  td:first-child { border-left: 3px solid var(--border); }
+
+/* Valores monetários */
+.tx-amount { font-weight: 800; white-space: nowrap; }
+.tx-amount--credit  { color: var(--success); }
+.tx-amount--debit   { color: var(--error); }
+.tx-amount--pending { color: var(--warning); }
+
+/* Badges extras */
+.badge--refund  { background: color-mix(in oklab, var(--info, #4e8cbf) 15%, transparent); color: var(--info, #4e8cbf); }
+.badge--bonus   { background: color-mix(in oklab, var(--success) 15%, transparent);       color: var(--success); }
+.badge--partial { background: color-mix(in oklab, var(--warning) 15%, transparent);       color: var(--warning); }
+.badge--processing { background: color-mix(in oklab, var(--text-muted, #888) 15%, transparent); color: var(--text-muted, #888); }
+
+/* Origin badges */
+.origin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
   white-space: nowrap;
 }
-.tx-amount--credit { color: var(--success); }
-.tx-amount--debit  { color: var(--error); }
+.origin-badge--wallet  { background: color-mix(in oklab, var(--primary) 12%, transparent); color: var(--primary); }
+.origin-badge--pix     { background: color-mix(in oklab, var(--success) 12%, transparent); color: var(--success); }
+.origin-badge--order   { background: color-mix(in oklab, var(--blue, #4e8cbf) 12%, transparent); color: var(--blue, #4e8cbf); }
 </style>
 
 {% endblock %}
