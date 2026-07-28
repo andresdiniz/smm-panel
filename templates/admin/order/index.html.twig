@@ -1,4 +1,4 @@
-{% extends '@EasyAdmin/page/content.html.twig' %}
+{% extends '@EasyAdmin/crud/index.html.twig' %}
 
 {% block page_title %}Pedidos{% endblock %}
 {% block content_title %}{% endblock %}
@@ -43,45 +43,36 @@
 }
 .ord-topbar__right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-/* search form native do EasyAdmin */
-.ord-search-wrap .ea-search-form .form-control {
-  background: var(--card);
-  border: 1px solid rgba(255,255,255,.1);
-  color: var(--bright);
+/* search form */
+.ord-search-form {
+  display: flex;
+  gap: 0;
   border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.1);
+}
+.ord-search-form input[type="search"] {
+  background: var(--card);
+  border: none;
+  color: var(--bright);
   font-size: .8125rem;
   padding: 7px 14px;
-  min-width: 220px;
-}
-.ord-search-wrap .ea-search-form .form-control:focus {
-  border-color: #01868d;
-  box-shadow: 0 0 0 3px rgba(1,134,141,.18);
+  min-width: 200px;
   outline: none;
 }
-.ord-search-wrap .ea-search-form .btn {
+.ord-search-form input[type="search"]::placeholder { color: var(--muted); }
+.ord-search-form input[type="search"]:focus { background: #1a2030; }
+.ord-search-form button {
   background: rgba(1,134,141,.18);
-  border: 1px solid rgba(1,134,141,.3);
+  border: none;
+  border-left: 1px solid rgba(255,255,255,.08);
   color: #4eccd3;
-  border-radius: 8px;
   font-size: .8125rem;
   padding: 7px 14px;
-  transition: all .18s;
-}
-.ord-search-wrap .ea-search-form .btn:hover { background: rgba(1,134,141,.32); }
-
-.btn-filter {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 14px;
-  border-radius: 8px;
-  font-size: .75rem; font-weight: 700;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.1);
-  color: var(--dim);
-  text-decoration: none;
-  transition: all .18s;
   cursor: pointer;
+  transition: background .18s;
 }
-.btn-filter:hover { background: rgba(255,255,255,.1); color: var(--bright); }
+.ord-search-form button:hover { background: rgba(1,134,141,.32); }
 
 /* ── stats chips ────────────────────────────────────────────── */
 .ord-stats {
@@ -114,9 +105,7 @@
   border-radius: var(--r);
   overflow: hidden;
 }
-
 .ord-tbl-wrap { overflow-x: auto; }
-
 .ord-tbl {
   width: 100%;
   border-collapse: collapse;
@@ -135,13 +124,6 @@
   white-space: nowrap;
   user-select: none;
 }
-.ord-tbl th a {
-  color: inherit;
-  text-decoration: none;
-  display: flex; align-items: center; gap: 4px;
-}
-.ord-tbl th a:hover { color: #4eccd3; }
-
 .ord-tbl td {
   padding: 11px 14px;
   border-bottom: 1px solid rgba(255,255,255,.03);
@@ -164,48 +146,29 @@
 .tc-date  { width: 110px; white-space: nowrap; }
 .tc-acts  { width: 130px; white-space: nowrap; }
 
-/* id cell */
-.cell-id {
-  font-size: .75rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
-  letter-spacing: .01em;
-}
+.cell-id { font-size: .75rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--muted); letter-spacing: .01em; }
 a.cell-id:hover { color: #4eccd3; text-decoration: none; }
 
-/* user avatar */
 .av-cell { display: flex; align-items: center; gap: 9px; }
 .av {
-  width: 28px; height: 28px;
-  border-radius: 50%;
+  width: 28px; height: 28px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: .5625rem; font-weight: 800;
   text-transform: uppercase; flex-shrink: 0;
-  letter-spacing: -.01em;
-  user-select: none;
+  letter-spacing: -.01em; user-select: none;
 }
 .av-info { display: flex; flex-direction: column; gap: 1px; }
 .av-name  { font-weight: 700; color: #ccd0e8; font-size: .8125rem; white-space: nowrap; }
 .av-email { font-size: .6875rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
 
-/* service cell */
 .svc-cell { display: flex; align-items: center; gap: 8px; }
-.svc-name {
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  max-width: 220px;
-  color: #b0b5cc;
-  font-size: .8125rem;
-}
+.svc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; color: #b0b5cc; font-size: .8125rem; }
 
-/* status badge */
 .st-badge {
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 10px;
-  border-radius: 999px;
+  padding: 4px 10px; border-radius: 999px;
   font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .05em;
-  white-space: nowrap;
+  text-transform: uppercase; letter-spacing: .05em; white-space: nowrap;
 }
 .st-badge::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
 .sb-completed  { background: rgba(77,143,37,.16);  color: #82c84e; }
@@ -216,36 +179,27 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
 .sb-partial    { background: rgba(220,120,64,.15); color: #e07840; }
 .sb-refunded   { background: rgba(255,255,255,.07); color: var(--muted); }
 
-/* value */
 .cell-val { font-weight: 700; color: #ccd0e8; font-size: .8125rem; }
 
-/* external id */
 .cell-ext {
   font-size: .6875rem;
   font-family: 'SFMono-Regular', Consolas, monospace;
   color: var(--muted);
   background: rgba(255,255,255,.04);
   border: 1px solid rgba(255,255,255,.08);
-  padding: 2px 7px;
-  border-radius: 5px;
-  display: inline-block;
-  max-width: 100px;
+  padding: 2px 7px; border-radius: 5px;
+  display: inline-block; max-width: 100px;
   overflow: hidden; text-overflow: ellipsis;
 }
 
-/* date */
 .cell-date { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-/* actions */
 .cell-acts { display: flex; align-items: center; gap: 4px; }
 .act-btn {
   display: inline-flex; align-items: center; gap: 4px;
-  padding: 5px 10px;
-  border-radius: 7px;
+  padding: 5px 10px; border-radius: 7px;
   font-size: .6875rem; font-weight: 700;
-  text-decoration: none;
-  transition: all .15s;
-  white-space: nowrap;
+  text-decoration: none; transition: all .15s; white-space: nowrap;
   border: 1px solid transparent;
 }
 .act-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
@@ -256,47 +210,25 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
 .act-del   { background: rgba(176,48,48,.1);   border-color: rgba(176,48,48,.2);  color: #e06060; }
 .act-del:hover   { background: rgba(176,48,48,.22); }
 
-/* ── footer / pagination ────────────────────────────────────── */
 .ord-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 18px;
-  border-top: 1px solid var(--card-border);
-  gap: 12px;
-  flex-wrap: wrap;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px; border-top: 1px solid var(--card-border);
+  gap: 12px; flex-wrap: wrap;
 }
 .ord-count { font-size: .75rem; color: var(--muted); }
-
-/* override EasyAdmin pagination pills */
 .ord-footer .pagination .page-link {
-  background: transparent;
-  border-color: rgba(255,255,255,.1);
-  color: var(--dim);
-  font-size: .75rem;
-  padding: 5px 11px;
-  border-radius: 7px;
-  transition: all .15s;
+  background: transparent; border-color: rgba(255,255,255,.1); color: var(--dim);
+  font-size: .75rem; padding: 5px 11px; border-radius: 7px; transition: all .15s;
 }
 .ord-footer .pagination .page-link:hover { background: rgba(255,255,255,.08); color: var(--bright); }
-.ord-footer .pagination .page-item.active .page-link {
-  background: #01868d;
-  border-color: #01868d;
-  color: #fff;
-}
+.ord-footer .pagination .page-item.active .page-link { background: #01868d; border-color: #01868d; color: #fff; }
 .ord-footer .pagination .page-item.disabled .page-link { opacity: .35; }
 
-/* empty */
-.ord-empty {
-  text-align: center;
-  padding: 64px 32px;
-  color: var(--muted);
-}
+.ord-empty { text-align: center; padding: 64px 32px; color: var(--muted); }
 .ord-empty svg { width: 40px; height: 40px; margin: 0 auto 12px; opacity: .35; }
 .ord-empty p { font-size: .875rem; }
 </style>
 
-{# ── avatar palette ───────────────────────────────────────── #}
 {% set avPalette = [
   ['rgba(1,134,141,.22)','#4eccd3'],
   ['rgba(30,114,160,.22)','#5ba8d4'],
@@ -308,7 +240,6 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
   ['rgba(0,130,100,.22)','#3ec89e'],
 ] %}
 
-{# ── status map ────────────────────────────────────────────── #}
 {% set stMap = {
   'pending':     ['sb-pending',    'Pendente'],
   'processing':  ['sb-processing', 'Processando'],
@@ -319,9 +250,12 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
   'refunded':    ['sb-refunded',   'Reembolsado'],
 } %}
 
-{# ── use the 'paginator' and 'entities' variables injected by EasyAdmin ── #}
 {% set currentEntities = entities %}
 {% set totalCount = paginator.numResults %}
+
+{# Build current page URL base for search form #}
+{% set searchQuery = app.request.query.get('query', '') %}
+{% set currentUrl = app.request.uri %}
 
 <div class="ord-page">
 
@@ -329,10 +263,18 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
   <div class="ord-topbar">
     <h1>Pedidos</h1>
     <div class="ord-topbar__right">
-      <div class="ord-search-wrap">
-        {{ include('@EasyAdmin/crud/search.html.twig') }}
-      </div>
-      {{ include('@EasyAdmin/crud/filters.html.twig') }}
+      <form class="ord-search-form" method="get" action="">
+        {# preserve all existing query params except 'query' and 'page' #}
+        {% for key, val in app.request.query.all %}
+          {% if key != 'query' and key != 'page' %}
+            <input type="hidden" name="{{ key }}" value="{{ val }}">
+          {% endif %}
+        {% endfor %}
+        <input type="search" name="query" placeholder="Buscar pedidos…" value="{{ searchQuery }}" autocomplete="off">
+        <button type="submit">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </button>
+      </form>
     </div>
   </div>
 
@@ -389,14 +331,11 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
           {% set av = avPalette[loop.index0 % avPalette|length] %}
           {% set stInfo = stMap[entity.status] ?? ['sb-refunded', entity.status] %}
           <tr>
-            {# ID #}
             <td class="tc-id">
               <a class="cell-id"
                  href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(entity.id).generateUrl() }}"
               >#{{ entity.id }}</a>
             </td>
-
-            {# Usuário #}
             <td class="tc-user">
               <div class="av-cell">
                 <div class="av" style="background:{{ av[0] }};color:{{ av[1] }}">{{ entity.user.name|slice(0,2)|upper }}</div>
@@ -406,30 +345,20 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
                 </div>
               </div>
             </td>
-
-            {# Serviço #}
             <td class="tc-svc">
               <div class="svc-cell">
                 <span class="svc-name" title="{{ entity.service.name }}">{{ entity.service.name }}</span>
               </div>
             </td>
-
-            {# Status #}
             <td class="tc-status">
               <span class="st-badge {{ stInfo[0] }}">{{ stInfo[1] }}</span>
             </td>
-
-            {# Valor #}
             <td class="tc-val">
               <span class="cell-val">R$&nbsp;{{ (entity.amountCents / 100)|number_format(2, ',', '.') }}</span>
             </td>
-
-            {# Quantidade #}
             <td class="tc-qty" style="text-align:right; color:#b0b5cc; font-weight:700">
               {{ entity.quantity }}
             </td>
-
-            {# ID Externo #}
             <td class="tc-ext">
               {% if entity.externalOrderId %}
                 <span class="cell-ext" title="{{ entity.externalOrderId }}">{{ entity.externalOrderId }}</span>
@@ -437,13 +366,9 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
                 <span style="color:rgba(255,255,255,.15)">—</span>
               {% endif %}
             </td>
-
-            {# Data #}
             <td class="tc-date">
               <span class="cell-date">{{ entity.createdAt|date('d/m/Y') }}<br><small style="font-size:.65rem;opacity:.6">{{ entity.createdAt|date('H:i') }}</small></span>
             </td>
-
-            {# Ações #}
             <td class="tc-acts">
               <div class="cell-acts">
                 <a class="act-btn act-show"
@@ -471,7 +396,6 @@ a.cell-id:hover { color: #4eccd3; text-decoration: none; }
       </table>
     </div>
 
-    {# ── footer / paginação ─────────────────────────────── #}
     <div class="ord-footer">
       <span class="ord-count">
         {{ paginator.numResults }} resultado{{ paginator.numResults != 1 ? 's' : '' }}
