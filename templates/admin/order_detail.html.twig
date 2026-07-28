@@ -1,0 +1,173 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Pedido #{{ order.id }}{% endblock %}
+
+{% block main %}
+<div class="container-fluid px-2">
+
+  {# ── Cabeçalho ─────────────────────────────────────────────────────── #}
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('index') }}"
+       class="btn btn-sm btn-outline-secondary">
+      ← Voltar aos pedidos
+    </a>
+    <h1 class="h4 mb-0">Pedido <strong>#{{ order.id }}</strong></h1>
+    {% set statusColors = {
+      'pending':     'warning',
+      'processing':  'info',
+      'in_progress': 'primary',
+      'completed':   'success',
+      'partial':     'secondary',
+      'cancelled':   'danger',
+      'refunded':    'dark'
+    } %}
+    <span class="badge bg-{{ statusColors[order.status] ?? 'secondary' }} fs-6">
+      {{ order.status|upper }}
+    </span>
+  </div>
+
+  <div class="row g-3">
+
+    {# ── Card: Dados do pedido ──────────────────────────────────────── #}
+    <div class="col-lg-5">
+      <div class="card shadow-sm h-100">
+        <div class="card-header fw-semibold">📋 Dados do Pedido</div>
+        <div class="card-body">
+          <table class="table table-sm table-borderless mb-0">
+            <tbody>
+              <tr><th class="w-40 text-muted">ID</th><td>{{ order.id }}</td></tr>
+              <tr><th class="text-muted">Usuário</th><td>{{ order.user.email }}</td></tr>
+              <tr><th class="text-muted">Serviço</th><td>{{ order.service.name }}</td></tr>
+              <tr><th class="text-muted">Provider</th><td><code>{{ order.service.providerSlug ?? '-' }}</code></td></tr>
+              <tr><th class="text-muted">ID Externo</th><td><code>{{ order.externalOrderId ?? '-' }}</code></td></tr>
+              <tr><th class="text-muted">Quantidade</th><td>{{ order.quantity }}</td></tr>
+              <tr><th class="text-muted">Valor</th><td><strong>R$ {{ (order.amountCents / 100)|number_format(2, ',', '.') }}</strong></td></tr>
+              <tr><th class="text-muted">Start Count</th><td>{{ order.startCount ?? '-' }}</td></tr>
+              <tr><th class="text-muted">Restante</th><td>{{ order.remains ?? '-' }}</td></tr>
+              <tr>
+                <th class="text-muted">URL Alvo</th>
+                <td class="text-break">
+                  <a href="{{ order.targetUrl }}" target="_blank" rel="noopener">
+                    {{ order.targetUrl|length > 60 ? order.targetUrl[:60] ~ '…' : order.targetUrl }}
+                  </a>
+                </td>
+              </tr>
+              <tr><th class="text-muted">Criado em</th><td>{{ order.createdAt|date('d/m/Y H:i:s') }}</td></tr>
+              <tr><th class="text-muted">Atualizado</th><td>{{ order.updatedAt|date('d/m/Y H:i:s') }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer text-end">
+          <a href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('detail').setEntityId(order.id) }}"
+             class="btn btn-sm btn-outline-primary">
+            Abrir no EasyAdmin
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {# ── Card: Timeline de logs ─────────────────────────────────────── #}
+    <div class="col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
+          <span>🔁 Logs do Provider <span class="badge bg-secondary ms-1">{{ logs|length }}</span></span>
+          <small class="text-muted">mais recente primeiro</small>
+        </div>
+        <div class="card-body p-0">
+
+          {% if logs is empty %}
+            <div class="p-4 text-center text-muted">
+              <i class="fas fa-inbox fa-2x mb-2"></i>
+              <p class="mb-0">Nenhum log registrado para este pedido.</p>
+            </div>
+          {% else %}
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0 align-middle">
+                <thead class="table-dark">
+                  <tr>
+                    <th style="width:140px">Data</th>
+                    <th style="width:70px">Ação</th>
+                    <th style="width:55px">HTTP</th>
+                    <th style="width:55px">ms</th>
+                    <th style="width:30px">⚠</th>
+                    <th>Erro / Contexto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for log in logs %}
+                    {% set hasErr = log.errorMessage is not null %}
+                    <tr class="{% if hasErr %}table-danger{% endif %}" style="cursor:pointer"
+                        data-bs-toggle="collapse" data-bs-target="#log-{{ log.id }}">
+                      <td class="text-nowrap small">{{ log.createdAt|date('d/m H:i:ss') }}</td>
+                      <td>
+                        {% set actionColor = {'add':'primary','status':'info','sync':'secondary','other':'light'} %}
+                        <span class="badge bg-{{ actionColor[log.action] ?? 'secondary' }}">{{ log.action }}</span>
+                      </td>
+                      <td>
+                        {% if log.httpStatus %}
+                          <span class="badge {% if log.httpStatus >= 400 %}bg-danger{% elseif log.httpStatus >= 300 %}bg-warning{% else %}bg-success{% endif %}">
+                            {{ log.httpStatus }}
+                          </span>
+                        {% else %}
+                          <span class="text-muted">-</span>
+                        {% endif %}
+                      </td>
+                      <td class="small">
+                        {% if log.elapsedMs %}
+                          <span class="{% if log.elapsedMs > 5000 %}text-danger{% elseif log.elapsedMs > 2000 %}text-warning{% else %}text-success{% endif %}">
+                            {{ log.elapsedMs }}
+                          </span>
+                        {% else %}-{% endif %}
+                      </td>
+                      <td>{% if hasErr %}<span title="{{ log.errorMessage }}">❌</span>{% else %}✔{% endif %}</td>
+                      <td class="small text-truncate" style="max-width:280px">
+                        {% if hasErr %}
+                          <span class="text-danger">{{ log.errorMessage|slice(0, 100) }}</span>
+                        {% elseif log.context %}
+                          <span class="text-muted">status: {{ log.context.external_status ?? '' }} | remains: {{ log.context.remains ?? '' }}</span>
+                        {% else %}
+                          <span class="text-muted">OK</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {# Linha expandida com JSON completo #}
+                    <tr class="collapse" id="log-{{ log.id }}">
+                      <td colspan="6" class="p-0">
+                        <div class="p-3 bg-dark text-light">
+                          <div class="row g-2">
+                            {% if log.errorMessage %}
+                            <div class="col-12">
+                              <strong class="text-danger">Erro:</strong>
+                              <pre class="text-danger mb-0 small">{{ log.errorMessage }}</pre>
+                            </div>
+                            {% endif %}
+                            {% if log.responseBody %}
+                            <div class="col-md-6">
+                              <strong class="text-info small">📥 Response Body:</strong>
+                              <pre class="small mb-0" style="max-height:200px;overflow:auto">{{ log.responseBody|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_UNICODE')) }}</pre>
+                            </div>
+                            {% endif %}
+                            {% if log.context %}
+                            <div class="col-md-6">
+                              <strong class="text-warning small">📎 Contexto:</strong>
+                              <pre class="small mb-0" style="max-height:200px;overflow:auto">{{ log.context|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_UNICODE')) }}</pre>
+                            </div>
+                            {% endif %}
+                            <div class="col-12 text-muted small">
+                              retry: {{ log.retryCount }} | provider: {{ log.provider }} | log #{{ log.id }}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>{# /col #}
+  </div>{# /row #}
+</div>
+{% endblock %}

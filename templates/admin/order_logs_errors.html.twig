@@ -1,0 +1,78 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Erros de Provider (24h){% endblock %}
+
+{% block main %}
+<div class="container-fluid px-2">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <h1 class="h4 mb-0">❌ Erros de Provider <span class="badge bg-danger">{{ logs|length }}</span></h1>
+    <a href="{{ path('admin_order_logs_errors') }}" class="btn btn-sm btn-outline-danger ms-auto">
+      🔄 Atualizar
+    </a>
+  </div>
+
+  {% if logs is empty %}
+    <div class="alert alert-success">
+      <strong>✅ Tudo certo!</strong> Nenhum erro de provider nas últimas 24 horas.
+    </div>
+  {% else %}
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Data</th>
+            <th>Pedido</th>
+            <th>Provider</th>
+            <th>Ação</th>
+            <th>HTTP</th>
+            <th>ms</th>
+            <th>Erro</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+            <tr>
+              <td class="text-nowrap small">{{ log.createdAt|date('d/m H:i:ss') }}</td>
+              <td>
+                {% if log.order %}
+                  <a href="{{ path('admin_order_detail', {id: log.order.id}) }}">
+                    #{{ log.order.id }}
+                  </a>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td><code>{{ log.provider }}</code></td>
+              <td>
+                {% set actionColor = {'add':'primary','status':'info','sync':'secondary','other':'light'} %}
+                <span class="badge bg-{{ actionColor[log.action] ?? 'secondary' }}">{{ log.action }}</span>
+              </td>
+              <td>
+                <span class="badge {% if log.httpStatus >= 400 %}bg-danger{% elseif log.httpStatus >= 300 %}bg-warning{% else %}bg-success{% endif %}">
+                  {{ log.httpStatus ?? '-' }}
+                </span>
+              </td>
+              <td class="small {% if log.elapsedMs > 5000 %}text-danger{% endif %}">
+                {{ log.elapsedMs ?? '-' }}
+              </td>
+              <td class="small text-danger" style="max-width:360px">
+                <span title="{{ log.errorMessage }}">{{ log.errorMessage|slice(0,120) }}</span>
+              </td>
+              <td>
+                {% if log.order %}
+                  <a href="{{ path('admin_order_detail', {id: log.order.id}) }}"
+                     class="btn btn-xs btn-outline-primary py-0 px-1 small">
+                    Ver pedido
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
