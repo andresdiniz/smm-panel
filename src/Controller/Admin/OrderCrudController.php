@@ -45,10 +45,7 @@ class OrderCrudController extends AbstractCrudController
         'Reembolsado'  => 'dark',
     ];
 
-    public static function getEntityFqcn(): string
-    {
-        return Order::class;
-    }
+    public static function getEntityFqcn(): string { return Order::class; }
 
     public function configureCrud(Crud $crud): Crud
     {
@@ -72,10 +69,7 @@ class OrderCrudController extends AbstractCrudController
     public function configureFilters(Filters $filters): Filters
     {
         return $filters
-            ->add(
-                ChoiceFilter::new('status', 'Status')
-                    ->setChoices(self::STATUS_CHOICES)
-            )
+            ->add(ChoiceFilter::new('status', 'Status')->setChoices(self::STATUS_CHOICES))
             ->add(EntityFilter::new('user', 'Usu\u00e1rio'))
             ->add(EntityFilter::new('service', 'Servi\u00e7o'))
             ->add(DateTimeFilter::new('createdAt', 'Criado em'));
@@ -85,11 +79,8 @@ class OrderCrudController extends AbstractCrudController
     {
         yield IdField::new('id')->setLabel('ID')->setMaxLength(6);
 
-        yield AssociationField::new('user', 'Usu\u00e1rio')
-            ->setColumns(4);
-
-        yield AssociationField::new('service', 'Servi\u00e7o')
-            ->setColumns(4);
+        yield AssociationField::new('user', 'Usu\u00e1rio')->setColumns(4);
+        yield AssociationField::new('service', 'Servi\u00e7o')->setColumns(4);
 
         yield ChoiceField::new('status', 'Status')
             ->setChoices(self::STATUS_CHOICES)
@@ -101,24 +92,27 @@ class OrderCrudController extends AbstractCrudController
             ->setStoredAsCents(true)
             ->setColumns(3);
 
-        yield IntegerField::new('quantity', 'Qtd')
-            ->setColumns(3);
+        yield IntegerField::new('quantity', 'Qtd')->setColumns(3);
 
         yield UrlField::new('targetUrl', 'URL alvo')
             ->setColumns(6)
             ->hideOnIndex();
 
+        // Campos nullable — esconde quando vazio em vez de mostrar "Null"
         yield TextField::new('externalOrderId', 'ID Externo')
             ->setColumns(4)
-            ->hideOnIndex();
+            ->hideOnIndex()
+            ->hideWhenEmpty();
 
         yield IntegerField::new('startCount', 'Start Count')
             ->setColumns(3)
-            ->hideOnIndex();
+            ->hideOnIndex()
+            ->hideWhenEmpty();
 
         yield IntegerField::new('remains', 'Restante')
             ->setColumns(3)
-            ->hideOnIndex();
+            ->hideOnIndex()
+            ->hideWhenEmpty();
 
         yield DateTimeField::new('createdAt', 'Criado em')
             ->setColumns(4)
@@ -127,14 +121,20 @@ class OrderCrudController extends AbstractCrudController
         yield DateTimeField::new('updatedAt', 'Atualizado em')
             ->setColumns(4)
             ->hideOnForm()
-            ->hideOnIndex();
+            ->hideOnIndex()
+            ->hideWhenEmpty();
 
-        // ── Logs do Provider: s\u00f3 na p\u00e1gina de detalhe ──────────────────────
+        yield DateTimeField::new('completedAt', 'Conclu\u00eddo em')
+            ->setColumns(4)
+            ->hideOnForm()
+            ->hideOnIndex()
+            ->hideWhenEmpty();
+
+        // ── Logs do Provider: s\u00f3 na p\u00e1gina de detalhe via getter getOrderLogs() ──
         if ($pageName === Crud::PAGE_DETAIL) {
-            yield TemplateField::new('orderLogs', 'Logs do Provider')
+            yield TemplateField::new('orderLogs', false)
                 ->setTemplatePath('admin/fields/order_logs.html.twig')
-                ->setColumns(12)
-                ->setLabel(false);
+                ->setColumns(12);
         }
     }
 }

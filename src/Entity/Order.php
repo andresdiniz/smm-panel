@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\OrderRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: OrderRepository::class)]
@@ -54,7 +56,6 @@ class Order
     #[ORM\Column(nullable: true)]
     private ?int $remains = null;
 
-    /** Contador de tentativas de sync com o provider (polling exponencial) */
     #[ORM\Column(options: ['default' => 0])]
     private int $syncAttempts = 0;
 
@@ -67,13 +68,23 @@ class Order
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $completedAt = null;
 
+    /** @var Collection<int, OrderLog> */
+    #[ORM\OneToMany(targetEntity: OrderLog::class, mappedBy: 'order', fetch: 'EXTRA_LAZY')]
+    #[ORM\OrderBy(['createdAt' => 'DESC'])]
+    private Collection $orderLogs;
+
+    public function __construct()
+    {
+        $this->orderLogs = new ArrayCollection();
+    }
+
     #[ORM\PrePersist]
     public function onPrePersist(): void { $this->createdAt = new \DateTimeImmutable(); }
 
     #[ORM\PreUpdate]
     public function onPreUpdate(): void { $this->updatedAt = new \DateTimeImmutable(); }
 
-    // ── Getters / Setters base ────────────────────────────────────────────
+    // ── Getters / Setters ────────────────────────────────────────────────
 
     public function getId(): ?int { return $this->id; }
     public function getUser(): User { return $this->user; }
@@ -95,40 +106,16 @@ class Order
     public function getRemains(): ?int { return $this->remains; }
     public function setRemains(?int $n): static { $this->remains = $n; return $this; }
     public function getSyncAttempts(): int { return $this->syncAttempts; }
+    public function incrementSyncAttempts(): void { $this->syncAttempts++; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
     public function getUpdatedAt(): ?\DateTimeImmutable { return $this->updatedAt; }
     public function getCompletedAt(): ?\DateTimeImmutable { return $this->completedAt; }
+    public function getProviderSlug(): ?string { return $this->service->getProviderSlug(); }
+    public function getExternalId(): ?string { return $this->externalOrderId; }
 
-    // ── Helpers de estado (usados pelo SyncOrderStatusHandler) ───────────
+    /** @return Collection<int, OrderLog> */
+    public function getOrderLogs(): Collection { return $this->orderLogs; }
 
-    /** Incrementa o contador de tentativas de polling */
-    public function incrementSyncAttempts(): void
-    {
-        $this->syncAttempts++;
-    }
-
-    /**
-     * Conveniente para o handler: slug do provider via Service.
-     * Evita que o handler acesse getService()->getProviderSlug() toda hora.
-     */
-    public function getProviderSlug(): ?string
-    {
-        return $this->service->getProviderSlug();
-    }
-
-    /**
-     * Alias limpo para o handler: ID externo do pedido no provider.
-     */
-    public function getExternalId(): ?string
-    {
-        return $this->externalOrderId;
-    }
-
-    /**
-     * Marca o pedido como COMPLETED.
-     * $delivered = quantidade que o provider diz ter entregue
-     *   (calculado como startCount no momento do status — veja ProviderStatus).
-     */
     public function markAsCompleted(int $delivered): void
     {
         $this->status      = self::STATUS_COMPLETED;
@@ -137,10 +124,6 @@ class Order
         $this->completedAt = new \DateTimeImmutable();
     }
 
-    /**
-     * Marca como PARTIAL: entregou parte, provider encerrou.
-     * $delivered = quanto foi entregue até o encerramento.
-     */
     public function markAsPartial(int $delivered): void
     {
         $this->status     = self::STATUS_PARTIAL;
@@ -148,13 +131,8 @@ class Order
         $this->remains    = max(0, $this->quantity - $delivered);
     }
 
-    /**
-     * Marca como CANCELLED com log da razão.
-     * Não faz refund — isso é responsabilidade do handler (SyncOrderStatusHandler).
-     */
     public function markAsFailed(string $reason): void
     {
         $this->status = self::STATUS_CANCELLED;
-        // reason é logada pelo handler; não persiste na entidade para manter o schema enxuto
     }
 }

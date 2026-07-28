@@ -1,38 +1,46 @@
 {#
-  TemplateField para logs do provider dentro do detalhe de Order no EasyAdmin.
-  Os logs s\u00e3o injetados pelo AdminOrderLogsSubscriber via request attribute.
+  TemplateField renderizado dentro do detalhe de Order no EasyAdmin.
+  Recebe a Collection de OrderLog diretamente via field.value (getOrderLogs()).
 #}
-{% set logs = app.request.attributes.get('orderLogs') ?? [] %}
+{% set logs = field.value %}
 
-<div class="mt-2">
-  <div class="d-flex align-items-center gap-2 mb-2">
-    <h5 class="mb-0"><i class="fa fa-rotate me-2 text-muted"></i>Logs do Provider</h5>
+<div class="mt-3">
+
+  {# ── Cabeçalho ────────────────────────────────────────────── #}
+  <div class="d-flex align-items-center gap-2 mb-2 border-bottom pb-2">
+    <i class="fa fa-rotate text-muted"></i>
+    <strong>Logs do Provider</strong>
     <span class="badge bg-secondary">{{ logs|length }}</span>
     <small class="text-muted ms-auto">mais recente primeiro</small>
   </div>
 
   {% if logs is empty %}
-    <div class="text-center text-muted py-4 border rounded bg-light">
-      <i class="fas fa-inbox fa-2x mb-2"></i>
-      <p class="mb-0">Nenhum log registrado para este pedido.</p>
+    <div class="text-center text-muted py-4 border rounded">
+      <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+      Nenhum log registrado para este pedido.
     </div>
+
   {% else %}
     <div class="table-responsive border rounded">
       <table class="table table-sm table-hover align-middle mb-0">
         <thead class="table-dark">
           <tr>
-            <th style="width:145px">Data/Hora</th>
-            <th style="width:75px">A\u00e7\u00e3o</th>
-            <th style="width:60px">HTTP</th>
-            <th style="width:65px">ms</th>
-            <th style="width:32px"></th>
+            <th style="width:150px">Data/Hora</th>
+            <th style="width:75px">Ação</th>
+            <th style="width:62px">HTTP</th>
+            <th style="width:70px">ms</th>
+            <th style="width:30px"></th>
             <th>Erro / Contexto</th>
           </tr>
         </thead>
         <tbody>
+
           {% for log in logs %}
             {% set hasErr = log.errorMessage is not null %}
-            <tr class="{% if hasErr %}table-danger{% endif %}" style="cursor:pointer"
+
+            {# Linha principal — clicável para expandir #}
+            <tr class="{% if hasErr %}table-danger{% endif %}"
+                style="cursor:pointer"
                 data-bs-toggle="collapse"
                 data-bs-target="#ea-log-{{ log.id }}"
                 aria-expanded="false">
@@ -40,19 +48,14 @@
               <td class="text-nowrap small ps-2">{{ log.createdAt|date('d/m/Y H:i:s') }}</td>
 
               <td>
-                {% set ac = {'add':'primary','status':'info','sync':'secondary'} %}
+                {% set ac = {'add':'primary','status':'info','sync':'secondary','other':'secondary'} %}
                 <span class="badge bg-{{ ac[log.action] ?? 'secondary' }}">{{ log.action }}</span>
               </td>
 
               <td>
                 {% if log.httpStatus %}
-                  {% if log.httpStatus >= 400 %}
-                    <span class="badge bg-danger">{{ log.httpStatus }}</span>
-                  {% elseif log.httpStatus >= 300 %}
-                    <span class="badge bg-warning text-dark">{{ log.httpStatus }}</span>
-                  {% else %}
-                    <span class="badge bg-success">{{ log.httpStatus }}</span>
-                  {% endif %}
+                  {% set hc = log.httpStatus >= 400 ? 'danger' : (log.httpStatus >= 300 ? 'warning' : 'success') %}
+                  <span class="badge bg-{{ hc }}{% if hc == 'warning' %} text-dark{% endif %}">{{ log.httpStatus }}</span>
                 {% else %}
                   <span class="text-muted">&mdash;</span>
                 {% endif %}
@@ -60,31 +63,26 @@
 
               <td class="small">
                 {% if log.elapsedMs %}
-                  {% if log.elapsedMs > 5000 %}
-                    <span class="text-danger fw-bold">{{ log.elapsedMs }}</span>
-                  {% elseif log.elapsedMs > 2000 %}
-                    <span class="text-warning">{{ log.elapsedMs }}</span>
-                  {% else %}
-                    <span class="text-success">{{ log.elapsedMs }}</span>
-                  {% endif %}
+                  {% set mc = log.elapsedMs > 5000 ? 'text-danger fw-bold' : (log.elapsedMs > 2000 ? 'text-warning' : 'text-success') %}
+                  <span class="{{ mc }}">{{ log.elapsedMs }}</span>
                 {% else %}&mdash;{% endif %}
               </td>
 
               <td class="text-center">
                 {% if hasErr %}
-                  <span title="{{ log.errorMessage }}" class="text-danger">&#10060;</span>
+                  <span class="text-danger" title="{{ log.errorMessage }}">&#10060;</span>
                 {% else %}
                   <span class="text-success">&#10004;</span>
                 {% endif %}
               </td>
 
-              <td class="small text-truncate" style="max-width:320px">
+              <td class="small text-truncate" style="max-width:300px">
                 {% if hasErr %}
                   <span class="text-danger">{{ log.errorMessage|slice(0,120) }}</span>
                 {% elseif log.context %}
                   <span class="text-muted">
-                    status: {{ log.context.external_status ?? '' }}
-                    &nbsp;|&nbsp; remains: {{ log.context.remains ?? '' }}
+                    {% if log.context.external_status is defined %}status: {{ log.context.external_status }}{% endif %}
+                    {% if log.context.remains is defined %} | remains: {{ log.context.remains }}{% endif %}
                   </span>
                 {% else %}
                   <span class="text-success">OK</span>
@@ -92,7 +90,7 @@
               </td>
             </tr>
 
-            {# Painel expandido #}
+            {# Painel expandido com JSON #}
             <tr>
               <td colspan="6" class="p-0 border-0">
                 <div class="collapse" id="ea-log-{{ log.id }}">
@@ -101,27 +99,21 @@
 
                       {% if log.errorMessage %}
                         <div class="col-12">
-                          <div class="small fw-bold text-danger mb-1">
-                            <i class="fa fa-circle-exclamation me-1"></i>Erro
-                          </div>
+                          <div class="small fw-bold text-danger mb-1"><i class="fa fa-circle-exclamation me-1"></i>Erro</div>
                           <pre class="text-danger mb-0 small">{{ log.errorMessage }}</pre>
                         </div>
                       {% endif %}
 
                       {% if log.responseBody %}
                         <div class="col-md-6">
-                          <div class="small fw-bold text-info mb-1">
-                            <i class="fa fa-arrow-down me-1"></i>Response Body
-                          </div>
+                          <div class="small fw-bold text-info mb-1"><i class="fa fa-arrow-down me-1"></i>Response Body</div>
                           <pre class="small mb-0 text-light" style="max-height:220px;overflow:auto">{{ log.responseBody|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_UNICODE')) }}</pre>
                         </div>
                       {% endif %}
 
                       {% if log.context %}
                         <div class="col-md-6">
-                          <div class="small fw-bold text-warning mb-1">
-                            <i class="fa fa-paperclip me-1"></i>Contexto
-                          </div>
+                          <div class="small fw-bold text-warning mb-1"><i class="fa fa-paperclip me-1"></i>Contexto</div>
                           <pre class="small mb-0 text-light" style="max-height:220px;overflow:auto">{{ log.context|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_UNICODE')) }}</pre>
                         </div>
                       {% endif %}
@@ -139,10 +131,10 @@
             </tr>
 
           {% endfor %}
+
         </tbody>
       </table>
     </div>
   {% endif %}
-</div>
 
-{# Bootstrap JS j\u00e1 carregado pelo EasyAdmin (via importmap/assets) #}
+</div>
