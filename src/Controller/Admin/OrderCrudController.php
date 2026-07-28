@@ -55,7 +55,8 @@ class OrderCrudController extends AbstractCrudController
             ->setDefaultSort(['createdAt' => 'DESC'])
             ->setSearchFields(['id', 'targetUrl', 'externalOrderId', 'user.email', 'user.name'])
             ->setPaginatorPageSize(30)
-            ->showEntityActionsInlined();
+            ->showEntityActionsInlined()
+            ->overrideTemplate('crud/index', 'admin/order/index.html.twig');
     }
 
     public function configureActions(Actions $actions): Actions
@@ -98,7 +99,6 @@ class OrderCrudController extends AbstractCrudController
             ->setColumns(6)
             ->hideOnIndex();
 
-        // Campos nullable — exibe '—' quando vazio
         yield TextField::new('externalOrderId', 'ID Externo')
             ->setColumns(4)
             ->hideOnIndex()
@@ -130,7 +130,6 @@ class OrderCrudController extends AbstractCrudController
             ->hideOnIndex()
             ->formatValue(fn ($v) => $v ? $v->format('d/m/Y H:i:s') : '—');
 
-        // ── Logs do Provider: só na página de detalhe ──
         if ($pageName === Crud::PAGE_DETAIL) {
             yield TextareaField::new('targetUrl', 'Logs do Provider')
                 ->setTemplatePath('admin/fields/order_logs.html.twig')
