@@ -30,6 +30,21 @@ class OrderRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /** Retorna todos os pedidos do usuário filtrando por uma lista de status. */
+    public function findByUserAndStatuses(User $user, array $statuses): array
+    {
+        return $this->createQueryBuilder('o')
+            ->join('o.service', 's')
+            ->addSelect('s')
+            ->andWhere('o.user = :user')
+            ->andWhere('o.status IN (:statuses)')
+            ->setParameter('user', $user)
+            ->setParameter('statuses', $statuses)
+            ->orderBy('o.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
     public function findRecent(int $limit = 10): array
     {
         return $this->createQueryBuilder('o')
