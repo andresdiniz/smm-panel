@@ -16,7 +16,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\TemplateField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
@@ -98,7 +97,7 @@ class OrderCrudController extends AbstractCrudController
             ->setColumns(6)
             ->hideOnIndex();
 
-        // Campos nullable — exibe ‘—’ quando vazio (compatível com EA 4.10+)
+        // Campos nullable — exibe '—' quando vazio (compatível com EA 4.10+)
         yield TextField::new('externalOrderId', 'ID Externo')
             ->setColumns(4)
             ->hideOnIndex()
@@ -131,10 +130,14 @@ class OrderCrudController extends AbstractCrudController
             ->formatValue(fn ($v) => $v ? $v->format('d/m/Y H:i:s') : '\u2014');
 
         // ── Logs do Provider: só na página de detalhe ──
+        // TextField com setTemplatePath é a forma correta no EA 4.10
+        // O template acessa $entity via ea.entity.instance
         if ($pageName === Crud::PAGE_DETAIL) {
-            yield TemplateField::new('orderLogs', false)
+            yield TextField::new('id', 'Logs do Provider')
                 ->setTemplatePath('admin/fields/order_logs.html.twig')
-                ->setColumns(12);
+                ->setColumns(12)
+                ->hideOnForm()
+                ->hideOnIndex();
         }
     }
 }
