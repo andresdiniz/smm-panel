@@ -61,14 +61,14 @@ class AdminPaymentDashboardController extends AbstractController
             ->getQuery()->getResult();
 
         // --- Gráfico: receita por mês (últimos 6 meses) — SQL nativo --------
-        // DQL não suporta YEAR()/MONTH() nativamente; usamos SQL direto.
+        // Tabela real no banco = 'payments'  (ORM\Table name na entidade Payment)
         $since = (new \DateTime('-6 months'))->format('Y-m-d H:i:s');
         $conn  = $this->em->getConnection();
 
         $monthlyRows = $conn->fetchAllAssociative(
             "SELECT DATE_FORMAT(paid_at, '%Y-%m') AS ym,
                     SUM(amount_cents) AS total
-             FROM payment
+             FROM payments
              WHERE status = :status
                AND paid_at >= :since
              GROUP BY ym
@@ -79,7 +79,6 @@ class AdminPaymentDashboardController extends AbstractController
         $chartMonths   = [];
         $chartApproved = [];
         foreach ($monthlyRows as $row) {
-            // ym = '2026-07'  → exibe '07/2026'
             [$yr, $mo]     = explode('-', $row['ym']);
             $chartMonths[] = sprintf('%s/%s', $mo, $yr);
             $chartApproved[] = round((int) $row['total'] / 100, 2);
@@ -169,7 +168,8 @@ class AdminPaymentDashboardController extends AbstractController
             ->setMethod($method)
             ->setStatus($autoApprove ? Payment::STATUS_APPROVED : Payment::STATUS_PENDING)
             ->setExternalId('MANUAL-' . strtoupper(bin2hex(random_bytes(4))))
-            ->setGatewayResponse($note);
+            ->setGatewayResponse($note)
+            ->setType(Payment::TYPE_DEPOSIT);
 
         if ($autoApprove) {
             $payment->approve();
