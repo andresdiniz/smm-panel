@@ -6,16 +6,13 @@ namespace App\Controller\Admin;
 
 use App\Entity\AffiliateCommission;
 use App\Repository\AffiliateCommissionRepository;
-use App\Entity\User;
 use App\Repository\CrmContactRepository;
 use App\Repository\OrderRepository;
 use App\Repository\PaymentRepository;
 use App\Repository\UserRepository;
 use App\Service\AffiliateService;
 use Doctrine\ORM\EntityManagerInterface;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
-use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mailer\MailerInterface;
@@ -23,42 +20,35 @@ use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+#[Route('/admin/crm', name: 'app_admin_crm_')]
 #[IsGranted('ROLE_ADMIN')]
-class CrmController extends AbstractDashboardController
+class CrmController extends AbstractController
 {
     public function __construct(
-        private readonly PaymentRepository              $paymentRepository,
-        private readonly CrmContactRepository           $contactRepository,
-        private readonly UserRepository                 $userRepository,
-        private readonly OrderRepository                $orderRepository,
-        private readonly AffiliateCommissionRepository  $commissionRepo,
-        private readonly AffiliateService               $affiliateService,
-        private readonly EntityManagerInterface         $em,
+        private readonly PaymentRepository             $paymentRepository,
+        private readonly CrmContactRepository          $contactRepository,
+        private readonly UserRepository                $userRepository,
+        private readonly OrderRepository               $orderRepository,
+        private readonly AffiliateCommissionRepository $commissionRepo,
+        private readonly AffiliateService              $affiliateService,
+        private readonly EntityManagerInterface        $em,
     ) {}
 
-    public function configureDashboard(): Dashboard
-    {
-        return Dashboard::new()->setTitle('CRM — SMM Panel');
-    }
-
-    public function configureMenuItems(): iterable
-    {
-        yield MenuItem::linkToUrl('<- Admin', 'fa fa-arrow-left', '/admin');
-    }
-
-    // ─── Dashboard principal ────────────────────────────────────────────
-    #[Route('/admin/crm', name: 'app_admin_crm_dashboard', methods: ['GET'])]
+    // ─── Dashboard principal ─────────────────────────────────────────────
+    #[Route('', name: 'dashboard', methods: ['GET'])]
     public function dashboard(): Response
     {
         return $this->renderCrm(null);
     }
 
-    // ─── Perfil de usuario ───────────────────────────────────────────────
-    #[Route('/admin/crm/user/{id}', name: 'app_admin_crm_user_profile', methods: ['GET'])]
+    // ─── Perfil de usuário ───────────────────────────────────────────────
+    #[Route('/user/{id}', name: 'user_profile', methods: ['GET'])]
     public function userProfile(int $id): Response
     {
         $user = $this->userRepository->find($id);
-        if (!$user) { throw $this->createNotFoundException(); }
+        if (!$user) {
+            throw $this->createNotFoundException();
+        }
 
         $contact    = $this->contactRepository->findOneByUserId($id);
         $orders     = $this->orderRepository->findRecentByUser($user, 20);
@@ -76,7 +66,7 @@ class CrmController extends AbstractDashboardController
     }
 
     // ─── Pagar comissões pendentes de um afiliado ────────────────────────
-    #[Route('/admin/crm/affiliate/pay/{id}', name: 'app_admin_crm_affiliate_pay', methods: ['POST'])]
+    #[Route('/affiliate/pay/{id}', name: 'affiliate_pay', methods: ['POST'])]
     public function affiliatePay(int $id, Request $request): Response
     {
         if (!$this->isCsrfTokenValid('aff_pay_' . $id, $request->request->get('_token'))) {
@@ -85,7 +75,9 @@ class CrmController extends AbstractDashboardController
         }
 
         $affiliate = $this->userRepository->find($id);
-        if (!$affiliate) { throw $this->createNotFoundException(); }
+        if (!$affiliate) {
+            throw $this->createNotFoundException();
+        }
 
         $pending = $this->em->getRepository(AffiliateCommission::class)
             ->findBy(['affiliate' => $affiliate, 'status' => AffiliateCommission::STATUS_PENDING]);
@@ -106,14 +98,16 @@ class CrmController extends AbstractDashboardController
         return $this->redirectToRoute('app_admin_crm_dashboard', ['_fragment' => 'affiliates']);
     }
 
-    // ─── Envio de campanha de e-mail ────────────────────────────────────
-    #[Route('/admin/crm/send-marketing', name: 'app_admin_crm_send_marketing', methods: ['POST'])]
+    // ─── Envio de campanha de e-mail ─────────────────────────────────────
+    #[Route('/send-marketing', name: 'send_marketing', methods: ['POST'])]
     public function sendMarketing(Request $request, MailerInterface $mailer): Response
     {
         $subject     = trim($request->request->get('subject', ''));
         $body        = trim($request->request->get('body', ''));
-        $minSpent    = (int)(((float)$request->request->get('min_spent', 0)) * 100);
-        $maxSpent    = $request->request->get('max_spent') !== '' ? (int)(((float)$request->request->get('max_spent', 0)) * 100) : null;
+        $minSpent    = (int) (((float) $request->request->get('min_spent', 0)) * 100);
+        $maxSpent    = $request->request->get('max_spent') !== ''
+            ? (int) (((float) $request->request->get('max_spent', 0)) * 100)
+            : null;
         $utmSource   = $request->request->get('utm_source') ?: null;
         $segment     = $request->request->get('segment') ?: null;
         $previewOnly = $request->request->getBoolean('preview_only');
@@ -134,7 +128,8 @@ class CrmController extends AbstractDashboardController
             $recipients[] = ['name' => $row['user']->getName(), 'email' => $row['user']->getEmail()];
         }
 
-        $sent = 0; $errors = [];
+        $sent = 0;
+        $errors = [];
         if (!$previewOnly && $subject && $body) {
             foreach ($recipients as $r) {
                 try {
@@ -159,6 +154,7 @@ class CrmController extends AbstractDashboardController
             'subject'    => $subject,
             'body'       => $body,
         ]);
+
         return $this->redirectToRoute('app_admin_crm_dashboard');
     }
 
@@ -176,12 +172,14 @@ class CrmController extends AbstractDashboardController
         $news    = array_filter($crmUsers, fn($r) => $r['totalSpentCents'] === 0);
 
         $totalRevenueCents = array_sum(array_column($crmUsers, 'totalSpentCents'));
-        $ltvAvg = $totalUsers > 0 ? (int)($totalRevenueCents / $totalUsers) : 0;
+        $ltvAvg = $totalUsers > 0 ? (int) ($totalRevenueCents / $totalUsers) : 0;
 
         $monthlyRevenue = [];
         for ($i = 5; $i >= 0; $i--) {
             $mStart = new \DateTimeImmutable("first day of -{$i} months midnight");
-            $mEnd   = $i === 0 ? $now : new \DateTimeImmutable("first day of -" . ($i - 1) . " months midnight");
+            $mEnd   = $i === 0
+                ? $now
+                : new \DateTimeImmutable('first day of -' . ($i - 1) . ' months midnight');
             $monthlyRevenue[] = [
                 'label'  => $mStart->format('M/y'),
                 'amount' => $this->paymentRepository->sumApprovedBetween($mStart, $mEnd),
@@ -191,13 +189,18 @@ class CrmController extends AbstractDashboardController
         $utmMap = [];
         foreach ($crmUsers as $r) {
             $src = $r['utmSource'] ?? 'direto';
-            if (!isset($utmMap[$src])) $utmMap[$src] = ['count' => 0, 'revenue' => 0];
+            if (!isset($utmMap[$src])) {
+                $utmMap[$src] = ['count' => 0, 'revenue' => 0];
+            }
             $utmMap[$src]['count']++;
             $utmMap[$src]['revenue'] += $r['totalSpentCents'];
         }
         arsort($utmMap);
 
-        $newThisMonth = count(array_filter($crmUsers, fn($r) => $r['user']->getCreatedAt() >= $month));
+        $newThisMonth = count(array_filter(
+            $crmUsers,
+            fn($r) => $r['user']->getCreatedAt() >= $month
+        ));
 
         $stats = [
             'totalUsers'        => $totalUsers,
@@ -211,9 +214,8 @@ class CrmController extends AbstractDashboardController
             'activeContacts'    => count($this->contactRepository->findRecentlyActive(30, 999)),
         ];
 
-        // ── Dados de afiliados ──────────────────────────────────────────
-        $globalStats    = $this->commissionRepo->globalStats();
-        $affiliateRows  = $this->buildAffiliateRows();
+        $globalStats   = $this->commissionRepo->globalStats();
+        $affiliateRows = $this->buildAffiliateRows();
 
         return $this->render('admin/crm_dashboard.html.twig', [
             'stats'          => $stats,
@@ -228,10 +230,6 @@ class CrmController extends AbstractDashboardController
         ]);
     }
 
-    /**
-     * Monta a lista de afiliados com saldo pendente, total histórico e nº de indicados.
-     * Retorna apenas usuários que têm ao menos 1 comissão.
-     */
     private function buildAffiliateRows(): array
     {
         $commissions = $this->em->getRepository(AffiliateCommission::class)
@@ -249,12 +247,14 @@ class CrmController extends AbstractDashboardController
             if (!isset($rows[$affId])) {
                 $rows[$affId] = [
                     'user'          => $c->getAffiliate(),
-                    'totalEarned'   => 0.0,  // histórico total (pago + pendente)
-                    'pending'       => 0.0,  // saldo devedor atual
-                    'paid'          => 0.0,  // já pago
+                    'totalEarned'   => 0.0,
+                    'pending'       => 0.0,
+                    'paid'          => 0.0,
                     'commissions'   => 0,
                     'referredCount' => $c->getAffiliate()->getReferredUsers()->count(),
-                    'rate'          => $c->getAffiliate()->getEffectiveCommissionRate($this->affiliateService->getDefaultRate()),
+                    'rate'          => $c->getAffiliate()->getEffectiveCommissionRate(
+                        $this->affiliateService->getDefaultRate()
+                    ),
                 ];
             }
             $amount = (float) $c->getAmount();
@@ -267,7 +267,6 @@ class CrmController extends AbstractDashboardController
             }
         }
 
-        // Ordena por pendente desc
         uasort($rows, fn($a, $b) => $b['pending'] <=> $a['pending']);
 
         return array_values($rows);
@@ -277,17 +276,18 @@ class CrmController extends AbstractDashboardController
     {
         $safeBody = nl2br(htmlspecialchars($body));
         $safeName = htmlspecialchars($name);
+
         return <<<HTML
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden">
           <div style="background:#01696f;padding:24px 32px">
-            <h1 style="color:#fff;margin:0;font-size:20px">AcheiReviews</h1>
+            <h1 style="color:#fff;margin:0;font-size:20px">PulseSMM</h1>
           </div>
           <div style="padding:32px">
             <p style="font-size:16px;color:#333">Ol&#225;, {$safeName}!</p>
             <div style="font-size:15px;color:#444;line-height:1.7">{$safeBody}</div>
           </div>
           <div style="background:#f5f5f5;padding:16px 32px;font-size:11px;color:#999;text-align:center">
-            AcheiReviews &mdash; Para cancelar o recebimento, entre em contato conosco.
+            PulseSMM &mdash; Para cancelar o recebimento, entre em contato conosco.
           </div>
         </div>
         HTML;

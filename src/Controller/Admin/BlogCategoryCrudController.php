@@ -1,5 +1,3 @@
 <?php
-// REMOVIDO — substituído por AdminBlogCategoryController.php (Symfony puro, sem EasyAdmin)
-declare(strict_types=1);
-namespace App\Controller\Admin;
-// vazio intencionalmente
+// FILE REMOVED — EasyAdmin stub deleted. Use AdminBlogCategoryController instead.
+// This file is intentionally empty and will be deleted in the next cleanup.

@@ -1,5 +1,2 @@
 <?php
-// REMOVIDO — substituído por AdminContactController.php (Symfony puro, sem EasyAdmin)
-declare(strict_types=1);
-namespace App\Controller\Admin;
-// vazio intencionalmente
+// FILE REMOVED — EasyAdmin stub deleted. Use AdminContactController instead.
