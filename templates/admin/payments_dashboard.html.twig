@@ -4,76 +4,58 @@
 
 {% block body %}
 <style>
-/* ── layout wrapper ── */
 .pd-wrap { max-width:1400px; margin:0 auto; padding:24px 16px; }
 .pd-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
 .pd-header h1 { font-size:1.35rem; font-weight:700; color:#e2e8f0; margin:0; }
-.pd-header a  { font-size:.8rem; color:#94a3b8; text-decoration:none; }
-/* ── KPI cards ── */
 .pd-kpi { border-radius:12px; padding:20px 24px; color:#fff; }
 .pd-kpi small { font-size:.75rem; opacity:.85; display:block; margin-bottom:4px; }
 .pd-kpi .value { font-size:1.75rem; font-weight:700; }
-/* ── sections ── */
 .pd-section { background:#1a1a2e; border:1px solid #2a2a3e; border-radius:12px; padding:24px; margin-bottom:24px; }
 .pd-section h5 { color:#e2e8f0; margin-bottom:16px; font-size:1rem; font-weight:600; }
-/* ── table ── */
 .pd-table { width:100%; border-collapse:collapse; font-size:.875rem; }
 .pd-table th { background:#0f0f1a; color:#94a3b8; font-weight:600; padding:10px 12px; text-align:left; border-bottom:1px solid #2a2a3e; }
 .pd-table td { padding:10px 12px; border-bottom:1px solid #1e1e30; color:#e2e8f0; vertical-align:middle; }
 .pd-table tr:last-child td { border-bottom:none; }
-/* ── badges ── */
 .badge-pending  { background:#f59e0b22; color:#f59e0b; border:1px solid #f59e0b44; padding:3px 10px; border-radius:20px; font-size:.75rem; }
 .badge-approved { background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; padding:3px 10px; border-radius:20px; font-size:.75rem; }
 .badge-failed   { background:#ef444422; color:#ef4444; border:1px solid #ef444444; padding:3px 10px; border-radius:20px; font-size:.75rem; }
 .badge-refunded { background:#8b5cf622; color:#8b5cf6; border:1px solid #8b5cf644; padding:3px 10px; border-radius:20px; font-size:.75rem; }
-/* ── buttons ── */
 .btn-approve { background:#22c55e; color:#fff; border:none; padding:5px 14px; border-radius:6px; font-size:.8rem; cursor:pointer; text-decoration:none; display:inline-block; }
 .btn-cancel  { background:#ef4444; color:#fff; border:none; padding:5px 14px; border-radius:6px; font-size:.8rem; cursor:pointer; text-decoration:none; display:inline-block; }
-/* ── forms ── */
 .pd-form label { color:#94a3b8; font-size:.8rem; font-weight:600; display:block; margin-bottom:4px; }
 .pd-form select, .pd-form input[type=text], .pd-form input[type=number], .pd-form textarea { background:#0f0f1a; border:1px solid #2a2a3e; color:#e2e8f0; padding:8px 12px; border-radius:8px; width:100%; font-size:.875rem; }
 .pd-form select:focus, .pd-form input:focus, .pd-form textarea:focus { outline:none; border-color:#4f46e5; }
 .pd-form textarea { resize:vertical; height:70px; }
-/* ── tabs ── */
 .pd-tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
 .pd-tab { padding:8px 20px; border-radius:8px; border:1px solid #2a2a3e; background:#0f0f1a; color:#94a3b8; cursor:pointer; font-size:.875rem; transition:.2s; }
 .pd-tab.active { background:#4f46e5; border-color:#4f46e5; color:#fff; }
 .pd-tab-content { display:none; }
 .pd-tab-content.active { display:block; }
-/* ── charts ── */
 .charts-row { display:grid; grid-template-columns:2fr 1fr; gap:24px; }
 @media(max-width:768px){ .charts-row { grid-template-columns:1fr; } }
-/* ── KPI row ── */
 .kpi-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:24px; }
-/* ── flash ── */
 .pd-alert { border-radius:10px; padding:12px 18px; margin-bottom:16px; font-size:.875rem; }
 .pd-alert-success { background:#22c55e22; border:1px solid #22c55e44; color:#22c55e; }
 .pd-alert-danger  { background:#ef444422; border:1px solid #ef444444; color:#ef4444; }
 .pd-alert-warning { background:#f59e0b22; border:1px solid #f59e0b44; color:#f59e0b; }
-/* ── back link ── */
 .pd-back { display:inline-flex; align-items:center; gap:6px; color:#94a3b8; text-decoration:none; font-size:.82rem; margin-bottom:20px; }
 .pd-back:hover { color:#e2e8f0; }
 </style>
 
 <div class="pd-wrap">
 
-  {# ── Navegação de retorno ─────────────────────────────────────────────── #}
   <a href="{{ path('admin') }}" class="pd-back">← Voltar ao Admin</a>
 
   <div class="pd-header">
     <h1>💳 Dashboard de Pagamentos</h1>
   </div>
 
-  {# ── Flash messages ──────────────────────────────────────────────────── #}
   {% for type, messages in app.flashes %}
     {% for msg in messages %}
-      <div class="pd-alert pd-alert-{{ type == 'success' ? 'success' : (type == 'danger' ? 'danger' : 'warning') }}">
-        {{ msg }}
-      </div>
+      <div class="pd-alert pd-alert-{{ type == 'success' ? 'success' : (type == 'danger' ? 'danger' : 'warning') }}">{{ msg }}</div>
     {% endfor %}
   {% endfor %}
 
-  {# ── KPIs ────────────────────────────────────────────────────────────── #}
   <div class="kpi-row">
     <div class="pd-kpi" style="background:linear-gradient(135deg,#22c55e,#16a34a)">
       <small>💰 Total Recebido</small>
@@ -89,7 +71,6 @@
     </div>
   </div>
 
-  {# ── Gráficos ─────────────────────────────────────────────────────────── #}
   <div class="charts-row">
     <div class="pd-section">
       <h5>📈 Receita Aprovada — Últimos 6 Meses</h5>
@@ -101,7 +82,6 @@
     </div>
   </div>
 
-  {# ── Tabs ─────────────────────────────────────────────────────────────── #}
   <div class="pd-section">
     <div class="pd-tabs">
       <button class="pd-tab active" onclick="showTab('tab-pending', this)">⏳ Pendentes ({{ countPending }})</button>
@@ -118,18 +98,17 @@
           <table class="pd-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Usuário</th>
-                <th>Valor</th>
-                <th>Método</th>
-                <th>ID Externo</th>
-                <th>Taxa</th>
-                <th>Criado em</th>
-                <th>Ações</th>
+                <th>ID</th><th>Usuário</th><th>Valor</th><th>Método</th>
+                <th>ID Externo</th><th>Taxa</th><th>Criado em</th><th>Ações</th>
               </tr>
             </thead>
             <tbody>
               {% for p in pendingPayments %}
+              {#
+                NOTA: os confirm() usam aspas simples no JS e aspas duplas no atributo HTML.
+                Dentro de {{ }} do Twig jamais use \ como escape — use aspas alternadas.
+                Ex correto:  onclick="return confirm('texto {{ p.id }}')"
+              #}
               <tr>
                 <td><strong>#{{ p.id }}</strong></td>
                 <td>
@@ -143,7 +122,7 @@
                 <td>{{ p.createdAt|date('d/m/Y H:i') }}</td>
                 <td style="white-space:nowrap">
                   <a href="{{ path('admin_payment_approve', {id: p.id}) }}"
-                     onclick="return confirm('Aprovar pagamento #{{ p.id }} e creditar R$ {{ (p.amountCents / 100)|number_format(2, \',\', \'.\') }} para {{ p.user.name }}?')"
+                     onclick="return confirm('Aprovar pagamento #{{ p.id }} para {{ p.user.name }}?')"
                      class="btn-approve">✔ Aprovar</a>
                   &nbsp;
                   <a href="{{ path('admin_payment_cancel', {id: p.id}) }}"
@@ -227,7 +206,7 @@
         </div>
         <div style="margin-top:18px">
           <button type="submit"
-            onclick="return confirm('Confirma o estorno? O valor será debitado do saldo do usuário.')"
+            onclick="return confirm('Confirma o estorno? O valor sera debitado do saldo do usuario.')"
             style="background:#ef4444;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:.875rem;cursor:pointer;font-weight:600">
             ↩️ Aplicar Estorno
           </button>
@@ -236,9 +215,8 @@
     </div>
   </div>
 
-</div>{# /.pd-wrap #}
+</div>
 
-{# ── Chart.js ────────────────────────────────────────────────────────────── #}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
 const months   = {{ chartMonths|raw }};
@@ -257,7 +235,7 @@ new Chart(document.getElementById('chartMonthly'), {
       backgroundColor: 'rgba(79,70,229,0.7)',
       borderColor: '#4f46e5',
       borderWidth: 2,
-      borderRadius: 6,
+      borderRadius: 6
     }]
   },
   options: {
@@ -278,9 +256,7 @@ new Chart(document.getElementById('chartStatus'), {
   },
   options: {
     responsive: true,
-    plugins: {
-      legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 12 } } }
-    }
+    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 12 } } } }
   }
 });
 
