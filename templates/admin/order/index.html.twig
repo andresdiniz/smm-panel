@@ -2,97 +2,135 @@
 
 {% block page_title %}Pedidos{% endblock %}
 
-{# ── only override the table itself, keep EasyAdmin shell ── #}
+{% block head_stylesheets %}
+  {{ parent() }}
+  <style>
+  /* ─ remove inner padding/max-width from every EasyAdmin content wrapper ─ */
+  .content-top,
+  .content-top .row { padding-left: 0 !important; padding-right: 0 !important; }
+
+  .content-panel,
+  .content-panel > .container,
+  .content-panel > .container-fluid,
+  .content-panel > .container-xxl,
+  .content-panel > .container-xl,
+  .content-panel > .container-lg { max-width: 100% !important; padding-left: 16px !important; padding-right: 16px !important; }
+
+  /* hide EasyAdmin's own page title block (we render our own) */
+  .content-header-wrapper { display: none !important; }
+
+  /* ─ table layout ─ */
+  .ord-tbl-wrap { overflow-x: auto; }
+  .ord-tbl { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .ord-tbl col.c-id    { width: 58px; }
+  .ord-tbl col.c-user  { width: 20%; }
+  .ord-tbl col.c-svc   { width: auto; }
+  .ord-tbl col.c-st    { width: 118px; }
+  .ord-tbl col.c-val   { width: 88px; }
+  .ord-tbl col.c-qty   { width: 54px; }
+  .ord-tbl col.c-ext   { width: 100px; }
+  .ord-tbl col.c-date  { width: 100px; }
+  .ord-tbl col.c-acts  { width: 145px; }
+
+  .ord-tbl thead th {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; padding: 8px 10px;
+    border-bottom: 2px solid rgba(255,255,255,.08);
+    white-space: nowrap;
+  }
+  .ord-tbl tbody td {
+    padding: 10px 10px; border-bottom: 1px solid rgba(255,255,255,.04);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    vertical-align: middle; font-size: .8125rem;
+  }
+  .ord-tbl tbody tr:last-child td { border-bottom: none; }
+  .ord-tbl tbody tr:hover { background: rgba(255,255,255,.03); }
+
+  .tc-val, .tc-qty { text-align: right; }
+
+  /* user cell */
+  .u-name  { font-weight: 600; display: block; }
+  .u-email { font-size: .6875rem; opacity: .5; }
+
+  /* status badge */
+  .st {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 999px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; white-space: nowrap; line-height: 1.6;
+  }
+  .st::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
+  .st-completed   { background:rgba(77,143,37,.15);  color:#5aaa2a; }
+  .st-processing,
+  .st-in_progress { background:rgba(30,114,160,.15); color:#3a8fc4; }
+  .st-cancelled   { background:rgba(176,48,48,.14);  color:#cc4444; }
+  .st-pending     { background:rgba(201,138,0,.14);  color:#b07a00; }
+  .st-partial     { background:rgba(220,120,64,.14); color:#c06020; }
+  .st-refunded    { background:rgba(120,120,140,.12);color:#7070a0; }
+
+  /* ext id */
+  .ext-id { font-family: monospace; font-size: .7rem; opacity: .55; }
+
+  /* actions */
+  .row-acts { display:flex; gap:4px; }
+  .row-acts .btn { padding: 3px 8px; font-size: .6875rem; }
+
+  /* chips in header */
+  .pg-chip {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:2px 8px; border-radius:999px;
+    font-size:10px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.04em; border:1px solid;
+  }
+  .pg-chip.tot   { border-color:rgba(255,255,255,.15); color:rgba(255,255,255,.4); }
+  .pg-chip.can   { border-color:rgba(176,48,48,.4);    color:#cc4444; background:rgba(176,48,48,.08); }
+  .pg-chip.comp  { border-color:rgba(77,143,37,.4);    color:#5aaa2a; background:rgba(77,143,37,.08); }
+  .pg-chip.proc  { border-color:rgba(30,114,160,.4);   color:#3a8fc4; background:rgba(30,114,160,.08); }
+  .pg-chip.pend  { border-color:rgba(201,138,0,.4);    color:#b07a00; background:rgba(201,138,0,.08); }
+  .pg-chip.part  { border-color:rgba(220,120,64,.4);   color:#c06020; background:rgba(220,120,64,.08); }
+  .pg-chip.refu  { border-color:rgba(120,120,140,.3);  color:#7070a0; background:rgba(120,120,140,.06); }
+  </style>
+{% endblock %}
+
 {% block main %}
-<style>
-/* full-width container */
-.content-wrapper > .container,
-.content-wrapper > .container-fluid,
-.content-wrapper > .container-xxl { max-width: 100% !important; }
-
-/* tighter top padding */
-.content-panel { padding-top: 0 !important; }
-
-/* search bar full width */
-.datagrid-search form { max-width: 360px; }
-
-/* table fills available width */
-.table-responsive { overflow-x: auto; }
-.datagrid table  { width: 100%; table-layout: fixed; }
-
-/* column sizing */
-.datagrid table th:nth-child(1) { width: 60px; }   /* # */
-.datagrid table th:nth-child(2) { width: 18%; }    /* usuário */
-.datagrid table th:nth-child(3) { width: auto; }   /* serviço */
-.datagrid table th:nth-child(4) { width: 120px; }  /* status */
-.datagrid table th:nth-child(5) { width: 90px; }   /* valor */
-.datagrid table th:nth-child(6) { width: 60px; }   /* qtd */
-.datagrid table th:nth-child(7) { width: 100px; }  /* id ext */
-.datagrid table th:nth-child(8) { width: 105px; }  /* data */
-.datagrid table th:nth-child(9) { width: 150px; }  /* ações */
-
-/* truncate long text cells */
-.datagrid table td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
-
-/* status badges */
-.order-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 9px; border-radius: 999px;
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .04em; white-space: nowrap;
-  line-height: 1.5;
-}
-.order-badge::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
-.ob-completed  { background: rgba(77,143,37,.15);  color: #5aaa2a; }
-.ob-processing { background: rgba(30,114,160,.15); color: #3a8fc4; }
-.ob-in_progress{ background: rgba(30,114,160,.12); color: #3a8fc4; }
-.ob-cancelled  { background: rgba(176,48,48,.14);  color: #cc3a3a; }
-.ob-pending    { background: rgba(201,138,0,.14);  color: #c08400; }
-.ob-partial    { background: rgba(220,120,64,.14); color: #c06020; }
-.ob-refunded   { background: rgba(100,100,120,.12); color: #707090; }
-
-/* actions: keep EasyAdmin's but make them a bit tighter */
-.datagrid-row-actions { white-space: nowrap; }
-</style>
-
 {% set stMap = {
-  'pending':     ['ob-pending',    'Pendente'],
-  'processing':  ['ob-processing', 'Processando'],
-  'in_progress': ['ob-in_progress','Em andamento'],
-  'completed':   ['ob-completed',  'Concluído'],
-  'partial':     ['ob-partial',    'Parcial'],
-  'cancelled':   ['ob-cancelled',  'Cancelado'],
-  'refunded':    ['ob-refunded',   'Reembolsado'],
+  'pending':     ['st-pending',    'Pendente'],
+  'processing':  ['st-processing', 'Processando'],
+  'in_progress': ['st-in_progress','Em andamento'],
+  'completed':   ['st-completed',  'Concluído'],
+  'partial':     ['st-partial',    'Parcial'],
+  'cancelled':   ['st-cancelled',  'Cancelado'],
+  'refunded':    ['st-refunded',   'Reembolsado'],
 } %}
-
+{% set chipMap = {
+  'completed':   'comp',
+  'processing':  'proc',
+  'in_progress': 'proc',
+  'pending':     'pend',
+  'cancelled':   'can',
+  'partial':     'part',
+  'refunded':    'refu',
+} %}
+{% set statusLabels = {
+  'completed':'Concluídos','processing':'Processando','in_progress':'Em andamento',
+  'pending':'Pendentes','cancelled':'Cancelados','partial':'Parciais','refunded':'Reembolsados'
+} %}
+{% set totalCount = paginator.numResults %}
 {% set searchQuery = app.request.query.get('query', '') %}
-{% set totalCount  = paginator.numResults %}
-
-{# count visible page statuses for the chips #}
-{% set statusGroups = {
-  'completed':   ['#5aaa2a','ob-completed',   'Concluídos'],
-  'processing':  ['#3a8fc4','ob-processing',  'Processando'],
-  'in_progress': ['#3a8fc4','ob-in_progress', 'Em andamento'],
-  'pending':     ['#c08400','ob-pending',     'Pendentes'],
-  'cancelled':   ['#cc3a3a','ob-cancelled',   'Cancelados'],
-  'partial':     ['#c06020','ob-partial',     'Parciais'],
-  'refunded':    ['#707090','ob-refunded',    'Reembolsados'],
-} %}
 {% set counted = {} %}
 {% for entityDto in entities %}
   {% set o = entityDto.getInstance() %}
-  {% set s = o.status %}
-  {% set counted = counted|merge({(s): (counted[s] ?? 0) + 1}) %}
+  {% set counted = counted|merge({(o.status): (counted[o.status] ?? 0) + 1}) %}
 {% endfor %}
 
-{# ── page header (EasyAdmin-native style) ── #}
-<div class="content-header d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
+{# ─ header row ─ #}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
   <div class="d-flex align-items-center gap-2 flex-wrap">
-    <h1 class="h4 mb-0">Pedidos</h1>
-    <span class="badge bg-secondary">{{ totalCount }}</span>
-    {% for statusKey, info in statusGroups %}
-      {% if counted[statusKey] is defined and counted[statusKey] > 0 %}
-        <span class="order-badge {{ info[1] }}">{{ counted[statusKey] }} {{ info[2] }}</span>
+    <h4 class="mb-0 me-1">Pedidos</h4>
+    <span class="pg-chip tot">{{ totalCount }} total</span>
+    {% for st, cnt in counted %}
+      {% if chipMap[st] is defined %}
+        <span class="pg-chip {{ chipMap[st] }}">{{ cnt }} {{ statusLabels[st] ?? st }}</span>
       {% endif %}
     {% endfor %}
   </div>
@@ -103,78 +141,59 @@
       {% endif %}
     {% endfor %}
     <div class="input-group input-group-sm">
-      <input type="search" name="query" class="form-control" placeholder="Buscar pedidos…" value="{{ searchQuery }}" autocomplete="off" style="min-width:220px">
-      <button class="btn btn-secondary" type="submit">&#128269;</button>
+      <input type="search" name="query" class="form-control" placeholder="Buscar pedidos…"
+             value="{{ searchQuery }}" autocomplete="off" style="width:220px">
+      <button class="btn btn-secondary" type="submit">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
     </div>
   </form>
 </div>
 
-{# ── table ── #}
-<div class="table-responsive">
-  <table class="table table-sm table-hover align-middle datagrid">
+{# ─ table ─ #}
+<div class="ord-tbl-wrap">
+  <table class="ord-tbl">
+    <colgroup>
+      <col class="c-id"><col class="c-user"><col class="c-svc">
+      <col class="c-st"><col class="c-val"><col class="c-qty">
+      <col class="c-ext"><col class="c-date"><col class="c-acts">
+    </colgroup>
     <thead>
       <tr>
-        <th>#</th>
-        <th>Usuário</th>
-        <th>Serviço</th>
-        <th>Status</th>
-        <th class="text-end">Valor</th>
-        <th class="text-end">Qtd</th>
-        <th>ID Ext.</th>
-        <th>Criado em</th>
-        <th></th>
+        <th>#</th><th>Usuário</th><th>Serviço</th>
+        <th>Status</th><th class="tc-val">Valor</th><th class="tc-qty">Qtd</th>
+        <th>ID Ext.</th><th>Criado em</th><th></th>
       </tr>
     </thead>
     <tbody>
     {% if entities|length > 0 %}
       {% for entityDto in entities %}
       {% set order = entityDto.getInstance() %}
-      {% set stInfo = stMap[order.status] ?? ['ob-refunded', order.status] %}
+      {% set stInfo = stMap[order.status] ?? ['st-refunded', order.status] %}
       <tr>
-        <td><small class="text-muted fw-bold">#{{ order.id }}</small></td>
+        <td><span class="text-muted" style="font-size:.75rem;font-weight:700">#{{ order.id }}</span></td>
         <td>
-          <div>
-            <span class="fw-semibold">{{ order.user.name }}</span><br>
-            <small class="text-muted">{{ order.user.email }}</small>
+          <span class="u-name">{{ order.user.name }}</span>
+          <span class="u-email">{{ order.user.email }}</span>
+        </td>
+        <td title="{{ order.service.name }}">{{ order.service.name }}</td>
+        <td><span class="st {{ stInfo[0] }}">{{ stInfo[1] }}</span></td>
+        <td class="tc-val" style="font-weight:700">R$&nbsp;{{ (order.amountCents/100)|number_format(2,',','.') }}</td>
+        <td class="tc-qty">{{ order.quantity }}</td>
+        <td>
+          {% if order.externalOrderId %}<span class="ext-id">{{ order.externalOrderId }}</span>
+          {% else %}<span class="text-muted">—</span>{% endif %}
+        </td>
+        <td style="font-size:.75rem">
+          {{ order.createdAt|date('d/m/Y') }}<br>
+          <span class="text-muted" style="font-size:.7rem">{{ order.createdAt|date('H:i') }}</span>
+        </td>
+        <td>
+          <div class="row-acts">
+            <a class="btn btn-sm btn-outline-info" href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(order.id).generateUrl() }}">Show</a>
+            <a class="btn btn-sm btn-outline-warning" href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('edit').setEntityId(order.id).generateUrl() }}">Edit</a>
+            <a class="btn btn-sm btn-outline-danger" href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('delete').setEntityId(order.id).generateUrl() }}" onclick="return confirm('Excluir #{{ order.id }}?')">Del</a>
           </div>
-        </td>
-        <td>
-          <span title="{{ order.service.name }}">{{ order.service.name }}</span>
-        </td>
-        <td>
-          <span class="order-badge {{ stInfo[0] }}">{{ stInfo[1] }}</span>
-        </td>
-        <td class="text-end fw-bold">
-          R$&nbsp;{{ (order.amountCents / 100)|number_format(2, ',', '.') }}
-        </td>
-        <td class="text-end">{{ order.quantity }}</td>
-        <td>
-          {% if order.externalOrderId %}
-            <code class="text-muted" style="font-size:.7rem">{{ order.externalOrderId }}</code>
-          {% else %}
-            <span class="text-muted">—</span>
-          {% endif %}
-        </td>
-        <td>
-          <small class="text-muted">
-            {{ order.createdAt|date('d/m/Y') }}<br>
-            {{ order.createdAt|date('H:i') }}
-          </small>
-        </td>
-        <td class="datagrid-row-actions">
-          <a class="btn btn-sm btn-outline-secondary"
-             href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(order.id).generateUrl() }}">
-            Show
-          </a>
-          <a class="btn btn-sm btn-outline-warning"
-             href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('edit').setEntityId(order.id).generateUrl() }}">
-            Edit
-          </a>
-          <a class="btn btn-sm btn-outline-danger"
-             href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('delete').setEntityId(order.id).generateUrl() }}"
-             onclick="return confirm('Excluir pedido #{{ order.id }}?')">
-            Del
-          </a>
         </td>
       </tr>
       {% endfor %}
@@ -185,9 +204,8 @@
   </table>
 </div>
 
-<div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+<div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
   <small class="text-muted">{{ totalCount }} resultado{{ totalCount != 1 ? 's' : '' }}</small>
   {{ include('@EasyAdmin/crud/paginator.html.twig') }}
 </div>
-
 {% endblock %}
