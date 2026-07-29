@@ -2,18 +2,18 @@
 
 namespace EasyCorp\Bundle\EasyAdminBundle\Collection;
 
-use EasyCorp\Bundle\EasyAdminBundle\Contracts\Collection\CollectionInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\ActionDto;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\ActionGroupDto;
 
 /**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  */
-final class ActionCollection implements CollectionInterface
+final class ActionCollection implements \ArrayAccess, \Countable, \IteratorAggregate
 {
     /**
-     * @param ActionDto[] $actions
+     * @param array<string, ActionDto|ActionGroupDto> $actions
      */
-    private function __construct(private array $actions)
+    public function __construct(private array $actions = [])
     {
     }
 
@@ -25,7 +25,9 @@ final class ActionCollection implements CollectionInterface
     }
 
     /**
-     * @param ActionDto[] $actions
+     * @deprecated since 4.28.2 and removed in 5.0.0, use FilterCollection::__construct() instead.
+     *
+     * @param array<string, ActionDto|ActionGroupDto> $actions
      */
     public static function new(array $actions): self
     {
@@ -33,14 +35,14 @@ final class ActionCollection implements CollectionInterface
     }
 
     /**
-     * @return ActionDto[]
+     * @return array<string, ActionDto|ActionGroupDto>
      */
     public function all(): array
     {
         return $this->actions;
     }
 
-    public function get(string $actionName): ?ActionDto
+    public function get(string $actionName): ActionDto|ActionGroupDto|null
     {
         return $this->actions[$actionName] ?? null;
     }
@@ -50,7 +52,7 @@ final class ActionCollection implements CollectionInterface
         return \array_key_exists($offset, $this->actions);
     }
 
-    public function offsetGet(mixed $offset): ActionDto
+    public function offsetGet(mixed $offset): ActionDto|ActionGroupDto
     {
         return $this->actions[$offset];
     }
@@ -71,34 +73,37 @@ final class ActionCollection implements CollectionInterface
     }
 
     /**
-     * @return \ArrayIterator<ActionDto>
+     * @return \ArrayIterator<string, ActionDto|ActionGroupDto>
      */
     public function getIterator(): \ArrayIterator
     {
         return new \ArrayIterator($this->actions);
     }
 
+    /**
+     * @deprecated since 4.28.1 and will be removed in 5.0.0 without replacement
+     */
     public function getEntityActions(): self
     {
         return self::new(array_filter(
             $this->actions,
-            static fn (ActionDto $action): bool => $action->isEntityAction()
+            static fn (ActionDto|ActionGroupDto $action): bool => $action instanceof ActionDto && $action->isEntityAction()
         ));
     }
 
     public function getGlobalActions(): self
     {
-        return self::new(array_filter(
+        return new self(array_filter(
             $this->actions,
-            static fn (ActionDto $action): bool => $action->isGlobalAction()
+            static fn (ActionDto|ActionGroupDto $action): bool => $action->isGlobalAction()
         ));
     }
 
     public function getBatchActions(): self
     {
-        return self::new(array_filter(
+        return new self(array_filter(
             $this->actions,
-            static fn (ActionDto $action): bool => $action->isBatchAction()
+            static fn (ActionDto|ActionGroupDto $action): bool => $action instanceof ActionDto && $action->isBatchAction()
         ));
     }
 }

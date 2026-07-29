@@ -8,13 +8,10 @@ use Symfony\Component\Intl\Locales;
 /**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  */
-final class Locale
+final class Locale implements \Stringable
 {
-    private LocaleDto $dto;
-
-    private function __construct(LocaleDto $localeDto)
+    private function __construct(private readonly LocaleDto $dto)
     {
-        $this->dto = $localeDto;
     }
 
     public function __toString()
@@ -22,7 +19,7 @@ final class Locale
         return $this->dto->getName();
     }
 
-    public static function new(string $locale, string|null $label = null, ?string $icon = null): self
+    public static function new(string $locale, ?string $label = null, ?string $icon = null): self
     {
         if (!Locales::exists($locale)) {
             throw new \InvalidArgumentException(sprintf('The given value "%s" is not a valid locale code or it is not supported by the Symfony Intl component.', $locale));

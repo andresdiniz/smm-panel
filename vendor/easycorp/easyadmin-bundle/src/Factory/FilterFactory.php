@@ -3,9 +3,12 @@
 namespace EasyCorp\Bundle\EasyAdminBundle\Factory;
 
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Mapping\FieldMapping;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\FilterCollection;
+use EasyCorp\Bundle\EasyAdminBundle\Contracts\Filter\FilterConfiguratorInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Contracts\Filter\FilterInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Contracts\Provider\AdminContextProviderInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\FilterConfigDto;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ArrayFilter;
@@ -15,7 +18,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\DateTimeFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\NumericFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
-use EasyCorp\Bundle\EasyAdminBundle\Provider\AdminContextProvider;
 
 /**
  * @author Yonel Ceruto <yonelceruto@gmail.com>
@@ -23,8 +25,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Provider\AdminContextProvider;
  */
 final class FilterFactory
 {
-    private AdminContextProvider $adminContextProvider;
-    private iterable $filterConfigurators;
+    /**
+     * @var array<string, class-string<FilterInterface>>
+     */
     private static array $doctrineTypeToFilterClass = [
         'json_array' => ArrayFilter::class,
         Types::SIMPLE_ARRAY => ArrayFilter::class,
@@ -52,10 +55,13 @@ final class FilterFactory
         Types::TEXT => TextFilter::class,
     ];
 
-    public function __construct(AdminContextProvider $adminContextProvider, iterable $filterConfigurators)
-    {
-        $this->adminContextProvider = $adminContextProvider;
-        $this->filterConfigurators = $filterConfigurators;
+    /**
+     * @param iterable<FilterConfiguratorInterface> $filterConfigurators
+     */
+    public function __construct(
+        private readonly AdminContextProviderInterface $adminContextProvider,
+        private readonly iterable $filterConfigurators,
+    ) {
     }
 
     public function create(FilterConfigDto $filterConfig, FieldCollection $fields, EntityDto $entityDto): FilterCollection
@@ -73,31 +79,42 @@ final class FilterFactory
 
             $context = $this->adminContextProvider->getContext();
             foreach ($this->filterConfigurators as $configurator) {
+                // @phpstan-ignore-next-line argument.type
                 if (!$configurator->supports($filterDto, $fields->getByProperty($property), $entityDto, $context)) {
                     continue;
                 }
 
+                // @phpstan-ignore-next-line argument.type
                 $configurator->configure($filterDto, $fields->getByProperty($property), $entityDto, $context);
             }
 
             $builtFilters[$property] = $filterDto;
         }
 
-        return FilterCollection::new($builtFilters);
+        return new FilterCollection($builtFilters);
     }
 
     private function guessFilterClass(EntityDto $entityDto, string $propertyName): string
     {
-        if ($entityDto->isAssociation($propertyName)) {
+        if ($entityDto->getClassMetadata()->hasAssociation($propertyName)) {
             return EntityFilter::class;
         }
 
-        $metadata = $entityDto->getPropertyMetadata($propertyName);
-
-        if ($metadata->isEmpty()) {
+        if (isset($entityDto->getClassMetadata()->embeddedClasses[$propertyName])) {
             return TextFilter::class;
         }
 
-        return self::$doctrineTypeToFilterClass[$metadata->get('type')] ?? TextFilter::class;
+        // In Doctrine ORM 3.x, FieldMapping implements \ArrayAccess; in 4.x it's an object with properties
+        $fieldMapping = $entityDto->getClassMetadata()->getFieldMapping($propertyName);
+        // In Doctrine ORM 2.x, getFieldMapping() returns an array
+        /** @phpstan-ignore-next-line function.impossibleType */
+        if (\is_array($fieldMapping)) {
+            /** @phpstan-ignore-next-line cast.useless */
+            $fieldMapping = (object) $fieldMapping;
+        }
+        /** @phpstan-ignore-next-line function.alreadyNarrowedType */
+        $fieldType = property_exists($fieldMapping, 'type') ? $fieldMapping->type : $fieldMapping['type'];
+
+        return self::$doctrineTypeToFilterClass[$fieldType] ?? TextFilter::class;
     }
 }

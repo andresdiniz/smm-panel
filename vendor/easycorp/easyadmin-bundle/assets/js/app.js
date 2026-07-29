@@ -1,10 +1,10 @@
 // any CSS you require will output into a single css file (app.css in this case)
-require('../css/app.scss');
+require('../css/app.css');
 
 import bootstrap from 'bootstrap/dist/js/bootstrap.bundle';
 import Mark from 'mark.js/src/vanilla';
 import Autocomplete from './autocomplete';
-import {toggleVisibilityClasses} from "./helpers";
+import { sanitizeUrl, toggleVisibilityClasses } from './helpers';
 
 // Provide Bootstrap variable globally to allow custom backend pages to use it
 window.bootstrap = bootstrap;
@@ -26,12 +26,15 @@ class App {
         this.#createLayoutResizeControls();
         this.#createNavigationToggler();
         this.#createSearchHighlight();
+        this.#createSearchInputAutoSizing();
         this.#createFilters();
         this.#createAutoCompleteFields();
         this.#createBatchActions();
-        this.#createModalWindowsForDeleteActions();
+        this.#createActionConfirmationModals();
+        this.#createDefaultRowAction();
         this.#createPopovers();
         this.#createTooltips();
+        this.#createActionHandlers();
 
         document.addEventListener('ea.collection.item-added', () => this.#createAutoCompleteFields());
     }
@@ -65,14 +68,14 @@ class App {
                 return;
             }
 
-            // needed because the menu accordion is based on the max-height property.
-            // visible elements must be initialized with a explicit max-height; otherwise
+            // needed because the menu accordion is based on the max-block-size property.
+            // visible elements must be initialized with a explicit max-block-size; otherwise
             // when you click on them the first time, the animation is not smooth
             if (menuItem.classList.contains('expanded')) {
-                menuItemSubmenu.style.maxHeight = menuItemSubmenu.scrollHeight + 'px';
+                menuItemSubmenu.style.maxHeight = `${menuItemSubmenu.scrollHeight}px`;
             }
 
-            menuItem.querySelector('.submenu-toggle').addEventListener('click', (event) =>  {
+            menuItem.querySelector('.submenu-toggle').addEventListener('click', (event) => {
                 event.preventDefault();
 
                 // hide other submenus
@@ -93,7 +96,7 @@ class App {
                     menuItemSubmenu.style.maxHeight = '0px';
                     menuItem.classList.remove('expanded');
                 } else {
-                    menuItemSubmenu.style.maxHeight = menuItemSubmenu.scrollHeight + 'px';
+                    menuItemSubmenu.style.maxHeight = `${menuItemSubmenu.scrollHeight}px`;
                     menuItem.classList.add('expanded');
                 }
             });
@@ -107,8 +110,8 @@ class App {
                 const oldValue = localStorage.getItem(this.#sidebarWidthLocalStorageKey) || 'normal';
                 const newValue = 'normal' === oldValue ? 'compact' : 'normal';
 
-                document.querySelector('body').classList.remove(`ea-sidebar-width-${ oldValue }`);
-                document.querySelector('body').classList.add(`ea-sidebar-width-${ newValue }`);
+                document.querySelector('body').classList.remove(`ea-sidebar-width-${oldValue}`);
+                document.querySelector('body').classList.add(`ea-sidebar-width-${newValue}`);
                 localStorage.setItem(this.#sidebarWidthLocalStorageKey, newValue);
             });
         }
@@ -119,8 +122,8 @@ class App {
                 const oldValue = localStorage.getItem(this.#contentWidthLocalStorageKey) || 'normal';
                 const newValue = 'normal' === oldValue ? 'full' : 'normal';
 
-                document.querySelector('body').classList.remove(`ea-content-width-${ oldValue }`);
-                document.querySelector('body').classList.add(`ea-content-width-${ newValue }`);
+                document.querySelector('body').classList.remove(`ea-content-width-${oldValue}`);
+                document.querySelector('body').classList.add(`ea-content-width-${newValue}`);
                 localStorage.setItem(this.#contentWidthLocalStorageKey, newValue);
             });
         }
@@ -171,21 +174,34 @@ class App {
         const tokenizeString = (string) => {
             const regex = /"([^"\\]*(\\.[^"\\]*)*)"|\S+/g;
             const tokens = [];
-            let match;
 
-            while (null !== (match = regex.exec(string))) {
+            let match = regex.exec(string);
+            while (null !== match) {
                 tokens.push(match[0].replaceAll('"', '').trim());
+                match = regex.exec(string);
             }
 
             return tokens;
         };
 
         const searchQueryTerms = tokenizeString(searchElement.value);
-        const searchQueryTermsHighlightRegexp = new RegExp(searchQueryTerms.join('|'), 'i');
 
-        const elementsToHighlight = document.querySelectorAll('table tbody td:not(.actions)');
+        const elementsToHighlight = document.querySelectorAll('table tbody td.searchable');
         const highlighter = new Mark(elementsToHighlight);
-        highlighter.markRegExp(searchQueryTermsHighlightRegexp);
+        highlighter.mark(searchQueryTerms, { separateWordSearch: false });
+    }
+
+    #createSearchInputAutoSizing() {
+        const searchElement = document.querySelector('.content-search-label input[type="search"]');
+        if (null === searchElement) {
+            return;
+        }
+
+        // keep the parent label's data-value in sync with the typed text, so the
+        // ::after pseudo-element used to auto-size the search input grows while typing
+        searchElement.addEventListener('input', () => {
+            searchElement.parentNode.dataset.value = searchElement.value;
+        });
     }
 
     #createFilters() {
@@ -196,31 +212,46 @@ class App {
 
         const filterModal = document.querySelector(filterButton.getAttribute('data-bs-target'));
 
+        // the filter URL is fetched and its response is injected into the page (see below),
+        // so it must be same-origin to prevent loading attacker-controlled remote HTML
+        const filtersUrl = sanitizeUrl(filterButton.getAttribute('data-href'), true);
+        if (null === filtersUrl) {
+            return;
+        }
+
         // this is needed to avoid errors when connection is slow
-        filterButton.setAttribute('href', filterButton.getAttribute('data-href'));
+        filterButton.setAttribute('href', filtersUrl);
         filterButton.removeAttribute('data-href');
         filterButton.classList.remove('disabled');
 
         filterButton.addEventListener('click', (event) => {
             const filterModalBody = filterModal.querySelector('.modal-body');
-            filterModalBody.innerHTML = '<div class="fa-3x px-3 py-3 text-muted text-center"><i class="fas fa-circle-notch fa-spin"></i></div>';
+            filterModalBody.innerHTML =
+                '<div class="fa-3x px-3 py-3 text-muted text-center"><i class="fas fa-circle-notch fa-spin"></i></div>';
 
             fetch(filterButton.getAttribute('href'))
-                .then((response) => { return response.text(); })
+                .then((response) => {
+                    return response.text();
+                })
                 .then((text) => {
                     filterModalBody.innerHTML = text;
                     this.#createAutoCompleteFields();
                     this.#createFilterToggles();
                 })
-                .catch((error) => { console.error(error); });
+                .catch((error) => {
+                    console.error(error);
+                });
 
             event.preventDefault();
         });
 
         const removeFilter = (filterField) => {
-            filterField.closest('form').querySelectorAll(`input[name^="filters[${filterField.dataset.filterProperty}]"]`).forEach((filterFieldInput) => {
-                filterFieldInput.remove();
-            });
+            filterField
+                .closest('form')
+                .querySelectorAll(`input[name^="filters[${filterField.dataset.filterProperty}]"]`)
+                .forEach((filterFieldInput) => {
+                    filterFieldInput.remove();
+                });
 
             filterField.remove();
         };
@@ -268,8 +299,8 @@ class App {
 
             rowCheckbox.addEventListener('click', (e) => {
                 if (lastUpdatedRowCheckbox && e.shiftKey) {
-                    const lastIndex = parseInt(lastUpdatedRowCheckbox.dataset.rowIndex);
-                    const currentIndex = parseInt(e.target.dataset.rowIndex);
+                    const lastIndex = Number.parseInt(lastUpdatedRowCheckbox.dataset.rowIndex);
+                    const currentIndex = Number.parseInt(e.target.dataset.rowIndex);
                     const valueToApply = e.target.checked;
                     const lowest = Math.min(lastIndex, currentIndex);
                     const highest = Math.max(lastIndex, currentIndex);
@@ -285,7 +316,9 @@ class App {
             });
 
             rowCheckbox.addEventListener('change', () => {
-                const selectedRowCheckboxes = document.querySelectorAll('input[type="checkbox"].form-batch-checkbox:checked');
+                const selectedRowCheckboxes = document.querySelectorAll(
+                    'input[type="checkbox"].form-batch-checkbox:checked'
+                );
                 const row = rowCheckbox.closest('tr');
                 const content = rowCheckbox.closest('.content');
 
@@ -318,29 +351,24 @@ class App {
         });
 
         const modalTitle = document.querySelector('#batch-action-confirmation-title');
-        const titleContentWithPlaceholders = modalTitle.textContent;
+        const titleContentWithPlaceholders = modalTitle?.textContent;
 
         document.querySelectorAll('[data-action-batch]').forEach((dataActionBatch) => {
             dataActionBatch.addEventListener('click', (event) => {
                 event.preventDefault();
 
                 const actionElement = event.currentTarget;
-                // There is still a possibility that actionName will remain undefined. The title attribute is not always present on elements with the [data-action-batch] attribute.
-                const actionName = actionElement.textContent.trim() || actionElement.getAttribute('title');
                 const selectedItems = document.querySelectorAll('input[type="checkbox"].form-batch-checkbox:checked');
-                modalTitle.textContent = titleContentWithPlaceholders
-                    .replace('%action_name%', actionName)
-                    .replace('%num_items%', selectedItems.length.toString());
 
-                document.querySelector('#modal-batch-action-button').addEventListener('click', () => {
+                const submitBatchAction = () => {
                     // prevent double submission of the batch action form
                     actionElement.setAttribute('disabled', 'disabled');
 
                     const batchFormFields = {
-                        'batchActionName': actionElement.getAttribute('data-action-name'),
-                        'entityFqcn': actionElement.getAttribute('data-entity-fqcn'),
-                        'batchActionUrl': actionElement.getAttribute('data-action-url'),
-                        'batchActionCsrfToken': actionElement.getAttribute('data-action-csrf-token'),
+                        batchActionName: actionElement.getAttribute('data-action-name'),
+                        entityFqcn: actionElement.getAttribute('data-entity-fqcn'),
+                        batchActionUrl: actionElement.getAttribute('data-action-url'),
+                        batchActionCsrfToken: actionElement.getAttribute('data-action-csrf-token'),
                     };
                     selectedItems.forEach((item, i) => {
                         batchFormFields[`batchActionEntityIds[${i}]`] = item.value;
@@ -349,7 +377,7 @@ class App {
                     const batchForm = document.createElement('form');
                     batchForm.setAttribute('method', 'POST');
                     batchForm.setAttribute('action', actionElement.getAttribute('data-action-url'));
-                    for (let fieldName in batchFormFields) {
+                    for (const fieldName in batchFormFields) {
                         const formField = document.createElement('input');
                         formField.setAttribute('type', 'hidden');
                         formField.setAttribute('name', fieldName);
@@ -359,7 +387,25 @@ class App {
 
                     document.body.appendChild(batchForm);
                     batchForm.submit();
-                });
+                };
+
+                // check if this batch action should skip confirmation
+                if (actionElement.hasAttribute('data-action-batch-no-confirm')) {
+                    submitBatchAction();
+                } else {
+                    // show confirmation modal
+                    const actionName = actionElement.textContent.trim() || actionElement.getAttribute('title');
+
+                    // use custom message if provided, otherwise use default modal title
+                    const customMessage = actionElement.getAttribute('data-batch-action-confirm-message');
+                    const messageTemplate = customMessage ?? titleContentWithPlaceholders;
+
+                    modalTitle.textContent = messageTemplate
+                        .replace('%action_name%', actionName)
+                        .replace('%num_items%', selectedItems.length.toString());
+
+                    document.querySelector('#modal-batch-action-button').addEventListener('click', submitBatchAction);
+                }
             });
         });
     }
@@ -371,17 +417,188 @@ class App {
         });
     }
 
-    #createModalWindowsForDeleteActions() {
-        document.querySelectorAll('.action-delete').forEach((actionElement) => {
+    #createActionConfirmationModals() {
+        const modalTitle = document.querySelector('#action-confirmation-title');
+        const modalButton = document.querySelector('#modal-action-confirmation-button');
+        const defaultTitleTemplate = modalTitle?.textContent;
+        const defaultButtonLabel = modalButton?.textContent;
+        const variantToClass = {
+            default: 'btn-secondary',
+            primary: 'btn-primary',
+            success: 'btn-success',
+            warning: 'btn-warning',
+            danger: 'btn-danger',
+        };
+        const allVariantClasses = Object.values(variantToClass);
+
+        document.querySelectorAll('[data-action-confirmation="true"]').forEach((actionElement) => {
             actionElement.addEventListener('click', (event) => {
                 event.preventDefault();
 
-                document.querySelector('#modal-delete-button').addEventListener('click', () => {
-                    const deleteFormAction = actionElement.getAttribute('formaction');
-                    const deleteForm = document.querySelector('#delete-form');
-                    deleteForm.setAttribute('action', deleteFormAction);
-                    deleteForm.submit();
-                });
+                const actionName = actionElement.textContent.trim() || actionElement.getAttribute('title');
+                const entityName = actionElement.getAttribute('data-action-entity-name') || '';
+                const entityId = actionElement.getAttribute('data-action-entity-id') || '';
+
+                // use custom message if provided, otherwise use default modal title
+                const customMessage = actionElement.getAttribute('data-action-confirmation-message');
+                const messageTemplate = customMessage ?? defaultTitleTemplate;
+
+                modalTitle.textContent = messageTemplate
+                    .replace('%action_name%', actionName)
+                    .replace('%entity_name%', entityName)
+                    .replace('%entity_id%', entityId);
+
+                // use custom button label if provided, otherwise use default
+                const customButtonLabel = actionElement.getAttribute('data-action-confirmation-button');
+                modalButton.textContent = customButtonLabel ?? defaultButtonLabel;
+
+                // apply to the modal button the same variant as the action that opened the modal
+                const variant = actionElement.getAttribute('data-action-variant') || 'danger';
+                const variantClass = variantToClass[variant] || 'btn-danger';
+                modalButton.classList.remove(...allVariantClasses);
+                modalButton.classList.add(variantClass);
+
+                modalButton.addEventListener(
+                    'click',
+                    () => {
+                        // Case 1: POST action with formaction (like DELETE with CSRF token)
+                        const formAction = actionElement.getAttribute('formaction');
+                        if (formAction) {
+                            const form = document.querySelector('#action-confirmation-form');
+                            form.setAttribute('action', formAction);
+                            form.submit();
+                            return;
+                        }
+
+                        // Case 2: dropdown action rendered as form (data-ea-action-form-id)
+                        const actionFormId = actionElement.getAttribute('data-ea-action-form-id');
+                        if (actionFormId) {
+                            document.getElementById(actionFormId).submit();
+                            return;
+                        }
+
+                        // Case 3: standalone button inside a <form> (renderAsForm)
+                        const parentForm = actionElement.closest('form');
+                        if (parentForm?.hasAttribute('action')) {
+                            parentForm.submit();
+                            return;
+                        }
+
+                        // Case 4: GET action with href
+                        const href = actionElement.getAttribute('href');
+                        if (href) {
+                            window.location.href = href;
+                        }
+                    },
+                    { once: true }
+                );
+            });
+        });
+    }
+
+    #createDefaultRowAction() {
+        const clickableRows = document.querySelectorAll('tr[data-default-action-url]');
+        if (0 === clickableRows.length) {
+            return;
+        }
+
+        clickableRows.forEach((row) => row.classList.add('ea-clickable-row'));
+
+        const clickTrigger = clickableRows[0].closest('table')?.getAttribute('data-default-action-trigger') || 'single';
+
+        const interactiveSelectors = [
+            'a',
+            'button',
+            'input',
+            'select',
+            'textarea',
+            '.form-check',
+            '.dropdown',
+            '.actions',
+            '[data-bs-toggle]',
+            '.btn',
+            '.modal',
+        ];
+
+        const isInteractiveElement = (element) => {
+            // walk up the DOM tree to check if any ancestor is interactive
+            // this also handles elements with pointer-events: none whose clicks bubble to parents
+            let current = element;
+            while (current && current !== document.body) {
+                if (interactiveSelectors.some((selector) => current.matches(selector))) {
+                    return true;
+                }
+                current = current.parentElement;
+            }
+
+            return false;
+        };
+
+        const navigateToUrl = (url) => {
+            // create a temporary link and click it to let Turbo (or other libraries) intercept the navigation
+            const link = document.createElement('a');
+            link.href = url;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        const handleRowActivation = (row, event) => {
+            // don't navigate if rows are selected (batch mode)
+            if (row.classList.contains('selected-row')) {
+                return;
+            }
+
+            const url = row.dataset.defaultActionUrl;
+            if (url) {
+                navigateToUrl(url);
+            }
+        };
+
+        // when the single-click trigger is active, a drag-to-select gesture ends with a `click`
+        // event at the release point. Skip navigation in that case so users can highlight and
+        // copy text from a cell without being navigated away.
+        const userIsSelectingTextInRow = (row) => {
+            if ('double' === clickTrigger) {
+                return false;
+            }
+
+            const selection = window.getSelection();
+            if (null === selection || 0 === selection.toString().length || 0 === selection.rangeCount) {
+                return false;
+            }
+
+            return row.contains(selection.getRangeAt(0).commonAncestorContainer);
+        };
+
+        clickableRows.forEach((row) => {
+            // handle mouse clicks
+            row.addEventListener(clickTrigger === 'double' ? 'dblclick' : 'click', (event) => {
+                if (isInteractiveElement(event.target)) {
+                    return;
+                }
+
+                if (userIsSelectingTextInRow(row)) {
+                    return;
+                }
+
+                handleRowActivation(row, event);
+            });
+
+            // handle keyboard navigation (Enter and Space)
+            row.addEventListener('keydown', (event) => {
+                if ('Enter' !== event.key && ' ' !== event.key) {
+                    return;
+                }
+
+                // don't activate if focus is on an interactive child element
+                if (isInteractiveElement(event.target) && event.target !== row) {
+                    return;
+                }
+
+                event.preventDefault();
+                handleRowActivation(row, event);
             });
         });
     }
@@ -404,7 +621,10 @@ class App {
                 const filterToggleLink = filterCheckbox.nextElementSibling;
                 const filterExpandedAttribute = filterCheckbox.nextElementSibling.getAttribute('aria-expanded');
 
-                if ((filterCheckbox.checked && 'false' === filterExpandedAttribute) || (!filterCheckbox.checked && 'true' === filterExpandedAttribute)) {
+                if (
+                    (filterCheckbox.checked && 'false' === filterExpandedAttribute) ||
+                    (!filterCheckbox.checked && 'true' === filterExpandedAttribute)
+                ) {
                     filterToggleLink.click();
                 }
             });
@@ -440,6 +660,36 @@ class App {
                 }
 
                 toggleVisibilityClasses(secondValue, comparisonWidget.value !== 'between');
+            });
+        });
+    }
+
+    #createActionHandlers() {
+        // handle form submissions via data attribute (replaces inline onclick handlers)
+        // skip elements with confirmation modals (handled by #createActionConfirmationModals)
+        document.querySelectorAll('[data-ea-action-form-id]').forEach((element) => {
+            element.addEventListener('click', (event) => {
+                if (element.hasAttribute('data-action-confirmation')) {
+                    return;
+                }
+                event.preventDefault();
+                const formId = element.getAttribute('data-ea-action-form-id');
+                document.getElementById(formId).submit();
+            });
+        });
+
+        // handle navigation via data attribute (replaces inline onclick handlers)
+        // skip elements with confirmation modals (handled by #createActionConfirmationModals)
+        document.querySelectorAll('[data-ea-action-url]').forEach((element) => {
+            element.addEventListener('click', (event) => {
+                if (element.hasAttribute('data-action-confirmation')) {
+                    return;
+                }
+                event.preventDefault();
+                const actionUrl = sanitizeUrl(element.getAttribute('data-ea-action-url'));
+                if (null !== actionUrl) {
+                    window.location = actionUrl;
+                }
             });
         });
     }

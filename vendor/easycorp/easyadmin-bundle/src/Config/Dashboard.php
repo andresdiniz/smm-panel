@@ -2,6 +2,7 @@
 
 namespace EasyCorp\Bundle\EasyAdminBundle\Config;
 
+use EasyCorp\Bundle\EasyAdminBundle\Config\Option\ColorScheme;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Option\TextDirection;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\DashboardDto;
 
@@ -98,6 +99,20 @@ final class Dashboard
         return $this;
     }
 
+    public function setDefaultColorScheme(string $colorScheme): self
+    {
+        if (!\in_array($colorScheme, [ColorScheme::LIGHT, ColorScheme::DARK, ColorScheme::AUTO], true)) {
+            throw new \InvalidArgumentException(sprintf('The "%s" value given to the colorScheme option is not valid. It can only be "%s", "%s" or "%s"', $colorScheme, ColorScheme::LIGHT, ColorScheme::DARK, ColorScheme::AUTO));
+        }
+
+        $this->dto->setDefaultColorScheme($colorScheme);
+
+        return $this;
+    }
+
+    /**
+     * @param array<Locale|string> $locales
+     */
     public function setLocales(array $locales): self
     {
         $localeDtos = [];
@@ -112,6 +127,13 @@ final class Dashboard
         }
 
         $this->dto->setLocales($localeDtos);
+
+        return $this;
+    }
+
+    public function useEntityTranslations(bool $useEntityTranslations = true): self
+    {
+        $this->dto->setUseEntityTranslations($useEntityTranslations);
 
         return $this;
     }

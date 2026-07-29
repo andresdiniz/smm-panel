@@ -2,11 +2,17 @@
 
 namespace EasyCorp\Bundle\EasyAdminBundle\Form\Type;
 
-use ArrayObject;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\FieldDto;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Form\EventListener\FormLayoutSubscriber;
+use EasyCorp\Bundle\EasyAdminBundle\Form\Type\Layout\EaFormColumnCloseType;
+use EasyCorp\Bundle\EasyAdminBundle\Form\Type\Layout\EaFormColumnOpenType;
+use EasyCorp\Bundle\EasyAdminBundle\Form\Type\Layout\EaFormFieldsetCloseType;
+use EasyCorp\Bundle\EasyAdminBundle\Form\Type\Layout\EaFormFieldsetOpenType;
+use EasyCorp\Bundle\EasyAdminBundle\Form\Type\Layout\EaFormRowType;
+use EasyCorp\Bundle\EasyAdminBundle\Form\Type\Layout\EaFormTabPaneCloseType;
+use EasyCorp\Bundle\EasyAdminBundle\Form\Type\Layout\EaFormTabPaneOpenType;
 use Symfony\Bridge\Doctrine\Form\DoctrineOrmTypeGuesser;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -23,11 +29,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 class CrudFormType extends AbstractType
 {
-    private DoctrineOrmTypeGuesser $doctrineOrmTypeGuesser;
-
-    public function __construct(DoctrineOrmTypeGuesser $doctrineOrmTypeGuesser)
+    public function __construct(private readonly DoctrineOrmTypeGuesser $doctrineOrmTypeGuesser)
     {
-        $this->doctrineOrmTypeGuesser = $doctrineOrmTypeGuesser;
     }
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
@@ -48,7 +51,7 @@ class CrudFormType extends AbstractType
             // 'property_path' option to keep the original field name
             if (str_contains($fieldDto->getProperty(), '.')) {
                 $formFieldOptions['property_path'] = $fieldDto->getProperty();
-                $name = str_replace(['.', '[', ']'], '_', $fieldDto->getProperty());
+                $name = str_replace(['.', '[', ']', '?'], '_', $fieldDto->getProperty());
             } else {
                 $name = $fieldDto->getProperty();
             }
@@ -104,6 +107,8 @@ class CrudFormType extends AbstractType
                 $formFieldOptions['ea_form_tab'] = $currentFormTab;
             }
 
+            $name = $this->isTypeFormField($formFieldType) ? $fieldDto->getPropertyNameWithSuffix() : $name;
+
             $formField = $builder->getFormFactory()->createNamedBuilder($name, $formFieldType, null, $formFieldOptions);
             $formField->setAttribute('ea_entity', $entityDto);
             $formField->setAttribute('ea_form_fieldset', $options['ea_form_fieldset'] ?? $currentFormFieldset);
@@ -143,5 +148,25 @@ class CrudFormType extends AbstractType
     public function getBlockPrefix(): string
     {
         return 'ea_crud';
+    }
+
+    private function isTypeFormField(?string $type): bool
+    {
+        if (null === $type) {
+            return false;
+        }
+
+        return \in_array($type, [
+            EaFormFieldsetOpenType::class,
+            EaFormFieldsetCloseType::class,
+
+            EaFormRowType::class,
+
+            EaFormTabPaneOpenType::class,
+            EaFormTabPaneCloseType::class,
+
+            EaFormColumnOpenType::class,
+            EaFormColumnCloseType::class,
+        ], true);
     }
 }

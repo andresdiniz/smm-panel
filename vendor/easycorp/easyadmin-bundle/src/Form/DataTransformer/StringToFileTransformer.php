@@ -12,20 +12,22 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  */
 class StringToFileTransformer implements DataTransformerInterface
 {
-    private string $uploadDir;
+    /** @var callable */
     private $uploadFilename;
+    /** @var callable */
     private $uploadValidate;
-    private bool $multiple;
 
-    public function __construct(string $uploadDir, callable $uploadFilename, callable $uploadValidate, bool $multiple)
-    {
-        $this->uploadDir = $uploadDir;
+    public function __construct(
+        private readonly string $uploadDir,
+        callable $uploadFilename,
+        callable $uploadValidate,
+        private readonly bool $multiple,
+    ) {
         $this->uploadFilename = $uploadFilename;
         $this->uploadValidate = $uploadValidate;
-        $this->multiple = $multiple;
     }
 
-    public function transform($value): mixed
+    public function transform(mixed $value): mixed
     {
         if (null === $value || [] === $value) {
             return null;
@@ -42,7 +44,7 @@ class StringToFileTransformer implements DataTransformerInterface
         return array_map([$this, 'doTransform'], $value);
     }
 
-    public function reverseTransform($value): mixed
+    public function reverseTransform(mixed $value): mixed
     {
         if (null === $value || [] === $value) {
             return null;
@@ -59,7 +61,7 @@ class StringToFileTransformer implements DataTransformerInterface
         return array_map([$this, 'doReverseTransform'], $value);
     }
 
-    private function doTransform($value): ?File
+    private function doTransform(mixed $value): ?File
     {
         if (null === $value) {
             return null;
@@ -73,6 +75,10 @@ class StringToFileTransformer implements DataTransformerInterface
             throw new TransformationFailedException('Expected a string or null.');
         }
 
+        if (self::isUnsafeStoredPath($value)) {
+            return null;
+        }
+
         if (is_file($this->uploadDir.$value)) {
             return new File($this->uploadDir.$value);
         }
@@ -80,7 +86,30 @@ class StringToFileTransformer implements DataTransformerInterface
         return null;
     }
 
-    private function doReverseTransform($value): ?string
+    private static function isUnsafeStoredPath(string $value): bool
+    {
+        // reject empty values or null bytes
+        if ('' === $value || str_contains($value, "\0")) {
+            return true;
+        }
+
+        // reject absolute paths (Unix, UNC, Windows drive letter)
+        $normalized = str_replace('\\', '/', $value);
+        if (str_starts_with($normalized, '/') || 1 === preg_match('#^[a-zA-Z]:/#', $normalized)) {
+            return true;
+        }
+
+        // reject any `..` segment anywhere in the path
+        foreach (explode('/', $normalized) as $segment) {
+            if ('..' === $segment) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function doReverseTransform(mixed $value): ?string
     {
         if (null === $value) {
             return null;

@@ -2,14 +2,13 @@ Design
 ======
 
 The design of the backend is ready for any kind of application. It's been
-created with `Bootstrap 5`_, `Font Awesome icons`_ and some custom CSS and
-JavaScript code; all managed by `Webpack`_ via Symfony's `Webpack Encore`_.
+created with `Bootstrap 5`_, and some custom CSS and JavaScript code; all
+managed by `Webpack`_ via Symfony's `Webpack Encore`_.
 
 Like any other Symfony bundle, assets are copied to (or symlinked from) the
 ``public/bundles/`` directory of your application when installing or updating
-the bundle. If this doesn't work for any reason, your backend won't display the
-proper CSS/JS styles. In those cases, run this command to install those assets
-manually:
+the bundle. If this doesn't work for any reason, your backend won't display
+properly. In those cases, run this command to install those assets manually:
 
 .. code-block:: terminal
 
@@ -19,6 +18,55 @@ manually:
 Depending on your needs, there are several ways of customizing the design. Some
 of them require pure CSS/JavaScript code and others require overriding and/or
 creating new Twig templates.
+
+.. _icon-customization:
+
+Changing the Backend Icons
+--------------------------
+
+.. versionadded:: 4.16
+
+    The option to configure the icon set was introduced in EasyAdmin 4.16.0.
+
+By default, EasyAdmin uses `FontAwesome icons`_ both for the built-in interface
+icons and any custom icons that you add to menu items, fields, form tabs, etc.
+The full FontAwesome icon set (~2,000 icons) is already included in EasyAdmin,
+so you don't need to download any of these icons.
+
+If you prefer to use other icons, call the ``useCustomIconSet()`` in your dashboard::
+
+    namespace App\Controller\Admin;
+
+    use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
+    use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
+    use EasyCorp\Bundle\EasyAdminBundle\Config\Option\IconSet;
+    use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
+
+    #[AdminDashboard(routePath: '/admin', routeName: 'admin')]
+    class DashboardController extends AbstractDashboardController
+    {
+        public function configureAssets(): Assets
+        {
+            return Assets::new()
+                ->useCustomIconSet()
+            ;
+        }
+
+        // ...
+    }
+
+Then, whenever you define a custom icon for any EasyAdmin feature, use the full
+icon prefix and name (``lucide:map-pin``, ``ic:baseline-calendar-month``, etc.)
+that you would typically use in `Symfony UX Icons`_.
+
+If all your icons use a common prefix (e.g. ``tabler:`` when using the `Tabler`_
+icons), pass it to the ``useCustomIconSet()`` method::
+
+    return Assets::new()->useCustomIconSet('tabler');
+
+Now, the ``tabler:`` prefix will be added automatically to all your custom icon
+names. This way, you can use names like ``user`` and ``file`` instead of
+``tabler:user`` and ``tabler:file``.
 
 .. _template-customization:
 
@@ -92,9 +140,11 @@ This option allows you to render certain parts of the backend with your own Twig
 templates. First, you can replace some templates globally in the
 :doc:`dashboard </dashboards>`::
 
+    use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
     use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
     use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 
+    #[AdminDashboard(routePath: '/admin', routeName: 'admin')]
     class DashboardController extends AbstractDashboardController
     {
         // ...
@@ -343,9 +393,11 @@ To override any of them, create a CSS file and redefine the variable values:
 
 Then, load this CSS file in your dashboard and/or resource admin::
 
+    use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
     use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
     use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 
+    #[AdminDashboard(routePath: '/admin', routeName: 'admin')]
     class DashboardController extends AbstractDashboardController
     {
         // ...
@@ -360,7 +412,7 @@ Then, load this CSS file in your dashboard and/or resource admin::
 
     Because of how Bootstrap styles are defined, it's not possible to use CSS
     variables to override every style. Sometimes you may need to also override
-    the value of some `Sass`_ variables (which are defined in the 
+    the value of some `Sass`_ variables (which are defined in the
     ``assets/css/easyadmin-theme/variables-bootstrap.scss`` file).
 
 CSS Selectors
@@ -382,7 +434,7 @@ If you are editing for example the element with ``id = 200`` of the ``User`` ent
 the ``<body>`` of that page will be ``<body id="easyadmin-edit-User-200" ...>``.
 
 The pattern of the ``class`` attribute is different because it applies several
-CSS classes at the same time:
+CSS classes:
 
 ==========  ============================================
 Page        ``<body>`` CSS class
@@ -406,16 +458,51 @@ this bundle.
 
 However, if you want total control over the backend styles, you can use Webpack
 to integrate the SCSS and JavaScript source files provided in the ``assets/``
-directory. The only caveat is that EasyAdmin doesn't use Webpack Encore yet when
+directory. The only limitation is that EasyAdmin doesn't use Webpack Encore yet when
 loading the assets, so you can't use features like versioning. This will be
 fixed in future versions.
 
+Content Security Policy (CSP) Support
+-------------------------------------
+
+`Content Security Policy`_ (CSP) is a security feature that helps prevent cross-site
+scripting (XSS) and other code injection attacks. When your application uses strict
+CSP headers, all inline scripts and dynamically loaded scripts must include a
+cryptographic nonce to be executed by the browser.
+
+EasyAdmin fully supports CSP nonces. First, install and configure `NelmioSecurityBundle`_
+in your application. Then, EasyAdmin will automatically detect the ``csp_nonce()`` Twig
+function and add the nonce attribute to all its script tags.
+
+Using CSP Nonces in Custom Templates
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you :ref:`override EasyAdmin templates <template-customization>` and add your own
+``<script>`` tags, use the ``{% guard %}`` Twig tag to conditionally include the nonce.
+This ensures your templates work both with and without NelmioSecurityBundle:
+
+.. code-block:: twig
+
+    {% guard function csp_nonce %}
+        <script src="{{ asset('js/custom.js') }}" nonce="{{ csp_nonce('script') }}"></script>
+    {% else %}
+        <script src="{{ asset('js/custom.js') }}"></script>
+    {% endguard %}
+
+The ``{% guard function csp_nonce %}`` syntax checks if the ``csp_nonce()`` function
+is available before using it, allowing graceful fallback when NelmioSecurityBundle
+is not installed.
+
 .. _`Bootstrap 5`: https://github.com/twbs/bootstrap
 .. _`Sass`: https://sass-lang.com/
-.. _`Font Awesome icons`: https://github.com/FortAwesome/Font-Awesome
 .. _`Webpack`: https://webpack.js.org/
 .. _`Webpack Encore`: https://symfony.com/doc/current/frontend.html
 .. _`override templates from bundles`: https://symfony.com/doc/current/bundles/override.html#templates
 .. _`customize individual form fields`: https://symfony.com/doc/current/form/form_customization.html
 .. _`form fragment naming rules`: https://symfony.com/doc/current/form/form_themes.html#form-fragment-naming
 .. _`form theme`: https://symfony.com/doc/current/form/form_themes.html
+.. _`FontAwesome icons`: https://fontawesome.com/v6/search?m=free
+.. _`Symfony UX Icons`: https://symfony.com/bundles/ux-icons/current/index.html
+.. _`Tabler`: https://tabler.io/icons
+.. _`Content Security Policy`: https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
+.. _`NelmioSecurityBundle`: https://github.com/nelmio/NelmioSecurityBundle

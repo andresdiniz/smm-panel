@@ -15,13 +15,14 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 class NumericFilterType extends AbstractType
 {
-    private string $valueType;
-    private array $valueTypeOptions;
+    private readonly string $valueType;
 
-    public function __construct(?string $valueType = null, array $valueTypeOptions = [])
+    /**
+     * @param array<string, mixed> $valueTypeOptions
+     */
+    public function __construct(?string $valueType = null, private readonly array $valueTypeOptions = [])
     {
         $this->valueType = $valueType ?? NumberType::class;
-        $this->valueTypeOptions = $valueTypeOptions;
     }
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
@@ -33,6 +34,14 @@ class NumericFilterType extends AbstractType
         $builder->addModelTransformer(new CallbackTransformer(
             static fn ($data) => $data,
             static function ($data) {
+                $data['value'] ??= null;
+
+                if (null === $data['value'] && ComparisonType::BETWEEN !== $data['comparison']) {
+                    $data['comparison'] = ComparisonType::EQ === $data['comparison'] ? 'IS NULL' : 'IS NOT NULL';
+
+                    return $data;
+                }
+
                 if (ComparisonType::BETWEEN === $data['comparison']) {
                     if (null === $data['value'] || '' === $data['value'] || null === $data['value2'] || '' === $data['value2']) {
                         throw new TransformationFailedException('Two values must be provided when "BETWEEN" comparison is selected.');

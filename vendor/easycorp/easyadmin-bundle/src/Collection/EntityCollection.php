@@ -2,23 +2,24 @@
 
 namespace EasyCorp\Bundle\EasyAdminBundle\Collection;
 
-use EasyCorp\Bundle\EasyAdminBundle\Contracts\Collection\CollectionInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 
 /**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  */
-final class EntityCollection implements CollectionInterface
+final class EntityCollection implements \ArrayAccess, \Countable, \IteratorAggregate
 {
     /**
-     * @param EntityDto[] $entities
+     * @param array<string, EntityDto> $entities
      */
-    private function __construct(private array $entities)
+    public function __construct(private array $entities = [])
     {
     }
 
     /**
-     * @param EntityDto[] $entities
+     * @deprecated since 4.28.2 and removed in 5.0.0, use FilterCollection::__construct() instead.
+     *
+     * @param array<string, EntityDto> $entities
      */
     public static function new(array $entities): self
     {
@@ -33,6 +34,11 @@ final class EntityCollection implements CollectionInterface
     public function set(EntityDto $newOrUpdatedEntity): void
     {
         $this->entities[$newOrUpdatedEntity->getPrimaryKeyValueAsString()] = $newOrUpdatedEntity;
+    }
+
+    public function first(): ?EntityDto
+    {
+        return $this->entities[array_key_first($this->entities) ?? ''] ?? null;
     }
 
     public function offsetExists(mixed $offset): bool
@@ -61,7 +67,7 @@ final class EntityCollection implements CollectionInterface
     }
 
     /**
-     * @return \ArrayIterator<EntityDto>
+     * @return \ArrayIterator<string, EntityDto>
      */
     public function getIterator(): \ArrayIterator
     {

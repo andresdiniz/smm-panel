@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 class Form {
+    #isNavigatingHistory = false;
+
     constructor() {
         this.#persistSelectedTab();
         this.#createUnsavedFormChangesWarning();
@@ -18,16 +20,38 @@ class Form {
         const urlHash = window.location.hash;
         if (urlHash) {
             const selectedTabPaneId = urlHash.substring(1); // remove the leading '#' from the hash
-            const selectedTabId = `tablist-${ selectedTabPaneId }`;
+            const selectedTabId = `tablist-${selectedTabPaneId}`;
             this.#setTabAsActive(selectedTabId);
         }
 
         // update the page anchor when the selected tab changes
         document.querySelectorAll('a[data-bs-toggle="tab"]').forEach((tabElement) => {
-            tabElement.addEventListener('shown.bs.tab', function (event) {
-                const urlHash = '#' + event.target.getAttribute('href').substring(1);
+            tabElement.addEventListener('shown.bs.tab', (event) => {
+                // don't push state when navigating through browser history (back/forward)
+                if (this.#isNavigatingHistory) {
+                    return;
+                }
+                const urlHash = `#${event.target.getAttribute('href').substring(1)}`;
                 history.pushState({}, '', urlHash);
             });
+        });
+
+        // handle browser back/forward navigation to restore the correct tab
+        window.addEventListener('popstate', () => {
+            this.#isNavigatingHistory = true;
+            const urlHash = window.location.hash;
+            if (urlHash) {
+                const selectedTabPaneId = urlHash.substring(1);
+                const selectedTabId = `tablist-${selectedTabPaneId}`;
+                this.#setTabAsActive(selectedTabId);
+            } else {
+                // no hash means show the first tab
+                const firstTab = document.querySelector('a[data-bs-toggle="tab"]');
+                if (firstTab) {
+                    this.#setTabAsActive(firstTab.id);
+                }
+            }
+            this.#isNavigatingHistory = false;
         });
     }
 
@@ -54,80 +78,137 @@ class Form {
             //
             // Adding visual error counter feedback for invalid fields inside form tabs (visible or not)
             const that = this;
-            document.querySelector('.ea-edit, .ea-new').querySelectorAll('[type="submit"]').forEach((button) => {
-                button.addEventListener('click', function onSubmitButtonsClick(clickEvent) {
-                    let formHasErrors = false;
+            // the default submit buttons live outside the <form> element and are associated to it
+            // via the HTML 'form' attribute; that's why this uses form.elements (which includes
+            // those buttons) instead of form.querySelectorAll() (which only finds descendants)
+            Array.from(form.elements)
+                .filter((element) => 'submit' === element.type)
+                .forEach((button) => {
+                    button.addEventListener('click', function onSubmitButtonsClick(clickEvent) {
+                        let formHasErrors = false;
 
-                    // Remove all error counter badges
-                    document.querySelectorAll('.form-tabs-tablist .nav-item .badge-danger.badge').forEach( (badge) => {
-                        badge.parentElement.removeChild(badge);
-                    });
+                        // remove all error counter badges (tabs and fieldsets)
+                        document
+                            .querySelectorAll(
+                                '.form-tabs-tablist .nav-item .badge-danger.badge, .form-fieldset-title-content .badge-danger.badge'
+                            )
+                            .forEach((badge) => {
+                                badge.parentElement.removeChild(badge);
+                            });
+                        document.querySelectorAll('.form-fieldset.has-fieldset-error').forEach((fieldset) => {
+                            fieldset.classList.remove('has-fieldset-error');
+                        });
 
-                    if (null !== form.getAttribute('novalidate')) {
-                        return;
-                    }
+                        if (null !== form.getAttribute('novalidate')) {
+                            return;
+                        }
 
-                    form.querySelectorAll('input, select, textarea').forEach((input) => {
-                        if (!input.disabled && !input.validity.valid) {
-                            formHasErrors = true;
+                        form.querySelectorAll('input, select, textarea').forEach((input) => {
+                            if (!input.disabled && !input.validity.valid) {
+                                formHasErrors = true;
 
-                            // Visual feedback for tabs
-                            // Adding a badge with a error count next to the tab label
-                            const formTab = input.closest('div.tab-pane');
-                            if (formTab) {
-                                // Match tab link either by "data-bs-target" attribute or by href linking to the id anchor
-                                const navLinkTab = document.querySelector(`[data-bs-target="#${ formTab.id }"], a[href="#${ formTab.id }"]`);
+                                // visual feedback for tabs: adding a badge with a error count next to the tab label
+                                const formTab = input.closest('div.tab-pane');
+                                if (formTab) {
+                                    // match tab link either by "data-bs-target" attribute or by href linking to the id anchor
+                                    const navLinkTab = document.querySelector(
+                                        `[data-bs-target="#${formTab.id}"], a[href="#${formTab.id}"]`
+                                    );
 
-                                if (navLinkTab) {
-                                    navLinkTab.classList.add('has-error');
+                                    if (navLinkTab) {
+                                        navLinkTab.classList.add('has-error');
 
-                                    const badge = navLinkTab.querySelector('.badge');
-                                    if (badge) {
-                                        // Increment number of error
-                                        badge.textContent = (parseInt(badge.textContent) + 1).toString();
-                                    } else {
-                                        // Create a new badge
-                                        let newErrorBadge = document.createElement('span');
-                                        newErrorBadge.classList.add('badge', 'badge-danger');
-                                        newErrorBadge.textContent = '1';
-                                        navLinkTab.appendChild(newErrorBadge);
+                                        const badge = navLinkTab.querySelector('.badge');
+                                        if (badge) {
+                                            // increment number of error
+                                            badge.textContent = (Number.parseInt(badge.textContent) + 1).toString();
+                                        } else {
+                                            // create a new badge
+                                            const newErrorBadge = document.createElement('span');
+                                            newErrorBadge.classList.add('badge', 'badge-danger');
+                                            newErrorBadge.textContent = '1';
+                                            navLinkTab.appendChild(newErrorBadge);
+                                        }
                                     }
                                 }
+
+                                // visual feedback for fieldsets
+                                const formFieldset = input.closest('div.form-fieldset');
+                                if (formFieldset) {
+                                    const fieldsetTitleContent =
+                                        formFieldset.querySelector('.form-fieldset-title-content');
+
+                                    formFieldset.classList.add('has-fieldset-error');
+
+                                    if (fieldsetTitleContent) {
+                                        const badge = fieldsetTitleContent.querySelector('.badge');
+                                        if (badge) {
+                                            badge.textContent = (Number.parseInt(badge.textContent) + 1).toString();
+                                        } else {
+                                            const newErrorBadge = document.createElement('span');
+                                            newErrorBadge.classList.add('badge', 'badge-danger');
+                                            newErrorBadge.textContent = '1';
+                                            fieldsetTitleContent.appendChild(newErrorBadge);
+                                        }
+                                    }
+                                }
+
+                                // visual feedback for group
+                                const formGroup = input.closest('div.form-group');
+                                formGroup.classList.add('has-error');
+
+                                formGroup.addEventListener('click', function onFormGroupClick() {
+                                    formGroup.classList.remove('has-error');
+                                    formGroup.removeEventListener('click', onFormGroupClick);
+                                });
+                            }
+                        });
+
+                        if (formHasErrors) {
+                            clickEvent.preventDefault();
+                            clickEvent.stopPropagation();
+
+                            // set as active the first tab with errors
+                            const firstTabWithErrors = document.querySelector(
+                                '.form-tabs-tablist .nav-tabs .nav-item .nav-link.has-error'
+                            );
+                            if (null !== firstTabWithErrors) {
+                                that.#setTabAsActive(firstTabWithErrors.id);
                             }
 
-                            // Visual feedback for group
-                            const formGroup = input.closest('div.form-group');
-                            formGroup.classList.add('has-error');
+                            // auto-expand all collapsed fieldsets with errors
+                            document
+                                .querySelectorAll('.form-fieldset.has-fieldset-error')
+                                .forEach((fieldsetWithErrors) => {
+                                    const collapsedBody = fieldsetWithErrors.querySelector(
+                                        '.form-fieldset-body.collapse:not(.show)'
+                                    );
+                                    if (collapsedBody) {
+                                        const Collapse = bootstrap.Collapse;
+                                        new Collapse(collapsedBody, { toggle: true });
+                                        const collapseToggle =
+                                            fieldsetWithErrors.querySelector('.form-fieldset-collapse');
+                                        if (collapseToggle) {
+                                            collapseToggle.classList.remove('collapsed');
+                                            collapseToggle.setAttribute('aria-expanded', 'true');
+                                        }
+                                    }
+                                });
 
-                            formGroup.addEventListener('click', function onFormGroupClick() {
-                                formGroup.classList.remove('has-error');
-                                formGroup.removeEventListener('click', onFormGroupClick);
-                            });
+                            document.dispatchEvent(
+                                new CustomEvent('ea.form.error', {
+                                    cancelable: true,
+                                    detail: { page: pageName, form: form },
+                                })
+                            );
                         }
                     });
-
-                    if (formHasErrors) {
-                        clickEvent.preventDefault();
-                        clickEvent.stopPropagation();
-
-                        // set as active the first tab with errors
-                        const firstTabWithErrors = document.querySelector('.form-tabs-tablist .nav-tabs .nav-item .nav-link.has-error');
-                        if (null !== firstTabWithErrors) {
-                            that.#setTabAsActive(firstTabWithErrors.id);
-                        }
-
-                        document.dispatchEvent(new CustomEvent('ea.form.error', {
-                            cancelable: true,
-                            detail: { page: pageName, form: form }
-                        }));
-                    }
                 });
-            });
 
             form.addEventListener('submit', (submitEvent) => {
                 const eaEvent = new CustomEvent('ea.form.submit', {
                     cancelable: true,
-                    detail: { page: pageName, form: form }
+                    detail: { page: pageName, form: form },
                 });
                 const eaEventResult = document.dispatchEvent(eaEvent);
                 if (false === eaEventResult) {
@@ -164,15 +245,20 @@ class Form {
                 return;
             }
 
-            form.addEventListener('submit', () => {
-                // this timeout is needed to include the disabled button into the submitted form
-                setTimeout(() => {
-                    const submitButtons = document.querySelector('.ea-edit, .ea-new').querySelectorAll('[type="submit"]');
-                    submitButtons.forEach((button) => {
-                        button.setAttribute('disabled', 'disabled');
-                    });
-                }, 1);
-            }, false);
+            form.addEventListener(
+                'submit',
+                () => {
+                    // this timeout is needed to include the disabled button into the submitted form
+                    setTimeout(() => {
+                        Array.from(form.elements)
+                            .filter((element) => 'submit' === element.type)
+                            .forEach((button) => {
+                                button.setAttribute('disabled', 'disabled');
+                            });
+                    }, 1);
+                },
+                false
+            );
         });
     }
 }

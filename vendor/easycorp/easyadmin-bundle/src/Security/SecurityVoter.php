@@ -2,28 +2,26 @@
 
 namespace EasyCorp\Bundle\EasyAdminBundle\Security;
 
+use EasyCorp\Bundle\EasyAdminBundle\Contracts\Provider\AdminContextProviderInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\ActionDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\CrudDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\FieldDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\MenuItemDto;
-use EasyCorp\Bundle\EasyAdminBundle\Provider\AdminContextProvider;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
-/*
+/**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  */
 final class SecurityVoter extends Voter
 {
-    private AuthorizationCheckerInterface $authorizationChecker;
-    private AdminContextProvider $adminContextProvider;
-
-    public function __construct(AuthorizationCheckerInterface $authorizationChecker, AdminContextProvider $adminContextProvider)
-    {
-        $this->authorizationChecker = $authorizationChecker;
-        $this->adminContextProvider = $adminContextProvider;
+    public function __construct(
+        private readonly AuthorizationCheckerInterface $authorizationChecker,
+        private readonly AdminContextProviderInterface $adminContextProvider,
+    ) {
     }
 
     protected function supports(string $permissionName, mixed $subject): bool
@@ -36,14 +34,14 @@ final class SecurityVoter extends Voter
         return Permission::exists($permissionName);
     }
 
-    protected function voteOnAttribute($permissionName, $subject, TokenInterface $token): bool
+    protected function voteOnAttribute(string $permissionName, mixed $subject, TokenInterface $token, ?Vote $vote = null): bool
     {
         if (Permission::EA_VIEW_MENU_ITEM === $permissionName) {
             return $this->voteOnViewMenuItemPermission($subject);
         }
 
         if (Permission::EA_EXECUTE_ACTION === $permissionName) {
-            return $this->voteOnExecuteActionPermission($this->adminContextProvider->getContext()->getCrud(), $subject['action'] ?? null, $subject['entity'] ?? null);
+            return $this->voteOnExecuteActionPermission($this->adminContextProvider->getContext()->getCrud(), $subject['action'] ?? null, $subject['entity'] ?? null, $subject['entityFqcn'] ?? null);
         }
 
         if (Permission::EA_VIEW_FIELD === $permissionName) {
@@ -67,7 +65,7 @@ final class SecurityVoter extends Voter
         return $this->authorizationChecker->isGranted($menuItemDto->getPermission(), $menuItemDto);
     }
 
-    private function voteOnExecuteActionPermission(CrudDto $crudDto, ActionDto|string $actionNameOrDto, ?EntityDto $entityDto): bool
+    private function voteOnExecuteActionPermission(CrudDto $crudDto, ActionDto|string $actionNameOrDto, ?EntityDto $entityDto, ?string $entityFqcn): bool
     {
         // users can run the Crud action if:
         // * they have the required permission to execute the action on the given entity instance
@@ -78,9 +76,9 @@ final class SecurityVoter extends Voter
         $actionPermission = $crudDto->getActionsConfig()->getActionPermissions()[$actionName] ?? null;
         $disabledActionNames = $crudDto->getActionsConfig()->getDisabledActions();
 
-        $subject = null === $entityDto ? null : $entityDto->getInstance();
+        $subject = $entityDto?->getInstance() ?? $entityFqcn;
 
-        return $this->authorizationChecker->isGranted($actionPermission, $subject) && !\in_array($actionName, $disabledActionNames, true);
+        return !\in_array($actionName, $disabledActionNames, true) && $this->authorizationChecker->isGranted($actionPermission, $subject);
     }
 
     private function voteOnViewPropertyPermission(FieldDto $field): bool

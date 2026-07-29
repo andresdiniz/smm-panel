@@ -23,14 +23,9 @@ use function Symfony\Component\String\u;
 )]
 class MakeAdminDashboardCommand extends Command
 {
-    private ClassMaker $classMaker;
-    private string $projectDir;
-
-    public function __construct(ClassMaker $classMaker, string $projectDir, ?string $name = null)
+    public function __construct(private readonly ClassMaker $classMaker, private readonly string $projectDir, ?string $name = null)
     {
         parent::__construct($name);
-        $this->classMaker = $classMaker;
-        $this->projectDir = $projectDir;
     }
 
     protected function configure(): void
@@ -48,7 +43,7 @@ class MakeAdminDashboardCommand extends Command
         $controllerClassName = $io->ask(
             'Which class name do you prefer for your Dashboard controller?',
             'DashboardController',
-            fn (string $className): string => u($className)->ensureEnd('Controller')->toString()
+            static fn (string $className): string => u($className)->ensureEnd('Controller')->toString()
         );
 
         $projectDir = $this->projectDir;

@@ -2,6 +2,7 @@
 
 namespace EasyCorp\Bundle\EasyAdminBundle\Config;
 
+use EasyCorp\Bundle\EasyAdminBundle\Config\Option\ClickTrigger;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Option\SearchMode;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Option\SortOrder;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\CrudDto;
@@ -20,21 +21,27 @@ class Crud
     public const PAGE_EDIT = 'edit';
     public const PAGE_INDEX = 'index';
     public const PAGE_NEW = 'new';
+    public const ACTION_NAMES = [
+        'autocomplete', // Internal action
+        Action::BATCH_DELETE,
+        Action::DELETE,
+        Action::DETAIL,
+        Action::EDIT,
+        Action::INDEX,
+        Action::NEW,
+    ];
     public const LAYOUT_CONTENT_DEFAULT = 'normal';
     public const LAYOUT_CONTENT_FULL = 'full';
     public const LAYOUT_SIDEBAR_DEFAULT = 'normal';
     public const LAYOUT_SIDEBAR_COMPACT = 'compact';
-
-    private CrudDto $dto;
 
     private int $paginatorPageSize = 20;
     private int $paginatorRangeSize = 3;
     private bool $paginatorFetchJoinCollection = true;
     private ?bool $paginatorUseOutputWalkers = null;
 
-    private function __construct(CrudDto $crudDto)
+    private function __construct(private readonly CrudDto $dto)
     {
-        $this->dto = $crudDto;
     }
 
     public static function new(): self
@@ -47,7 +54,7 @@ class Crud
     /**
      * @param TranslatableInterface|string|callable $label The callable signature is: fn ($entityInstance, $pageName): string
      *
-     * @psalm-param mixed $label
+     * @phpstan-param mixed $label
      */
     public function setEntityLabelInSingular($label): self
     {
@@ -71,7 +78,7 @@ class Crud
     /**
      * @param TranslatableInterface|string|callable $label The callable signature is: fn ($entityInstance, $pageName): string
      *
-     * @psalm-param mixed $label
+     * @phpstan-param mixed $label
      */
     public function setEntityLabelInPlural($label): self
     {
@@ -95,7 +102,7 @@ class Crud
     /**
      * @param TranslatableInterface|string|callable $title The callable signature is: fn ($entityInstance): string
      *
-     * @psalm-param mixed $title
+     * @phpstan-param mixed $title
      */
     public function setPageTitle(string $pageName, $title): self
     {
@@ -145,8 +152,7 @@ class Crud
             throw new \InvalidArgumentException(sprintf('The first argument of the "%s()" method cannot be "%s" or an empty string. Use either the special date formats (%s) or a datetime Intl pattern.', __METHOD__, DateTimeField::FORMAT_NONE, implode(', ', $validDateFormatsWithoutNone)));
         }
 
-        $datePattern = DateTimeField::INTL_DATE_PATTERNS[$formatOrPattern] ?? $formatOrPattern;
-        $this->dto->setDatePattern($datePattern);
+        $this->dto->setDatePattern($formatOrPattern);
 
         return $this;
     }
@@ -165,8 +171,7 @@ class Crud
             throw new \InvalidArgumentException(sprintf('The first argument of the "%s()" method cannot be "%s" or an empty string. Use either the special time formats (%s) or a datetime Intl pattern.', __METHOD__, DateTimeField::FORMAT_NONE, implode(', ', $validTimeFormatsWithoutNone)));
         }
 
-        $timePattern = DateTimeField::INTL_TIME_PATTERNS[$formatOrPattern] ?? $formatOrPattern;
-        $this->dto->setTimePattern($timePattern);
+        $this->dto->setTimePattern($formatOrPattern);
 
         return $this;
     }
@@ -201,7 +206,7 @@ class Crud
         }
 
         if (!$isDatePattern && !\in_array($timeFormat, DateTimeField::VALID_DATE_FORMATS, true)) {
-            throw new \InvalidArgumentException(sprintf('The value of the time format can only be one of the following: %s (but "%s" was given).', implode(', ', DateTimeField::VALID_DATE_FORMATS), $timeFormat));
+            throw new \InvalidArgumentException(sprintf('When using a predefined format for the date, the time format must also be a predefined format (one of the following: %s) but "%s" was given.', implode(', ', DateTimeField::VALID_DATE_FORMATS), $timeFormat));
         }
 
         $this->dto->setDateTimePattern($dateFormatOrPattern, $timeFormat);
@@ -249,7 +254,7 @@ class Crud
     }
 
     /**
-     * @param array $sortFieldsAndOrder ['fieldName' => 'ASC|DESC', ...]
+     * @param array<string, 'ASC'|'DESC'> $sortFieldsAndOrder ['fieldName' => 'ASC|DESC', ...]
      */
     public function setDefaultSort(array $sortFieldsAndOrder): self
     {
@@ -269,6 +274,9 @@ class Crud
         return $this;
     }
 
+    /**
+     * @param array<string>|null $fieldNames
+     */
     public function setSearchFields(?array $fieldNames): self
     {
         $this->dto->setSearchFields($fieldNames);
@@ -297,6 +305,25 @@ class Crud
     public function showEntityActionsInlined(bool $showInlined = true): self
     {
         $this->dto->setShowEntityActionsAsDropdown(!$showInlined);
+
+        return $this;
+    }
+
+    public function autocomplete(bool $enable = true, ?callable $callback = null, ?string $template = null, bool $renderAsHtml = false): self
+    {
+        if (!$enable) {
+            return $this;
+        }
+
+        if (null !== $callback) {
+            $this->dto->setAutocompleteCallback($callback);
+        }
+
+        if (null !== $template) {
+            $this->dto->setAutocompleteTemplate($template);
+        }
+
+        $this->dto->setAutocompleteRenderAsHtml($renderAsHtml);
 
         return $this;
     }
@@ -353,6 +380,8 @@ class Crud
 
     /**
      * Format: ['templateName' => 'templatePath', ...].
+     *
+     * @param array<string, string> $templateNamesAndPaths
      */
     public function overrideTemplates(array $templateNamesAndPaths): self
     {
@@ -370,6 +399,9 @@ class Crud
         return $this;
     }
 
+    /**
+     * @param array<string> $themePaths
+     */
     public function setFormThemes(array $themePaths): self
     {
         foreach ($themePaths as $path) {
@@ -383,6 +415,12 @@ class Crud
         return $this;
     }
 
+    /**
+     * @param array<string, mixed>      $newFormOptions
+     * @param array<string, mixed>|null $editFormOptions
+     *
+     * @return $this
+     */
     public function setFormOptions(array $newFormOptions, ?array $editFormOptions = null): self
     {
         $this->dto->setNewFormOptions(KeyValueStore::new($newFormOptions));
@@ -419,6 +457,61 @@ class Crud
         return $this;
     }
 
+    /**
+     * By default, batch actions show a confirmation modal before execution.
+     * Set to false to execute batch actions immediately without confirmation.
+     * Set to a string (or TranslatableInterface) to show a custom confirmation message.
+     * The message can use placeholders: %action_name% and %num_items%.
+     */
+    public function askConfirmationOnBatchActions(bool|string|TranslatableInterface $askConfirmation = true): self
+    {
+        $this->dto->setAskConfirmationOnBatchActions($askConfirmation);
+
+        return $this;
+    }
+
+    /**
+     * Sets the action to execute when clicking on a row in the index page.
+     * Pass a string for a single action, an array for a fallback chain (first available wins),
+     * or null to disable. By default, it tries [Action::EDIT, Action::DETAIL].
+     * The action will only work if it's enabled for the CRUD and the user has permission.
+     *
+     * @param string|string[]|null $actionName
+     */
+    public function setDefaultRowAction(string|array|null $actionName): self
+    {
+        if (\is_string($actionName) && '' === trim($actionName)) {
+            throw new \InvalidArgumentException('The default row action cannot be an empty string. Use null to disable it.');
+        }
+
+        if (\is_array($actionName)) {
+            foreach ($actionName as $action) {
+                /** @phpstan-ignore function.alreadyNarrowedType */
+                if (!\is_string($action) || '' === trim($action)) {
+                    throw new \InvalidArgumentException('All actions in the fallback chain must be non-empty strings.');
+                }
+            }
+        }
+
+        $this->dto->setDefaultRowAction($actionName);
+
+        return $this;
+    }
+
+    /**
+     * Sets the click trigger for the default row action in the index page.
+     */
+    public function setDefaultRowActionTrigger(string $trigger): self
+    {
+        if (!\in_array($trigger, [ClickTrigger::SINGLE, ClickTrigger::DOUBLE], true)) {
+            throw new \InvalidArgumentException(sprintf('The default row action trigger can be only "%s" or "%s", "%s" given.', ClickTrigger::SINGLE, ClickTrigger::DOUBLE, $trigger));
+        }
+
+        $this->dto->setDefaultRowActionTrigger($trigger);
+
+        return $this;
+    }
+
     public function getAsDto(): CrudDto
     {
         $this->dto->setPaginator(new PaginatorDto($this->paginatorPageSize, $this->paginatorRangeSize, 1, $this->paginatorFetchJoinCollection, $this->paginatorUseOutputWalkers));
@@ -426,6 +519,9 @@ class Crud
         return $this->dto;
     }
 
+    /**
+     * @return array<self::PAGE_*>
+     */
     private function getValidPageNames(): array
     {
         return [self::PAGE_DETAIL, self::PAGE_EDIT, self::PAGE_INDEX, self::PAGE_NEW];

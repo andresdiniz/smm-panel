@@ -2,41 +2,51 @@
 
 namespace EasyCorp\Bundle\EasyAdminBundle\Dto;
 
+use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\KeyValueStore;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Option\ClickTrigger;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Option\SearchMode;
+use EasyCorp\Bundle\EasyAdminBundle\Contracts\Controller\CrudControllerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Translation\TranslatableMessageBuilder;
 use Symfony\Component\ExpressionLanguage\Expression;
-use function Symfony\Component\Translation\t;
 use Symfony\Contracts\Translation\TranslatableInterface;
+use function Symfony\Component\Translation\t;
 
 /**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  */
 final class CrudDto
 {
+    /** @var class-string<CrudControllerInterface>|null */
     private ?string $controllerFqcn = null;
     private AssetsDto $fieldAssetsDto;
     private ?string $pageName = null;
     private ?string $actionName = null;
     private ?ActionConfigDto $actionConfigDto = null;
     private ?FilterConfigDto $filters = null;
+    /** @var class-string|null */
     private ?string $entityFqcn = null;
+    /** @var TranslatableInterface|string|callable|null */
     private $entityLabelInSingular;
+    /** @var TranslatableInterface|string|callable|null */
     private $entityLabelInPlural;
+    /** @var array<Crud::PAGE_*, string> */
     private array $defaultPageTitles = [
         Crud::PAGE_DETAIL => 'page_title.detail',
         Crud::PAGE_EDIT => 'page_title.edit',
         Crud::PAGE_INDEX => 'page_title.index',
         Crud::PAGE_NEW => 'page_title.new',
     ];
+    /** @var array<string, TranslatableInterface|string|callable|null> */
     private array $customPageTitles = [
         Crud::PAGE_DETAIL => null,
         Crud::PAGE_EDIT => null,
         Crud::PAGE_INDEX => null,
         Crud::PAGE_NEW => null,
     ];
+    /** @var array<string, string|TranslatableInterface|null> */
     private array $helpMessages = [
         Crud::PAGE_DETAIL => null,
         Crud::PAGE_EDIT => null,
@@ -45,19 +55,24 @@ final class CrudDto
     ];
     private ?string $datePattern = 'medium';
     private ?string $timePattern = 'medium';
+    /** @var array{string, string} */
     private array $dateTimePattern = ['medium', 'medium'];
     private string $dateIntervalFormat = '%%y Year(s) %%m Month(s) %%d Day(s)';
     private ?string $timezone = null;
     private ?string $numberFormat = null;
     private ?string $thousandsSeparator = null;
     private ?string $decimalSeparator = null;
+    /** @var array<string, 'ASC'|'DESC'> */
     private array $defaultSort = [];
+    /** @var array<string>|null */
     private ?array $searchFields = [];
     private string $searchMode = SearchMode::ALL_TERMS;
     private bool $autofocusSearch = false;
     private bool $showEntityActionsAsDropdown = true;
     private ?PaginatorDto $paginatorDto = null;
-    private $overriddenTemplates;
+    /** @var array<string, string> */
+    private array $overriddenTemplates;
+    /** @var array<string> */
     private array $formThemes = ['@EasyAdmin/crud/form_theme.html.twig'];
     private KeyValueStore $newFormOptions;
     private KeyValueStore $editFormOptions;
@@ -65,6 +80,14 @@ final class CrudDto
     private ?string $contentWidth = null;
     private ?string $sidebarWidth = null;
     private bool $hideNullValues = false;
+    private bool|string|TranslatableInterface $askConfirmationOnBatchActions = true;
+    /** @var string|string[]|null Action name(s) to try when clicking a row. Array = fallback chain, null = disabled */
+    private string|array|null $defaultRowAction = [Action::EDIT, Action::DETAIL];
+    private string $defaultRowActionTrigger = ClickTrigger::SINGLE;
+    /** @var callable|null */
+    private $autocompleteCallback;
+    private ?string $autocompleteTemplate = null;
+    private bool $autocompleteRenderAsHtml = false;
 
     public function __construct()
     {
@@ -74,11 +97,17 @@ final class CrudDto
         $this->overriddenTemplates = [];
     }
 
+    /**
+     * @return class-string<CrudControllerInterface>|null
+     */
     public function getControllerFqcn(): ?string
     {
         return $this->controllerFqcn;
     }
 
+    /**
+     * @param class-string<CrudControllerInterface> $fqcn
+     */
     public function setControllerFqcn(string $fqcn): void
     {
         $this->controllerFqcn = $fqcn;
@@ -104,17 +133,27 @@ final class CrudDto
         $this->fieldAssetsDto = $assets;
     }
 
+    /**
+     * @return class-string
+     */
     public function getEntityFqcn(): string
     {
         return $this->entityFqcn;
     }
 
+    /**
+     * @param class-string $entityFqcn
+     */
     public function setEntityFqcn(string $entityFqcn): void
     {
         $this->entityFqcn = $entityFqcn;
     }
 
-    public function getEntityLabelInSingular($entityInstance = null, $pageName = null): TranslatableInterface|string|null
+    /**
+     * @param object|null $entityInstance
+     * @param string|null $pageName
+     */
+    public function getEntityLabelInSingular(/* ?object */ $entityInstance = null, /* ?string */ $pageName = null): TranslatableInterface|string|null
     {
         if (null === $this->entityLabelInSingular) {
             return null;
@@ -135,10 +174,25 @@ final class CrudDto
      */
     public function setEntityLabelInSingular($label): void
     {
+        if (null !== $label && !\is_string($label) && !$label instanceof TranslatableInterface && !\is_callable($label)) {
+            trigger_deprecation(
+                'easycorp/easyadmin-bundle',
+                '4.27.0',
+                'Argument "%s" for "%s" must be one of these types: %s. Passing type "%s" will cause an error in 5.0.0.',
+                '$label',
+                __METHOD__,
+                '"string" or "TranslatableInterface" or "callable" or "null"',
+                \gettype($label)
+            );
+        }
         $this->entityLabelInSingular = $label;
     }
 
-    public function getEntityLabelInPlural($entityInstance = null, $pageName = null): TranslatableInterface|string|null
+    /**
+     * @param object|null $entityInstance
+     * @param string|null $pageName
+     */
+    public function getEntityLabelInPlural(/* ?object */ $entityInstance = null, /* ?string */ $pageName = null): TranslatableInterface|string|null
     {
         if (null === $this->entityLabelInPlural) {
             return null;
@@ -159,10 +213,25 @@ final class CrudDto
      */
     public function setEntityLabelInPlural($label): void
     {
+        if (null !== $label && !\is_string($label) && !$label instanceof TranslatableInterface && !\is_callable($label)) {
+            trigger_deprecation(
+                'easycorp/easyadmin-bundle',
+                '4.27.0',
+                'Argument "%s" for "%s" must be one of these types: %s. Passing type "%s" will cause an error in 5.0.0.',
+                '$label',
+                __METHOD__,
+                '"string" or "TranslatableInterface" or "callable" or "null"',
+                \gettype($label)
+            );
+        }
         $this->entityLabelInPlural = $label;
     }
 
-    public function getCustomPageTitle(?string $pageName = null, $entityInstance = null, array $translationParameters = []): ?TranslatableInterface
+    /**
+     * @param object|null          $entityInstance
+     * @param array<string, mixed> $translationParameters
+     */
+    public function getCustomPageTitle(?string $pageName = null, /* ?object */ $entityInstance = null, array $translationParameters = [], ?string $domain = null): ?TranslatableInterface
     {
         $title = $this->customPageTitles[$pageName ?? $this->pageName];
         if (\is_callable($title)) {
@@ -177,7 +246,7 @@ final class CrudDto
             return TranslatableMessageBuilder::withParameters($title, $translationParameters);
         }
 
-        return t($title, $translationParameters);
+        return t($title, $translationParameters, $domain);
     }
 
     /**
@@ -200,6 +269,10 @@ final class CrudDto
         $this->customPageTitles[$pageName] = $pageTitle;
     }
 
+    /**
+     * @param object|null          $entityInstance
+     * @param array<string, mixed> $translationParameters
+     */
     public function getDefaultPageTitle(?string $pageName = null, /* ?object */ $entityInstance = null, array $translationParameters = []): ?TranslatableInterface
     {
         if (!\is_object($entityInstance)
@@ -216,7 +289,7 @@ final class CrudDto
         }
 
         if (null !== $entityInstance) {
-            if (method_exists($entityInstance, '__toString')) {
+            if ($entityInstance instanceof \Stringable) {
                 $entityAsString = (string) $entityInstance;
 
                 if ('' !== $entityAsString) {
@@ -225,7 +298,7 @@ final class CrudDto
             }
         }
 
-        if (!$this->defaultPageTitles[$pageName ?? $this->pageName]) {
+        if (!isset($this->defaultPageTitles[$pageName ?? $this->pageName])) {
             return null;
         }
 
@@ -234,9 +307,12 @@ final class CrudDto
 
     public function getHelpMessage(?string $pageName = null): TranslatableInterface|string
     {
-        return $this->helpMessages[$pageName ?? $this->pageName] ?? '';
+        return $this->helpMessages[$pageName ?? $this->pageName ?? ''] ?? '';
     }
 
+    /**
+     * @return array<string|TranslatableInterface|null>
+     */
     public function getHelpMessages(): array
     {
         return $this->helpMessages;
@@ -267,6 +343,9 @@ final class CrudDto
         $this->timePattern = $format;
     }
 
+    /**
+     * @return array{string, string}
+     */
     public function getDateTimePattern(): array
     {
         return $this->dateTimePattern;
@@ -327,11 +406,17 @@ final class CrudDto
         $this->decimalSeparator = $separator;
     }
 
+    /**
+     * @return array<string, 'ASC'|'DESC'>
+     */
     public function getDefaultSort(): array
     {
         return $this->defaultSort;
     }
 
+    /**
+     * @param array<string, 'ASC'|'DESC'> $defaultSort
+     */
     public function setDefaultSort(array $defaultSort): void
     {
         $this->defaultSort = $defaultSort;
@@ -347,11 +432,17 @@ final class CrudDto
         $this->searchMode = $searchMode;
     }
 
+    /**
+     * @return array<string>|null
+     */
     public function getSearchFields(): ?array
     {
         return $this->searchFields;
     }
 
+    /**
+     * @param array<string>|null $searchFields
+     */
     public function setSearchFields(?array $searchFields): void
     {
         $this->searchFields = $searchFields;
@@ -392,6 +483,9 @@ final class CrudDto
         $this->paginatorDto = $paginatorDto;
     }
 
+    /**
+     * @return array<string, string>
+     */
     public function getOverriddenTemplates(): array
     {
         return $this->overriddenTemplates;
@@ -402,6 +496,9 @@ final class CrudDto
         $this->overriddenTemplates[$templateName] = $templatePath;
     }
 
+    /**
+     * @return array<string>
+     */
     public function getFormThemes(): array
     {
         return $this->formThemes;
@@ -413,6 +510,9 @@ final class CrudDto
         $this->formThemes = array_merge($this->formThemes, [$formThemePath]);
     }
 
+    /**
+     * @param array<string> $formThemes
+     */
     public function setFormThemes(array $formThemes): void
     {
         $this->formThemes = $formThemes;
@@ -506,5 +606,71 @@ final class CrudDto
     public function hideNullValues(bool $hide): void
     {
         $this->hideNullValues = $hide;
+    }
+
+    public function askConfirmationOnBatchActions(): bool|string|TranslatableInterface
+    {
+        return $this->askConfirmationOnBatchActions;
+    }
+
+    public function setAskConfirmationOnBatchActions(bool|string|TranslatableInterface $askConfirmation): void
+    {
+        $this->askConfirmationOnBatchActions = $askConfirmation;
+    }
+
+    /**
+     * @return string|string[]|null
+     */
+    public function getDefaultRowAction(): string|array|null
+    {
+        return $this->defaultRowAction;
+    }
+
+    /**
+     * @param string|string[]|null $actionName
+     */
+    public function setDefaultRowAction(string|array|null $actionName): void
+    {
+        $this->defaultRowAction = $actionName;
+    }
+
+    public function getDefaultRowActionTrigger(): string
+    {
+        return $this->defaultRowActionTrigger;
+    }
+
+    public function setDefaultRowActionTrigger(string $clickTrigger): void
+    {
+        $this->defaultRowActionTrigger = $clickTrigger;
+    }
+
+    public function getAutocompleteCallback(): ?callable
+    {
+        return $this->autocompleteCallback;
+    }
+
+    public function setAutocompleteCallback(?callable $callback): void
+    {
+        $this->autocompleteCallback = $callback;
+    }
+
+    public function getAutocompleteTemplate(): ?string
+    {
+        return $this->autocompleteTemplate;
+    }
+
+    public function setAutocompleteTemplate(?string $template): void
+    {
+        $this->autocompleteTemplate = $template;
+    }
+
+    public function getAutocompleteRenderAsHtml(): bool
+    {
+        return $this->autocompleteRenderAsHtml;
+    }
+
+    public function setAutocompleteRenderAsHtml(bool $renderAsHtml): void
+    {
+        $this->autocompleteRenderAsHtml = $renderAsHtml;
     }
 }

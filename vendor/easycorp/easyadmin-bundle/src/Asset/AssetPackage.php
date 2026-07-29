@@ -21,24 +21,24 @@ final class AssetPackage implements PackageInterface
 {
     public const PACKAGE_NAME = 'easyadmin.assets.package';
 
-    private PackageInterface $package;
+    private readonly PackageInterface $package;
 
     public function __construct(RequestStack $requestStack)
     {
         $this->package = new PathPackage(
             '/bundles/easyadmin',
-            new JsonManifestVersionStrategy(__DIR__.'/../Resources/public/manifest.json'),
+            new JsonManifestVersionStrategy(__DIR__.'/../../public/manifest.json'),
             new RequestStackContext($requestStack)
         );
     }
 
-    public function getUrl(string $assetPath): string
+    public function getUrl(string $path): string
     {
-        return $this->package->getUrl($assetPath);
+        return $this->package->getUrl($path);
     }
 
-    public function getVersion(string $assetPath): string
+    public function getVersion(string $path): string
     {
-        return $this->package->getVersion($assetPath);
+        return $this->package->getVersion($path);
     }
 }
