@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[Route('/admin', name: 'admin')]
+#[Route('/admin', name: 'admin_')]
 #[IsGranted('ROLE_ADMIN')]
 class DashboardController extends AbstractController
 {
@@ -26,7 +26,7 @@ class DashboardController extends AbstractController
         private readonly ProviderCredentialRepository $credRepo,
     ) {}
 
-    #[Route('', name: '', methods: ['GET'])]
+    #[Route('', name: 'dashboard', methods: ['GET'])]
     public function index(): Response
     {
         return $this->render('admin/dashboard.html.twig', [
