@@ -3,7 +3,7 @@
         'name' => 'andresdiniz/smm-panel',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '557b3a8c463a94121ca189edd67333fbaec5f0a5',
+        'reference' => '75e82846acce7cb555ece7f88380f525bb585861',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'andresdiniz/smm-panel' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '557b3a8c463a94121ca189edd67333fbaec5f0a5',
+            'reference' => '75e82846acce7cb555ece7f88380f525bb585861',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
