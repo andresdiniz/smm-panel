@@ -25,14 +25,17 @@ use Twig\Error\LoaderError;
 
 /**
  * @author Simon André <smn.andre@gmail.com>
+ *
+ * @internal
  */
-class TwigComponentDataCollector extends AbstractDataCollector implements LateDataCollectorInterface
+final class TwigComponentDataCollector extends AbstractDataCollector implements LateDataCollectorInterface
 {
     private bool $hasStub;
 
     public function __construct(
         private readonly TwigComponentLoggerListener $logger,
         private readonly Environment $twig,
+        private readonly bool $collectComponents = true,
     ) {
         $this->hasStub = class_exists(ClassStub::class);
     }
@@ -99,6 +102,9 @@ class TwigComponentDataCollector extends AbstractDataCollector implements LateDa
         $renders = [];
         $ongoingRenders = [];
 
+        $classStubs = [];
+        $templatePaths = [];
+
         foreach ($this->logger->getEvents() as [$event, $profile]) {
             if ($event instanceof PreRenderEvent) {
                 $mountedComponent = $event->getMountedComponent();
@@ -110,9 +116,9 @@ class TwigComponentDataCollector extends AbstractDataCollector implements LateDa
                 $components[$componentName] ??= [
                     'name' => $componentName,
                     'class' => $componentClass,
-                    'class_stub' => $this->hasStub ? new ClassStub($componentClass) : $componentClass,
-                    'template' => $metadata->getTemplate(),
-                    'template_path' => $this->resolveTemplatePath($metadata->getTemplate()), // defer ? lazy ?
+                    'class_stub' => $classStubs[$componentClass] ??= ($this->hasStub ? new ClassStub($componentClass) : $componentClass),
+                    'template' => $template = $metadata->getTemplate(),
+                    'template_path' => $templatePaths[$template] ??= $this->resolveTemplatePath($template),
                     'render_count' => 0,
                     'render_time' => 0,
                 ];
@@ -125,11 +131,14 @@ class TwigComponentDataCollector extends AbstractDataCollector implements LateDa
                     'input_props' => $mountedComponent->getInputProps(),
                     'attributes' => $mountedComponent->getAttributes()->all(),
                     'template_index' => $event->getTemplateIndex(),
-                    'component' => $mountedComponent->getComponent(),
                     'depth' => \count($ongoingRenders),
                     'children' => [],
                     'render_start' => $profile[0],
                 ];
+
+                if ($this->collectComponents) {
+                    $renders[$renderId]['component'] = $mountedComponent->getComponent();
+                }
 
                 if ($parentId = end($ongoingRenders)) {
                     $renders[$parentId]['children'][] = $renderId;
@@ -159,14 +168,14 @@ class TwigComponentDataCollector extends AbstractDataCollector implements LateDa
         }
 
         // Sort by render count DESC
-        uasort($components, fn ($a, $b) => $b['render_count'] <=> $a['render_count']);
+        uasort($components, static fn ($a, $b) => $b['render_count'] <=> $a['render_count']);
 
         $this->data['components'] = $components;
         $this->data['component_count'] = \count($components);
 
         $this->data['renders'] = $renders;
         $this->data['render_count'] = \count($renders);
-        $rootRenders = array_filter($renders, fn (array $r) => 0 === $r['depth']);
+        $rootRenders = array_filter($renders, static fn (array $r) => 0 === $r['depth']);
         $this->data['render_time'] = array_sum(array_column($rootRenders, 'render_time'));
 
         $this->data['peak_memory_usage'] = max([0, ...array_column($renders, 'render_memory')]);

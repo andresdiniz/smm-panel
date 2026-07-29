@@ -7,6 +7,7 @@ namespace Doctrine\Bundle\DoctrineBundle\DependencyInjection;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\LegacySchemaManagerFactory;
 use Doctrine\Deprecations\Deprecation;
+use Doctrine\ORM\Configuration as OrmConfiguration;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
@@ -44,6 +45,8 @@ use function strlen;
 use function strpos;
 use function strtoupper;
 use function substr;
+
+use const PHP_VERSION_ID;
 
 /**
  * This class contains the configuration information for the bundle
@@ -357,7 +360,7 @@ class Configuration implements ConfigurationInterface
                 ->end()
                 ->scalarNode('default_dbname')
                     ->info(
-                        'Override the default database (postgres) to connect to for PostgreSQL connexion.',
+                        'Override the default database (postgres) to connect to for PostgreSQL connection.',
                     )
                 ->end()
                 ->scalarNode('sslmode')
@@ -500,6 +503,15 @@ class Configuration implements ConfigurationInterface
                             ->info('Auto generate mode possible values are: "NEVER", "ALWAYS", "FILE_NOT_EXISTS", "EVAL", "FILE_NOT_EXISTS_OR_CHANGED", this option is ignored when the "enable_native_lazy_objects" option is true')
                             ->validate()
                                 ->ifTrue(function ($v) {
+                                    /** @phpstan-ignore function.alreadyNarrowedType */
+                                    if (PHP_VERSION_ID >= 80400 && method_exists(OrmConfiguration::class, 'enableNativeLazyObjects')) {
+                                        Deprecation::trigger(
+                                            'doctrine/doctrine-bundle',
+                                            'https://github.com/doctrine/DoctrineBundle/issues/2107',
+                                            'Not using native lazy objects with PHP 8.4+ and ORM 3.4+ is deprecated. In this case, the "auto_generate_proxy_classes" configuration key is deprecated as well.',
+                                        );
+                                    }
+
                                     $generationModes = $this->getAutoGenerateModes();
 
                                     if (is_int($v) && in_array($v, $generationModes['values']/*array(0, 1, 2, 3)*/)) {
@@ -536,10 +548,40 @@ class Configuration implements ConfigurationInterface
                         ->scalarNode('proxy_dir')
                             ->defaultValue('%kernel.build_dir%/doctrine/orm/Proxies')
                             ->info('Configures the path where generated proxy classes are saved when using non-native lazy objects, this option is ignored when the "enable_native_lazy_objects" option is true')
+                            ->beforeNormalization()
+                                ->ifTrue(static fn ($v): bool => true)
+                                ->then(static function ($v) {
+                                    /** @phpstan-ignore function.alreadyNarrowedType */
+                                    if (PHP_VERSION_ID >= 80400 && method_exists(OrmConfiguration::class, 'enableNativeLazyObjects')) {
+                                        Deprecation::trigger(
+                                            'doctrine/doctrine-bundle',
+                                            'https://github.com/doctrine/DoctrineBundle/issues/2107',
+                                            'Not using native lazy objects with PHP 8.4+ and ORM 3.4+ is deprecated. In this case, the "proxy_dir" configuration key is deprecated as well.',
+                                        );
+                                    }
+
+                                    return $v;
+                                })
+                            ->end()
                         ->end()
                         ->scalarNode('proxy_namespace')
                             ->defaultValue('Proxies')
                             ->info('Defines the root namespace for generated proxy classes when using non-native lazy objects, this option is ignored when the "enable_native_lazy_objects" option is true')
+                            ->beforeNormalization()
+                                ->ifTrue(static fn ($v): bool => true)
+                                ->then(static function ($v) {
+                                    /** @phpstan-ignore function.alreadyNarrowedType */
+                                    if (PHP_VERSION_ID >= 80400 && method_exists(OrmConfiguration::class, 'enableNativeLazyObjects')) {
+                                        Deprecation::trigger(
+                                            'doctrine/doctrine-bundle',
+                                            'https://github.com/doctrine/DoctrineBundle/issues/2107',
+                                            'Not using native lazy objects with PHP 8.4+ and ORM 3.4+ is deprecated. In this case, the "proxy_namespace" configuration key is deprecated as well.',
+                                        );
+                                    }
+
+                                    return $v;
+                                })
+                            ->end()
                         ->end()
                         ->arrayNode('controller_resolver')
                             ->canBeDisabled()

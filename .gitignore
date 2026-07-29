@@ -3,7 +3,7 @@
 /public/bundles/
 /var/cache/
 /var/sessions/
-#/vendor/
+/vendor/
 /node_modules/
 *.log
 .idea/

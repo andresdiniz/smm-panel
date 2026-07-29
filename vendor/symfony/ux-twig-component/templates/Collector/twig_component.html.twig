@@ -160,16 +160,16 @@
     {% else %}
         <section class="twig-component-metrics metrics">
             <div class="metric-group">
-                {{ _self.metric(collector.componentCount, "Twig Components") }}
+                {{ _self.metric(collector.componentCount, 'Twig Components') }}
             </div>
             <div class="metric-divider"></div>
             <div class="metric-group">
-                {{ _self.metric(collector.renderCount, "Render Count") }}
-                {{ _self.metric(collector.renderTime|round, "Render Time", "ms") }}
+                {{ _self.metric(collector.renderCount, 'Render Count') }}
+                {{ _self.metric(collector.renderTime|round, 'Render Time', 'ms') }}
             </div>
             <div class="metric-divider"></div>
             <div class="metric-group">
-                {{ _self.metric((collector.peakMemoryUsage / 1024 / 1024)|number_format(1), "Memory Usage", "MiB") }}
+                {{ _self.metric((collector.peakMemoryUsage / 1024 / 1024)|number_format(1), 'Memory Usage', 'MiB') }}
             </div>
         </section>
         <section class="twig-component-components">
@@ -287,16 +287,18 @@
                 <tbody id="render-{{ loop.index }}--details">
                     <tr class="{{ not render.input_props|default ? 'opacity-50' }}">
                         <th scope="row">Input props</th>
-                        <td colspan="3">{{ profiler_dump(render.input_props) }}</td>
+                        <td colspan="4">{{ profiler_dump(render.input_props) }}</td>
                     </tr>
                     <tr class="{{ not render.attributes|default ? 'opacity-50' }}">
                         <th scope="row">Attributes</th>
-                        <td colspan="3">{{ profiler_dump(render.attributes) }}</td>
+                        <td colspan="4">{{ profiler_dump(render.attributes) }}</td>
                     </tr>
+                    {% if render.component is defined %}
                     <tr>
                         <th scope="row">Component</th>
-                        <td colspan="3">{{ profiler_dump(render.component) }}</td>
+                        <td colspan="4">{{ profiler_dump(render.component) }}</td>
                     </tr>
+                    {% endif %}
                 </tbody>
             </table>
         {% endfor %}
