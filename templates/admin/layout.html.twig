@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block page_title %}Admin{% endblock %} — SMM Panel</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #0d1016;
+      color: #dde1f0;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    .adm-sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      background: #0b0e14;
+      border-right: 1px solid rgba(255,255,255,.06);
+      display: flex;
+      flex-direction: column;
+      padding: 20px 0 16px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .adm-logo {
+      padding: 0 18px 20px;
+      font-size: .8125rem;
+      font-weight: 900;
+      letter-spacing: -.03em;
+      color: #f0f3ff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      margin-bottom: 12px;
+    }
+    .adm-logo svg { color: #01868d; }
+    .adm-section {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: #3e4259;
+      padding: 14px 18px 6px;
+    }
+    .adm-nav a {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 18px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: #6b708a;
+      text-decoration: none;
+      border-radius: 0;
+      transition: background .15s, color .15s;
+    }
+    .adm-nav a:hover { background: rgba(255,255,255,.04); color: #dde1f0; }
+    .adm-nav a.active { background: rgba(1,134,141,.12); color: #4eccd3; }
+    .adm-nav a svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .adm-footer {
+      margin-top: auto;
+      padding: 12px 18px 0;
+      border-top: 1px solid rgba(255,255,255,.06);
+    }
+    .adm-footer a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .75rem;
+      color: #3e4259;
+      text-decoration: none;
+      padding: 6px 0;
+      transition: color .15s;
+    }
+    .adm-footer a:hover { color: #e06060; }
+
+    /* ── Main ── */
+    .adm-main {
+      flex: 1;
+      min-width: 0;
+      overflow-x: hidden;
+    }
+
+    /* ── Mobile toggle ── */
+    .adm-mobile-bar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: #0b0e14;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .adm-mobile-bar button {
+      background: none;
+      border: none;
+      color: #9196b0;
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+    }
+    .adm-mobile-bar span {
+      font-size: .875rem;
+      font-weight: 800;
+      color: #f0f3ff;
+    }
+    @media(max-width: 768px) {
+      .adm-mobile-bar { display: flex; }
+      .adm-sidebar {
+        position: fixed;
+        top: 0; left: 0;
+        height: 100vh;
+        z-index: 200;
+        transform: translateX(-100%);
+        transition: transform .22s ease;
+      }
+      .adm-sidebar.open { transform: translateX(0); }
+      .adm-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.55);
+        z-index: 190;
+      }
+      .adm-overlay.open { display: block; }
+    }
+  </style>
+</head>
+<body>
+
+{# ── Mobile bar ── #}
+<div class="adm-mobile-bar">
+  <button id="adm-toggle" aria-label="Abrir menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
+  <span>Admin</span>
+</div>
+<div class="adm-overlay" id="adm-overlay"></div>
+
+{# ── Sidebar ── #}
+<aside class="adm-sidebar" id="adm-sidebar">
+  <div class="adm-logo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="3" width="7" height="7" rx="1"/>
+      <rect x="14" y="3" width="7" height="7" rx="1"/>
+      <rect x="3" y="14" width="7" height="7" rx="1"/>
+      <rect x="14" y="14" width="7" height="7" rx="1"/>
+    </svg>
+    SMM Panel
+  </div>
+
+  <div class="adm-section">Principal</div>
+  <nav class="adm-nav">
+    <a href="{{ path('admin_dashboard') }}" class="{% if app.request.attributes.get('_route') == 'admin_dashboard' %}active{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+  </nav>
+
+  <div class="adm-section">Gestão</div>
+  <nav class="adm-nav">
+    <a href="{{ path('admin_order_index') }}" class="{% if 'admin_order' in app.request.attributes.get('_route') %}active{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+      Pedidos
+    </a>
+    <a href="{{ path('admin_user_index') }}" class="{% if 'admin_user' in app.request.attributes.get('_route') %}active{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Usuários
+    </a>
+    <a href="{{ path('admin_service_index') }}" class="{% if 'admin_service' in app.request.attributes.get('_route') %}active{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Serviços
+    </a>
+  </nav>
+
+  <div class="adm-footer">
+    <a href="{{ path('app_logout') }}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sair
+    </a>
+  </div>
+</aside>
+
+{# ── Main content ── #}
+<main class="adm-main">
+  {% block admin_content %}{% endblock %}
+</main>
+
+<script>
+  const sidebar = document.getElementById('adm-sidebar');
+  const overlay = document.getElementById('adm-overlay');
+  const toggle  = document.getElementById('adm-toggle');
+  function openMenu()  { sidebar.classList.add('open');  overlay.classList.add('open'); }
+  function closeMenu() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
+  toggle.addEventListener('click', openMenu);
+  overlay.addEventListener('click', closeMenu);
+</script>
+
+</body>
+</html>
