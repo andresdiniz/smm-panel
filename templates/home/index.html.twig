@@ -1,570 +1,584 @@
-{% extends 'base.html.twig' %}
-
-{% block title %}PulseSMM — Crescimento nas redes sociais{% endblock %}
-{% block description %}Seguidores, curtidas e visualizações entregues com rapidez. Painel SMM mobile-first com Pix, cartão, catálogo inteligente e CRM.{% endblock %}
-{% block page_title %}Início{% endblock %}
-
-{% block stylesheets %}
-<style>
-/* ════════════════════════════════════════
-   HOME PAGE — css individual
-════════════════════════════════════════ */
-
-/* ── Hero ── */
-.hero {
-  padding: var(--s12) 0 var(--s16);
-  position: relative;
-  overflow: hidden;
-}
-
-.hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 60% -10%, oklch(0.48 0.08 192 / 0.07) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 40% at 0% 80%,   oklch(0.72 0.15 82  / 0.06) 0%, transparent 50%);
-  pointer-events: none;
-}
-
-.hero__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--s12);
-  align-items: center;
-}
-
-@media (max-width: 860px) {
-  .hero { padding: var(--s10) 0 var(--s12); }
-  .hero__grid { grid-template-columns: 1fr; gap: var(--s10); }
-}
-
-.hero__content { display: flex; flex-direction: column; gap: var(--s5); }
-
-.hero__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s2);
-  padding: var(--s1) var(--s3);
-  background: var(--primary-lo);
-  border: 1px solid var(--primary-mid);
-  border-radius: var(--r-full);
-  font-size: var(--t-xs);
-  font-weight: 700;
-  color: var(--primary);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  width: fit-content;
-}
-
-.hero__eyebrow .dot {
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: var(--primary);
-  animation: pulse-dot 2.4s ease-in-out infinite;
-}
-
-@keyframes pulse-dot {
-  0%,100% { transform: scale(1); opacity: 1; }
-  50%      { transform: scale(1.4); opacity: .6; }
-}
-
-.hero__title {
-  font-size: var(--t-3xl);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: var(--text);
-  line-height: 1.08;
-}
-
-.hero__title em {
-  font-style: normal;
-  color: var(--primary);
-}
-
-.hero__subtitle {
-  font-size: var(--t-base);
-  color: var(--text-muted);
-  max-width: 48ch;
-  line-height: 1.75;
-}
-
-.hero__cta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--s3);
-}
-
-/* Hero stats row */
-.hero__stats {
-  display: flex;
-  align-items: center;
-  gap: var(--s6);
-  flex-wrap: wrap;
-  padding-top: var(--s4);
-  border-top: 1px solid var(--divider);
-}
-
-.mini-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.mini-stat strong {
-  font-size: 1.4rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-.mini-stat span {
-  font-size: 0.7rem;
-  color: var(--text-faint);
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-/* ── Hero Visual ── */
-.hero__visual {
-  position: relative;
-  height: 380px;
-}
-
-@media (max-width: 860px) {
-  .hero__visual { height: 260px; }
-}
-
-.floating-card {
-  position: absolute;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
-  box-shadow: var(--shadow-md);
-  padding: var(--s4) var(--s5);
-  transition: box-shadow var(--dur) var(--ease);
-}
-
-.floating-card:hover { box-shadow: var(--shadow-lg); }
-
-.floating-card--main {
-  top: 20px; left: 0; right: 0;
-  animation: float 6s ease-in-out infinite;
-}
-
-.floating-card--small {
-  padding: var(--s3) var(--s4);
-  border-radius: var(--r-lg);
-  font-size: var(--t-xs);
-  background: var(--surface);
-}
-
-.floating-card--one {
-  bottom: 30px; left: 10%;
-  animation: float 5s ease-in-out 1s infinite;
-}
-
-.floating-card--two {
-  bottom: 30px; right: 10%;
-  animation: float 7s ease-in-out 0.5s infinite;
-}
-
-@keyframes float {
-  0%,100% { transform: translateY(0); }
-  50%     { transform: translateY(-10px); }
-}
-
-.floating-card__top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--s3);
-}
-
-.floating-card__top span { font-size: var(--t-xs); color: var(--text-faint); text-transform: uppercase; letter-spacing: .04em; }
-.floating-card__top strong { font-size: var(--t-lg); font-weight: 800; color: var(--text); letter-spacing: -.03em; }
-
-.floating-card--small span { font-size: 0.68rem; color: var(--text-faint); }
-.floating-card--small strong { display: block; font-size: var(--t-sm); font-weight: 700; color: var(--text); margin-top: 2px; }
-
-/* Chart bars */
-.chart-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 5px;
-  height: 80px;
-}
-
-.chart-bars span {
-  flex: 1;
-  background: var(--primary-lo);
-  border-radius: var(--r-xs) var(--r-xs) 0 0;
-  border: 1px solid var(--primary-mid);
-  transition: background var(--dur) var(--ease);
-}
-
-.chart-bars span:last-child {
-  background: var(--primary);
-  border-color: var(--primary);
-}
-
-/* ── Features section ── */
-.section {
-  padding: var(--s16) 0;
-}
-
-.section--alt {
-  background: var(--surface);
-  margin-inline: calc(-1 * var(--s6));
-  padding-inline: var(--s6);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-@media (max-width: 540px) {
-  .section { padding: var(--s12) 0; }
-  .section--alt { margin-inline: calc(-1 * var(--s4)); padding-inline: var(--s4); }
-}
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--s5);
-}
-
-@media (max-width: 860px) { .feature-grid { grid-template-columns: 1fr; gap: var(--s4); } }
-
-.feature-card {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
-  padding: var(--s6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--s3);
-  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease), border-color var(--dur) var(--ease);
-  box-shadow: var(--shadow-xs);
-}
-
-.feature-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-3px);
-  border-color: var(--border-strong);
-}
-
-.feature-card__icon {
-  width: 44px; height: 44px;
-  border-radius: var(--r-md);
-  background: var(--primary-lo);
-  border: 1px solid var(--primary-mid);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--primary);
-  flex-shrink: 0;
-}
-
-.feature-card h3 {
-  font-size: var(--t-base);
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.02em;
-}
-
-.feature-card p {
-  font-size: var(--t-sm);
-  color: var(--text-muted);
-  line-height: 1.65;
-}
-
-/* ── Showcase section ── */
-.showcase {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--s12);
-  align-items: center;
-}
-
-@media (max-width: 860px) { .showcase { grid-template-columns: 1fr; gap: var(--s8); } }
-
-.showcase__eyebrow {
-  display: inline-flex;
-  padding: var(--s1) var(--s3);
-  background: var(--accent-lo);
-  border: 1px solid oklch(0.72 0.15 82 / 0.22);
-  border-radius: var(--r-full);
-  font-size: var(--t-xs);
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  margin-bottom: var(--s4);
-}
-
-.showcase__panel h2 {
-  font-size: var(--t-xl);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--text);
-  line-height: 1.12;
-  margin-bottom: var(--s4);
-}
-
-.showcase__panel p {
-  font-size: var(--t-sm);
-  color: var(--text-muted);
-  line-height: 1.75;
-  max-width: 46ch;
-}
-
-.showcase__stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s3);
-}
-
-.glass-card {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
-  padding: var(--s5) var(--s6);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--s4);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
-}
-
-.glass-card:hover { box-shadow: var(--shadow-md); transform: translateX(4px); }
-
-.glass-card span { font-size: var(--t-xs); color: var(--text-faint); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
-.glass-card strong { font-size: var(--t-lg); font-weight: 800; color: var(--text); letter-spacing: -.03em; }
-
-/* ── CTA Section ── */
-.cta-section {
-  padding: var(--s16) 0;
-  text-align: center;
-}
-
-.cta-section h2 {
-  font-size: var(--t-2xl);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: var(--text);
-  margin-bottom: var(--s4);
-}
-
-.cta-section p {
-  font-size: var(--t-base);
-  color: var(--text-muted);
-  max-width: 50ch;
-  margin: 0 auto var(--s8);
-  line-height: 1.75;
-}
-
-.cta-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: var(--s3);
-}
-</style>
-{% endblock %}
-
-{% block content %}
-
-{# ═══════════════════ HERO ═══════════════════ #}
-<section class="hero">
-  <div class="hero__grid" data-reveal>
-    <div class="hero__content">
-
-      <div class="hero__eyebrow">
-        <span class="dot"></span>
-        Plataforma online
-      </div>
-
-      <h1 class="hero__title">
-        Cresça nas redes sociais
-        <em>sem complicação</em>
-      </h1>
-
-      <p class="hero__subtitle">
-        Seguidores, curtidas e visualizações entregues de forma rápida, segura
-        e com rastreamento em tempo real. Checkout via Pix ou cartão.
-      </p>
-
-      <div class="hero__cta">
-        <a href="{{ path('app_order_new') }}" class="btn btn--primary btn--lg">
-          <i data-lucide="zap" width="16" height="16" aria-hidden="true"></i>
-          Fazer um pedido
-        </a>
-        <a href="{{ path('app_catalog') }}" class="btn btn--ghost btn--lg">
-          Ver catálogo
-          <i data-lucide="arrow-right" width="15" height="15" aria-hidden="true"></i>
-        </a>
-      </div>
-
-      <div class="hero__stats">
-        <div class="mini-stat">
-          <strong data-counter="12840">0</strong>
-          <span>Pedidos entregues</span>
-        </div>
-        <div class="mini-stat">
-          <strong data-counter="3421">0</strong>
-          <span>Clientes ativos</span>
-        </div>
-        <div class="mini-stat">
-          <strong data-counter="98">0</strong>
-          <span>% satisfação</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="hero__visual" aria-hidden="true">
-      <div class="floating-card floating-card--main">
-        <div class="floating-card__top">
-          <span>Receita hoje</span>
-          <strong>R$ 4.820,50</strong>
-        </div>
-        <div class="chart-bars">
-          <span style="height:34%"></span>
-          <span style="height:56%"></span>
-          <span style="height:49%"></span>
-          <span style="height:78%"></span>
-          <span style="height:67%"></span>
-          <span style="height:92%"></span>
-          <span style="height:74%"></span>
-        </div>
-      </div>
-      <div class="floating-card floating-card--small floating-card--one">
-        <span>Pix confirmado</span>
-        <strong>+ R$ 150,00</strong>
-      </div>
-      <div class="floating-card floating-card--small floating-card--two">
-        <span>Pedido #4931</span>
-        <strong>Em andamento</strong>
-      </div>
-    </div>
-  </div>
-</section>
-
-{# ═══════════════════ FEATURES ═══════════════════ #}
-<section class="section">
-  <div class="section-head" data-reveal>
-    <span class="pill pill--soft">Vantagens</span>
-    <h2>Feito para escalar sem parecer genérico</h2>
-    <p>Cada detalhe foi pensado para reduzir atrito e aumentar conversão.</p>
-  </div>
-
-  <div class="feature-grid">
-    <article class="feature-card" data-reveal data-delay="1">
-      <div class="feature-card__icon">
-        <i data-lucide="zap" width="20" height="20" aria-hidden="true"></i>
-      </div>
-      <h3>Checkout rápido</h3>
-      <p>Fluxo de compra enxuto com Pix, crédito e débito, pensado para reduzir abandono e aumentar conversão.</p>
-    </article>
-
-    <article class="feature-card" data-reveal data-delay="2">
-      <div class="feature-card__icon">
-        <i data-lucide="bar-chart-2" width="20" height="20" aria-hidden="true"></i>
-      </div>
-      <h3>Dashboard vivo</h3>
-      <p>Pedidos, saldo, progresso e KPIs com visual limpo e leitura rápida — especialmente no celular.</p>
-    </article>
-
-    <article class="feature-card" data-reveal data-delay="3">
-      <div class="feature-card__icon">
-        <i data-lucide="repeat-2" width="20" height="20" aria-hidden="true"></i>
-      </div>
-      <h3>Automação real</h3>
-      <p>Crons, filas, e-mails e remarketing ativados pelo comportamento do usuário, sem intervenção manual.</p>
-    </article>
-  </div>
-</section>
-
-{# ═══════════════════ SHOWCASE ═══════════════════ #}
-<section class="section section--alt">
-  <div class="showcase" data-reveal>
-    <div class="showcase__panel">
-      <span class="showcase__eyebrow">Visão operacional</span>
-      <h2>O usuário entende tudo em poucos toques</h2>
-      <p>
-        KPIs no topo, pedido rápido, status bem visível e histórico recente.
-        A ideia é reduzir atrito e aumentar recompra.
-      </p>
-      <div style="margin-top: var(--s6); display:flex; gap: var(--s3); flex-wrap:wrap;">
-        <a href="{{ path('app_order_new') }}" class="btn btn--primary">Fazer pedido agora</a>
-        <a href="{{ path('app_wallet_deposit') }}" class="btn btn--secondary">Adicionar saldo</a>
-      </div>
-    </div>
-
-    <div class="showcase__stack">
-      <div class="glass-card" data-reveal data-delay="1">
-        {% if app.user.wallet is defined and app.user.wallet %}
-        <span>Saldo disponível</span>
-        <strong>R$ {{ (app.user.wallet.balanceCents / 100)|number_format(2, ',', '.') }}</strong>
-        {% else %}
-        <span>Saldo disponível</span>
-        <strong>R$ 0,00</strong>
-        {% endif %}
-      </div>
-      <div class="glass-card" data-reveal data-delay="2">
-        <span>Plataformas suportadas</span>
-        <strong>Instagram, TikTok, YT…</strong>
-      </div>
-      <div class="glass-card" data-reveal data-delay="3">
-        <span>Entrega média</span>
-        <strong>< 30 minutos</strong>
-      </div>
-    </div>
-  </div>
-</section>
-
-{# ═══════════════════ CTA ═══════════════════ #}
-<section class="cta-section" data-reveal>
-  <h2>Pronto para crescer?</h2>
-  <p>Comece agora com créditos na sua carteira e faça seu primeiro pedido em menos de 2 minutos.</p>
-  <div class="cta-actions">
-    <a href="{{ path('app_wallet_deposit') }}" class="btn btn--primary btn--lg">
-      <i data-lucide="plus-circle" width="16" height="16" aria-hidden="true"></i>
-      Adicionar saldo
-    </a>
-    <a href="{{ path('app_catalog') }}" class="btn btn--ghost btn--lg">Explorar catálogo</a>
-  </div>
-</section>
-
-{% endblock %}
-
-{% block javascripts %}
-<script>
-(function(){
-  /* Animated counters */
-  function animCounter(el, target, suffix) {
-    var duration = 1600, start = null;
-    function step(ts) {
-      if (!start) start = ts;
-      var p = Math.min((ts - start) / duration, 1);
-      var v = Math.floor((1 - Math.pow(1-p, 3)) * target);
-      el.textContent = v.toLocaleString('pt-BR') + (suffix||'');
-      if (p < 1) requestAnimationFrame(step);
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AcheiSMM — Seguidores, Curtidas e Engajamento Real</title>
+  <meta name="description" content="O painel SMM mais rápido do Brasil. Seguidores, curtidas, views e engajamento para Instagram, TikTok, YouTube e mais. Entrega automática, preços a partir de R$1,00.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --surface2: #16161f;
+      --border: rgba(255,255,255,0.07);
+      --text: #f0f0f5;
+      --muted: #8888a0;
+      --faint: #444458;
+      --accent: #7c3aed;
+      --accent2: #a855f7;
+      --accent-glow: rgba(124,58,237,0.35);
+      --green: #22c55e;
+      --green-bg: rgba(34,197,94,0.1);
+      --radius: 14px;
+      --radius-sm: 8px;
     }
-    requestAnimationFrame(step);
-  }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+    img { display: block; max-width: 100%; }
 
-  document.addEventListener('DOMContentLoaded', function(){
-    document.querySelectorAll('[data-counter]').forEach(function(el){
-      var target = +el.getAttribute('data-counter');
-      var suffix = el.getAttribute('data-suffix') || '';
-      var io = new IntersectionObserver(function(entries){
-        if (entries[0].isIntersecting) { animCounter(el, target, suffix); io.disconnect(); }
-      }, { threshold: 0.3 });
-      io.observe(el);
-    });
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 clamp(1rem, 5vw, 3rem);
+      height: 64px;
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em;
+    }
+    .nav-logo svg { flex-shrink: 0; }
+    .nav-logo span { background: linear-gradient(135deg, #a855f7, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-links { display: flex; align-items: center; gap: 2rem; }
+    .nav-links a { color: var(--muted); font-size: 0.9rem; font-weight: 500; transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      display: flex; gap: 0.75rem;
+    }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 0.55rem 1.25rem; border-radius: 9999px;
+      font-size: 0.875rem; font-weight: 600; cursor: pointer;
+      transition: all .2s; border: none;
+    }
+    .btn-ghost {
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      color: #fff;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 0 32px var(--accent-glow); }
+    .btn-lg {
+      padding: 0.85rem 2rem; font-size: 1rem; border-radius: 9999px;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center;
+      padding: 6rem clamp(1rem, 5vw, 3rem) 4rem;
+      position: relative; overflow: hidden;
+    }
+    .hero-glow {
+      position: absolute; top: -20%; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 600px;
+      background: radial-gradient(ellipse at center, rgba(124,58,237,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 0.35rem 1rem; border-radius: 9999px;
+      background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3);
+      font-size: 0.8rem; font-weight: 600; color: #c084fc;
+      margin-bottom: 1.5rem;
+    }
+    .hero-badge span { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; display: inline-block; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+    .hero h1 {
+      font-size: clamp(2.2rem, 6vw, 5rem);
+      font-weight: 900; line-height: 1.05; letter-spacing: -0.03em;
+      margin-bottom: 1.25rem;
+      max-width: 900px;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, #a855f7 0%, #7c3aed 50%, #6366f1 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.2rem); color: var(--muted);
+      max-width: 600px; margin-bottom: 2.5rem; line-height: 1.7;
+    }
+    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 3rem; }
+    .hero-social-proof {
+      display: flex; align-items: center; gap: 0.75rem;
+      color: var(--muted); font-size: 0.85rem;
+    }
+    .avatar-stack { display: flex; }
+    .avatar-stack img, .avatar-placeholder {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 2px solid var(--bg);
+      margin-left: -8px; background: linear-gradient(135deg, #7c3aed, #6366f1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.6rem; font-weight: 700; color: white;
+    }
+    .avatar-stack .avatar-placeholder:first-child { margin-left: 0; }
+    .hero-stats {
+      display: flex; gap: clamp(1.5rem, 4vw, 4rem); flex-wrap: wrap; justify-content: center;
+      margin-top: 4rem; padding-top: 3rem;
+      border-top: 1px solid var(--border);
+      width: 100%; max-width: 700px;
+    }
+    .stat { text-align: center; }
+    .stat-num { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; letter-spacing: -0.03em; }
+    .stat-num.purple { background: linear-gradient(135deg, #a855f7, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── REDES ── */
+    .section { padding: clamp(3rem, 8vw, 6rem) clamp(1rem, 5vw, 3rem); }
+    .section-inner { max-width: 1100px; margin: 0 auto; }
+    .section-tag {
+      font-size: 0.75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--accent2); margin-bottom: 0.75rem;
+    }
+    .section-title {
+      font-size: clamp(1.6rem, 3.5vw, 2.8rem); font-weight: 800; letter-spacing: -0.03em;
+      margin-bottom: 1rem; line-height: 1.15;
+    }
+    .section-sub { color: var(--muted); font-size: 1rem; max-width: 500px; line-height: 1.7; margin-bottom: 3rem; }
+
+    .networks-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;
+    }
+    .network-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.5rem 1rem;
+      text-align: center; cursor: pointer;
+      transition: all .25s;
+    }
+    .network-card:hover { border-color: rgba(124,58,237,0.4); transform: translateY(-3px); background: var(--surface2); }
+    .network-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .network-name { font-size: 0.85rem; font-weight: 600; }
+    .network-count { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── HOW IT WORKS ── */
+    .how-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem;
+    }
+    .how-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 2rem 1.5rem;
+      position: relative; overflow: hidden;
+    }
+    .how-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, #7c3aed, #a855f7);
+      opacity: 0; transition: opacity .25s;
+    }
+    .how-card:hover::before { opacity: 1; }
+    .how-num {
+      font-size: 2.5rem; font-weight: 900; letter-spacing: -0.05em;
+      background: linear-gradient(135deg, rgba(168,85,247,0.3), rgba(124,58,237,0.1));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 0.75rem; line-height: 1;
+    }
+    .how-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .how-desc { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── PRICING ── */
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;
+    }
+    .pricing-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 2rem;
+      display: flex; flex-direction: column; gap: 1.25rem;
+      transition: all .25s; position: relative; overflow: hidden;
+    }
+    .pricing-card.featured {
+      border-color: rgba(124,58,237,0.5);
+      background: linear-gradient(145deg, rgba(124,58,237,0.08), var(--surface));
+      box-shadow: 0 0 40px rgba(124,58,237,0.12);
+    }
+    .pricing-card:hover { transform: translateY(-4px); }
+    .pricing-badge {
+      position: absolute; top: 1rem; right: 1rem;
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      color: white; font-size: 0.7rem; font-weight: 700; letter-spacing: .06em;
+      padding: 0.25rem 0.6rem; border-radius: 9999px; text-transform: uppercase;
+    }
+    .pricing-icon { font-size: 1.75rem; }
+    .pricing-name { font-size: 0.8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .pricing-price { display: flex; align-items: baseline; gap: 4px; }
+    .pricing-currency { font-size: 1rem; font-weight: 700; color: var(--muted); }
+    .pricing-amount { font-size: 2.8rem; font-weight: 900; letter-spacing: -0.04em; line-height: 1; }
+    .pricing-per { font-size: 0.8rem; color: var(--muted); }
+    .pricing-desc { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
+    .pricing-features li { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; }
+    .pricing-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+    .pricing-cta { margin-top: auto; }
+
+    /* ── TESTIMONIALS ── */
+    .testimonials-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem;
+    }
+    .testimonial-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.5rem;
+    }
+    .testimonial-stars { color: #facc15; font-size: 0.9rem; margin-bottom: 0.75rem; letter-spacing: 2px; }
+    .testimonial-text { font-size: 0.9rem; color: var(--muted); line-height: 1.7; margin-bottom: 1.25rem; }
+    .testimonial-author { display: flex; align-items: center; gap: 10px; }
+    .testimonial-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, #7c3aed, #6366f1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700; color: white; flex-shrink: 0;
+    }
+    .testimonial-name { font-size: 0.875rem; font-weight: 600; }
+    .testimonial-handle { font-size: 0.75rem; color: var(--muted); }
+
+    /* ── FAQ ── */
+    .faq-list { display: flex; flex-direction: column; gap: 1px; max-width: 750px; }
+    .faq-item { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+    .faq-item + .faq-item { margin-top: 0.5rem; }
+    .faq-q {
+      width: 100%; background: var(--surface); border: none; color: var(--text);
+      padding: 1.1rem 1.25rem; text-align: left; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+      font-family: inherit; transition: background .2s;
+    }
+    .faq-q:hover { background: var(--surface2); }
+    .faq-icon { font-size: 1.2rem; color: var(--accent2); flex-shrink: 0; transition: transform .25s; }
+    .faq-a {
+      background: var(--surface2); padding: 0 1.25rem; max-height: 0;
+      overflow: hidden; transition: max-height .3s ease, padding .3s ease;
+    }
+    .faq-a p { font-size: 0.875rem; color: var(--muted); line-height: 1.7; padding: 1rem 0; }
+    .faq-item.open .faq-a { max-height: 200px; }
+    .faq-item.open .faq-icon { transform: rotate(45deg); }
+
+    /* ── CTA FINAL ── */
+    .cta-section {
+      padding: clamp(3rem, 8vw, 6rem) clamp(1rem, 5vw, 3rem);
+      text-align: center;
+    }
+    .cta-box {
+      max-width: 700px; margin: 0 auto;
+      background: linear-gradient(145deg, rgba(124,58,237,0.12), rgba(99,102,241,0.08));
+      border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 24px; padding: clamp(2.5rem, 5vw, 4rem);
+      position: relative; overflow: hidden;
+    }
+    .cta-box::before {
+      content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(ellipse at center, rgba(124,58,237,0.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .cta-box h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 1rem; }
+    .cta-box p { color: var(--muted); font-size: 1rem; margin-bottom: 2rem; line-height: 1.7; }
+    .cta-box-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2.5rem clamp(1rem, 5vw, 3rem);
+    }
+    .footer-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; flex-wrap: wrap; gap: 1.5rem;
+      align-items: center; justify-content: space-between;
+    }
+    .footer-copy { font-size: 0.8rem; color: var(--faint); }
+    .footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+    .footer-links a { font-size: 0.8rem; color: var(--faint); transition: color .2s; }
+    .footer-links a:hover { color: var(--muted); }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 3px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .nav-cta .btn-ghost { display: none; }
+      .hero-stats { gap: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="AcheiSMM Logo">
+      <rect width="28" height="28" rx="8" fill="url(#grad)"/>
+      <path d="M7 14 C7 10 10 7 14 7 C18 7 21 10 21 14 C21 18 18 21 14 21" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="14" cy="14" r="3" fill="white"/>
+      <defs><linearGradient id="grad" x1="0" y1="0" x2="28" y2="28"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#a855f7"/></linearGradient></defs>
+    </svg>
+    <span>AcheiSMM</span>
+  </div>
+  <div class="nav-links">
+    <a href="#redes">Redes</a>
+    <a href="#como-funciona">Como funciona</a>
+    <a href="#precos">Preços</a>
+    <a href="#faq">FAQ</a>
+  </div>
+  <div class="nav-cta">
+    <a href="{{ path('app_login') }}" class="btn btn-ghost">Entrar</a>
+    <a href="{{ path('app_register') }}" class="btn btn-primary">Começar grátis →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-badge">
+    <span></span> Mais de 12.000 pedidos entregues hoje
+  </div>
+  <h1>Cresça nas redes sociais<br><em>de verdade e rápido</em></h1>
+  <p class="hero-sub">Seguidores, curtidas, views e engajamento para Instagram, TikTok, YouTube, Kwai e muito mais. Entrega automática, preços a partir de R$1,00.</p>
+  <div class="hero-actions">
+    <a href="{{ path('app_register') }}" class="btn btn-primary btn-lg">Criar conta grátis →</a>
+    <a href="{{ path('app_catalog') is defined ? path('app_catalog') : '#precos' }}" class="btn btn-ghost btn-lg">Ver todos os serviços</a>
+  </div>
+  <div class="hero-social-proof">
+    <div class="avatar-stack">
+      <div class="avatar-placeholder">AG</div>
+      <div class="avatar-placeholder">MR</div>
+      <div class="avatar-placeholder">JP</div>
+      <div class="avatar-placeholder">TS</div>
+    </div>
+    <span>+4.800 clientes ativos este mês</span>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num purple">12M+</div><div class="stat-label">Pedidos entregues</div></div>
+    <div class="stat"><div class="stat-num purple">98%</div><div class="stat-label">Taxa de satisfação</div></div>
+    <div class="stat"><div class="stat-num purple">R$1</div><div class="stat-label">Preço mínimo</div></div>
+    <div class="stat"><div class="stat-num purple">24/7</div><div class="stat-label">Suporte ativo</div></div>
+  </div>
+</section>
+
+<!-- REDES SOCIAIS -->
+<section class="section" id="redes">
+  <div class="section-inner">
+    <div class="section-tag">Plataformas</div>
+    <h2 class="section-title">Suporte a todas as redes</h2>
+    <p class="section-sub">Trabalhamos com as principais plataformas do mercado. Seguidores, curtidas, comentários, views e muito mais.</p>
+    <div class="networks-grid">
+      <div class="network-card"><div class="network-icon">📸</div><div class="network-name">Instagram</div><div class="network-count">+120 serviços</div></div>
+      <div class="network-card"><div class="network-icon">🎵</div><div class="network-name">TikTok</div><div class="network-count">+80 serviços</div></div>
+      <div class="network-card"><div class="network-icon">▶️</div><div class="network-name">YouTube</div><div class="network-count">+60 serviços</div></div>
+      <div class="network-card"><div class="network-icon">🐦</div><div class="network-name">X / Twitter</div><div class="network-count">+40 serviços</div></div>
+      <div class="network-card"><div class="network-icon">👥</div><div class="network-name">Facebook</div><div class="network-count">+50 serviços</div></div>
+      <div class="network-card"><div class="network-icon">💼</div><div class="network-name">LinkedIn</div><div class="network-count">+20 serviços</div></div>
+      <div class="network-card"><div class="network-icon">📌</div><div class="network-name">Pinterest</div><div class="network-count">+15 serviços</div></div>
+      <div class="network-card"><div class="network-icon">🎬</div><div class="network-name">Kwai</div><div class="network-count">+25 serviços</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- COMO FUNCIONA -->
+<section class="section" id="como-funciona">
+  <div class="section-inner">
+    <div class="section-tag">Processo</div>
+    <h2 class="section-title">Como funciona</h2>
+    <p class="section-sub">Em menos de 5 minutos você já tem seu pedido em andamento.</p>
+    <div class="how-grid">
+      <div class="how-card"><div class="how-num">01</div><div class="how-title">Crie sua conta</div><div class="how-desc">Cadastro grátis em 30 segundos. Sem cartão de crédito obrigatório para começar.</div></div>
+      <div class="how-card"><div class="how-num">02</div><div class="how-title">Escolha o serviço</div><div class="how-desc">Navegue pelo catálogo com mais de 400 serviços. Filtre por rede, tipo e preço.</div></div>
+      <div class="how-card"><div class="how-num">03</div><div class="how-title">Adicione créditos</div><div class="how-desc">Depósito via Pix, boleto ou cartão. Aprovação automática e instantânea via Pix.</div></div>
+      <div class="how-card"><div class="how-num">04</div><div class="how-title">Acompanhe em tempo real</div><div class="how-desc">Painel com status ao vivo. Notificações automáticas quando o pedido for concluído.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- PREÇOS -->
+<section class="section" id="precos">
+  <div class="section-inner">
+    <div class="section-tag">Planos</div>
+    <h2 class="section-title">Preços diretos ao ponto</h2>
+    <p class="section-sub">Sem mensalidade. Você compra créditos e usa quando quiser. Quanto mais carrega, maior o desconto.</p>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-icon">🚀</div>
+        <div class="pricing-name">Starter</div>
+        <div class="pricing-price">
+          <span class="pricing-currency">R$</span>
+          <span class="pricing-amount">10</span>
+          <span class="pricing-per">em créditos</span>
+        </div>
+        <div class="pricing-desc">Ideal para testar os serviços e ver a qualidade na prática.</div>
+        <ul class="pricing-features">
+          <li>Acesso a todos os serviços</li>
+          <li>Entrega automática</li>
+          <li>Suporte por chat</li>
+          <li>Painel de pedidos</li>
+        </ul>
+        <div class="pricing-cta">
+          <a href="{{ path('app_register') }}" class="btn btn-ghost" style="width:100%;justify-content:center">Começar →</a>
+        </div>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Popular</div>
+        <div class="pricing-icon">⚡</div>
+        <div class="pricing-name">Pro</div>
+        <div class="pricing-price">
+          <span class="pricing-currency">R$</span>
+          <span class="pricing-amount">50</span>
+          <span class="pricing-per">em créditos</span>
+        </div>
+        <div class="pricing-desc">Para criadores e agências que precisam de volume e velocidade.</div>
+        <ul class="pricing-features">
+          <li>Tudo do Starter</li>
+          <li>+5% de bônus em créditos</li>
+          <li>Prioridade na fila</li>
+          <li>API de integração</li>
+          <li>Histórico completo</li>
+        </ul>
+        <div class="pricing-cta">
+          <a href="{{ path('app_register') }}" class="btn btn-primary" style="width:100%;justify-content:center">Quero este →</a>
+        </div>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-icon">💎</div>
+        <div class="pricing-name">Elite</div>
+        <div class="pricing-price">
+          <span class="pricing-currency">R$</span>
+          <span class="pricing-amount">200</span>
+          <span class="pricing-per">em créditos</span>
+        </div>
+        <div class="pricing-desc">Máximo de crédito, máximo de bônus. Para quem faz isso profissionalmente.</div>
+        <ul class="pricing-features">
+          <li>Tudo do Pro</li>
+          <li>+12% de bônus em créditos</li>
+          <li>Gestor de conta dedicado</li>
+          <li>Preços especiais no atacado</li>
+          <li>Reabastecimento automático</li>
+        </ul>
+        <div class="pricing-cta">
+          <a href="{{ path('app_register') }}" class="btn btn-ghost" style="width:100%;justify-content:center">Quero este →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEPOIMENTOS -->
+<section class="section">
+  <div class="section-inner">
+    <div class="section-tag">Depoimentos</div>
+    <h2 class="section-title">O que nossos clientes dizem</h2>
+    <p class="section-sub" style="margin-bottom:2.5rem">Mais de 4.800 clientes ativos. Veja o que eles falam.</p>
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <p class="testimonial-text">"Comprei 1000 seguidores para meu Instagram às 23h e de manhã já estava entregue. Serviço real, qualidade top."</p>
+        <div class="testimonial-author"><div class="testimonial-avatar">AG</div><div><div class="testimonial-name">Ana G.</div><div class="testimonial-handle">@anagostyle</div></div></div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <p class="testimonial-text">"Uso para meus clientes de agência. Painel muito fácil, preços competitivos e entrega super rápida. Recomendo!"</p>
+        <div class="testimonial-author"><div class="testimonial-avatar">MR</div><div><div class="testimonial-name">Marcos R.</div><div class="testimonial-handle">Agência MR Digital</div></div></div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <p class="testimonial-text">"Já testei outros painéis e esse é de longe o melhor custo-benefício. Pix aprovado na hora, entrega automática."</p>
+        <div class="testimonial-author"><div class="testimonial-avatar">JP</div><div><div class="testimonial-name">João P.</div><div class="testimonial-handle">@jpcreator</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" id="faq">
+  <div class="section-inner">
+    <div class="section-tag">Dúvidas</div>
+    <h2 class="section-title">Perguntas frequentes</h2>
+    <p class="section-sub" style="margin-bottom:2.5rem">Respondemos as principais dúvidas aqui. Qualquer outra, é só chamar no chat.</p>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Os seguidores são reais? <span class="faq-icon">+</span></button>
+        <div class="faq-a"><p>Trabalhamos com diferentes tipos de serviço — desde seguidores de alta qualidade com perfis ativos até serviços mais econômicos. Cada serviço tem a descrição detalhada da qualidade na página do catálogo.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Quanto tempo demora a entrega? <span class="faq-icon">+</span></button>
+        <div class="faq-a"><p>Depende do serviço escolhido. A maioria inicia em menos de 1 hora. Serviços expressos iniciam em minutos. O prazo exato está descrito em cada serviço no catálogo.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Como faço para depositar? <span class="faq-icon">+</span></button>
+        <div class="faq-a"><p>Aceitamos Pix (aprovação instantânea), boleto bancário e cartão de crédito. Mínimo de R$5,00 por depósito.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">E se minha conta tiver queda de seguidores? <span class="faq-icon">+</span></button>
+        <div class="faq-a"><p>Serviços com garantia de reposição têm isso descrito claramente. Caso o pedido caia dentro do prazo de garantia, abrimos uma reclamação e o serviço é reposto automaticamente.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Precisa da minha senha? <span class="faq-icon">+</span></button>
+        <div class="faq-a"><p>Nunca. Nenhum serviço nosso exige acesso à sua conta. Apenas o link ou @ do perfil público.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="cta-section">
+  <div class="cta-box">
+    <h2>Pronto para crescer?</h2>
+    <p>Crie sua conta grátis agora, deposite via Pix e faça seu primeiro pedido em menos de 5 minutos.</p>
+    <div class="cta-box-actions">
+      <a href="{{ path('app_register') }}" class="btn btn-primary btn-lg">Criar conta grátis →</a>
+      <a href="{{ path('app_login') }}" class="btn btn-ghost btn-lg">Já tenho conta</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-copy">© {{ "now"|date("Y") }} AcheiSMM. Todos os direitos reservados.</div>
+    <div class="footer-links">
+      <a href="{{ path('app_terms') is defined ? path('app_terms') : '#' }}">Termos de uso</a>
+      <a href="{{ path('app_privacy') is defined ? path('app_privacy') : '#' }}">Privacidade</a>
+      <a href="{{ path('app_support') is defined ? path('app_support') : '#' }}">Suporte</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+  if (!isOpen) item.classList.add('open');
+}
+
+// Scroll reveal leve
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.style.opacity = '1';
+      e.target.style.transform = 'translateY(0)';
+    }
   });
-})();
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.network-card, .how-card, .pricing-card, .testimonial-card').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(24px)';
+  el.style.transition = 'opacity .5s ease, transform .5s ease';
+  observer.observe(el);
+});
 </script>
-{% endblock %}
+</body>
+</html>
