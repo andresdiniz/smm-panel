@@ -11,8 +11,12 @@
 
 namespace Symfony\UX\TwigComponent\Twig;
 
+use Psr\Container\ContainerInterface;
+use Symfony\Contracts\Service\ServiceSubscriberInterface;
+use Symfony\UX\TwigComponent\ComponentRenderer;
 use Symfony\UX\TwigComponent\CVA;
-use Twig\DeprecatedCallableInfo;
+use Symfony\UX\TwigComponent\Event\PreRenderEvent;
+use Twig\Error\RuntimeError;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
@@ -21,17 +25,24 @@ use Twig\TwigFunction;
  *
  * @internal
  */
-final class ComponentExtension extends AbstractExtension
+final class ComponentExtension extends AbstractExtension implements ServiceSubscriberInterface
 {
+    public function __construct(private ContainerInterface $container)
+    {
+    }
+
+    public static function getSubscribedServices(): array
+    {
+        return [
+            ComponentRenderer::class,
+        ];
+    }
+
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('component', [ComponentRuntime::class, 'render'], ['is_safe' => ['all']]),
-            new TwigFunction('cva', [$this, 'cva'], [
-                ...(class_exists(DeprecatedCallableInfo::class)
-                    ? ['deprecation_info' => new DeprecatedCallableInfo('symfony/ux-twig-component', '2.20', 'html_cva', 'twig/html-extra')]
-                    : ['deprecated' => '2.20', 'deprecating_package' => 'symfony/ux-twig-component', 'alternative' => 'html_cva']),
-            ]),
+            new TwigFunction('component', [$this, 'render'], ['is_safe' => ['all']]),
+            new TwigFunction('cva', [$this, 'cva']),
         ];
     }
 
@@ -41,6 +52,38 @@ final class ComponentExtension extends AbstractExtension
             new ComponentTokenParser(),
             new PropsTokenParser(),
         ];
+    }
+
+    public function render(string $name, array $props = []): string
+    {
+        try {
+            return $this->container->get(ComponentRenderer::class)->createAndRender($name, $props);
+        } catch (\Throwable $e) {
+            $this->throwRuntimeError($name, $e);
+        }
+    }
+
+    public function extensionPreCreateForRender(string $name, array $props): ?string
+    {
+        try {
+            return $this->container->get(ComponentRenderer::class)->preCreateForRender($name, $props);
+        } catch (\Throwable $e) {
+            $this->throwRuntimeError($name, $e);
+        }
+    }
+
+    public function startEmbeddedComponentRender(string $name, array $props, array $context, string $hostTemplateName, int $index): PreRenderEvent
+    {
+        try {
+            return $this->container->get(ComponentRenderer::class)->startEmbeddedComponentRender($name, $props, $context, $hostTemplateName, $index);
+        } catch (\Throwable $e) {
+            $this->throwRuntimeError($name, $e);
+        }
+    }
+
+    public function finishEmbeddedComponentRender(): void
+    {
+        $this->container->get(ComponentRenderer::class)->finishEmbeddedComponentRender();
     }
 
     /**
@@ -62,13 +105,25 @@ final class ComponentExtension extends AbstractExtension
      */
     public function cva(array $cva): CVA
     {
-        trigger_deprecation('symfony/ux-twig-component', '2.20', 'Twig Function "cva" is deprecated; use "html_cva" from the "twig/html-extra" package (available since version 3.12) instead.');
-
         return new CVA(
             $cva['base'] ?? '',
             $cva['variants'] ?? [],
             $cva['compoundVariants'] ?? [],
             $cva['defaultVariants'] ?? [],
         );
+    }
+
+    private function throwRuntimeError(string $name, \Throwable $e): void
+    {
+        // if it's already a Twig RuntimeError, just rethrow it
+        if ($e instanceof RuntimeError) {
+            throw $e;
+        }
+
+        if (!($e instanceof \Exception)) {
+            $e = new \Exception($e->getMessage(), $e->getCode(), $e->getPrevious());
+        }
+
+        throw new RuntimeError(sprintf('Error rendering "%s" component: %s', $name, $e->getMessage()), previous: $e);
     }
 }

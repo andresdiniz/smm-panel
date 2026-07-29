@@ -3,7 +3,6 @@
 namespace EasyCorp\Bundle\EasyAdminBundle\Config;
 
 use EasyCorp\Bundle\EasyAdminBundle\Contracts\Menu\MenuItemInterface;
-use EasyCorp\Bundle\EasyAdminBundle\Dto\MenuItemDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\UserMenuDto;
 
 /**
@@ -11,8 +10,11 @@ use EasyCorp\Bundle\EasyAdminBundle\Dto\UserMenuDto;
  */
 final class UserMenu
 {
-    private function __construct(private readonly UserMenuDto $dto)
+    private UserMenuDto $dto;
+
+    private function __construct(UserMenuDto $userMenuDto)
     {
+        $this->dto = $userMenuDto;
     }
 
     public static function new(): self
@@ -63,12 +65,7 @@ final class UserMenu
      */
     public function addMenuItems(array $items): self
     {
-        $itemsDto = array_map(
-            static fn (MenuItemInterface $item): MenuItemDto => $item->getAsDto(),
-            $items
-        );
-
-        $this->dto->setItems(array_merge($itemsDto, $this->dto->getItems()));
+        $this->dto->setItems(array_merge($items, $this->dto->getItems()));
 
         return $this;
     }
@@ -78,12 +75,7 @@ final class UserMenu
      */
     public function setMenuItems(array $items): self
     {
-        $itemsDto = array_map(
-            static fn (MenuItemInterface $item): MenuItemDto => $item->getAsDto(),
-            $items
-        );
-
-        $this->dto->setItems($itemsDto);
+        $this->dto->setItems($items);
 
         return $this;
     }

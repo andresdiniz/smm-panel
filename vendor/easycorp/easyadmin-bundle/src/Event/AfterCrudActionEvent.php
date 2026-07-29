@@ -12,8 +12,13 @@ final class AfterCrudActionEvent
 {
     use StoppableEventTrait;
 
-    public function __construct(private readonly ?AdminContext $adminContext, private readonly KeyValueStore $responseParameters)
+    private ?AdminContext $adminContext;
+    private KeyValueStore $responseParameters;
+
+    public function __construct(?AdminContext $adminContext, KeyValueStore $responseParameters)
     {
+        $this->adminContext = $adminContext;
+        $this->responseParameters = $responseParameters;
     }
 
     public function getAdminContext(): ?AdminContext
@@ -24,8 +29,6 @@ final class AfterCrudActionEvent
     /**
      * Use this method to pass additional parameters to the rendered template
      * Format: ['paramName' => $paramValue, ...].
-     *
-     * @param array<string, mixed> $parameters
      */
     public function addResponseParameters(array $parameters): void
     {

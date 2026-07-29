@@ -7,7 +7,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\FieldDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\FilterDataDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\FilterDto;
-use Symfony\Contracts\Translation\TranslatableInterface;
 
 /**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
@@ -43,23 +42,8 @@ trait FilterTrait
         return $this;
     }
 
-    /**
-     * @param TranslatableInterface|string|false|null $label
-     */
-    public function setLabel(/* TranslatableInterface|string|false|null */ $label): self
+    public function setLabel($label): self
     {
-        if (!\is_string($label) && !$label instanceof TranslatableInterface && false !== $label && null !== $label) {
-            trigger_deprecation(
-                'easycorp/easyadmin-bundle',
-                '4.27.0',
-                'Argument "%s" for "%s" must be one of these types: %s. Passing type "%s" will cause an error in 5.0.0.',
-                '$label',
-                __METHOD__,
-                '"string" or "TranslatableInterface" or "false" or "null"',
-                \gettype($label)
-            );
-        }
-
         $this->dto->setLabel($label);
 
         return $this;
@@ -72,9 +56,6 @@ trait FilterTrait
         return $this;
     }
 
-    /**
-     * @param array<string, mixed> $options
-     */
     public function setFormTypeOptions(array $options): self
     {
         $this->dto->setFormTypeOptions($options);

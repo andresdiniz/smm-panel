@@ -7,7 +7,6 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Twig\\Extra\\TwigExtraBundle\\' => array($vendorDir . '/twig/extra-bundle'),
-    'Twig\\Extra\\Html\\' => array($vendorDir . '/twig/html-extra'),
     'Twig\\' => array($vendorDir . '/twig/twig/src'),
     'Symfony\\UX\\TwigComponent\\' => array($vendorDir . '/symfony/ux-twig-component/src'),
     'Symfony\\Runtime\\Symfony\\Component\\' => array($vendorDir . '/symfony/runtime/Internal'),

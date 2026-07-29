@@ -11,7 +11,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\Configurator\MoneyConfigurator;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Form\Filter\Type\NumericFilterType;
 use EasyCorp\Bundle\EasyAdminBundle\Form\Type\ComparisonType;
-use Symfony\Contracts\Translation\TranslatableInterface;
 
 /**
  * @author Yonel Ceruto <yonelceruto@gmail.com>
@@ -21,9 +20,6 @@ final class NumericFilter implements FilterInterface
 {
     use FilterTrait;
 
-    /**
-     * @param TranslatableInterface|string|false|null $label
-     */
     public static function new(string $propertyName, $label = null): self
     {
         return (new self())
@@ -44,15 +40,13 @@ final class NumericFilter implements FilterInterface
         $value = $filterDataDto->getValue();
         $value2 = $filterDataDto->getValue2();
 
-        if (null !== $fieldDto && true === $fieldDto->getCustomOption(MoneyField::OPTION_STORED_AS_CENTS)) {
+        if (null !== $fieldDto && null !== $fieldDto->getCustomOption(MoneyField::OPTION_STORED_AS_CENTS)) {
             $divisor = $fieldDto->getFormTypeOption('divisor') ?? MoneyConfigurator::DEFAULT_DIVISOR;
             $value *= $divisor;
             $value2 *= $divisor;
         }
 
-        if (null === $value) {
-            $queryBuilder->andWhere(sprintf('%s.%s %s', $alias, $property, $comparison));
-        } elseif (ComparisonType::BETWEEN === $comparison) {
+        if (ComparisonType::BETWEEN === $comparison) {
             $queryBuilder->andWhere(sprintf('%s.%s BETWEEN :%s and :%s', $alias, $property, $parameterName, $parameter2Name))
                 ->setParameter($parameterName, $value)
                 ->setParameter($parameter2Name, $value2);

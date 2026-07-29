@@ -25,34 +25,27 @@ final class DateTimeConfigurator implements FilterConfiguratorInterface
 
     public function configure(FilterDto $filterDto, ?FieldDto $fieldDto, EntityDto $entityDto, AdminContext $context): void
     {
-        if (!isset($entityDto->getClassMetadata()->fieldMappings[$filterDto->getProperty()])) {
-            return;
-        }
+        $propertyType = $entityDto->getPropertyMetadata($filterDto->getProperty())->get('type');
 
-        $fieldMapping = $entityDto->getClassMetadata()->getFieldMapping($filterDto->getProperty());
-
-        // @phpstan-ignore-next-line (backward compatibility with Doctrine ORM 2.x)
-        $fieldType = \is_array($fieldMapping) ? ($fieldMapping['type'] ?? null) : $fieldMapping->type;
-
-        if (Types::DATE_MUTABLE === $fieldType) {
+        if (Types::DATE_MUTABLE === $propertyType) {
             $filterDto->setFormTypeOptionIfNotSet('value_type', DateType::class);
         }
 
-        if (Types::DATE_IMMUTABLE === $fieldType) {
+        if (Types::DATE_IMMUTABLE === $propertyType) {
             $filterDto->setFormTypeOptionIfNotSet('value_type', DateType::class);
             $filterDto->setFormTypeOptionIfNotSet('value_type_options.input', 'datetime_immutable');
         }
 
-        if (Types::TIME_MUTABLE === $fieldType) {
+        if (Types::TIME_MUTABLE === $propertyType) {
             $filterDto->setFormTypeOptionIfNotSet('value_type', TimeType::class);
         }
 
-        if (Types::TIME_IMMUTABLE === $fieldType) {
+        if (Types::TIME_IMMUTABLE === $propertyType) {
             $filterDto->setFormTypeOptionIfNotSet('value_type', TimeType::class);
             $filterDto->setFormTypeOptionIfNotSet('value_type_options.input', 'datetime_immutable');
         }
 
-        if (\in_array($fieldType, [Types::DATETIME_IMMUTABLE, Types::DATETIMETZ_IMMUTABLE], true)) {
+        if (\in_array($propertyType, [Types::DATETIME_IMMUTABLE, Types::DATETIMETZ_IMMUTABLE], true)) {
             $filterDto->setFormTypeOptionIfNotSet('value_type_options.input', 'datetime_immutable');
         }
     }

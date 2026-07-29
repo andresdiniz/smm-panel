@@ -2,44 +2,34 @@
 
 namespace EasyCorp\Bundle\EasyAdminBundle\Field\Configurator;
 
-use Doctrine\DBAL\Types\Types;
-use Doctrine\ORM\Mapping\FieldMapping;
-use Doctrine\ORM\Mapping\JoinColumnMapping;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldConfiguratorInterface;
-use EasyCorp\Bundle\EasyAdminBundle\Contracts\Translation\EntityTranslationIdGeneratorInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\FieldDto;
 use EasyCorp\Bundle\EasyAdminBundle\Factory\EntityFactory;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AvatarField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
-use EasyCorp\Bundle\EasyAdminBundle\Generator\LabelGenerator;
 use Symfony\Component\PropertyAccess\Exception\AccessException;
 use Symfony\Component\PropertyAccess\Exception\UnexpectedTypeException;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
-use Symfony\Contracts\Translation\TranslatableInterface;
+use function Symfony\Component\String\u;
 use function Symfony\Component\Translation\t;
+use Symfony\Contracts\Translation\TranslatableInterface;
 
 /**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  */
 final class CommonPreConfigurator implements FieldConfiguratorInterface
 {
-    public function __construct(
-        private readonly PropertyAccessorInterface $propertyAccessor,
-        private readonly EntityFactory $entityFactory,
-        private readonly ?EntityTranslationIdGeneratorInterface $entityTranslationIdGenerator = null,
-    ) {
-        if (null === $this->entityTranslationIdGenerator) {
-            trigger_deprecation(
-                'easycorp/easyadmin-bundle',
-                '4.27',
-                'Not passing argument "$entityTranslationIdGenerator" will cause an error in 5.0.0.',
-                '$entityTranslationIdGenerator',
-            );
-        }
+    private PropertyAccessorInterface $propertyAccessor;
+    private EntityFactory $entityFactory;
+
+    public function __construct(PropertyAccessorInterface $propertyAccessor, EntityFactory $entityFactory)
+    {
+        $this->propertyAccessor = $propertyAccessor;
+        $this->entityFactory = $entityFactory;
     }
 
     public function supports(FieldDto $field, EntityDto $entityDto): bool
@@ -68,12 +58,11 @@ final class CommonPreConfigurator implements FieldConfiguratorInterface
             }
         }
 
-        $label = $this->buildLabelOption($entityDto, $field, $translationDomain, $context->getCrud()->getCurrentPage(), $context->isUseEntityTranslations());
+        $label = $this->buildLabelOption($field, $translationDomain, $context->getCrud()->getCurrentPage());
         $field->setLabel($label);
 
         $isRequired = $this->buildRequiredOption($field, $entityDto);
         $field->setFormTypeOption('required', $isRequired);
-        $field->setHtmlAttribute('required', $isRequired);
 
         $isSortable = $this->buildSortableOption($field, $entityDto);
         $field->setSortable($isSortable);
@@ -84,14 +73,7 @@ final class CommonPreConfigurator implements FieldConfiguratorInterface
         $templatePath = $this->buildTemplatePathOption($context, $field, $entityDto, $isReadable);
         $field->setTemplatePath($templatePath);
 
-        $doctrineMetadata = [];
-        if (isset($entityDto->getClassMetadata()->fieldMappings[$field->getProperty()])) {
-            $doctrineMetadata = (array) $entityDto->getClassMetadata()->getFieldMapping($field->getProperty());
-        } elseif ($entityDto->getClassMetadata()->hasAssociation($field->getProperty())) {
-            $mappingType = $entityDto->getClassMetadata()->getAssociationMapping($field->getProperty())['type'];
-            $doctrineMetadata = (array) $entityDto->getClassMetadata()->getAssociationMapping($field->getProperty());
-            $doctrineMetadata['type'] = $mappingType;
-        }
+        $doctrineMetadata = $entityDto->hasProperty($field->getProperty()) ? $entityDto->getPropertyMetadata($field->getProperty())->all() : [];
         $field->setDoctrineMetadata($doctrineMetadata);
 
         if (null !== $helpMessage = $this->buildHelpOption($field, $translationDomain)) {
@@ -121,7 +103,10 @@ final class CommonPreConfigurator implements FieldConfiguratorInterface
         return '' === $help ? null : t($help, $field->getTranslationParameters(), $translationDomain);
     }
 
-    private function buildLabelOption(EntityDto $entityDto, FieldDto $field, string $translationDomain, ?string $currentPage, bool $useEntityTranslations): TranslatableInterface|string|false|null
+    /**
+     * @return TranslatableInterface|string|false|null
+     */
+    private function buildLabelOption(FieldDto $field, string $translationDomain, ?string $currentPage)
     {
         // don't autogenerate a label for these special fields (there's a dedicated configurator for them)
         if (FormField::class === $field->getFieldFqcn()) {
@@ -143,9 +128,7 @@ final class CommonPreConfigurator implements FieldConfiguratorInterface
         // it field doesn't define its label explicitly, generate an automatic
         // label based on the field's field name
         if (null === $label = $field->getLabel()) {
-            $label = $useEntityTranslations
-                ? $this->entityTranslationIdGenerator->generateForProperty($entityDto->getFqcn(), $field->getProperty())
-                : LabelGenerator::humanize($field->getProperty());
+            $label = $this->humanizeString($field->getProperty());
         }
 
         if ('' === $label || false === $label) {
@@ -171,14 +154,12 @@ final class CommonPreConfigurator implements FieldConfiguratorInterface
             return $isSortable;
         }
 
-        return isset($entityDto->getClassMetadata()->fieldMappings[$field->getProperty()])
-            || $entityDto->getClassMetadata()->hasAssociation($field->getProperty());
+        return $entityDto->hasProperty($field->getProperty());
     }
 
     private function buildVirtualOption(FieldDto $field, EntityDto $entityDto): bool
     {
-        return !isset($entityDto->getClassMetadata()->fieldMappings[$field->getProperty()])
-            && !$entityDto->getClassMetadata()->hasAssociation($field->getProperty());
+        return !$entityDto->hasProperty($field->getProperty());
     }
 
     private function buildTemplatePathOption(AdminContext $adminContext, FieldDto $field, EntityDto $entityDto, bool $isReadable): string
@@ -206,31 +187,28 @@ final class CommonPreConfigurator implements FieldConfiguratorInterface
         }
 
         // consider that virtual properties are not required
-        if (!isset($entityDto->getClassMetadata()->fieldMappings[$field->getProperty()])
-            && !$entityDto->getClassMetadata()->hasAssociation($field->getProperty())) {
+        if (!$entityDto->hasProperty($field->getProperty())) {
             return false;
         }
 
+        $doctrinePropertyMetadata = $entityDto->getPropertyMetadata($field->getProperty());
+
         // If at least one join column of an association field isn't nullable then the field is "required" by default, otherwise the field is optional
-        if ($entityDto->getClassMetadata()->hasAssociation($field->getProperty())) {
-            $associationMapping = $entityDto->getClassMetadata()->associationMappings[$field->getProperty()];
-            /** @var class-string $targetEntityFqcn */
-            $targetEntityFqcn = $entityDto->getClassMetadata()->getAssociationTargetClass($field->getProperty());
-            $associatedEntityMetadata = $this->entityFactory->getEntityMetadata($targetEntityFqcn);
-            foreach ($associationMapping['joinColumns'] ?? [] as $joinColumn) {
-                if (true === $associationMapping['isOwningSide']) {
-                    if ($joinColumn instanceof JoinColumnMapping) {
-                        $isNullable = $joinColumn->nullable ?? true;
-                    } else {
-                        $isNullable = $joinColumn['nullable'] ?? true;
+        if ($entityDto->isAssociation($field->getProperty())) {
+            $associatedEntityMetadata = $this->entityFactory->getEntityMetadata($doctrinePropertyMetadata->get('targetEntity'));
+            foreach ($doctrinePropertyMetadata->get('joinColumns', []) as $joinColumn) {
+                if (true === $doctrinePropertyMetadata->get('isOwningSide', true)) {
+                    if (false === ($joinColumn['nullable'] ?? true)) {
+                        return true;
                     }
                 } else {
-                    $propertyNameInAssociatedEntity = $joinColumn instanceof JoinColumnMapping ? $joinColumn->referencedColumnName : $joinColumn['referencedColumnName'];
+                    $propertyNameInAssociatedEntity = $joinColumn['referencedColumnName'];
                     $associatedPropertyMetadata = $associatedEntityMetadata->fieldMappings[$propertyNameInAssociatedEntity] ?? [];
                     $isNullable = $associatedPropertyMetadata['nullable'] ?? true;
-                }
-                if (false === $isNullable) {
-                    return true;
+
+                    if (false === $isNullable) {
+                        return true;
+                    }
                 }
             }
 
@@ -239,17 +217,30 @@ final class CommonPreConfigurator implements FieldConfiguratorInterface
 
         // TODO: check if it's correct to never make a boolean value required
         // I guess it's correct because Symfony Forms treat NULL as FALSE by default (i.e. in the database the value won't be NULL)
-        // Doctrine ORM 2.x returns an array and Doctrine ORM 3.x returns a FieldMapping object
-        $fieldMapping = $entityDto->getClassMetadata()->getFieldMapping($field->getProperty());
-        // @phpstan-ignore-next-line (backward compatibility with Doctrine ORM 2.x)
-        $fieldType = \is_array($fieldMapping) ? ($fieldMapping['type'] ?? null) : $fieldMapping->type;
-        if (Types::BOOLEAN === $fieldType && isset($entityDto->getClassMetadata()->fieldMappings[$field->getProperty()])) {
+        if ('boolean' === $doctrinePropertyMetadata->get('type')) {
             return false;
         }
 
-        // @phpstan-ignore-next-line (backward compatibility with Doctrine ORM 2.x)
-        $nullable = \is_array($fieldMapping) ? ($fieldMapping['nullable'] ?? null) : $fieldMapping->nullable;
+        return false === $doctrinePropertyMetadata->get('nullable');
+    }
 
-        return false === $nullable || null === $nullable;
+    private function humanizeString(string $string): string
+    {
+        $uString = u($string);
+        $upperString = $uString->upper()->toString();
+
+        // this prevents humanizing all-uppercase labels (e.g. 'UUID' -> 'U u i d')
+        // and other special labels which look better in uppercase
+        if ($uString->toString() === $upperString || \in_array($upperString, ['ID', 'URL'], true)) {
+            return $upperString;
+        }
+
+        return $uString
+            ->replaceMatches('/([A-Z])/', '_$1')
+            ->replaceMatches('/[_\s]+/', ' ')
+            ->trim()
+            ->lower()
+            ->title(true)
+            ->toString();
     }
 }

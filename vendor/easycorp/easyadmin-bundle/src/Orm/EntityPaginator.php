@@ -10,31 +10,27 @@ use EasyCorp\Bundle\EasyAdminBundle\Contracts\Orm\EntityPaginatorInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\PaginatorDto;
 use EasyCorp\Bundle\EasyAdminBundle\Factory\EntityFactory;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGeneratorInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
-use Twig\Environment;
-use Twig\Error\Error;
 
 /**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  */
 final class EntityPaginator implements EntityPaginatorInterface
 {
+    private AdminUrlGeneratorInterface $adminUrlGenerator;
+    private EntityFactory $entityFactory;
     private ?int $currentPage = null;
     private ?int $pageSize = null;
     private ?int $rangeSize = null;
     private ?int $rangeEdgeSize = null;
-    /** @var iterable<mixed>|null */
-    private ?iterable $results = null;
-    private ?int $numResults = null;
+    private $results;
+    private $numResults;
     private ?int $rangeFirstResultNumber = null;
     private ?int $rangeLastResultNumber = null;
 
-    public function __construct(
-        private readonly AdminUrlGeneratorInterface $adminUrlGenerator,
-        private readonly EntityFactory $entityFactory,
-        private readonly RequestStack $requestStack,
-        private readonly Environment $twig,
-    ) {
+    public function __construct(AdminUrlGeneratorInterface $adminUrlGenerator, EntityFactory $entityFactory)
+    {
+        $this->adminUrlGenerator = $adminUrlGenerator;
+        $this->entityFactory = $entityFactory;
     }
 
     public function paginate(PaginatorDto $paginatorDto, QueryBuilder $queryBuilder): EntityPaginatorInterface
@@ -79,15 +75,7 @@ final class EntityPaginator implements EntityPaginatorInterface
 
     public function generateUrlForPage(int $page): string
     {
-        $pageUrl = $this->adminUrlGenerator->set(EA::PAGE, $page);
-
-        $currentRequest = $this->requestStack->getCurrentRequest();
-        $usesPrettyUrls = null !== $crudControllerFqcn = $currentRequest->attributes->get(EA::CRUD_CONTROLLER_FQCN);
-        if ($usesPrettyUrls) {
-            $pageUrl->setController($crudControllerFqcn)->setAction($currentRequest->attributes->get(EA::CRUD_ACTION));
-        }
-
-        return $pageUrl->generateUrl();
+        return $this->adminUrlGenerator->set(EA::PAGE, $page)->generateUrl();
     }
 
     public function getCurrentPage(): int
@@ -97,7 +85,7 @@ final class EntityPaginator implements EntityPaginatorInterface
 
     public function getLastPage(): int
     {
-        return max(1, (int) ceil($this->numResults / $this->pageSize));
+        return (int) ceil($this->numResults / $this->pageSize);
     }
 
     /**
@@ -210,51 +198,20 @@ final class EntityPaginator implements EntityPaginatorInterface
         return $this->rangeLastResultNumber;
     }
 
-    public function getResultsAsJson(?callable $callback = null, ?string $twigTemplate = null, bool $renderAsHtml = false): string
+    public function getResultsAsJson(): string
     {
-        $jsonResult = ['results' => []];
+        $jsonResult = [];
         foreach ($this->getResults() ?? [] as $entityInstance) {
             $entityDto = $this->entityFactory->createForEntityInstance($entityInstance);
 
-            if (null !== $twigTemplate) {
-                try {
-                    $entityAsString = $this->twig->render($twigTemplate, ['entity' => $entityInstance]);
-                } catch (Error $e) {
-                    throw new \RuntimeException(sprintf(
-                        'Error rendering autocomplete template "%s" for entity "%s": %s',
-                        $twigTemplate,
-                        $entityInstance::class,
-                        $e->getMessage()
-                    ), 0, $e);
-                }
-
-                if (!$renderAsHtml) {
-                    $entityAsString = htmlspecialchars($entityAsString, \ENT_QUOTES | \ENT_SUBSTITUTE, 'UTF-8');
-                }
-            } elseif (null !== $callback) {
-                $entityAsString = (string) $callback($entityInstance);
-
-                if (!$renderAsHtml) {
-                    $entityAsString = htmlspecialchars($entityAsString, \ENT_QUOTES | \ENT_SUBSTITUTE, 'UTF-8');
-                }
-            } else {
-                $entityAsString = (string) $entityDto;
-            }
-
             $jsonResult['results'][] = [
                 EA::ENTITY_ID => $entityDto->getPrimaryKeyValueAsString(),
-                'entityAsString' => $entityAsString,
+                'entityAsString' => $entityDto->toString(),
             ];
         }
 
-        $nextPageUrl = !$this->hasNextPage() ? null : $this->adminUrlGenerator->set(EA::PAGE, $this->getNextPage());
-        $currentRequest = $this->requestStack->getCurrentRequest();
-        $usesPrettyUrls = null !== $crudControllerFqcn = $currentRequest->attributes->get(EA::CRUD_CONTROLLER_FQCN);
-        if ($usesPrettyUrls && null !== $nextPageUrl) {
-            $nextPageUrl->setController($crudControllerFqcn)->setAction($currentRequest->attributes->get(EA::CRUD_ACTION));
-        }
-
-        $jsonResult['next_page'] = $nextPageUrl?->generateUrl();
+        $nextPageUrl = !$this->hasNextPage() ? null : $this->adminUrlGenerator->set(EA::PAGE, $this->getNextPage())->removeReferrer()->generateUrl();
+        $jsonResult['next_page'] = $nextPageUrl;
 
         return json_encode($jsonResult, \JSON_THROW_ON_ERROR);
     }

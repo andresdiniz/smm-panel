@@ -3,23 +3,25 @@
 namespace EasyCorp\Bundle\EasyAdminBundle\Field\Configurator;
 
 use Doctrine\DBAL\Types\Types;
-use Doctrine\ORM\Mapping\FieldMapping;
 use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldConfiguratorInterface;
-use EasyCorp\Bundle\EasyAdminBundle\Contracts\Intl\IntlFormatterInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\FieldDto;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TimeField;
+use EasyCorp\Bundle\EasyAdminBundle\Intl\IntlFormatter;
 
 /**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  */
 final class DateTimeConfigurator implements FieldConfiguratorInterface
 {
-    public function __construct(private readonly IntlFormatterInterface $intlFormatter)
+    private IntlFormatter $intlFormatter;
+
+    public function __construct(IntlFormatter $intlFormatter)
     {
+        $this->intlFormatter = $intlFormatter;
     }
 
     public function supports(FieldDto $field, EntityDto $entityDto): bool
@@ -92,16 +94,11 @@ final class DateTimeConfigurator implements FieldConfiguratorInterface
         $field->setFormattedValue($formattedValue);
 
         // check if the property is immutable, but only if it's a real Doctrine entity property
-        if (!isset($entityDto->getClassMetadata()->fieldMappings[$field->getProperty()])) {
+        if (!$entityDto->hasProperty($field->getProperty())) {
             return;
         }
-
-        $fieldMapping = $entityDto->getClassMetadata()->getFieldMapping($field->getProperty());
-        // Doctrine ORM 2.x returns an array and Doctrine ORM 3.x returns a FieldMapping object
-        // @phpstan-ignore function.impossibleType, nullCoalesce.offset (backward compatibility with Doctrine ORM 2.x)
-        $fieldType = \is_array($fieldMapping) ? ($fieldMapping['type'] ?? null) : $fieldMapping->type;
-
-        $isImmutableDateTime = \in_array($fieldType, [Types::DATETIMETZ_IMMUTABLE, Types::DATETIME_IMMUTABLE, Types::DATE_IMMUTABLE, Types::TIME_IMMUTABLE], true);
+        $doctrineDataType = $entityDto->getPropertyMetadata($field->getProperty())->get('type');
+        $isImmutableDateTime = \in_array($doctrineDataType, [Types::DATETIMETZ_IMMUTABLE, Types::DATETIME_IMMUTABLE, Types::DATE_IMMUTABLE, Types::TIME_IMMUTABLE], true);
         if ($isImmutableDateTime) {
             $field->setFormTypeOptionIfNotSet('input', 'datetime_immutable');
         }

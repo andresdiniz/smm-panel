@@ -14,22 +14,17 @@ namespace Symfony\UX\TwigComponent;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
-use Symfony\Contracts\Service\ResetInterface;
+use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Event\PostMountEvent;
 use Symfony\UX\TwigComponent\Event\PreMountEvent;
-use Twig\Environment;
-use Twig\Runtime\EscaperRuntime;
 
 /**
  * @author Kevin Bond <kevinbond@gmail.com>
  *
  * @internal
  */
-final class ComponentFactory implements ResetInterface
+final class ComponentFactory
 {
-    private array $mountMethods = [];
-    private array $writableProperties = [];
-
     /**
      * @param array<string, array>        $config
      * @param array<class-string, string> $classMap
@@ -40,35 +35,26 @@ final class ComponentFactory implements ResetInterface
         private PropertyAccessorInterface $propertyAccessor,
         private EventDispatcherInterface $eventDispatcher,
         private array $config,
-        private readonly array $classMap,
-        private readonly Environment $twig,
+        private array $classMap,
     ) {
     }
 
     public function metadataFor(string $name): ComponentMetadata
     {
-        if ($config = $this->config[$name] ?? null) {
-            return new ComponentMetadata($config);
-        }
+        $name = $this->classMap[$name] ?? $name;
 
-        if ($template = $this->componentTemplateFinder->findAnonymousComponentTemplate($name)) {
-            $this->config[$name] = [
-                'key' => $name,
-                'template' => $template,
-            ];
-
-            return new ComponentMetadata($this->config[$name]);
-        }
-
-        if ($mappedName = $this->classMap[$name] ?? null) {
-            if ($config = $this->config[$mappedName] ?? null) {
-                return new ComponentMetadata($config);
+        if (!$config = $this->config[$name] ?? null) {
+            if (($template = $this->componentTemplateFinder->findAnonymousComponentTemplate($name)) !== null) {
+                return new ComponentMetadata([
+                    'key' => $name,
+                    'template' => $template,
+                ]);
             }
 
-            throw new \InvalidArgumentException(\sprintf('Unknown component "%s".', $name));
+            $this->throwUnknownComponentException($name);
         }
 
-        $this->throwUnknownComponentException($name);
+        return new ComponentMetadata($config);
     }
 
     /**
@@ -76,13 +62,11 @@ final class ComponentFactory implements ResetInterface
      */
     public function create(string $name, array $data = []): MountedComponent
     {
-        $metadata = $this->metadataFor($name);
-
-        if ($metadata->isAnonymous()) {
-            return $this->mountFromObject(new AnonymousComponent(), $data, $metadata);
-        }
-
-        return $this->mountFromObject($this->components->get($metadata->getName()), $data, $metadata);
+        return $this->mountFromObject(
+            $this->getComponent($name),
+            $data,
+            $this->metadataFor($name)
+        );
     }
 
     /**
@@ -91,118 +75,149 @@ final class ComponentFactory implements ResetInterface
     public function mountFromObject(object $component, array $data, ComponentMetadata $componentMetadata): MountedComponent
     {
         $originalData = $data;
-        $event = $this->preMount($component, $data, $componentMetadata);
-        $data = $event->getData();
+        $data = $this->preMount($component, $data, $componentMetadata);
 
-        $this->mount($component, $data, $componentMetadata);
+        $this->mount($component, $data);
 
-        if (!$componentMetadata->isAnonymous()) {
-            // set data that wasn't set in mount on the component directly
-            foreach ($data as $property => $value) {
-                if ($this->writableProperties[$componentMetadata->getName()][$property] ??= $this->propertyAccessor->isWritable($component, $property)) {
-                    $this->propertyAccessor->setValue($component, $property, $value);
-                    unset($data[$property]);
-                }
+        // set data that wasn't set in mount on the component directly
+        foreach ($data as $property => $value) {
+            if ($this->propertyAccessor->isWritable($component, $property)) {
+                $this->propertyAccessor->setValue($component, $property, $value);
+
+                unset($data[$property]);
             }
         }
 
         $postMount = $this->postMount($component, $data, $componentMetadata);
-        $data = $postMount->getData();
+        $data = $postMount['data'];
+        $extraMetadata = $postMount['extraMetadata'];
 
         // create attributes from "attributes" key if exists
         $attributesVar = $componentMetadata->getAttributesVar();
         $attributes = $data[$attributesVar] ?? [];
         unset($data[$attributesVar]);
 
+        // ensure remaining data is scalar
         foreach ($data as $key => $value) {
             if ($value instanceof \Stringable) {
                 $data[$key] = (string) $value;
+                continue;
             }
+
+            $data[$key] = $value;
         }
 
         return new MountedComponent(
             $componentMetadata->getName(),
             $component,
-            new ComponentAttributes([...$attributes, ...$data], $this->twig->getRuntime(EscaperRuntime::class)),
+            new ComponentAttributes(array_merge($attributes, $data)),
             $originalData,
-            $postMount->getExtraMetadata(),
+            $extraMetadata,
         );
     }
 
     /**
      * Returns the "unmounted" component.
-     *
-     * @internal
      */
     public function get(string $name): object
     {
-        $metadata = $this->metadataFor($name);
-
-        if ($metadata->isAnonymous()) {
-            return new AnonymousComponent();
-        }
-
-        return $this->components->get($metadata->getName());
+        return $this->getComponent($name);
     }
 
-    private function mount(object $component, array &$data, ComponentMetadata $componentMetadata): void
+    private function mount(object $component, array &$data): void
     {
+        try {
+            $method = (new \ReflectionClass($component))->getMethod('mount');
+        } catch (\ReflectionException) {
+            // no hydrate method
+            return;
+        }
+
         if ($component instanceof AnonymousComponent) {
             $component->mount($data);
 
             return;
         }
 
-        if (!$componentMetadata->getMounts()) {
-            return;
-        }
-
-        $mount = $this->mountMethods[$component::class] ??= (new \ReflectionClass($component))->getMethod('mount');
-
         $parameters = [];
-        foreach ($mount->getParameters() as $refParameter) {
-            if (\array_key_exists($name = $refParameter->getName(), $data)) {
+
+        foreach ($method->getParameters() as $refParameter) {
+            $name = $refParameter->getName();
+
+            if (\array_key_exists($name, $data)) {
                 $parameters[] = $data[$name];
+
                 // remove the data element so it isn't used to set the property directly.
                 unset($data[$name]);
             } elseif ($refParameter->isDefaultValueAvailable()) {
                 $parameters[] = $refParameter->getDefaultValue();
             } else {
-                throw new \LogicException(\sprintf('"%s" has a required $%s parameter. Make sure to pass it or give it a default value.', $component::class.'::mount()', $name));
+                throw new \LogicException(sprintf('%s::mount() has a required $%s parameter. Make sure this is passed or make give a default value.', $component::class, $refParameter->getName()));
             }
         }
 
-        $mount->invoke($component, ...$parameters);
+        $component->mount(...$parameters);
     }
 
-    private function preMount(object $component, array $data, ComponentMetadata $componentMetadata): PreMountEvent
+    private function getComponent(string $name): object
+    {
+        $name = $this->classMap[$name] ?? $name;
+
+        if (!$this->components->has($name)) {
+            if ($this->isAnonymousComponent($name)) {
+                return new AnonymousComponent();
+            }
+
+            $this->throwUnknownComponentException($name);
+        }
+
+        return $this->components->get($name);
+    }
+
+    private function preMount(object $component, array $data, ComponentMetadata $componentMetadata): array
     {
         $event = new PreMountEvent($component, $data, $componentMetadata);
         $this->eventDispatcher->dispatch($event);
-
         $data = $event->getData();
-        foreach ($componentMetadata->getPreMounts() as $preMount) {
-            if (null !== $newData = $component->$preMount($data)) {
-                $event->setData($data = $newData);
+
+        foreach (AsTwigComponent::preMountMethods($component) as $method) {
+            $newData = $component->{$method->name}($data);
+
+            if (null !== $newData) {
+                $data = $newData;
             }
         }
 
-        return $event;
+        return $data;
     }
 
-    private function postMount(object $component, array $data, ComponentMetadata $componentMetadata): PostMountEvent
+    /**
+     * @return array{data: array<string, mixed>, extraMetadata: array<string, mixed>}
+     */
+    private function postMount(object $component, array $data, ComponentMetadata $componentMetadata): array
     {
         $event = new PostMountEvent($component, $data, $componentMetadata);
         $this->eventDispatcher->dispatch($event);
-
         $data = $event->getData();
-        foreach ($componentMetadata->getPostMounts() as $postMount) {
-            if (null !== $newData = $component->$postMount($data)) {
-                $event->setData($data = $newData);
+        $extraMetadata = $event->getExtraMetadata();
+
+        foreach (AsTwigComponent::postMountMethods($component) as $method) {
+            $newData = $component->{$method->name}($data);
+
+            if (null !== $newData) {
+                $data = $newData;
             }
         }
 
-        return $event;
+        return [
+            'data' => $data,
+            'extraMetadata' => $extraMetadata,
+        ];
+    }
+
+    private function isAnonymousComponent(string $name): bool
+    {
+        return null !== $this->componentTemplateFinder->findAnonymousComponentTemplate($name);
     }
 
     /**
@@ -210,7 +225,7 @@ final class ComponentFactory implements ResetInterface
      */
     private function throwUnknownComponentException(string $name): void
     {
-        $message = \sprintf('Unknown component "%s".', $name);
+        $message = sprintf('Unknown component "%s".', $name);
         $lowerName = strtolower($name);
         $nameLength = \strlen($lowerName);
         $alternatives = [];
@@ -237,11 +252,5 @@ final class ComponentFactory implements ResetInterface
         }
 
         throw new \InvalidArgumentException($message);
-    }
-
-    public function reset(): void
-    {
-        $this->mountMethods = [];
-        $this->writableProperties = [];
     }
 }

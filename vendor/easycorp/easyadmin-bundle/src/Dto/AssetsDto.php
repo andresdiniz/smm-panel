@@ -3,7 +3,6 @@
 namespace EasyCorp\Bundle\EasyAdminBundle\Dto;
 
 use EasyCorp\Bundle\EasyAdminBundle\Asset\AssetPackage;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Option\IconSet;
 
 /**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
@@ -18,12 +17,10 @@ final class AssetsDto
     private array $cssAssets = [];
     /** @var AssetDto[] */
     private array $jsAssets = [];
-    /** @var string[] */
+    /** @var AssetDto[] */
     private array $headContents = [];
-    /** @var string[] */
+    /** @var AssetDto[] */
     private array $bodyContents = [];
-    private string $iconSet = IconSet::FontAwesome;
-    private string $defaultIconPrefix = '';
 
     public function __construct()
     {
@@ -83,16 +80,6 @@ final class AssetsDto
         $this->bodyContents[] = $htmlContent;
     }
 
-    public function setIconSet(string $iconSet): void
-    {
-        $this->iconSet = $iconSet;
-    }
-
-    public function setDefaultIconPrefix(string $defaultIconPrefix): void
-    {
-        $this->defaultIconPrefix = $defaultIconPrefix;
-    }
-
     public function getDefaultAssetPackageName(): string
     {
         return AssetPackage::PACKAGE_NAME;
@@ -130,30 +117,14 @@ final class AssetsDto
         return $this->jsAssets;
     }
 
-    /**
-     * @return string[]
-     */
     public function getHeadContents(): array
     {
         return $this->headContents;
     }
 
-    /**
-     * @return string[]
-     */
     public function getBodyContents(): array
     {
         return $this->bodyContents;
-    }
-
-    public function getIconSet(): string
-    {
-        return $this->iconSet;
-    }
-
-    public function getDefaultIconPrefix(): string
-    {
-        return $this->defaultIconPrefix;
     }
 
     public function loadedOn(?string $pageName): self
@@ -163,8 +134,6 @@ final class AssetsDto
         }
 
         $filteredAssets = new self();
-        $filteredAssets->iconSet = $this->iconSet;
-        $filteredAssets->defaultIconPrefix = $this->defaultIconPrefix;
 
         foreach ($this->cssAssets as $cssAsset) {
             if ($cssAsset->getLoadedOn()->has($pageName)) {

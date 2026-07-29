@@ -121,7 +121,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  * }
  * @psalm-type ServicesConfig = array{
  *     _defaults?: DefaultsType,
- *     _instanceof?: InstanceofType,
+ *     _instanceof?: array<class-string, InstanceofType>,
  *     ...<string, DefinitionType|AliasType|PrototypeType|StackType|ArgumentsType|null>
  * }
  * @psalm-type ExtensionType = array<string, mixed>
@@ -981,7 +981,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         enabled?: bool|Param, // Default: false
  *     },
  *     html?: bool|array{
- *         enabled?: bool|Param, // Default: true
+ *         enabled?: bool|Param, // Default: false
  *     },
  *     markdown?: bool|array{
  *         enabled?: bool|Param, // Default: false
@@ -1029,11 +1029,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         name_prefix?: scalar|Param|null, // Default: ""
  *     }>,
  *     anonymous_template_directory?: scalar|Param|null, // Defaults to `components`
- *     profiler?: bool|array{ // Enables the profiler for Twig Component
- *         enabled?: bool|Param, // Default: "%kernel.debug%"
- *         collect_components?: bool|Param, // Collect components instances // Default: true
- *     },
- *     controllers_json?: scalar|Param|null, // Deprecated: The "twig_component.controllers_json" config option is deprecated, and will be removed in 3.0. // Default: null
+ *     profiler?: bool|Param, // Enables the profiler for Twig Component (in debug mode) // Default: "%kernel.debug%"
  * }
  * @psalm-type SecurityConfig = array{
  *     access_denied_url?: scalar|Param|null, // Default: null

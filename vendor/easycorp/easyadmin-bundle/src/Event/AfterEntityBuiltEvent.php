@@ -9,8 +9,11 @@ use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
  */
 final class AfterEntityBuiltEvent
 {
-    public function __construct(private readonly EntityDto $entityDto)
+    private EntityDto $entityDto;
+
+    public function __construct(EntityDto $entityDto)
     {
+        $this->entityDto = $entityDto;
     }
 
     public function getEntity(): EntityDto

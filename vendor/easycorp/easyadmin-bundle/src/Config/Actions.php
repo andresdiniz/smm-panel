@@ -11,8 +11,11 @@ use function Symfony\Component\Translation\t;
  */
 final class Actions
 {
-    private function __construct(private readonly ActionConfigDto $dto)
+    private ActionConfigDto $dto;
+
+    private function __construct(ActionConfigDto $actionConfigDto)
     {
+        $this->dto = $actionConfigDto;
     }
 
     public static function new(): self
@@ -22,14 +25,8 @@ final class Actions
         return new self($dto);
     }
 
-    public function add(string $pageName, Action|ActionGroup|string $actionNameOrObject): self
+    public function add(string $pageName, Action|string $actionNameOrObject): self
     {
-        if ($actionNameOrObject instanceof ActionGroup) {
-            $this->dto->appendAction($pageName, $actionNameOrObject->getAsDto());
-
-            return $this;
-        }
-
         return $this->doAddAction($pageName, $actionNameOrObject);
     }
 
@@ -54,7 +51,6 @@ final class Actions
         }
 
         $action = $actionDto->getAsConfigObject();
-
         /** @var Action $action */
         $action = $callable($action);
         $this->dto->setAction($pageName, $action->getAsDto());
@@ -79,9 +75,6 @@ final class Actions
         return $this;
     }
 
-    /**
-     * @param array<string> $orderedActionNames
-     */
     public function reorder(string $pageName, array $orderedActionNames): self
     {
         $newActionOrder = [];
@@ -105,9 +98,6 @@ final class Actions
 
         $this->dto->reorderActions($pageName, $newActionOrder);
 
-        // disable automatic ordering when reorder is called explicitly
-        $this->dto->setUseAutomaticOrdering(false);
-
         return $this;
     }
 
@@ -119,7 +109,7 @@ final class Actions
     }
 
     /**
-     * @param array<string, string|Expression> $permissions Syntax: ['actionName' => 'actionPermission', ...]
+     * @param array $permissions Syntax: ['actionName' => 'actionPermission', ...]
      */
     public function setPermissions(array $permissions): self
     {
@@ -142,13 +132,6 @@ final class Actions
         return $this;
     }
 
-    public function disableAutomaticOrdering(bool $disable = true): self
-    {
-        $this->dto->setUseAutomaticOrdering(!$disable);
-
-        return $this;
-    }
-
     public function getAsDto(?string $pageName): ActionConfigDto
     {
         $this->dto->setPageName($pageName);
@@ -165,61 +148,72 @@ final class Actions
         if (Action::BATCH_DELETE === $actionName) {
             return Action::new(Action::BATCH_DELETE, t('action.delete', domain: 'EasyAdminBundle'), null)
                 ->linkToCrudAction(Action::BATCH_DELETE)
-                ->asDangerAction();
+                ->setCssClass('action-'.Action::BATCH_DELETE)
+                ->addCssClass('btn btn-danger pr-0');
         }
 
         if (Action::NEW === $actionName) {
             return Action::new(Action::NEW, t('action.new', domain: 'EasyAdminBundle'), null)
                 ->createAsGlobalAction()
                 ->linkToCrudAction(Action::NEW)
-                ->renderAsLink() // for BC reasons; it's OK because this is a GET action
-                ->asPrimaryAction();
+                ->setCssClass('action-'.Action::NEW)
+                ->addCssClass('btn btn-primary');
         }
 
         if (Action::EDIT === $actionName) {
-            return Action::new(Action::EDIT, t('action.edit', domain: 'EasyAdminBundle'), Crud::PAGE_INDEX === $pageName ? 'internal:edit' : null)
+            return Action::new(Action::EDIT, t('action.edit', domain: 'EasyAdminBundle'), null)
                 ->linkToCrudAction(Action::EDIT)
-                ->asPrimaryAction(Crud::PAGE_DETAIL === $pageName);
+                ->setCssClass('action-'.Action::EDIT)
+                ->addCssClass(Crud::PAGE_DETAIL === $pageName ? 'btn btn-primary' : '');
         }
 
         if (Action::DETAIL === $actionName) {
-            return Action::new(Action::DETAIL, t('action.detail', domain: 'EasyAdminBundle'), Crud::PAGE_INDEX === $pageName ? 'internal:detail' : null)
-                ->linkToCrudAction(Action::DETAIL);
+            return Action::new(Action::DETAIL, t('action.detail', domain: 'EasyAdminBundle'))
+                ->linkToCrudAction(Action::DETAIL)
+                ->setCssClass('action-'.Action::DETAIL)
+                ->addCssClass(Crud::PAGE_EDIT === $pageName ? 'btn btn-secondary' : '');
         }
 
         if (Action::INDEX === $actionName) {
             return Action::new(Action::INDEX, t('action.index', domain: 'EasyAdminBundle'))
-                ->linkToCrudAction(Action::INDEX);
+                ->linkToCrudAction(Action::INDEX)
+                ->setCssClass('action-'.Action::INDEX)
+                ->addCssClass(\in_array($pageName, [Crud::PAGE_DETAIL, Crud::PAGE_EDIT, Crud::PAGE_NEW], true) ? 'btn btn-secondary' : '');
         }
 
         if (Action::DELETE === $actionName) {
-            return Action::new(Action::DELETE, t('action.delete', domain: 'EasyAdminBundle'), 'internal:delete')
+            $cssClass = \in_array($pageName, [Crud::PAGE_DETAIL, Crud::PAGE_EDIT], true) ? 'btn btn-secondary pr-0 text-danger' : 'text-danger';
+
+            return Action::new(Action::DELETE, t('action.delete', domain: 'EasyAdminBundle'), Crud::PAGE_INDEX === $pageName ? null : 'fa fa-fw fa-trash-o')
                 ->linkToCrudAction(Action::DELETE)
-                ->asDangerAction()
-                ->asTextLink()
-                ->askConfirmation()
-            ;
+                ->setCssClass('action-'.Action::DELETE)
+                ->addCssClass($cssClass);
         }
 
         if (Action::SAVE_AND_RETURN === $actionName) {
             return Action::new(Action::SAVE_AND_RETURN, t(Crud::PAGE_EDIT === $pageName ? 'action.save' : 'action.create', domain: 'EasyAdminBundle'))
-                ->asPrimaryAction()
-                ->renderAsButton()
-                ->setHtmlAttributes(['name' => 'ea[newForm][btn]', 'value' => $actionName])
+                ->setCssClass('action-'.Action::SAVE_AND_RETURN)
+                ->addCssClass('btn btn-primary action-save')
+                ->displayAsButton()
+                ->setHtmlAttributes(['type' => 'submit', 'name' => 'ea[newForm][btn]', 'value' => $actionName])
                 ->linkToCrudAction(Crud::PAGE_EDIT === $pageName ? Action::EDIT : Action::NEW);
         }
 
         if (Action::SAVE_AND_CONTINUE === $actionName) {
-            return Action::new(Action::SAVE_AND_CONTINUE, t(Crud::PAGE_EDIT === $pageName ? 'action.save_and_continue' : 'action.create_and_continue', domain: 'EasyAdminBundle'), 'internal:edit')
-                ->renderAsButton()
-                ->setHtmlAttributes(['name' => 'ea[newForm][btn]', 'value' => $actionName])
+            return Action::new(Action::SAVE_AND_CONTINUE, t(Crud::PAGE_EDIT === $pageName ? 'action.save_and_continue' : 'action.create_and_continue', domain: 'EasyAdminBundle'), 'far fa-edit')
+                ->setCssClass('action-'.Action::SAVE_AND_CONTINUE)
+                ->addCssClass('btn btn-secondary action-save')
+                ->displayAsButton()
+                ->setHtmlAttributes(['type' => 'submit', 'name' => 'ea[newForm][btn]', 'value' => $actionName])
                 ->linkToCrudAction(Crud::PAGE_EDIT === $pageName ? Action::EDIT : Action::NEW);
         }
 
         if (Action::SAVE_AND_ADD_ANOTHER === $actionName) {
             return Action::new(Action::SAVE_AND_ADD_ANOTHER, t('action.create_and_add_another', domain: 'EasyAdminBundle'))
-                ->renderAsButton()
-                ->setHtmlAttributes(['name' => 'ea[newForm][btn]', 'value' => $actionName])
+                ->setCssClass('action-'.Action::SAVE_AND_ADD_ANOTHER)
+                ->addCssClass('btn btn-secondary action-save')
+                ->displayAsButton()
+                ->setHtmlAttributes(['type' => 'submit', 'name' => 'ea[newForm][btn]', 'value' => $actionName])
                 ->linkToCrudAction(Action::NEW);
         }
 
@@ -240,7 +234,11 @@ final class Actions
             $actionDto->setType(Action::TYPE_BATCH);
         }
 
-        $this->dto->appendAction($pageName, $actionDto);
+        if (Crud::PAGE_INDEX === $pageName && Action::DELETE === $actionName) {
+            $this->dto->prependAction($pageName, $actionDto);
+        } else {
+            $this->dto->appendAction($pageName, $actionDto);
+        }
 
         return $this;
     }

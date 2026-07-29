@@ -10,8 +10,11 @@ use EasyCorp\Bundle\EasyAdminBundle\Dto\FilterConfigDto;
  */
 final class Filters
 {
-    private function __construct(private readonly FilterConfigDto $dto)
+    private FilterConfigDto $dto;
+
+    private function __construct(FilterConfigDto $filterConfigDto)
     {
+        $this->dto = $filterConfigDto;
     }
 
     public static function new(): self

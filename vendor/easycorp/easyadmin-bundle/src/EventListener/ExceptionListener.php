@@ -2,10 +2,9 @@
 
 namespace EasyCorp\Bundle\EasyAdminBundle\EventListener;
 
-use EasyCorp\Bundle\EasyAdminBundle\Contracts\Provider\AdminContextProviderInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Exception\BaseException;
 use EasyCorp\Bundle\EasyAdminBundle\Exception\FlattenException;
-use Psr\Log\LoggerInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Provider\AdminContextProvider;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Twig\Environment;
@@ -22,15 +21,18 @@ use Twig\Error\RuntimeError;
  */
 final class ExceptionListener
 {
-    public function __construct(
-        private readonly bool $kernelDebug,
-        private readonly AdminContextProviderInterface $adminContextProvider,
-        private readonly Environment $twig,
-        private readonly ?LoggerInterface $logger = null,
-    ) {
+    private bool $kernelDebug;
+    private AdminContextProvider $adminContextProvider;
+    private Environment $twig;
+
+    public function __construct(bool $kernelDebug, AdminContextProvider $adminContextProvider, Environment $twig)
+    {
+        $this->kernelDebug = $kernelDebug;
+        $this->adminContextProvider = $adminContextProvider;
+        $this->twig = $twig;
     }
 
-    public function onKernelException(ExceptionEvent $event): void
+    public function onKernelException(ExceptionEvent $event)
     {
         $exception = $event->getThrowable();
 
@@ -40,37 +42,27 @@ final class ExceptionListener
             return;
         }
 
-        if ($this->kernelDebug) {
+        if ($this->kernelDebug || !$exception instanceof BaseException) {
             return;
         }
 
-        if (!$exception instanceof BaseException && null === $this->adminContextProvider->getContext()) {
+        if (null === $this->adminContextProvider->getContext()) {
             return;
         }
 
-        try {
-            $event->setResponse($this->createExceptionResponse(FlattenException::createFromThrowable($exception)));
-        } catch (\Throwable $renderingError) {
-            $this->logger?->warning('EasyAdmin error page rendering failed, falling back to default error handling.', [
-                'rendering_error' => $renderingError->getMessage(),
-                'original_exception' => $exception::class,
-            ]);
-        }
+        // TODO: check why these custom error pages don't work
+        $event->setResponse($this->createExceptionResponse(FlattenException::create($exception)));
     }
 
     public function createExceptionResponse(FlattenException $exception): Response
     {
         $context = $this->adminContextProvider->getContext();
+        $exceptionTemplatePath = null === $context ? '@EasyAdmin/exception.html.twig' : $context->getTemplatePath('exception');
+        $layoutTemplatePath = null === $context ? '@EasyAdmin/layout.html.twig' : $context->getTemplatePath('layout');
 
-        if (null === $context) {
-            return new Response($this->twig->render('@EasyAdmin/exception_standalone.html.twig', [
-                'exception' => $exception,
-            ]), $exception->getStatusCode());
-        }
-
-        return new Response($this->twig->render($context->getTemplatePath('exception'), [
+        return new Response($this->twig->render($exceptionTemplatePath, [
             'exception' => $exception,
-            'layout_template_path' => $context->getTemplatePath('layout'),
+            'layout_template_path' => $layoutTemplatePath,
         ]), $exception->getStatusCode());
     }
 

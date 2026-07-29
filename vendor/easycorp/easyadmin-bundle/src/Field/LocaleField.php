@@ -53,8 +53,6 @@ final class LocaleField implements FieldInterface
     /**
      * Restricts the list of locales shown by the field to the given list of locale codes.
      * e.g. ->includeOnly(['de', 'en', 'fr']).
-     *
-     * @param array<string> $countryCodesToKeep
      */
     public function includeOnly(array $countryCodesToKeep): self
     {
@@ -66,8 +64,6 @@ final class LocaleField implements FieldInterface
     /**
      * Removes the given list of locale codes from the locales displayed by the field.
      * e.g. ->remove(['de', 'fr']).
-     *
-     * @param array<string> $countryCodesToRemove
      */
     public function remove(array $countryCodesToRemove): self
     {

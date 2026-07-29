@@ -12,7 +12,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Option\EA;
  */
 final class UrlSigner
 {
-    public function __construct(private readonly string $kernelSecret)
+    private string $kernelSecret;
+
+    public function __construct(string $kernelSecret)
     {
         trigger_deprecation(
             'easycorp/easyadmin-bundle',
@@ -20,6 +22,8 @@ final class UrlSigner
             'EasyAdmin URLs no longer include signatures because they don\'t provide any additional security. The "%s" class will be removed in future EasyAdmin versions, so you should stop using it.',
             __CLASS__
         );
+
+        $this->kernelSecret = $kernelSecret;
     }
 
     /**
@@ -69,9 +73,6 @@ final class UrlSigner
         return hash_equals($calculatedHash, $expectedHash);
     }
 
-    /**
-     * @param array<string, mixed> $queryParameters
-     */
     private function computeHash(array $queryParameters): string
     {
         // Base64 hashes include some characters which are not compatible with
@@ -96,10 +97,6 @@ final class UrlSigner
      * The rest of query parameters are not relevant for the signature (EA::PAGE, EA::SORT, etc.)
      * or are dynamically set by the user (EA::QUERY, EA::FILTERS, etc.) so they can't be
      * included in a signature calculated before providing that data.
-     *
-     * @param array<mixed> $queryParams
-     *
-     * @return array<string, mixed>
      */
     private function getQueryParamsToSign(array $queryParams): array
     {
@@ -116,19 +113,6 @@ final class UrlSigner
         return $signableQueryParams;
     }
 
-    /**
-     * @param array{
-     *     scheme?: string,
-     *     host?: string,
-     *     port?: int,
-     *     user?: string,
-     *     pass?: string,
-     *     path?: string,
-     *     query?: string,
-     *     fragment?: string
-     * } $urlParts
-     * @param array<string, mixed> $queryParams
-     */
     private function buildUrl(array $urlParts, array $queryParams = []): string
     {
         ksort($queryParams, \SORT_STRING);

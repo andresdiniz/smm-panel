@@ -23,47 +23,39 @@ use Twig\Node\Node;
 #[YieldReady]
 class PropsNode extends Node
 {
-    public function __construct(array $propsNames, array $values, $lineno = 0)
+    public function __construct(array $propsNames, array $values, $lineno = 0, ?string $tag = null)
     {
-        parent::__construct($values, ['names' => $propsNames], $lineno);
+        parent::__construct($values, ['names' => $propsNames], $lineno, $tag);
     }
 
     public function compile(Compiler $compiler): void
     {
-        $compiler->addDebugInfo($this);
-
-        if (!$propsNames = $this->getAttribute('names')) {
-            $compiler->write('$propsNames = [];');
-
-            return;
-        }
-
         $compiler
-            ->write('$propsNames = [\''.implode("', '", $propsNames).'\'];')
-            ->raw("\n")
-            ->write('$context[\'attributes\'] = $context[\'attributes\']->without(...$propsNames);')
-            ->raw("\n")
+            ->addDebugInfo($this)
+            ->write('$propsNames = [];')
         ;
 
         foreach ($this->getAttribute('names') as $name) {
             $compiler
                 ->write('if (isset($context[\'__props\'][\''.$name.'\'])) {')
                 ->raw("\n")
-                ->indent()
                 ->write('$componentClass = isset($context[\'this\']) ? get_debug_type($context[\'this\']) : "";')
                 ->raw("\n")
                 ->write('throw new \Twig\Error\RuntimeError(\'Cannot define prop "'.$name.'" in template "'.$this->getTemplateName().'". Property already defined in component class "\'.$componentClass.\'".\');')
                 ->raw("\n")
-                ->outdent()
                 ->write('}')
                 ->raw("\n")
             ;
 
-            $compiler->write('if (!isset($context[\''.$name.'\'])) {');
+            $compiler
+                ->write('$propsNames[] = \''.$name.'\';')
+                ->write("\n")
+                ->write('$context[\'attributes\'] = $context[\'attributes\']->remove(\''.$name.'\');')
+                ->write("\n")
+                ->write('if (!isset($context[\''.$name.'\'])) {');
 
             if (!$this->hasNode($name)) {
                 $compiler
-                    ->write("\n")
                     ->indent()
                     ->write('throw new \Twig\Error\RuntimeError("'.$name.' should be defined for component '.$this->getTemplateName().'.");')
                     ->write("\n")
@@ -81,27 +73,16 @@ class PropsNode extends Node
                 ->raw(";\n")
                 ->outdent()
                 ->write('}')
-                ->write("\n")
-            ;
-
-            // overwrite the context value if a props with a similar name and a default value exist
-            if ($this->hasNode($name)) {
-                $compiler
-                    ->write('if (isset($context[\'__context\'][\''.$name.'\'])) {')
-                    ->raw("\n")
-                    ->indent()
-                    ->write('$context[\''.$name.'\'] = ')
-                    ->subcompile($this->getNode($name))
-                    ->raw(";\n")
-                    ->outdent()
-                    ->write('}')
-                    ->raw("\n")
-                ;
-            }
+                ->write("\n");
         }
 
         $compiler
-            ->write('foreach ($context[\'attributes\']->all() as $key => $value) {')
+            ->write('$attributesKeys = array_keys($context[\'attributes\']->all());')
+            ->raw("\n")
+            ->write('foreach ($context as $key => $value) {')
+            ->raw("\n")
+            ->indent()
+            ->write('if (in_array($key, $attributesKeys) && !in_array($key, $propsNames)) {')
             ->raw("\n")
             ->indent()
             ->raw('unset($context[$key]);')
@@ -109,6 +90,24 @@ class PropsNode extends Node
             ->outdent()
             ->write('}')
             ->raw("\n")
+            ->outdent()
+            ->write('}')
+            ->raw("\n")
         ;
+
+        // overwrite the context value if a props with a similar name and a default value exist
+        if ($this->hasNode($name)) {
+            $compiler
+                ->write('if (isset($context[\'__context\'][\''.$name.'\'])) {')
+                ->raw("\n")
+                ->indent()
+                ->write('$context[\''.$name.'\'] = ')
+                ->subcompile($this->getNode($name))
+                ->raw(";\n")
+                ->outdent()
+                ->write('}')
+                ->raw("\n")
+            ;
+        }
     }
 }

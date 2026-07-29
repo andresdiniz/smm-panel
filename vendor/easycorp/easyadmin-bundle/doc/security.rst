@@ -3,17 +3,17 @@ Security
 
 EasyAdmin relies on `Symfony Security`_ for everything related to security.
 That's why before restricting access to some parts of the backend, you need
-to properly set up security in your Symfony application:
+to properly setup security in your Symfony application:
 
 #. `Create users`_ in your application and assign them proper permissions
    (e.g. ``ROLE_ADMIN``);
 #. `Define a firewall`_ that covers the URL of the backend.
 
-Logged-in User Information
+Logged in User Information
 --------------------------
 
 When accessing a protected backend, EasyAdmin displays the details of the user
-who is logged in to the application and a menu with some options like "logout".
+who is logged in the application and a menu with some options like "logout".
 Read the :ref:`user menu reference <dashboards-user-menu>` for more details.
 
 .. _security-entire-backend:
@@ -21,10 +21,9 @@ Read the :ref:`user menu reference <dashboards-user-menu>` for more details.
 Restrict Access to the Entire Backend
 -------------------------------------
 
-All the routes belonging to a given dashboard :ref:`share a common prefix <dashboard-route>`
-(e.g. ``/admin``). This makes it straightforward to secure the backend because
-you can use the `access_control option`_ to tell Symfony to require certain
-permissions when browsing that URL path:
+Using the `access_control option`_, you can tell Symfony to require certain
+permissions to browse the URL associated to the backend. This is simple to do
+because :ref:`each dashboard only uses a single URL <dashboard-route>`:
 
 .. code-block:: yaml
 
@@ -33,70 +32,22 @@ permissions when browsing that URL path:
         # ...
 
         access_control:
-            # change '/admin' to the prefix used by your Dashboard URLs
+            # change '/admin' by the URL used by your Dashboard
             - { path: ^/admin, roles: ROLE_ADMIN }
             # ...
 
-Alternatively you can use the `#[IsGranted] attribute`_. However, this can be
-cumbersome because you must apply it to all dashboard controllers and to all the
-:doc:`CRUD controllers </crud>`::
+Another option is to use the `#[IsGranted] attribute`_ in the dashboard controller::
 
     // app/Controller/Admin/DashboardController.php
-    use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
     use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
     use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
     use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-    #[AdminDashboard(routePath: '/admin', routeName: 'admin')]
     #[IsGranted('ROLE_ADMIN')]
     class DashboardController extends AbstractDashboardController
     {
         // ...
     }
-
-    // don't forget to also apply #[IsGranted('ROLE_ADMIN')] to all CRUD controllers
-
-.. _security-controllers:
-
-Restrict Access to Some CRUD Controllers
-----------------------------------------
-
-When using more than one :doc:`Dashboard </dashboards>` you might need to restrict
-which :doc:`CRUD controllers </crud>` are accessible for each of them.
-
-Consider that in your application you have two dashboards (``DashboardController``
-used by your employees and ``GuestDashboardController`` used by external collaborators).
-In the guest dashboard you only want to allow certain actions related to your blog.
-
-However, when using :ref:`pretty admin URLs <pretty-admin-urls>`, EasyAdmin will
-generate the routes for all CRUD controllers in all dashboards. This means that
-there will be undesired routes like ``admin_guest_invoice``, ``admin_guest_user_detail``, etc.
-The best way to restrict which CRUD controllers are accessible via each dashboard
-is to use the ``#[AdminDashboard]`` attribute::
-
-    // app/Controller/Admin/DashboardController.php
-    use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
-    use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
-
-    #[AdminDashboard(routePath: '/admin', routeName: 'admin', allowedControllers: [
-        BlogPostCrudController::class,
-        BlogCategoryCrudController::class,
-    ])]
-    class DashboardController extends AbstractDashboardController
-    {
-        // ...
-    }
-
-The ``allowedControllers`` option defines the only CRUD controllers that will be
-available in the dashboard via Symfony routes. In practice, the above configuration
-will make EasyAdmin to only generate the routes ``admin_guest_blog_post_*`` and
-``admin_guest_blog_category_*``, skipping all the other routes that would have
-allowed to access the other controllers.
-
-.. tip::
-
-    You can also define the opposite option (``deniedControllers``) to allow all
-    controllers except the ones included in that list.
 
 .. _security-menu:
 
@@ -104,14 +55,14 @@ Restrict Access to Menu Items
 -----------------------------
 
 Use the ``setPermission()`` method to define the security permission that the
-user must have to see the menu item::
+user must have in order to see the menu item::
 
     public function configureMenuItems(): iterable
     {
         return [
             // ...
 
-            MenuItem::linkTo(BlogPostCrudController::class, 'Blog Posts')
+            MenuItem::linkToCrud('Blog Posts', null, BlogPost::class)
                 ->setPermission('ROLE_EDITOR'),
         ];
     }
@@ -133,7 +84,7 @@ menu item definition to not have to deal with array merges::
         yield MenuItem::linkToDashboard('Dashboard', 'fa fa-home');
 
         if ($this->isGranted('ROLE_EDITOR') && '...') {
-            yield MenuItem::linkTo(BlogPostCrudController::class, 'Blog Posts');
+            yield MenuItem::linkToCrud('Blog Posts', null, BlogPost::class);
         }
 
         // ...
@@ -193,7 +144,7 @@ the ``setPermission()`` method::
 You can also restrict which items users can see in the ``index`` and ``detail``
 pages thanks to the ``setEntityPermission()`` method. This value is passed as
 the first argument of the call to ``is_granted($permissions, $item)`` function
-to decide whether the current user can see the given item::
+to decide if the current user can see the given item::
 
     namespace App\Controller\Admin;
 
@@ -230,13 +181,9 @@ permissions to see some items:
 Restricting Access with Expressions
 -----------------------------------
 
-.. versionadded:: 4.9.0
-
-    The Expressions support was introduced in EasyAdmin 4.9.0.
-
-The `Symfony ExpressionLanguage component`_ allows you to define complex configuration
+The `Symfony ExpressionLanguage component`_ allows to define complex configuration
 logic using simple expressions. In EasyAdmin, all ``setPermission()`` methods
-allow you to pass not only a string with some security role name (e.g. ``ROLE_ADMIN``)
+allow to pass not only a string with some security role name (e.g. ``ROLE_ADMIN``)
 but also a full ``Expression`` object.
 
 First, install the component in your project using Composer:
@@ -246,7 +193,9 @@ First, install the component in your project using Composer:
     $ composer require symfony/expression-language
 
 Now, you can pass a Symfony Expression object to any ``setPermission()`` method
-like this::
+like this:
+
+.. code-block:: php
 
     use Symfony\Component\ExpressionLanguage\Expression;
 

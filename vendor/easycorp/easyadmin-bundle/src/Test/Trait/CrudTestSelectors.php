@@ -16,12 +16,7 @@ trait CrudTestSelectors
 
     protected function getActionSelector(string $action): string
     {
-        // every action (top-level or nested in an ActionGroup) carries a
-        // `data-action-name` attribute set by ActionFactory::processAction(),
-        // so it's the only reliable selector for the test helpers. The legacy
-        // `.action-<name>` CSS class is only set on top-level actions and is
-        // therefore not usable when the action lives inside an ActionGroup.
-        return sprintf('[data-action-name="%s"]', $action);
+        return sprintf('.action-%s', $action);
     }
 
     protected function getGlobalActionSelector(string $action): string
@@ -44,7 +39,7 @@ trait CrudTestSelectors
         $columnSelector = match ($type) {
             'header' => 'th',
             'data' => 'td',
-            default => 'th',
+            default => 'th'
         };
 
         return sprintf('%s[data-column="%s"]', $columnSelector, $columnName);

@@ -9,9 +9,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Context\ExceptionContext;
  */
 final class EntityNotFoundException extends BaseException
 {
-    /**
-     * @param array<string> $parameters
-     */
     public function __construct(array $parameters = [])
     {
         $exceptionContext = new ExceptionContext(

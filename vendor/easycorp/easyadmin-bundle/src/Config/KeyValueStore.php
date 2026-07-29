@@ -10,21 +10,16 @@ namespace EasyCorp\Bundle\EasyAdminBundle\Config;
  */
 final class KeyValueStore
 {
-    /**
-     * @param array<string, mixed> $map
-     */
-    private function __construct(
-        private array $map,
-        private ?string $delimiter,
-    ) {
+    private array $map;
+
+    private function __construct(array $keyValueMap)
+    {
+        $this->map = $keyValueMap;
     }
 
-    /**
-     * @param array<string, mixed> $keyValuePairs
-     */
-    public static function new(array $keyValuePairs = [], ?string $delimiter = '.'): self
+    public static function new(array $keyValuePairs = []): self
     {
-        return new self($keyValuePairs, $delimiter);
+        return new self($keyValuePairs);
     }
 
     public function isEmpty(): bool
@@ -43,7 +38,7 @@ final class KeyValueStore
             return true;
         }
 
-        foreach ($this->segments($key) as $segment) {
+        foreach (explode('.', $key) as $segment) {
             if (!\is_array($items) || !\array_key_exists($segment, $items)) {
                 return false;
             }
@@ -60,12 +55,12 @@ final class KeyValueStore
             return $this->map[$key];
         }
 
-        if (null !== $this->delimiter && !str_contains($key, $this->delimiter)) {
+        if (!str_contains($key, '.')) {
             return $default;
         }
 
         $items = $this->map;
-        foreach ($this->segments($key) as $segment) {
+        foreach (explode('.', $key) as $segment) {
             if (!\is_array($items) || !\array_key_exists($segment, $items)) {
                 return $default;
             }
@@ -79,7 +74,7 @@ final class KeyValueStore
     public function set(string $key, mixed $value): void
     {
         $items = &$this->map;
-        foreach ($this->segments($key) as $segment) {
+        foreach (explode('.', $key) as $segment) {
             if (!isset($items[$segment]) || !\is_array($items[$segment])) {
                 $items[$segment] = [];
             }
@@ -97,9 +92,6 @@ final class KeyValueStore
         }
     }
 
-    /**
-     * @param array<string, mixed> $keyValuePairs
-     */
     public function setAll(array $keyValuePairs): void
     {
         foreach ($keyValuePairs as $key => $value) {
@@ -116,7 +108,7 @@ final class KeyValueStore
         }
 
         $items = &$this->map;
-        $segments = $this->segments($key);
+        $segments = explode('.', $key);
         $lastSegment = array_pop($segments);
 
         foreach ($segments as $segment) {
@@ -130,23 +122,8 @@ final class KeyValueStore
         unset($items[$lastSegment]);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     public function all(): array
     {
         return $this->map;
-    }
-
-    /**
-     * @return string[]
-     */
-    private function segments(string $key): array
-    {
-        if (null === $this->delimiter || '' === $this->delimiter) {
-            return [$key];
-        }
-
-        return explode($this->delimiter, $key);
     }
 }

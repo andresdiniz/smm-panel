@@ -8,10 +8,13 @@ use EasyCorp\Bundle\EasyAdminBundle\Dto\AssetDto;
 /**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  */
-final class Asset implements \Stringable
+final class Asset
 {
-    private function __construct(private readonly AssetDto $dto)
+    private AssetDto $dto;
+
+    private function __construct(AssetDto $assetDto)
     {
+        $this->dto = $assetDto;
     }
 
     public function __toString()
@@ -104,9 +107,6 @@ final class Asset implements \Stringable
         return $this;
     }
 
-    /**
-     * @param array<string, string> $attrNamesAndValues
-     */
     public function htmlAttrs(array $attrNamesAndValues): self
     {
         foreach ($attrNamesAndValues as $attrName => $attrValue) {

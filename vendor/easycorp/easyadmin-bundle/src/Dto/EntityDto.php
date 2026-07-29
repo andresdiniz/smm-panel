@@ -2,37 +2,34 @@
 
 namespace EasyCorp\Bundle\EasyAdminBundle\Dto;
 
-use Doctrine\ORM\Mapping\AssociationMapping;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Mapping\FieldMapping;
+use Doctrine\ORM\Mapping\ManyToManyAssociationMapping;
+use Doctrine\ORM\Mapping\ManyToOneAssociationMapping;
+use Doctrine\ORM\Mapping\OneToManyAssociationMapping;
+use Doctrine\ORM\Mapping\OneToOneAssociationMapping;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\ActionCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Config\KeyValueStore;
 use Symfony\Component\ExpressionLanguage\Expression;
-use Symfony\Component\PropertyAccess\Exception\UninitializedPropertyException;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 
 /**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
- *
- * @template TEntity of object
  */
-final class EntityDto implements \Stringable
+final class EntityDto
 {
     private bool $isAccessible = true;
-    /** @var TEntity|null */
+    private string $fqcn;
+    private ClassMetadata $metadata;
     private $instance;
+    private $primaryKeyName;
     private mixed $primaryKeyValue = null;
+    private string|Expression|null $permission;
     private ?FieldCollection $fields = null;
     private ?ActionCollection $actions = null;
-    private ?string $defaultActionUrl = null;
 
-    /**
-     * @param class-string<TEntity>  $fqcn
-     * @param ClassMetadata<TEntity> $metadata
-     * @param TEntity|null           $entityInstance
-     */
-    public function __construct(private readonly string $fqcn, private readonly ClassMetadata $metadata, private readonly string|Expression|null $permission = null, /* ?object */ $entityInstance = null)
+    public function __construct(string $entityFqcn, ClassMetadata $entityMetadata, string|Expression|null $entityPermission = null, /* ?object */ $entityInstance = null)
     {
         if (!\is_object($entityInstance)
             && null !== $entityInstance) {
@@ -47,25 +44,18 @@ final class EntityDto implements \Stringable
             );
         }
 
+        $this->fqcn = $entityFqcn;
+        $this->metadata = $entityMetadata;
         $this->instance = $entityInstance;
+        $this->primaryKeyName = $this->metadata->getIdentifierFieldNames()[0];
+        $this->permission = $entityPermission;
     }
 
     public function __toString(): string
     {
-        if (null === $this->instance) {
-            return '';
-        }
-
-        if ($this->instance instanceof \Stringable) {
-            return (string) $this->instance;
-        }
-
-        return sprintf('%s #%s', $this->getName(), substr($this->getPrimaryKeyValueAsString(), 0, 16));
+        return $this->toString();
     }
 
-    /**
-     * @return class-string<TEntity>
-     */
     public function getFqcn(): string
     {
         return $this->fqcn;
@@ -76,30 +66,27 @@ final class EntityDto implements \Stringable
         return basename(str_replace('\\', '/', $this->fqcn));
     }
 
-    /**
-     * @deprecated since 4.27 and to be removed in 5.0, use $entityDto->__toString() instead
-     */
     public function toString(): string
     {
-        return $this->__toString();
+        if (null === $this->instance) {
+            return '';
+        }
+
+        if (method_exists($this->instance, '__toString')) {
+            return (string) $this->instance;
+        }
+
+        return sprintf('%s #%s', $this->getName(), substr($this->getPrimaryKeyValueAsString(), 0, 16));
     }
 
-    /**
-     * @return object|null
-     *
-     * @phpstan-return TEntity|null
-     */
     public function getInstance()/* : ?object */
     {
         return $this->instance;
     }
 
-    /**
-     * @deprecated since 4.27 and to be removed in 5.0, use $entityDto->getClassMetadata()->getSingleIdentifierFieldName() instead
-     */
-    public function getPrimaryKeyName(): string
+    public function getPrimaryKeyName(): ?string
     {
-        return $this->metadata->getSingleIdentifierFieldName();
+        return $this->primaryKeyName;
     }
 
     public function getPrimaryKeyValue(): mixed
@@ -116,11 +103,7 @@ final class EntityDto implements \Stringable
             ->enableExceptionOnInvalidIndex()
             ->getPropertyAccessor();
 
-        try {
-            $primaryKeyValue = $propertyAccessor->getValue($this->instance, $this->metadata->getSingleIdentifierFieldName());
-        } catch (UninitializedPropertyException $exception) {
-            $primaryKeyValue = null;
-        }
+        $primaryKeyValue = $propertyAccessor->getValue($this->instance, $this->primaryKeyName);
 
         return $this->primaryKeyValue = $primaryKeyValue;
     }
@@ -167,44 +150,20 @@ final class EntityDto implements \Stringable
         return $this->actions;
     }
 
-    public function getDefaultActionUrl(): ?string
-    {
-        return $this->defaultActionUrl;
-    }
-
-    public function setDefaultActionUrl(?string $url): void
-    {
-        $this->defaultActionUrl = $url;
-    }
-
-    public function getClassMetadata(): ClassMetadata
-    {
-        return $this->metadata;
-    }
-
     /**
-     * @deprecated since 4.27 and to be removed in 5.0, use $entityDto->getClassMetadata()->getFieldNames() instead
-     *
      * Returns the names of all properties defined in the entity, no matter
      * if they are used or not in the application.
-     *
-     * @return array<string>
      */
     public function getAllPropertyNames(): array
     {
         return $this->metadata->getFieldNames();
     }
 
-    /**
-     * @deprecated since 4.27 and to be removed in 5.0, use $entityDto->getClassMetadata()->fieldMappings[$propertyName] and $entityDto->getClassMetadata()->associationMappings[$propertyName] instead
-     */
     public function getPropertyMetadata(string $propertyName): KeyValueStore
     {
-        if (isset($this->metadata->fieldMappings[$propertyName])) {
+        if (\array_key_exists($propertyName, $this->metadata->fieldMappings)) {
             /** @var FieldMapping|array $fieldMapping */
-            /** @phpstan-ignore-next-line */
             $fieldMapping = $this->metadata->fieldMappings[$propertyName];
-
             // Doctrine ORM 2.x returns an array and Doctrine ORM 3.x returns a FieldMapping object
             if ($fieldMapping instanceof FieldMapping) {
                 $fieldMapping = (array) $fieldMapping;
@@ -213,16 +172,21 @@ final class EntityDto implements \Stringable
             return KeyValueStore::new($fieldMapping);
         }
 
-        if ($this->metadata->hasAssociation($propertyName)) {
-            /** @var AssociationMapping|array $associationMapping */
-            /** @phpstan-ignore-next-line */
+        if (\array_key_exists($propertyName, $this->metadata->associationMappings)) {
+            /** @var OneToOneAssociationMapping|OneToManyAssociationMapping|ManyToOneAssociationMapping|ManyToManyAssociationMapping|array $associationMapping */
             $associationMapping = $this->metadata->associationMappings[$propertyName];
-
-            // Doctrine ORM 2.x returns an array and Doctrine ORM 3.x returns an AssociationMapping object
-            if ($associationMapping instanceof AssociationMapping) {
+            // Doctrine ORM 2.x returns an array and Doctrine ORM 3.x returns one of the many *Mapping objects
+            // there's not a single interface implemented by all of them, so let's only check if it's an object
+            if (\is_object($associationMapping)) {
                 // Doctrine ORM 3.x doesn't include the 'type' key that tells the type of association
                 // recreate that key to keep the code compatible with both versions
-                $associationType = $associationMapping->type();
+                $associationType = match (true) {
+                    $associationMapping instanceof OneToOneAssociationMapping => ClassMetadata::ONE_TO_ONE,
+                    $associationMapping instanceof OneToManyAssociationMapping => ClassMetadata::ONE_TO_MANY,
+                    $associationMapping instanceof ManyToOneAssociationMapping => ClassMetadata::MANY_TO_ONE,
+                    $associationMapping instanceof ManyToManyAssociationMapping => ClassMetadata::MANY_TO_MANY,
+                    default => null,
+                };
 
                 $associationMapping = (array) $associationMapping;
                 $associationMapping['type'] = $associationType;
@@ -234,83 +198,47 @@ final class EntityDto implements \Stringable
         throw new \InvalidArgumentException(sprintf('The "%s" field does not exist in the "%s" entity.', $propertyName, $this->getFqcn()));
     }
 
-    /**
-     * @deprecated since 4.27 and to be removed in 5.0, use $entityDto->getClassMetadata()->getFieldMapping($propertyName)->type and $entityDto->getClassMetadata()->getAssociationMapping($propertyName)->type() instead
-     */
-    public function getPropertyDataType(string $propertyName): string|int
+    public function getPropertyDataType(string $propertyName)
     {
-        if (isset($this->getClassMetadata()->fieldMappings[$propertyName])) {
-            return $this->getClassMetadata()->fieldMappings[$propertyName]['type'];
-        }
-        if (isset($this->getClassMetadata()->associationMappings[$propertyName])) {
-            return $this->getClassMetadata()->associationMappings[$propertyName]['type'];
-        }
-        throw new \InvalidArgumentException(sprintf('The "%s" field does not exist in the "%s" entity.', $propertyName, $this->getFqcn()));
+        return $this->getPropertyMetadata($propertyName)->get('type');
     }
 
-    /**
-     * @deprecated since 4.27 and to be removed in 5.0, use isset($entityDto->getClassMetadata()->fieldMappings[$propertyName]) || $entityDto->getClassMetadata()->hasAssociation($propertyName) instead
-     */
     public function hasProperty(string $propertyName): bool
     {
-        return isset($this->metadata->fieldMappings[$propertyName])
-            || $this->metadata->hasAssociation($propertyName);
+        return \array_key_exists($propertyName, $this->metadata->fieldMappings)
+            || \array_key_exists($propertyName, $this->metadata->associationMappings);
     }
 
-    /**
-     * @deprecated since 4.27 and to be removed in 5.0 without replacement
-     */
     public function isAssociation(string $propertyName): bool
     {
-        if ($this->metadata->hasAssociation($propertyName)) {
-            return true;
-        }
-
-        if (!str_contains($propertyName, '.')) {
-            return false;
-        }
-
-        $propertyNameParts = explode('.', $propertyName, 2);
-
-        return !isset($this->metadata->embeddedClasses[$propertyNameParts[0]]);
+        return \array_key_exists($propertyName, $this->metadata->associationMappings)
+            || (str_contains($propertyName, '.') && !$this->isEmbeddedClassProperty($propertyName));
     }
 
-    /**
-     * @deprecated since 4.27 and to be removed in 5.0, use $entityDto->getClassMetadata()->isSingleValuedAssociation($propertyName)
-     */
     public function isToOneAssociation(string $propertyName): bool
     {
-        return $this->getClassMetadata()->isSingleValuedAssociation($propertyName);
+        $associationType = $this->getPropertyMetadata($propertyName)->get('type');
+
+        return \in_array($associationType, [ClassMetadata::ONE_TO_ONE, ClassMetadata::MANY_TO_ONE], true);
     }
 
-    /**
-     * @deprecated since 4.27 and to be removed in 5.0, use $entityDto->getClassMetadata()->isCollectionValuedAssociation($propertyName)
-     */
     public function isToManyAssociation(string $propertyName): bool
     {
-        return $this->getClassMetadata()->isCollectionValuedAssociation($propertyName);
+        $associationType = $this->getPropertyMetadata($propertyName)->get('type');
+
+        return \in_array($associationType, [ClassMetadata::ONE_TO_MANY, ClassMetadata::MANY_TO_MANY], true);
     }
 
-    /**
-     * @deprecated since 4.27 and to be removed in 5.0 without replacement
-     */
     public function isEmbeddedClassProperty(string $propertyName): bool
     {
         $propertyNameParts = explode('.', $propertyName, 2);
 
-        return isset($this->metadata->embeddedClasses[$propertyNameParts[0]]);
+        return \array_key_exists($propertyNameParts[0], $this->metadata->embeddedClasses);
     }
 
-    /**
-     * @param TEntity|null $newEntityInstance
-     */
     public function setInstance(?object $newEntityInstance): void
     {
-        // the instanceof guard must run even when $this->instance is null. Otherwise
-        // a caller can store an instance whose class does not match $this->fqcn, and
-        // downstream code (authorization, DB operations) that trusts either side of
-        // that pair may be redirected to the wrong entity (this is a CWE-441 (Confused Deputy) attack vector)
-        if (null !== $newEntityInstance && !$newEntityInstance instanceof $this->fqcn) {
+        if (null !== $this->instance && null !== $newEntityInstance && !$newEntityInstance instanceof $this->fqcn) {
             throw new \InvalidArgumentException(sprintf('The new entity instance must be of the same type as the previous instance (original instance: "%s", new instance: "%s").', $this->fqcn, $newEntityInstance::class));
         }
 
@@ -318,9 +246,6 @@ final class EntityDto implements \Stringable
         $this->primaryKeyValue = null;
     }
 
-    /**
-     * @param TEntity $newEntityInstance
-     */
     public function newWithInstance(/* object */ $newEntityInstance): self
     {
         if (!\is_object($newEntityInstance)) {
@@ -335,12 +260,7 @@ final class EntityDto implements \Stringable
             );
         }
 
-        // the instanceof guard must run even when $this->instance is null. Otherwise
-        // a caller that wraps an entity into a DTO whose $fqcn was set from a different
-        // source (e.g. batch actions, where the FQCN comes from the admin context but
-        // the instance comes from a repository lookup) can silently produce a DTO
-        // whose $fqcn does not match its $instance (this is a CWE-441 (Confused Deputy) attack vector).
-        if (!$newEntityInstance instanceof $this->fqcn) {
+        if (null !== $this->instance && !$newEntityInstance instanceof $this->fqcn) {
             throw new \InvalidArgumentException(sprintf('The new entity instance must be of the same type as the previous instance (original instance: "%s", new instance: "%s").', $this->fqcn, $newEntityInstance::class));
         }
 

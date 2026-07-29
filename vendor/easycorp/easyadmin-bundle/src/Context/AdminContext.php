@@ -3,10 +3,12 @@
 namespace EasyCorp\Bundle\EasyAdminBundle\Context;
 
 use EasyCorp\Bundle\EasyAdminBundle\Config\Option\EA;
-use EasyCorp\Bundle\EasyAdminBundle\Contracts\Context\AdminContextInterface;
-use EasyCorp\Bundle\EasyAdminBundle\Contracts\Registry\AdminControllerRegistryInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Config\UserMenu;
+use EasyCorp\Bundle\EasyAdminBundle\Contracts\Controller\DashboardControllerInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Contracts\Factory\MenuFactoryInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\AssetsDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\CrudDto;
+use EasyCorp\Bundle\EasyAdminBundle\Dto\DashboardDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\I18nDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\LocaleDto;
@@ -14,156 +16,126 @@ use EasyCorp\Bundle\EasyAdminBundle\Dto\MainMenuDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\UserMenuDto;
 use EasyCorp\Bundle\EasyAdminBundle\Registry\CrudControllerRegistry;
+use EasyCorp\Bundle\EasyAdminBundle\Registry\TemplateRegistry;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * A context object that stores all the state and config of the current admin request.
  *
- * Technically, it's a façade over other specialized sub-contexts:
- *
- * - RequestContext: HTTP request and user information
- * - CrudContext: CRUD operation state (entity, fields, search, etc.)
- * - DashboardContext: Dashboard configuration and menus
- * - I18nContext: Internationalization and templates
- *
- * IMPORTANT: any new methods added here MUST be duplicated in the AdminContextProvider class.
- *
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
- *
- * @template TEntity of object
- *
- * @implements AdminContextInterface<TEntity>
  */
-final class AdminContext implements AdminContextInterface
+final class AdminContext
 {
-    public function __construct(
-        private readonly RequestContext $requestContext,
-        private readonly CrudContext $crudContext,
-        private readonly DashboardContext $dashboardContext,
-        private readonly I18nContext $i18nContext,
-    ) {
+    private Request $request;
+    private ?UserInterface $user;
+    private I18nDto $i18nDto;
+    private CrudControllerRegistry $crudControllers;
+    private ?EntityDto $entityDto;
+    private DashboardDto $dashboardDto;
+    private DashboardControllerInterface $dashboardControllerInstance;
+    private AssetsDto $assetDto;
+    private ?CrudDto $crudDto;
+    private ?SearchDto $searchDto;
+    private MenuFactoryInterface $menuFactory;
+    private TemplateRegistry $templateRegistry;
+    private ?MainMenuDto $mainMenuDto = null;
+    private ?UserMenuDto $userMenuDto = null;
+
+    public function __construct(Request $request, ?UserInterface $user, I18nDto $i18nDto, CrudControllerRegistry $crudControllers, DashboardDto $dashboardDto, DashboardControllerInterface $dashboardController, AssetsDto $assetDto, ?CrudDto $crudDto, ?EntityDto $entityDto, ?SearchDto $searchDto, MenuFactoryInterface $menuFactory, TemplateRegistry $templateRegistry)
+    {
+        $this->request = $request;
+        $this->user = $user;
+        $this->i18nDto = $i18nDto;
+        $this->crudControllers = $crudControllers;
+        $this->dashboardDto = $dashboardDto;
+        $this->dashboardControllerInstance = $dashboardController;
+        $this->crudDto = $crudDto;
+        $this->assetDto = $assetDto;
+        $this->entityDto = $entityDto;
+        $this->searchDto = $searchDto;
+        $this->menuFactory = $menuFactory;
+        $this->templateRegistry = $templateRegistry;
     }
 
     public function getRequest(): Request
     {
-        return $this->requestContext->getRequest();
-    }
-
-    public function getUser(): ?UserInterface
-    {
-        return $this->requestContext->getUser();
+        return $this->request;
     }
 
     public function getReferrer(): ?string
     {
-        trigger_deprecation(
-            'easycorp/easyadmin-bundle',
-            '4.8.11',
-            'EasyAdmin URLs no longer include the referrer URL. If you still need it, you can get the referrer provided by browsers via $context->getRequest()->headers->get(\'referer\').',
-            __METHOD__,
-        );
-
-        $referrer = $this->requestContext->getRequest()->query->get(EA::REFERRER);
-
-        return '' !== $referrer ? $referrer : null;
+        return $this->request->query->get(EA::REFERRER);
     }
 
-    public function getCrud(): ?CrudDto
+    public function getI18n(): I18nDto
     {
-        return $this->crudContext->getCrud();
+        return $this->i18nDto;
+    }
+
+    public function getCrudControllers(): CrudControllerRegistry
+    {
+        return $this->crudControllers;
     }
 
     public function getEntity(): EntityDto
     {
-        // The interface requires non-null return, but CrudContext may return null
-        // if there's no CRUD operation. This maintains backward compatibility.
-        return $this->crudContext->getEntity() ?? throw new \LogicException('Cannot get entity outside of a CRUD context. Check if getCrud() returns a value before calling getEntity().');
+        return $this->entityDto;
     }
 
-    public function getSearch(): ?SearchDto
+    public function getUser(): ?UserInterface
     {
-        return $this->crudContext->getSearch();
-    }
-
-    public function getAdminControllers(): AdminControllerRegistryInterface
-    {
-        return $this->crudContext->getAdminControllers();
-    }
-
-    /**
-     * @deprecated since 4.28.1, use getAdminControllers() instead
-     */
-    public function getCrudControllers(): CrudControllerRegistry
-    {
-        trigger_deprecation(
-            'easycorp/easyadmin-bundle',
-            '4.28.1',
-            'The "%s()" method is deprecated. Use "getAdminControllers()" instead.',
-            __METHOD__
-        );
-
-        return $this->crudContext->getCrudControllers();
-    }
-
-    public function getMainMenu(): MainMenuDto
-    {
-        return $this->dashboardContext->getMainMenu();
-    }
-
-    public function getUserMenu(): UserMenuDto
-    {
-        return $this->dashboardContext->getUserMenu();
+        return $this->user;
     }
 
     public function getAssets(): AssetsDto
     {
-        return $this->dashboardContext->getAssets();
+        return $this->assetDto;
     }
 
-    public function usePrettyUrls(): bool
+    public function getSignedUrls(): bool
     {
-        return $this->dashboardContext->usePrettyUrls();
+        return $this->dashboardDto->getSignedUrls();
+    }
+
+    public function getAbsoluteUrls(): bool
+    {
+        return $this->dashboardDto->getAbsoluteUrls();
     }
 
     public function getDashboardTitle(): string
     {
-        return $this->dashboardContext->getDashboardDto()->getTitle();
+        return $this->dashboardDto->getTitle();
     }
 
     public function getDashboardFaviconPath(): string
     {
-        return $this->dashboardContext->getDashboardDto()->getFaviconPath();
+        return $this->dashboardDto->getFaviconPath();
     }
 
     public function getDashboardControllerFqcn(): string
     {
-        return $this->dashboardContext->getDashboardControllerFqcn();
+        return \get_class($this->dashboardControllerInstance);
     }
 
     public function getDashboardRouteName(): string
     {
-        return $this->dashboardContext->getDashboardDto()->getRouteName();
+        return $this->dashboardDto->getRouteName();
     }
 
     public function getDashboardContentWidth(): string
     {
-        return $this->dashboardContext->getDashboardDto()->getContentWidth();
+        return $this->dashboardDto->getContentWidth();
     }
 
     public function getDashboardSidebarWidth(): string
     {
-        return $this->dashboardContext->getDashboardDto()->getSidebarWidth();
+        return $this->dashboardDto->getSidebarWidth();
     }
 
     public function getDashboardHasDarkModeEnabled(): bool
     {
-        return $this->dashboardContext->getDashboardDto()->isDarkModeEnabled();
-    }
-
-    public function getDashboardDefaultColorScheme(): string
-    {
-        return $this->dashboardContext->getDashboardDto()->getDefaultColorScheme();
+        return $this->dashboardDto->isDarkModeEnabled();
     }
 
     /**
@@ -171,82 +143,48 @@ final class AdminContext implements AdminContextInterface
      */
     public function getDashboardLocales(): array
     {
-        return $this->dashboardContext->getDashboardDto()->getLocales();
+        return $this->dashboardDto->getLocales();
     }
 
-    public function getSignedUrls(): bool
+    public function getMainMenu(): MainMenuDto
     {
-        trigger_deprecation(
-            'easycorp/easyadmin-bundle',
-            '4.1.0',
-            'EasyAdmin URLs no longer include signatures because they don\'t provide any additional security. The "%s" method will be removed in EasyAdmin 5.0.0, so you should stop using it.',
-            __METHOD__
-        );
+        if (null !== $this->mainMenuDto) {
+            return $this->mainMenuDto;
+        }
 
-        return $this->dashboardContext->getDashboardDto()->getSignedUrls();
+        $configuredMenuItems = $this->dashboardControllerInstance->configureMenuItems();
+        $mainMenuItems = \is_array($configuredMenuItems) ? $configuredMenuItems : iterator_to_array($configuredMenuItems, false);
+
+        return $this->mainMenuDto = $this->menuFactory->createMainMenu($mainMenuItems);
     }
 
-    public function getAbsoluteUrls(): bool
+    public function getUserMenu(): UserMenuDto
     {
-        return $this->dashboardContext->getDashboardDto()->getAbsoluteUrls();
+        if (null !== $this->userMenuDto) {
+            return $this->userMenuDto;
+        }
+
+        if (null === $this->user) {
+            return UserMenu::new()->getAsDto();
+        }
+
+        $userMenu = $this->dashboardControllerInstance->configureUserMenu($this->user);
+
+        return $this->userMenuDto = $this->menuFactory->createUserMenu($userMenu);
     }
 
-    public function getI18n(): I18nDto
+    public function getCrud(): ?CrudDto
     {
-        return $this->i18nContext->getI18n();
+        return $this->crudDto;
+    }
+
+    public function getSearch(): ?SearchDto
+    {
+        return $this->searchDto;
     }
 
     public function getTemplatePath(string $templateName): string
     {
-        return $this->i18nContext->getTemplatePath($templateName);
-    }
-
-    public function isUseEntityTranslations(): bool
-    {
-        return $this->dashboardContext->getDashboardDto()->isUseEntityTranslations();
-    }
-
-    /**
-     * Returns a new AdminContext with a different EntityDto.
-     * Useful for nested CRUD operations (e.g., CollectionField).
-     */
-    public function withEntity(EntityDto $entityDto): self
-    {
-        return new self(
-            $this->requestContext,
-            new CrudContext(
-                $this->crudContext->getCrud(),
-                $entityDto,
-                $this->crudContext->getSearch(),
-                $this->crudContext->getAdminControllers(),
-            ),
-            $this->dashboardContext,
-            $this->i18nContext,
-        );
-    }
-
-    /**
-     * Creates an AdminContext instance suitable for testing.
-     *
-     * This method provides sensible defaults for all sub-contexts, making it easy
-     * to create AdminContext instances in tests without complex setup.
-     *
-     * @param RequestContext|null   $requestContext   Custom request context (defaults to empty request, no user)
-     * @param CrudContext|null      $crudContext      Custom CRUD context (defaults to empty CrudDto)
-     * @param DashboardContext|null $dashboardContext Custom dashboard context (defaults to empty dashboard)
-     * @param I18nContext|null      $i18nContext      Custom i18n context (defaults to 'en' locale)
-     */
-    public static function forTesting(
-        ?RequestContext $requestContext = null,
-        ?CrudContext $crudContext = null,
-        ?DashboardContext $dashboardContext = null,
-        ?I18nContext $i18nContext = null,
-    ): self {
-        return new self(
-            $requestContext ?? RequestContext::forTesting(),
-            $crudContext ?? CrudContext::forTesting(),
-            $dashboardContext ?? DashboardContext::forTesting(),
-            $i18nContext ?? I18nContext::forTesting(),
-        );
+        return $this->templateRegistry->get($templateName);
     }
 }

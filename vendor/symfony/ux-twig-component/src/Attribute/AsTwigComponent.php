@@ -36,9 +36,7 @@ class AsTwigComponent
         private ?string $name = null,
 
         /**
-         * The template path of the component (ie: components/Button.html.twig)
-         * or a reference to a component method to resolve the template dynamically
-         * (ie: FromMethod('customFunction')).
+         * The template path of the component (ie: components/Button.html.twig).
          *
          * With the default configuration, the template path is resolved using
          * the component's name.
@@ -48,7 +46,7 @@ class AsTwigComponent
          *
          * @see https://symfony.com/bundles/ux-twig-component#component-template-path
          */
-        private string|FromMethod|null $template = null,
+        private ?string $template = null,
 
         /**
          * Whether to expose every public property as a Twig variable.
@@ -69,19 +67,54 @@ class AsTwigComponent
      */
     public function serviceConfig(): array
     {
-        $config = [
+        return [
             'key' => $this->name,
+            'template' => $this->template,
             'expose_public_props' => $this->exposePublicProps,
             'attributes_var' => $this->attributesVar,
         ];
+    }
 
-        if ($this->template instanceof FromMethod) {
-            $config['template_from_method'] = $this->template->method;
-        } else {
-            $config['template'] = $this->template;
+    /**
+     * @param object|class-string $component
+     *
+     * @return ?\ReflectionMethod
+     *
+     * @internal
+     */
+    public static function mountMethod(object|string $component): ?\ReflectionMethod
+    {
+        foreach ((new \ReflectionClass($component))->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+            if ('mount' === $method->getName()) {
+                return $method;
+            }
         }
 
-        return $config;
+        return null;
+    }
+
+    /**
+     * @param object|class-string $component
+     *
+     * @return \ReflectionMethod[]
+     *
+     * @internal
+     */
+    public static function postMountMethods(object|string $component): array
+    {
+        return self::attributeMethodsByPriorityFor($component, PostMount::class);
+    }
+
+    /**
+     * @param object|class-string $component
+     *
+     * @return \ReflectionMethod[]
+     *
+     * @internal
+     */
+    public static function preMountMethods(object|string $component): array
+    {
+        return self::attributeMethodsByPriorityFor($component, PreMount::class);
     }
 
     /**

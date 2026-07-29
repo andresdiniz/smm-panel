@@ -2,53 +2,45 @@
 
 namespace EasyCorp\Bundle\EasyAdminBundle\Factory;
 
-use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Option\EA;
 use EasyCorp\Bundle\EasyAdminBundle\Config\UserMenu;
-use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
-use EasyCorp\Bundle\EasyAdminBundle\Contracts\Controller\CrudControllerInterface;
-use EasyCorp\Bundle\EasyAdminBundle\Contracts\Controller\DashboardControllerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Contracts\Factory\MenuFactoryInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Contracts\Menu\MenuItemInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Contracts\Menu\MenuItemMatcherInterface;
-use EasyCorp\Bundle\EasyAdminBundle\Contracts\Provider\AdminContextProviderInterface;
-use EasyCorp\Bundle\EasyAdminBundle\Contracts\Translation\EntityTranslationIdGeneratorInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\MainMenuDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\MenuItemDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\UserMenuDto;
+use EasyCorp\Bundle\EasyAdminBundle\Provider\AdminContextProvider;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGeneratorInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Security\Permission;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Http\Logout\LogoutUrlGenerator;
-use Symfony\Contracts\Translation\TranslatableInterface;
 use function Symfony\Component\Translation\t;
+use Symfony\Contracts\Translation\TranslatableInterface;
 
 /**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  */
 final class MenuFactory implements MenuFactoryInterface
 {
-    public function __construct(
-        private readonly AdminContextProviderInterface $adminContextProvider,
-        private readonly AuthorizationCheckerInterface $authChecker,
-        private readonly LogoutUrlGenerator $logoutUrlGenerator,
-        private readonly AdminUrlGeneratorInterface $adminUrlGenerator,
-        private readonly MenuItemMatcherInterface $menuItemMatcher,
-        private readonly ?EntityTranslationIdGeneratorInterface $entityTranslationIdGenerator = null,
-    ) {
-        if (null === $this->entityTranslationIdGenerator) {
-            trigger_deprecation(
-                'easycorp/easyadmin-bundle',
-                '4.28',
-                'Not passing argument "$entityTranslationIdGenerator" will cause an error in 5.0.0.',
-                '$entityTranslationIdGenerator',
-            );
-        }
+    private AdminContextProvider $adminContextProvider;
+    private AuthorizationCheckerInterface $authChecker;
+    private LogoutUrlGenerator $logoutUrlGenerator;
+    private AdminUrlGeneratorInterface $adminUrlGenerator;
+    private MenuItemMatcherInterface $menuItemMatcher;
+
+    public function __construct(AdminContextProvider $adminContextProvider, AuthorizationCheckerInterface $authChecker, LogoutUrlGenerator $logoutUrlGenerator, AdminUrlGeneratorInterface $adminUrlGenerator, MenuItemMatcherInterface $menuItemMatcher)
+    {
+        $this->adminContextProvider = $adminContextProvider;
+        $this->authChecker = $authChecker;
+        $this->logoutUrlGenerator = $logoutUrlGenerator;
+        $this->adminUrlGenerator = $adminUrlGenerator;
+        $this->menuItemMatcher = $menuItemMatcher;
     }
 
     /**
-     * @param array<MenuItemDto|MenuItemInterface> $menuItems
+     * @param MenuItemInterface[] $menuItems
      */
     public function createMainMenu(array $menuItems): MainMenuDto
     {
@@ -65,82 +57,53 @@ final class MenuFactory implements MenuFactoryInterface
     }
 
     /**
-     * @param array<MenuItemDto|MenuItemInterface> $menuItems
+     * @param MenuItemInterface[] $menuItems
      *
      * @return MenuItemDto[]
      */
     private function buildMenuItems(array $menuItems): array
     {
-        /** @var AdminContext $adminContext */
         $adminContext = $this->adminContextProvider->getContext();
-        $translationDomain = $adminContext->getI18n()->getTranslationDomain() ?? '';
+        $translationDomain = $adminContext?->getI18n()->getTranslationDomain() ?? '';
 
         $builtItems = [];
-        foreach ($menuItems as $menuItem) {
-            if ($menuItem instanceof MenuItemDto) {
-                $menuItemDto = $menuItem;
-            } else {
-                $menuItemDto = $menuItem->getAsDto();
-            }
-
+        foreach ($menuItems as $i => $menuItem) {
+            $menuItemDto = $menuItem->getAsDto();
             if (false === $this->authChecker->isGranted(Permission::EA_VIEW_MENU_ITEM, $menuItemDto)) {
                 continue;
             }
 
             $subItems = [];
-            foreach ($menuItemDto->getSubItems() as $menuSubItemDto) {
+            foreach ($menuItemDto->getSubItems() as $j => $menuSubItemDto) {
                 if (false === $this->authChecker->isGranted(Permission::EA_VIEW_MENU_ITEM, $menuSubItemDto)) {
                     continue;
                 }
 
-                $subItems[] = $this->buildMenuItem($menuSubItemDto, [], $translationDomain, $adminContext->isUseEntityTranslations());
+                $subItems[] = $this->buildMenuItem($menuSubItemDto, [], $translationDomain);
             }
 
-            $builtItems[] = $this->buildMenuItem($menuItemDto, $subItems, $translationDomain, $adminContext->isUseEntityTranslations());
+            $builtItems[] = $this->buildMenuItem($menuItemDto, $subItems, $translationDomain);
         }
-
-        $builtItems = $this->menuItemMatcher->markSelectedMenuItem($builtItems, $adminContext->getRequest());
 
         return $builtItems;
     }
 
-    /**
-     * @param MenuItemDto[] $subItems
-     */
-    private function buildMenuItem(MenuItemDto $menuItemDto, array $subItems, string $translationDomain, bool $isUseEntityTranslations): MenuItemDto
+    private function buildMenuItem(MenuItemDto $menuItemDto, array $subItems, string $translationDomain): MenuItemDto
     {
         if (!$menuItemDto->getLabel() instanceof TranslatableInterface) {
             $label = $menuItemDto->getLabel();
-            if (null === $label && MenuItemDto::TYPE_CRUD === $menuItemDto->getType()) {
-                if ($isUseEntityTranslations) {
-                    $label = Action::INDEX === $menuItemDto->getRouteParameters()[EA::CRUD_ACTION]
-                        ? $this->entityTranslationIdGenerator->generateForEntity($menuItemDto->getRouteParameters()[EA::ENTITY_FQCN], false)
-                        : $this->entityTranslationIdGenerator->generateForEntity($menuItemDto->getRouteParameters()[EA::ENTITY_FQCN], true);
-                } else {
-                    $label = basename(str_replace('\\', '/', $menuItemDto->getRouteParameters()[EA::ENTITY_FQCN]));
-                }
-            } elseif (null === $label && MenuItemDto::TYPE_CONTROLLER === $menuItemDto->getType()) {
-                $controllerFqcn = $menuItemDto->getRouteParameters()[EA::CRUD_CONTROLLER_FQCN];
-                if ($isUseEntityTranslations && is_a($controllerFqcn, CrudControllerInterface::class, true)) {
-                    $entityFqcn = $controllerFqcn::getEntityFqcn();
-                    $action = $menuItemDto->getRouteParameters()[EA::CRUD_ACTION] ?? Action::INDEX;
-                    $label = Action::INDEX === $action
-                        ? $this->entityTranslationIdGenerator->generateForEntity($entityFqcn, false)
-                        : $this->entityTranslationIdGenerator->generateForEntity($entityFqcn, true);
-                } else {
-                    $label = basename(str_replace('\\', '/', $controllerFqcn));
-                    $label = preg_replace('/(Crud)?Controller$/', '', $label);
-                }
-            } else {
-                $label = '' === $label ? $label : t($label, $menuItemDto->getTranslationParameters(), $translationDomain);
-            }
-            $menuItemDto->setLabel($label);
+            $menuItemDto->setLabel(
+                '' === $label ? $label : t($label, $menuItemDto->getTranslationParameters(), $translationDomain)
+            );
         }
 
         $url = $this->generateMenuItemUrl($menuItemDto);
         $menuItemDto->setLinkUrl($url);
+        $menuItemDto->setSelected($this->menuItemMatcher->isSelected($menuItemDto));
 
         $menuItemDto->setSubItems($subItems);
+        // this must be called after the menu subitems have been processed in setSubIems()
+        $menuItemDto->setExpanded($this->menuItemMatcher->isExpanded($menuItemDto));
 
         // if menu item points to an absolute URL and no 'rel' attribute is defined,
         // assign the 'rel="noopener"' attribute for performance and security reasons.
@@ -176,48 +139,14 @@ final class MenuFactory implements MenuFactoryInterface
                 $this->adminUrlGenerator->setController($crudControllerFqcn);
             // 2. ...otherwise, find the CRUD controller from the entityFqcn
             } else {
-                $adminControllers = $this->adminContextProvider->getContext()?->getAdminControllers(); // @phpstan-ignore method.notFound (method will be added to the interface in 5.0)
-                if (null === $controllerFqcn = $adminControllers->findCrudControllerByEntity($entityFqcn)) {
+                $crudControllers = $this->adminContextProvider->getContext()?->getCrudControllers();
+                if (null === $controllerFqcn = $crudControllers->findCrudFqcnByEntityFqcn($entityFqcn)) {
                     throw new \RuntimeException(sprintf('Unable to find the controller related to the "%s" Entity; did you forget to extend "%s"?', $entityFqcn, AbstractCrudController::class));
                 }
 
                 $this->adminUrlGenerator->setController($controllerFqcn);
                 $this->adminUrlGenerator->unset(EA::ENTITY_FQCN);
             }
-
-            return $this->adminUrlGenerator->generateUrl();
-        }
-
-        if (MenuItemDto::TYPE_CONTROLLER === $menuItemType) {
-            $routeParameters = $menuItemDto->getRouteParameters();
-
-            $this->adminUrlGenerator
-                // remove all existing query params to avoid keeping search queries, filters and pagination
-                ->unsetAll()
-                // set any other parameters defined by the menu item
-                ->setAll($routeParameters);
-
-            $controllerFqcn = $routeParameters[EA::CRUD_CONTROLLER_FQCN];
-
-            if (is_a($controllerFqcn, DashboardControllerInterface::class, true)) {
-                return $this->adminUrlGenerator
-                    ->setDashboard($controllerFqcn)
-                    ->generateUrl();
-            }
-
-            $action = $routeParameters[EA::CRUD_ACTION] ?? null;
-            if (null === $action) {
-                if (is_a($controllerFqcn, CrudControllerInterface::class, true)) {
-                    $action = Action::INDEX;
-                } elseif (method_exists($controllerFqcn, '__invoke')) {
-                    $action = '__invoke';
-                } else {
-                    throw new \RuntimeException(sprintf('The menu item that links to the "%s" controller must call "->setAction()" to specify which action to link to, because the controller defines multiple actions and is not invokable.', $controllerFqcn));
-                }
-            }
-
-            $this->adminUrlGenerator->setController($controllerFqcn);
-            $this->adminUrlGenerator->setAction($action);
 
             return $this->adminUrlGenerator->generateUrl();
         }

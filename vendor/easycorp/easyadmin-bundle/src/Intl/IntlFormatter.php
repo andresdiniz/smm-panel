@@ -2,7 +2,6 @@
 
 namespace EasyCorp\Bundle\EasyAdminBundle\Intl;
 
-use EasyCorp\Bundle\EasyAdminBundle\Contracts\Intl\IntlFormatterInterface;
 use Twig\Error\RuntimeError;
 
 /**
@@ -11,7 +10,7 @@ use Twig\Error\RuntimeError;
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
-final class IntlFormatter implements IntlFormatterInterface
+final class IntlFormatter
 {
     private const DATE_FORMATS = [
         'none' => \IntlDateFormatter::NONE,
@@ -102,14 +101,13 @@ final class IntlFormatter implements IntlFormatterInterface
         'monetary_grouping_separator' => \NumberFormatter::MONETARY_GROUPING_SEPARATOR_SYMBOL,
     ];
 
-    /** @var array<\IntlDateFormatter> */
     private array $dateFormatters = [];
-    /** @var array<\NumberFormatter> */
     private array $numberFormatters = [];
 
-    public function formatCurrency(int|float $amount, string $currency, array $attrs = [], ?string $locale = null): string
+    public function formatCurrency($amount, string $currency, array $attrs = [], ?string $locale = null): string
     {
         $formatter = $this->createNumberFormatter($locale, 'currency', $attrs);
+        /** @var string|false $formattedCurrency */
         $formattedCurrency = $formatter->formatCurrency($amount, $currency);
         if (false === $formattedCurrency) {
             throw new RuntimeError('Unable to format the given number as a currency.');
@@ -140,8 +138,7 @@ final class IntlFormatter implements IntlFormatterInterface
 
         $formatter = $this->createNumberFormatter($locale, $style, $attrs);
 
-        $ret = $formatter->format($number, self::NUMBER_TYPES[$type]);
-        if (!\is_string($formatter->format($number, self::NUMBER_TYPES[$type]))) {
+        if (false === $ret = $formatter->format($number, self::NUMBER_TYPES[$type])) {
             throw new RuntimeError('Unable to format the given number.');
         }
 
@@ -149,7 +146,7 @@ final class IntlFormatter implements IntlFormatterInterface
     }
 
     /**
-     * @param \DateTimeZone|string|bool|null $timezone The target timezone, null to use the default, false to leave unchanged
+     * @param \DateTimeZone|string|false|null $timezone The target timezone, null to use the default, false to leave unchanged
      */
     public function formatDateTime(?\DateTimeInterface $date, ?string $dateFormat = 'medium', ?string $timeFormat = 'medium', string $pattern = '', $timezone = null, string $calendar = 'gregorian', ?string $locale = null): ?string
     {
@@ -164,7 +161,7 @@ final class IntlFormatter implements IntlFormatterInterface
     }
 
     /**
-     * @param \DateTimeZone|string|bool|null $timezone The target timezone, null to use the default, false to leave unchanged
+     * @param \DateTimeZone|string|false|null $timezone The target timezone, null to use the default, false to leave unchanged
      */
     public function formatDate(?\DateTimeInterface $date, ?string $dateFormat = 'medium', string $pattern = '', $timezone = null, string $calendar = 'gregorian', ?string $locale = null): ?string
     {
@@ -172,7 +169,7 @@ final class IntlFormatter implements IntlFormatterInterface
     }
 
     /**
-     * @param \DateTimeZone|string|bool|null $timezone The target timezone, null to use the default, false to leave unchanged
+     * @param \DateTimeZone|string|false|null $timezone The target timezone, null to use the default, false to leave unchanged
      */
     public function formatTime(?\DateTimeInterface $date, ?string $timeFormat = 'medium', string $pattern = '', $timezone = null, string $calendar = 'gregorian', ?string $locale = null): ?string
     {
@@ -195,8 +192,8 @@ final class IntlFormatter implements IntlFormatterInterface
 
         $calendar = 'gregorian' === $calendarName ? \IntlDateFormatter::GREGORIAN : \IntlDateFormatter::TRADITIONAL;
 
-        $dateFormatValue = self::DATE_FORMATS[$dateFormat ?? ''] ?? self::DATE_FORMATS['full'];
-        $timeFormatValue = self::DATE_FORMATS[$timeFormat ?? ''] ?? self::DATE_FORMATS['full'];
+        $dateFormatValue = self::DATE_FORMATS[$dateFormat] ?? self::DATE_FORMATS['full'];
+        $timeFormatValue = self::DATE_FORMATS[$timeFormat] ?? self::DATE_FORMATS['full'];
 
         $hash = $locale.'|'.$dateFormatValue.'|'.$timeFormatValue.'|'.$timezone->getName().'|'.$calendar.'|'.$pattern;
 
@@ -207,9 +204,6 @@ final class IntlFormatter implements IntlFormatterInterface
         return $this->dateFormatters[$hash];
     }
 
-    /**
-     * @param array<string, string|int|float> $attrs
-     */
     private function createNumberFormatter(?string $locale, string $style, array $attrs = []): \NumberFormatter
     {
         if (!isset(self::NUMBER_STYLES[$style])) {
@@ -276,9 +270,6 @@ final class IntlFormatter implements IntlFormatterInterface
         return $this->numberFormatters[$hash];
     }
 
-    /**
-     * @param \DateTimeZone|string|bool|null $timezone
-     */
     private function convertDate(?\DateTimeInterface $date, $timezone = null): ?\DateTimeInterface
     {
         if (null === $date) {
@@ -287,10 +278,8 @@ final class IntlFormatter implements IntlFormatterInterface
 
         if (null === $timezone) {
             $timezone = new \DateTimeZone(date_default_timezone_get());
-        } elseif (\is_string($timezone)) {
-            $timezone = new \DateTimeZone($timezone);
         } elseif (!$timezone instanceof \DateTimeZone) {
-            return $date;
+            $timezone = new \DateTimeZone($timezone);
         }
 
         if ($date instanceof \DateTimeImmutable) {

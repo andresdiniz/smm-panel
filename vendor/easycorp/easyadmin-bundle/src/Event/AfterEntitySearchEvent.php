@@ -8,11 +8,15 @@ use EasyCorp\Bundle\EasyAdminBundle\Dto\SearchDto;
 
 final class AfterEntitySearchEvent
 {
-    public function __construct(
-        private readonly QueryBuilder $queryBuilder,
-        private readonly SearchDto $searchDto,
-        private readonly EntityDto $entityDto,
-    ) {
+    private QueryBuilder $queryBuilder;
+    private SearchDto $searchDto;
+    private EntityDto $entityDto;
+
+    public function __construct(QueryBuilder $queryBuilder, SearchDto $searchDto, EntityDto $entityDto)
+    {
+        $this->queryBuilder = $queryBuilder;
+        $this->searchDto = $searchDto;
+        $this->entityDto = $entityDto;
     }
 
     public function getQueryBuilder(): QueryBuilder

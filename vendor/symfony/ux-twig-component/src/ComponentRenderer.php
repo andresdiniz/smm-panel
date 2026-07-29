@@ -11,8 +11,9 @@
 
 namespace Symfony\UX\TwigComponent;
 
+use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
-use Symfony\Contracts\Service\ResetInterface;
+use Symfony\UX\TwigComponent\Attribute\ExposeInTemplate;
 use Symfony\UX\TwigComponent\Event\PostRenderEvent;
 use Symfony\UX\TwigComponent\Event\PreCreateForRenderEvent;
 use Symfony\UX\TwigComponent\Event\PreRenderEvent;
@@ -23,15 +24,13 @@ use Twig\Environment;
  *
  * @internal
  */
-final class ComponentRenderer implements ComponentRendererInterface, ResetInterface
+final class ComponentRenderer implements ComponentRendererInterface
 {
-    private array $templateClasses = [];
-
     public function __construct(
         private Environment $twig,
         private EventDispatcherInterface $dispatcher,
         private ComponentFactory $factory,
-        private ComponentProperties $componentProperties,
+        private PropertyAccessorInterface $propertyAccessor,
         private ComponentStack $componentStack,
     ) {
     }
@@ -65,15 +64,15 @@ final class ComponentRenderer implements ComponentRendererInterface, ResetInterf
         $variables = $event->getVariables();
         // see ComponentNode. When rendering an individual embedded component,
         // *not* through its parent, we need to set the parent template.
-        if ($templateIndex = $event->getTemplateIndex()) {
+        if ($event->getTemplateIndex()) {
             $variables['__parent__'] = $event->getParentTemplateForEmbedded();
         }
 
         try {
             return $this->twig->loadTemplate(
-                $this->templateClasses[$template = $event->getTemplate()] ??= $this->twig->getTemplateClass($template),
-                $template,
-                $templateIndex,
+                $this->twig->getTemplateClass($event->getTemplate()),
+                $event->getTemplate(),
+                $event->getTemplateIndex(),
             )->render($variables);
         } finally {
             $mounted = $this->componentStack->pop();
@@ -108,41 +107,92 @@ final class ComponentRenderer implements ComponentRendererInterface, ResetInterf
     {
         $component = $mounted->getComponent();
         $metadata = $this->factory->metadataFor($mounted->getName());
+        $isAnonymous = $mounted->getComponent() instanceof AnonymousComponent;
 
-        $classProps = [];
-        if (!$metadata->isAnonymous()) {
-            $classProps = $this->componentProperties->getProperties($component, $metadata->isPublicPropsExposed());
-        }
+        $classProps = $isAnonymous ? [] : iterator_to_array($this->exposedVariables($component, $metadata->isPublicPropsExposed()));
 
         // expose public properties and properties marked with ExposeInTemplate attribute
-        $props = [...$mounted->getInputProps(), ...$classProps];
-        $event = new PreRenderEvent($mounted, $metadata, [
-            ...$context,
-            ...$props,
-            $metadata->getAttributesVar() => $mounted->getAttributes(),
-        ]);
-
-        $this->dispatcher->dispatch($event);
-
-        $event->setVariables([
-            ...$event->getVariables(),
-            // add the component as "this"
-            'this' => $component,
-            'computed' => new ComputedPropertiesProxy($component),
-            'outerScope' => $context,
-            // keep this line for BC break reasons
-            '__props' => $classProps,
+        $props = array_merge($mounted->getInputProps(), $classProps);
+        $variables = array_merge(
+            // first so values can be overridden
+            $context,
             // add the context in a separate variable to keep track
             // of what is coming from outside the component, excluding props
             // as they override initial context values
-            '__context' => array_diff_key($context, $props),
-        ]);
+            ['__context' => array_diff_key($context, $props)],
+            // keep reference to old context
+            ['outerScope' => $context],
+            // add the component as "this"
+            ['this' => $component],
+            // add computed properties proxy
+            ['computed' => new ComputedPropertiesProxy($component)],
+            $props,
+            // keep this line for BC break reasons
+            ['__props' => $classProps],
+            // add attributes
+            [$metadata->getAttributesVar() => $mounted->getAttributes()],
+        );
+        $event = new PreRenderEvent($mounted, $metadata, $variables);
+
+        $this->dispatcher->dispatch($event);
 
         return $event;
     }
 
-    public function reset(): void
+    private function exposedVariables(object $component, bool $exposePublicProps): \Iterator
     {
-        $this->templateClasses = [];
+        if ($exposePublicProps) {
+            $publicProps = get_object_vars($component);
+            if ($uninitializedProps = array_diff_key(get_class_vars($component::class), $publicProps)) {
+                throw new \LogicException(sprintf('Cannot expose uninitialized property "$%s" from "%s".', array_keys($uninitializedProps)[0], $component::class));
+            }
+            yield from $publicProps;
+        }
+
+        $class = new \ReflectionClass($component);
+
+        foreach ($class->getProperties() as $property) {
+            if (!$attribute = $property->getAttributes(ExposeInTemplate::class)[0] ?? null) {
+                continue;
+            }
+
+            $attribute = $attribute->newInstance();
+
+            /** @var ExposeInTemplate $attribute */
+            $value = $attribute->getter ? $component->{rtrim($attribute->getter, '()')}() : $this->propertyAccessor->getValue($component, $property->name);
+
+            if ($attribute->destruct) {
+                foreach ($value as $key => $destructedValue) {
+                    yield $key => $destructedValue;
+                }
+            }
+
+            yield $attribute->name ?? $property->name => $value;
+        }
+
+        foreach ($class->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+            if (!$attribute = $method->getAttributes(ExposeInTemplate::class)[0] ?? null) {
+                continue;
+            }
+
+            $attribute = $attribute->newInstance();
+
+            /** @var ExposeInTemplate $attribute */
+            $name = $attribute->name ?? (str_starts_with($method->name, 'get') ? lcfirst(substr($method->name, 3)) : $method->name);
+
+            if ($method->getNumberOfRequiredParameters()) {
+                throw new \LogicException(sprintf('Cannot use "%s" on methods with required parameters (%s::%s).', ExposeInTemplate::class, $component::class, $method->name));
+            }
+
+            if ($attribute->destruct) {
+                foreach ($component->{$method->name}() as $prop => $value) {
+                    yield $prop => $value;
+                }
+
+                return;
+            }
+
+            yield $name => $component->{$method->name}();
+        }
     }
 }

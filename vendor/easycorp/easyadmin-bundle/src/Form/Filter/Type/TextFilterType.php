@@ -16,7 +16,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 class TextFilterType extends AbstractType
 {
-    private readonly string $valueType;
+    private string $valueType;
 
     public function __construct(?string $valueType = null)
     {

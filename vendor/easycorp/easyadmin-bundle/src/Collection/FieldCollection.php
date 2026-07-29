@@ -2,6 +2,7 @@
 
 namespace EasyCorp\Bundle\EasyAdminBundle\Collection;
 
+use EasyCorp\Bundle\EasyAdminBundle\Contracts\Collection\CollectionInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\FieldDto;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
@@ -9,15 +10,15 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
 /**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  */
-final class FieldCollection implements \ArrayAccess, \Countable, \IteratorAggregate
+final class FieldCollection implements CollectionInterface
 {
-    /** @var array<string, FieldDto> */
+    /** @var FieldDto[] */
     private array $fields;
 
     /**
-     * @param array<FieldInterface|string> $fields
+     * @param FieldInterface[]|string[] $fields
      */
-    public function __construct(iterable $fields)
+    private function __construct(iterable $fields)
     {
         $this->fields = $this->processFields($fields);
     }
@@ -34,9 +35,7 @@ final class FieldCollection implements \ArrayAccess, \Countable, \IteratorAggreg
     }
 
     /**
-     * @deprecated since 4.28.2 and removed in 5.0.0, use FilterCollection::__construct() instead.
-     *
-     * @param array<FieldInterface|string> $fields
+     * @param FieldInterface[]|string[] $fields
      */
     public static function new(iterable $fields): self
     {
@@ -139,7 +138,7 @@ final class FieldCollection implements \ArrayAccess, \Countable, \IteratorAggreg
     }
 
     /**
-     * @return \ArrayIterator<string, FieldDto>
+     * @return \ArrayIterator<FieldDto>
      */
     public function getIterator(): \ArrayIterator
     {
@@ -147,9 +146,9 @@ final class FieldCollection implements \ArrayAccess, \Countable, \IteratorAggreg
     }
 
     /**
-     * @param array<FieldInterface|string> $fields
+     * @param FieldInterface[]|string[] $fields
      *
-     * @return array<string, FieldDto>
+     * @return FieldDto[]
      */
     private function processFields(iterable $fields): array
     {

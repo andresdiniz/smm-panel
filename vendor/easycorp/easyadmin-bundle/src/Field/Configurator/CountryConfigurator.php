@@ -9,17 +9,20 @@ use EasyCorp\Bundle\EasyAdminBundle\Contracts\Field\FieldConfiguratorInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\EntityDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\FieldDto;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CountryField;
+use Symfony\Component\Asset\PackageInterface;
 use Symfony\Component\Intl\Countries;
 use Symfony\Component\Intl\Exception\MissingResourceException;
-use Twig\Environment;
 
 /**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  */
 final class CountryConfigurator implements FieldConfiguratorInterface
 {
-    public function __construct(private readonly Environment $twig)
+    private PackageInterface $assetPackage;
+
+    public function __construct(PackageInterface $assetPackage)
     {
+        $this->assetPackage = $assetPackage;
     }
 
     public function supports(FieldDto $field, EntityDto $entityDto): bool
@@ -38,17 +41,12 @@ final class CountryConfigurator implements FieldConfiguratorInterface
         }
 
         if (\in_array($context->getCrud()->getCurrentPage(), [Crud::PAGE_EDIT, Crud::PAGE_NEW], true)) {
-            $showFlag = $field->getCustomOption(CountryField::OPTION_SHOW_FLAG);
-            $showName = $field->getCustomOption(CountryField::OPTION_SHOW_NAME);
-
             // country names passed to the form are already translated, so don't translate them again in the template
             $field->setFormTypeOptionIfNotSet('choice_translation_domain', false);
-            $field->setFormTypeOption('choices', $this->generateFormTypeChoices($countryCodeFormat, $field->getCustomOption(CountryField::OPTION_COUNTRY_CODES_TO_KEEP), $field->getCustomOption(CountryField::OPTION_COUNTRY_CODES_TO_REMOVE), $showFlag, $showName));
+            $field->setFormTypeOption('choices', $this->generateFormTypeChoices($countryCodeFormat, $field->getCustomOption(CountryField::OPTION_COUNTRY_CODES_TO_KEEP), $field->getCustomOption(CountryField::OPTION_COUNTRY_CODES_TO_REMOVE)));
 
             // the value of this form option must be a string to properly propagate it as an HTML attribute value
-            if (true === $showFlag) {
-                $field->setFormTypeOption('attr.data-ea-autocomplete-render-items-as-html', 'true');
-            }
+            $field->setFormTypeOption('attr.data-ea-autocomplete-render-items-as-html', 'true');
 
             if (true === $field->getCustomOption(CountryField::OPTION_ALLOW_MULTIPLE_CHOICES)) {
                 $field->setFormTypeOption('multiple', true);
@@ -56,11 +54,6 @@ final class CountryConfigurator implements FieldConfiguratorInterface
         }
     }
 
-    /**
-     * @param array<string>|null $countryCodes
-     *
-     * @return array<string, string>|null
-     */
     private function getCountryNames(?array $countryCodes, string $countryCodeFormat, string $displayLocale): ?array
     {
         if (null === $countryCodes) {
@@ -85,13 +78,7 @@ final class CountryConfigurator implements FieldConfiguratorInterface
         return $countryNames;
     }
 
-    /**
-     * @param array<string>|null $countryCodesToKeep
-     * @param array<string>|null $countryCodesToRemove
-     *
-     * @return array<string, string>
-     */
-    private function generateFormTypeChoices(string $countryCodeFormat, ?array $countryCodesToKeep, ?array $countryCodesToRemove, bool $showFlag, bool $showName): array
+    private function generateFormTypeChoices(string $countryCodeFormat, ?array $countryCodesToKeep, ?array $countryCodesToRemove): array
     {
         $usesAlpha3Codes = CountryField::FORMAT_ISO_3166_ALPHA3 === $countryCodeFormat;
         $choices = [];
@@ -107,20 +94,12 @@ final class CountryConfigurator implements FieldConfiguratorInterface
             }
 
             $countryCodeAlpha2 = $usesAlpha3Codes ? Countries::getAlpha2Code($countryCode) : $countryCode;
-            $choiceKey = $this->generateChoiceLabel($countryCodeAlpha2, $countryName, $showFlag, $showName);
+            $flagImagePath = $this->assetPackage->getUrl(sprintf('images/flags/%s.svg', $countryCodeAlpha2));
+            $choiceKey = sprintf('<div class="country-name-flag"><img src="%s" class="country-flag" loading="lazy" alt="%s"> <span>%s</span></div>', $flagImagePath, $countryName, $countryName);
 
             $choices[$choiceKey] = $countryCode;
         }
 
         return $choices;
-    }
-
-    private function generateChoiceLabel(string $countryCodeAlpha2, string $countryName, bool $showFlag, bool $showName): string
-    {
-        return match ([$showFlag, $showName]) {
-            [true, true] => $this->twig->createTemplate(sprintf('<div class="country-name-flag"><twig:ea:Flag countryCode="%s" /> <span>%s</span></div>', $countryCodeAlpha2, $countryName))->render(),
-            [true, false] => $this->twig->createTemplate(sprintf('<div class="country-name-flag"><twig:ea:Flag countryCode="%s" /></div>', $countryCodeAlpha2))->render(),
-            default => $countryName,
-        };
     }
 }

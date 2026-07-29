@@ -10,30 +10,27 @@ use Symfony\Component\HttpFoundation\Request;
  */
 final class SearchDto
 {
-    /**
-     * @internal
-     *
-     * @var array<string, 'ASC'|'DESC'>
-     */
+    private Request $request;
+    private array $defaultSort;
+    private array $customSort;
+    /** @internal */
     private ?array $cachedSortConfig = null;
-    private readonly string $query;
+    private string $query;
+    /** @var string[]|null */
+    private ?array $searchableProperties;
+    /** @var string[]|null */
+    private ?array $appliedFilters;
+    private string $searchMode;
 
-    /**
-     * @param array<string>|null          $searchableProperties
-     * @param array<string, 'ASC'|'DESC'> $defaultSort
-     * @param array<string, 'ASC'|'DESC'> $customSort
-     * @param array<string, mixed>|null   $appliedFilters
-     */
-    public function __construct(
-        private readonly Request $request,
-        private readonly ?array $searchableProperties,
-        ?string $query,
-        private readonly array $defaultSort,
-        private readonly array $customSort,
-        private readonly ?array $appliedFilters,
-        private readonly string $searchMode = SearchMode::ALL_TERMS,
-    ) {
+    public function __construct(Request $request, ?array $searchableProperties, ?string $query, array $defaultSort, array $customSort, ?array $appliedFilters, string $searchMode = SearchMode::ALL_TERMS)
+    {
+        $this->request = $request;
+        $this->searchableProperties = $searchableProperties;
         $this->query = trim((string) $query);
+        $this->defaultSort = $defaultSort;
+        $this->customSort = $customSort;
+        $this->appliedFilters = $appliedFilters;
+        $this->searchMode = $searchMode;
     }
 
     public function getRequest(): Request
@@ -41,25 +38,6 @@ final class SearchDto
         return $this->request;
     }
 
-    /**
-     * @return array<string, 'ASC'|'DESC'>
-     */
-    public function getCustomSort(): array
-    {
-        return $this->customSort;
-    }
-
-    /**
-     * @return array<string, 'ASC'|'DESC'>
-     */
-    public function getDefaultSort(): array
-    {
-        return $this->defaultSort;
-    }
-
-    /**
-     * @return array<string, 'ASC'|'DESC'>
-     */
     public function getSort(): array
     {
         if (null !== $this->cachedSortConfig) {
@@ -106,13 +84,11 @@ final class SearchDto
      * For example:
      *  'foo bar' => ['foo', 'bar']
      *  'foo "bar baz" qux' => ['foo', 'bar baz', 'qux'].
-     *
-     * @return array<string>
      */
     public function getQueryTerms(): array
     {
         preg_match_all('/"(?:\\\\.|[^\\\\"])*"|\S+/', $this->query, $matches);
-        $terms = array_map(static fn ($match) => trim($match, '" '), $matches[0]);
+        $terms = array_map(static fn ($match) => trim($match, '" '), $matches[0] ?? []);
 
         return $terms;
     }
@@ -125,9 +101,6 @@ final class SearchDto
         return $this->searchableProperties;
     }
 
-    /**
-     * @return array<string, mixed>|null
-     */
     public function getAppliedFilters(): ?array
     {
         return $this->appliedFilters;

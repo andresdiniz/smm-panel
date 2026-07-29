@@ -26,7 +26,7 @@ interface DashboardControllerInterface
     /**
      * @return MenuItemInterface[]
      *
-     * @phpstan-return iterable<MenuItemInterface>
+     * @psalm-return iterable<MenuItemInterface>
      */
     public function configureMenuItems(): iterable;
 

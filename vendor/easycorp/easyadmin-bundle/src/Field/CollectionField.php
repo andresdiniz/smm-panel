@@ -18,14 +18,12 @@ final class CollectionField implements FieldInterface
     public const OPTION_ALLOW_DELETE = 'allowDelete';
     public const OPTION_ENTRY_IS_COMPLEX = 'entryIsComplex';
     public const OPTION_ENTRY_TYPE = 'entryType';
-    public const OPTION_ENTRY_TO_STRING_METHOD = 'entryToStringMethod';
     public const OPTION_SHOW_ENTRY_LABEL = 'showEntryLabel';
     public const OPTION_RENDER_EXPANDED = 'renderExpanded';
     public const OPTION_ENTRY_USES_CRUD_FORM = 'entryUsesCrudController';
     public const OPTION_ENTRY_CRUD_CONTROLLER_FQCN = 'entryCrudControllerFqcn';
     public const OPTION_ENTRY_CRUD_NEW_PAGE_NAME = 'entryCrudNewPageName';
     public const OPTION_ENTRY_CRUD_EDIT_PAGE_NAME = 'entryCrudEditPageName';
-    public const OPTION_MAX_LENGTH = 'maxLength';
 
     /**
      * @param TranslatableInterface|string|false|null $label
@@ -44,14 +42,12 @@ final class CollectionField implements FieldInterface
             ->setCustomOption(self::OPTION_ALLOW_DELETE, true)
             ->setCustomOption(self::OPTION_ENTRY_IS_COMPLEX, null)
             ->setCustomOption(self::OPTION_ENTRY_TYPE, null)
-            ->setCustomOption(self::OPTION_ENTRY_TO_STRING_METHOD, null)
             ->setCustomOption(self::OPTION_SHOW_ENTRY_LABEL, false)
             ->setCustomOption(self::OPTION_RENDER_EXPANDED, false)
             ->setCustomOption(self::OPTION_ENTRY_USES_CRUD_FORM, false)
             ->setCustomOption(self::OPTION_ENTRY_CRUD_CONTROLLER_FQCN, null)
             ->setCustomOption(self::OPTION_ENTRY_CRUD_NEW_PAGE_NAME, null)
-            ->setCustomOption(self::OPTION_ENTRY_CRUD_EDIT_PAGE_NAME, null)
-            ->setCustomOption(self::OPTION_MAX_LENGTH, null);
+            ->setCustomOption(self::OPTION_ENTRY_CRUD_EDIT_PAGE_NAME, null);
     }
 
     public function allowAdd(bool $allow = true): self
@@ -82,16 +78,6 @@ final class CollectionField implements FieldInterface
     public function setEntryType(string $formTypeFqcn): self
     {
         $this->setCustomOption(self::OPTION_ENTRY_TYPE, $formTypeFqcn);
-
-        return $this;
-    }
-
-    /**
-     * @param string|callable $toStringMethod Either a string with the name of the method to call in the entry object or a callable to generate the string representation of the entry. The callable is passed the value as the first argument and the translator service as the second argument.
-     */
-    public function setEntryToStringMethod(string|callable $toStringMethod): self
-    {
-        $this->setCustomOption(self::OPTION_ENTRY_TO_STRING_METHOD, $toStringMethod);
 
         return $this;
     }

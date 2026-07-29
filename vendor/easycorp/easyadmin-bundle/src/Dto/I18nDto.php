@@ -7,19 +7,19 @@ namespace EasyCorp\Bundle\EasyAdminBundle\Dto;
  */
 final class I18nDto
 {
-    private readonly string $language;
+    private string $locale;
+    private $language;
+    private string $textDirection;
+    private string $translationDomain;
+    private array $translationParameters;
 
-    /**
-     * @param array<string, mixed> $translationParameters
-     */
-    public function __construct(
-        private readonly string $locale,
-        private readonly string $textDirection,
-        private readonly string $translationDomain,
-        private readonly array $translationParameters,
-    ) {
-        // returns 'en' for 'en', 'en-US', 'en_US', 'en-US.UTF-8', 'en_US.UTF-8', etc.
-        $this->language = explode('-', str_replace('_', '-', $this->locale))[0];
+    public function __construct(string $locale, string $textDirection, string $translationDomain, array $translationParameters)
+    {
+        $this->locale = $locale;
+        $this->language = strtok($locale, '-_');
+        $this->textDirection = $textDirection;
+        $this->translationDomain = $translationDomain;
+        $this->translationParameters = $translationParameters;
     }
 
     /**
@@ -62,9 +62,6 @@ final class I18nDto
         return $this->translationDomain;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     public function getTranslationParameters(): array
     {
         return $this->translationParameters;

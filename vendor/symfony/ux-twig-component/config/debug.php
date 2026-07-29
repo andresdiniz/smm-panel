@@ -15,20 +15,21 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use Symfony\UX\TwigComponent\DataCollector\TwigComponentDataCollector;
 use Symfony\UX\TwigComponent\EventListener\TwigComponentLoggerListener;
 
-use function Symfony\Component\DependencyInjection\Loader\Configurator\abstract_arg;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return static function (ContainerConfigurator $container) {
     $container->services()
 
         ->set('ux.twig_component.component_logger_listener', TwigComponentLoggerListener::class)
+        ->args([
+            service('debug.stopwatch')->ignoreOnInvalid(),
+        ])
         ->tag('kernel.event_subscriber')
 
         ->set('ux.twig_component.data_collector', TwigComponentDataCollector::class)
         ->args([
             service('ux.twig_component.component_logger_listener'),
             service('twig'),
-            abstract_arg('profiler collect components'),
         ])
         ->tag('data_collector', [
             'template' => '@TwigComponent/Collector/twig_component.html.twig',

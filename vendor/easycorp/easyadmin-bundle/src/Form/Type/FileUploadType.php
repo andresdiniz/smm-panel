@@ -4,7 +4,6 @@ namespace EasyCorp\Bundle\EasyAdminBundle\Form\Type;
 
 use EasyCorp\Bundle\EasyAdminBundle\Form\DataTransformer\StringToFileTransformer;
 use EasyCorp\Bundle\EasyAdminBundle\Form\Type\Model\FileUploadState;
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\DataMapperInterface;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -20,18 +19,17 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Component\Uid\Ulid;
 use Symfony\Component\Uid\Uuid;
-use Symfony\Component\Validator\Constraint;
-use Symfony\Component\Validator\Constraints\All;
 
 /**
  * @author Yonel Ceruto <yonelceruto@gmail.com>
  */
 class FileUploadType extends AbstractType implements DataMapperInterface
 {
-    public function __construct(
-        private readonly string $projectDir,
-        private readonly Filesystem $filesystem,
-    ) {
+    private string $projectDir;
+
+    public function __construct(string $projectDir)
+    {
+        $this->projectDir = $projectDir;
     }
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
@@ -40,8 +38,7 @@ class FileUploadType extends AbstractType implements DataMapperInterface
         $uploadFilename = $options['upload_filename'];
         $uploadValidate = $options['upload_validate'];
         $allowAdd = $options['allow_add'];
-        $options['constraints'] = (bool) $options['multiple'] ? new All($options['file_constraints']) : $options['file_constraints'];
-        unset($options['upload_dir'], $options['upload_new'], $options['upload_delete'], $options['upload_filename'], $options['upload_validate'], $options['download_path'], $options['allow_add'], $options['allow_delete'], $options['compound'], $options['file_constraints']);
+        unset($options['upload_dir'], $options['upload_new'], $options['upload_delete'], $options['upload_filename'], $options['upload_validate'], $options['download_path'], $options['allow_add'], $options['allow_delete'], $options['compound']);
 
         $builder->add('file', FileType::class, $options);
         $builder->add('delete', CheckboxType::class, ['required' => false]);
@@ -87,16 +84,7 @@ class FileUploadType extends AbstractType implements DataMapperInterface
             unlink($file->getPathname());
         };
 
-        // the return value MUST be a safe relative path:
-        //   * no ".." segments
-        //   * no leading "/" or "\"
-        //   * no Windows drive letters
-        //   * no null bytes
-        //
-        // values that violate this contract are rejected on read (see
-        // StringToFileTransformer::doTransform) and the form behaves as if
-        // no file were stored. Overrides must preserve this contract.
-        $uploadFilename = static fn (UploadedFile $file): string => basename(str_replace('\\', '/', $file->getClientOriginalName()));
+        $uploadFilename = static fn (UploadedFile $file): string => $file->getClientOriginalName();
 
         $uploadValidate = static function (string $filename): string {
             if (!file_exists($filename)) {
@@ -135,7 +123,6 @@ class FileUploadType extends AbstractType implements DataMapperInterface
             'required' => false,
             'error_bubbling' => false,
             'allow_file_upload' => true,
-            'file_constraints' => [],
         ]);
 
         $resolver->setAllowedTypes('upload_dir', 'string');
@@ -146,25 +133,19 @@ class FileUploadType extends AbstractType implements DataMapperInterface
         $resolver->setAllowedTypes('download_path', ['null', 'string']);
         $resolver->setAllowedTypes('allow_add', 'bool');
         $resolver->setAllowedTypes('allow_delete', 'bool');
-        $resolver->setAllowedTypes('file_constraints', [Constraint::class, Constraint::class.'[]']);
 
         $resolver->setNormalizer('upload_dir', function (Options $options, string $value): string {
             if (\DIRECTORY_SEPARATOR !== mb_substr($value, -1)) {
                 $value .= \DIRECTORY_SEPARATOR;
             }
 
-            $isLocalFilesystem = false === filter_var($value, \FILTER_VALIDATE_URL);
-
-            if ($isLocalFilesystem && !str_starts_with($value, $this->projectDir)) {
+            $isStreamWrapper = filter_var($value, \FILTER_VALIDATE_URL);
+            if (!$isStreamWrapper && !str_starts_with($value, $this->projectDir)) {
                 $value = $this->projectDir.'/'.$value;
             }
 
-            if ($isLocalFilesystem && !is_dir($value)) {
-                $this->filesystem->mkdir($value);
-            }
-
-            if ($isLocalFilesystem && !is_writable($value)) {
-                throw new InvalidArgumentException(sprintf('The upload directory "%s" is not writable.', $value));
+            if (!$isStreamWrapper && '' !== $value && (!is_dir($value) || !is_writable($value))) {
+                throw new InvalidArgumentException(sprintf('Invalid upload directory "%s" it does not exist or is not writable.', $value));
             }
 
             return $value;
@@ -178,7 +159,7 @@ class FileUploadType extends AbstractType implements DataMapperInterface
                 return strtr($fileNamePatternOrCallable, [
                     '[contenthash]' => sha1_file($file->getRealPath()),
                     '[day]' => date('d'),
-                    '[extension]' => $file->guessExtension(),
+                    '[extension]' => $file->guessClientExtension(),
                     '[month]' => date('m'),
                     '[name]' => pathinfo($file->getClientOriginalName(), \PATHINFO_FILENAME),
                     '[randomhash]' => bin2hex(random_bytes(20)),
@@ -200,9 +181,6 @@ class FileUploadType extends AbstractType implements DataMapperInterface
 
             return (bool) $value;
         });
-        $resolver->setNormalizer('file_constraints', static function (Options $options, $constraints) {
-            return \is_object($constraints) ? [$constraints] : (array) $constraints;
-        });
     }
 
     public function getBlockPrefix(): string
@@ -210,20 +188,8 @@ class FileUploadType extends AbstractType implements DataMapperInterface
         return 'ea_fileupload';
     }
 
-    public function mapDataToForms(mixed $currentFiles, /* \Traversable */ $forms): void
+    public function mapDataToForms($currentFiles, $forms): void
     {
-        if (!$forms instanceof \Traversable) {
-            trigger_deprecation(
-                'easycorp/easyadmin-bundle',
-                '4.27.0',
-                'Argument "%s" for "%s" must be one of these types: %s. Passing type "%s" will cause an error in 5.0.0.',
-                '$forms',
-                __METHOD__,
-                '"Traversable"',
-                \gettype($forms)
-            );
-        }
-
         /** @var FormInterface $fileForm */
         $fileForm = current(iterator_to_array($forms));
         $fileForm->setData($currentFiles);

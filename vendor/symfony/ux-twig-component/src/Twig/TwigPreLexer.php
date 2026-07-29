@@ -39,7 +39,7 @@ class TwigPreLexer
             return $input;
         }
 
-        $this->input = $input = str_replace(["\r\n", "\r"], "\n", $input);
+        $this->input = $input;
         $this->length = \strlen($input);
         $output = '';
 
@@ -126,8 +126,7 @@ class TwigPreLexer
                 // open the default block
                 if (!empty($this->currentComponents)
                     && !$this->currentComponents[\count($this->currentComponents) - 1]['hasDefaultBlock']) {
-                    $output .= '{% block content %}';
-                    $this->currentComponents[\count($this->currentComponents) - 1]['hasDefaultBlock'] = true;
+                    $output .= $this->addDefaultBlock();
                 }
 
                 $attributes = $this->consumeAttributes($componentName);
@@ -158,7 +157,7 @@ class TwigPreLexer
                 $lastComponentName = $lastComponent['name'];
 
                 if ($closingComponentName !== $lastComponentName) {
-                    throw new SyntaxError("Expected closing tag '</twig:{$lastComponentName}>' but found '</twig:{$closingComponentName}>'.", $this->line);
+                    throw new SyntaxError("Expected closing tag '</twig:{$lastComponentName}>' but found '</twig:{$closingComponentName}>'", $this->line);
                 }
 
                 // we've reached the end of this component. If we're inside the
@@ -183,8 +182,7 @@ class TwigPreLexer
                 && preg_match('/\S/', $char)
                 && !$this->check('{% block')
             ) {
-                $this->currentComponents[\count($this->currentComponents) - 1]['hasDefaultBlock'] = true;
-                $output .= '{% block content %}';
+                $output .= $this->addDefaultBlock();
             }
 
             $output .= $char;
@@ -193,7 +191,7 @@ class TwigPreLexer
 
         if (!empty($this->currentComponents)) {
             $lastComponent = array_pop($this->currentComponents)['name'];
-            throw new SyntaxError(\sprintf('Expected closing tag "</twig:%s>" not found.', $lastComponent), $this->line);
+            throw new SyntaxError(sprintf('Expected closing tag "</twig:%s>" not found.', $lastComponent), $this->line);
         }
 
         return $output;
@@ -201,14 +199,29 @@ class TwigPreLexer
 
     private function consumeComponentName(?string $customExceptionMessage = null): string
     {
-        if (preg_match('/\G[A-Za-z0-9_:@\-.]+/', $this->input, $matches, 0, $this->position)) {
-            $componentName = $matches[0];
-            $this->position += \strlen($componentName);
-
-            return $componentName;
+        $start = $this->position;
+        while ($this->position < $this->length && preg_match('/[A-Za-z0-9_:@\-.]/', $this->input[$this->position])) {
+            ++$this->position;
         }
 
-        throw new SyntaxError($customExceptionMessage ?? 'Expected component name when resolving the "<twig:" syntax.', $this->line);
+        $componentName = substr($this->input, $start, $this->position - $start);
+
+        if (empty($componentName)) {
+            $exceptionMessage = $customExceptionMessage;
+            if (null == $exceptionMessage) {
+                $exceptionMessage = 'Expected component name when resolving the "<twig:" syntax.';
+            }
+            throw new SyntaxError($exceptionMessage, $this->line);
+        }
+
+        return $componentName;
+    }
+
+    private function consumeAttributeName(string $componentName): string
+    {
+        $message = sprintf('Expected attribute name when parsing the "<twig:%s" syntax.', $componentName);
+
+        return $this->consumeComponentName($message);
     }
 
     private function consumeAttributes(string $componentName): string
@@ -233,25 +246,21 @@ class TwigPreLexer
             $isAttributeDynamic = false;
 
             // :someProp="dynamicVar"
-            $this->consumeWhitespace();
             if ($this->check(':')) {
                 $this->consume(':');
                 $isAttributeDynamic = true;
             }
 
-            $message = \sprintf('Expected attribute name when parsing the "<twig:%s" syntax.', $componentName);
-            // was called 'consumeAttributeName'
-            $key = $this->consumeComponentName($message);
+            $key = $this->consumeAttributeName($componentName);
 
             // <twig:component someProp> -> someProp: true
             if (!$this->check('=')) {
-                $this->consumeWhitespace();
                 // don't allow "<twig:component :someProp>"
                 if ($isAttributeDynamic) {
-                    throw new SyntaxError(\sprintf('Expected "=" after ":%s" when parsing the "<twig:%s" syntax.', $key, $componentName), $this->line);
+                    throw new SyntaxError(sprintf('Expected "=" after ":%s" when parsing the "<twig:%s" syntax.', $key, $componentName), $this->line);
                 }
 
-                $attributes[] = \sprintf('%s: true', preg_match('/[-:@]/', $key) ? "'$key'" : $key);
+                $attributes[] = sprintf('%s: true', preg_match('/[-:]/', $key) ? "'$key'" : $key);
                 $this->consumeWhitespace();
                 continue;
             }
@@ -266,7 +275,7 @@ class TwigPreLexer
                 $attributeValue = $this->consumeAttributeValue($quote);
             }
 
-            $attributes[] = \sprintf('%s: %s', preg_match('/[-:@]/', $key) ? "'$key'" : $key, '' === $attributeValue ? "''" : $attributeValue);
+            $attributes[] = sprintf('%s: %s', preg_match('/[-:]/', $key) ? "'$key'" : $key, '' === $attributeValue ? "''" : $attributeValue);
 
             $this->expectAndConsumeChar($quote);
             $this->consumeWhitespace();
@@ -281,8 +290,9 @@ class TwigPreLexer
      */
     private function consume(string $string): bool
     {
-        if (str_starts_with(substr($this->input, $this->position), $string)) {
-            $this->position += \strlen($string);
+        $stringLength = \strlen($string);
+        if (substr($this->input, $this->position, $stringLength) === $string) {
+            $this->position += $stringLength;
 
             return true;
         }
@@ -293,13 +303,13 @@ class TwigPreLexer
     private function consumeChar($validChars = null): string
     {
         if ($this->position >= $this->length) {
-            throw new SyntaxError('Unexpected end of input.', $this->line);
+            throw new SyntaxError('Unexpected end of input', $this->line);
         }
 
         $char = $this->input[$this->position];
 
         if (null !== $validChars && !\in_array($char, (array) $validChars, true)) {
-            throw new SyntaxError('Expected one of [.'.implode('', (array) $validChars)."] but found '{$char}'.", $this->line);
+            throw new SyntaxError('Expected one of ['.implode('', (array) $validChars)."] but found '{$char}'.", $this->line);
         }
 
         ++$this->position;
@@ -315,30 +325,30 @@ class TwigPreLexer
      */
     private function consumeUntil(string $endString): string
     {
-        if (false === $endPosition = strpos($this->input, $endString, $this->position)) {
-            $start = $this->position;
-            $this->position = $this->length;
+        $start = $this->position;
+        $endCharLength = \strlen($endString);
 
-            return substr($this->input, $start);
+        while ($this->position < $this->length) {
+            if (substr($this->input, $this->position, $endCharLength) === $endString) {
+                break;
+            }
+
+            if ("\n" === $this->input[$this->position]) {
+                ++$this->line;
+            }
+            ++$this->position;
         }
 
-        $content = substr($this->input, $this->position, $endPosition - $this->position);
-        $this->line += substr_count($content, "\n");
-        $this->position = $endPosition;
-
-        return $content;
+        return substr($this->input, $start, $this->position - $start);
     }
 
     private function consumeWhitespace(): void
     {
-        $whitespace = substr($this->input, $this->position, strspn($this->input, " \t\n\r\0\x0B", $this->position));
-        $this->line += substr_count($whitespace, "\n");
-        $this->position += \strlen($whitespace);
-
-        if ($this->check('#')) {
-            $this->consume('#');
-            $this->consumeUntil("\n");
-            $this->consumeWhitespace();
+        while ($this->position < $this->length && preg_match('/\s/', $this->input[$this->position])) {
+            if ("\n" === $this->input[$this->position]) {
+                ++$this->line;
+            }
+            ++$this->position;
         }
     }
 
@@ -348,7 +358,7 @@ class TwigPreLexer
     private function expectAndConsumeChar(string $char): void
     {
         if (1 !== \strlen($char)) {
-            throw new \InvalidArgumentException('Expected a single character.');
+            throw new \InvalidArgumentException('Expected a single character');
         }
 
         if ($this->position >= $this->length) {
@@ -364,8 +374,18 @@ class TwigPreLexer
 
     private function check(string $chars): bool
     {
-        return $this->position + \strlen($chars) <= $this->length
-            && 0 === substr_compare($this->input, $chars, $this->position, \strlen($chars));
+        $charsLength = \strlen($chars);
+        if ($this->position + $charsLength > $this->length) {
+            return false;
+        }
+
+        for ($i = 0; $i < $charsLength; ++$i) {
+            if ($this->input[$this->position + $i] !== $chars[$i]) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function consumeBlock(string $componentName): string
@@ -389,7 +409,7 @@ class TwigPreLexer
         $output = "{% block {$blockName} %}";
 
         $closingTag = '</twig:block>';
-        if (false === strpos($this->input, $closingTag, $this->position)) {
+        if (!$this->doesStringEventuallyExist($closingTag)) {
             throw new SyntaxError("Expected closing tag '{$closingTag}' for block '{$blockName}'.", $this->line);
         }
         $blockContents = $this->consumeUntilEndBlock();
@@ -420,20 +440,19 @@ class TwigPreLexer
             if (!$inComment && '</twig:block>' === substr($this->input, $this->position, 13)) {
                 if (1 === $depth) {
                     break;
+                } else {
+                    --$depth;
                 }
-
-                --$depth;
             }
 
             if (!$inComment && '{% endblock %}' === substr($this->input, $this->position, 14)) {
                 if (1 === $depth) {
                     // in this case, we want to advance ALL the way beyond the endblock
-                    // strlen('{% endblock %}') = 14
-                    $this->position += 14;
+                    $this->position += 14 /* strlen('{% endblock %}') */;
                     break;
+                } else {
+                    --$depth;
                 }
-
-                --$depth;
             }
 
             if (!$inComment && '<twig:block' === substr($this->input, $this->position, 11)) {
@@ -447,7 +466,6 @@ class TwigPreLexer
             if ("\n" === $this->input[$this->position]) {
                 ++$this->line;
             }
-
             ++$this->position;
         }
 
@@ -470,14 +488,14 @@ class TwigPreLexer
             if ($this->check('{{')) {
                 // mark any previous static text as complete: push into parts
                 if ('' !== $currentPart) {
-                    $parts[] = \sprintf("'%s'", str_replace("'", "\'", $currentPart));
+                    $parts[] = sprintf("'%s'", str_replace("'", "\'", $currentPart));
                     $currentPart = '';
                 }
 
                 // consume the entire {{ }} block
                 $this->consume('{{');
                 $this->consumeWhitespace();
-                $parts[] = \sprintf('(%s)', rtrim($this->consumeUntil('}}')));
+                $parts[] = sprintf('(%s)', rtrim($this->consumeUntil('}}')));
                 $this->expectAndConsumeChar('}');
                 $this->expectAndConsumeChar('}');
 
@@ -489,9 +507,23 @@ class TwigPreLexer
         }
 
         if ('' !== $currentPart) {
-            $parts[] = \sprintf("'%s'", str_replace("'", "\'", $currentPart));
+            $parts[] = sprintf("'%s'", str_replace("'", "\'", $currentPart));
         }
 
         return implode('~', $parts);
+    }
+
+    private function doesStringEventuallyExist(string $needle): bool
+    {
+        $remainingString = substr($this->input, $this->position);
+
+        return str_contains($remainingString, $needle);
+    }
+
+    private function addDefaultBlock(): string
+    {
+        $this->currentComponents[\count($this->currentComponents) - 1]['hasDefaultBlock'] = true;
+
+        return '{% block content %}';
     }
 }

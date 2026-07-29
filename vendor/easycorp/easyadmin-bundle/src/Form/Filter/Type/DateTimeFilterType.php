@@ -17,7 +17,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 class DateTimeFilterType extends AbstractType
 {
-    private readonly string $valueType;
+    private string $valueType;
 
     public function __construct(?string $valueType = null)
     {
@@ -33,16 +33,6 @@ class DateTimeFilterType extends AbstractType
         $builder->addModelTransformer(new CallbackTransformer(
             static fn ($data) => $data,
             static function ($data) use ($options) {
-                // Symfony Form will cut off invalid values, so make sure no warnings will be thrown out
-                $data['value'] ??= null;
-                $data['value2'] ??= null;
-
-                if (null === $data['value'] && ComparisonType::BETWEEN !== $data['comparison']) {
-                    $data['comparison'] = ComparisonType::EQ === $data['comparison'] ? 'IS NULL' : 'IS NOT NULL';
-
-                    return $data;
-                }
-
                 if (ComparisonType::BETWEEN === $data['comparison']) {
                     if (null === $data['value'] || '' === $data['value'] || null === $data['value2'] || '' === $data['value2']) {
                         throw new TransformationFailedException('Two values must be provided when "BETWEEN" comparison is selected.');

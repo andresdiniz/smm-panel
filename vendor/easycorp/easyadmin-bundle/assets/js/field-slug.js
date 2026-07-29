@@ -1,48 +1,48 @@
 const slugify = require('slugify');
 slugify.extend({
-    $: '',
-    '%': '',
-    '&': '',
-    '<': '',
-    '>': '',
-    '|': '',
-    '¢': '',
-    '£': '',
-    '¤': '',
-    '¥': '',
-    '₠': '',
-    '₢': '',
-    '₣': '',
-    '₤': '',
-    '₥': '',
-    '₦': '',
-    '₧': '',
-    '₨': '',
-    '₩': '',
-    '₪': '',
-    '₫': '',
-    '€': '',
-    '₭': '',
-    '₮': '',
-    '₯': '',
-    '₰': '',
-    '₱': '',
-    '₲': '',
-    '₳': '',
-    '₴': '',
-    '₵': '',
-    '₸': '',
-    '₹': '',
-    '₽': '',
-    '₿': '',
-    '∂': '',
-    '∆': '',
-    '∑': '',
-    '∞': '',
-    '♥': '',
-    元: '',
-    円: '',
-    '﷼': '',
+    "$": "",
+    "%": "",
+    "&": "",
+    "<": "",
+    ">": "",
+    "|": "",
+    "¢": "",
+    "£": "",
+    "¤": "",
+    "¥": "",
+    "₠": "",
+    "₢": "",
+    "₣": "",
+    "₤": "",
+    "₥": "",
+    "₦": "",
+    "₧": "",
+    "₨": "",
+    "₩": "",
+    "₪": "",
+    "₫": "",
+    "€": "",
+    "₭": "",
+    "₮": "",
+    "₯": "",
+    "₰": "",
+    "₱": "",
+    "₲": "",
+    "₳": "",
+    "₴": "",
+    "₵": "",
+    "₸": "",
+    "₹": "",
+    "₽": "",
+    "₿": "",
+    "∂": "",
+    "∆": "",
+    "∑": "",
+    "∞": "",
+    "♥": "",
+    "元": "",
+    "円": "",
+    "﷼": "",
 });
 
 class Slugger {
@@ -83,11 +83,17 @@ class Slugger {
      */
     appendLockButton() {
         this.lockButton = this.field.parentNode.querySelector('button');
+        this.lockButtonIcon = this.lockButton.querySelector('i');
         this.lockButton.addEventListener('click', () => {
             if (this.locked) {
-                const confirmMessage = this.field.dataset.confirmText || null;
-                if (null === confirmMessage || true === confirm(confirmMessage)) {
+                let confirmMessage = this.field.dataset.confirmText || null;
+                if (null === confirmMessage) {
                     this.unlock();
+                } else {
+                    let formattedConfirmMessage = decodeURIComponent(JSON.parse('"' + confirmMessage.replace(/\"/g, '\\"') + '"'));
+                    if (true === confirm(formattedConfirmMessage)) {
+                        this.unlock();
+                    }
                 }
             } else {
                 this.lock();
@@ -100,7 +106,7 @@ class Slugger {
      */
     unlock() {
         this.locked = false;
-        this.lockButton.innerHTML = this.lockButton.getAttribute('data-icon-unlocked');
+        this.lockButtonIcon.classList.replace('fa-lock', 'fa-lock-open');
         this.field.removeAttribute('readonly');
     }
 
@@ -109,7 +115,7 @@ class Slugger {
      */
     lock() {
         this.locked = true;
-        this.lockButton.innerHTML = this.lockButton.getAttribute('data-icon-locked');
+        this.lockButtonIcon.classList.replace('fa-lock-open', 'fa-lock');
 
         // Locking it back changes the value either to default value, or recomputes it
         if ('' !== this.currentSlug) {
@@ -122,7 +128,7 @@ class Slugger {
     }
 
     updateValue() {
-        this.field.value = slugify(this.targets.map((target) => target.value).join('-'), {
+        this.field.value = slugify(this.targets.map(target => target.value).join('-'), {
             remove: /[^A-Za-z0-9\s-]/g,
             lower: true,
             strict: true,
@@ -134,7 +140,7 @@ class Slugger {
      */
     listenTarget() {
         for (const target of this.targets) {
-            target.addEventListener('input', () => {
+            target.addEventListener('keyup', () => {
                 if ('readonly' === this.field.getAttribute('readonly')) {
                     this.updateValue();
                 }
@@ -145,12 +151,6 @@ class Slugger {
 
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-ea-slug-field]').forEach((field) => {
-        new Slugger(field);
-    });
-});
-
-document.addEventListener('ea.collection.item-added', (event) => {
-    event.detail.newElement.querySelectorAll('[data-ea-slug-field]').forEach((field) => {
         new Slugger(field);
     });
 });

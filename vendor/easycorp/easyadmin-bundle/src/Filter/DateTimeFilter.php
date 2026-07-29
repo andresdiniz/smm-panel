@@ -9,7 +9,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Dto\FieldDto;
 use EasyCorp\Bundle\EasyAdminBundle\Dto\FilterDataDto;
 use EasyCorp\Bundle\EasyAdminBundle\Form\Filter\Type\DateTimeFilterType;
 use EasyCorp\Bundle\EasyAdminBundle\Form\Type\ComparisonType;
-use Symfony\Contracts\Translation\TranslatableInterface;
 
 /**
  * @author Yonel Ceruto <yonelceruto@gmail.com>
@@ -19,9 +18,6 @@ final class DateTimeFilter implements FilterInterface
 {
     use FilterTrait;
 
-    /**
-     * @param TranslatableInterface|string|false|null $label
-     */
     public static function new(string $propertyName, $label = null): self
     {
         return (new self())
@@ -42,9 +38,7 @@ final class DateTimeFilter implements FilterInterface
         $value = $filterDataDto->getValue();
         $value2 = $filterDataDto->getValue2();
 
-        if (null === $value) {
-            $queryBuilder->andWhere(sprintf('%s.%s %s', $alias, $property, $comparison));
-        } elseif (ComparisonType::BETWEEN === $comparison) {
+        if (ComparisonType::BETWEEN === $comparison) {
             $queryBuilder->andWhere(sprintf('%s.%s BETWEEN :%s and :%s', $alias, $property, $parameterName, $parameter2Name))
                 ->setParameter($parameterName, $value)
                 ->setParameter($parameter2Name, $value2);
