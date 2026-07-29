@@ -1,584 +1,714 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AcheiSMM — Seguidores, Curtidas e Engajamento Real</title>
-  <meta name="description" content="O painel SMM mais rápido do Brasil. Seguidores, curtidas, views e engajamento para Instagram, TikTok, YouTube e mais. Entrega automática, preços a partir de R$1,00.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #0a0a0f;
-      --surface: #111118;
-      --surface2: #16161f;
-      --border: rgba(255,255,255,0.07);
-      --text: #f0f0f5;
-      --muted: #8888a0;
-      --faint: #444458;
-      --accent: #7c3aed;
-      --accent2: #a855f7;
-      --accent-glow: rgba(124,58,237,0.35);
-      --green: #22c55e;
-      --green-bg: rgba(34,197,94,0.1);
-      --radius: 14px;
-      --radius-sm: 8px;
-    }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      overflow-x: hidden;
-    }
-    a { color: inherit; text-decoration: none; }
-    img { display: block; max-width: 100%; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AcheiSMM — Seguidores, Curtidas e Engajamento Real</title>
+<meta name="description" content="Painel SMM #1 do Brasil. Seguidores, curtidas, views para Instagram, TikTok, YouTube. Entrega automática a partir de R$1,00.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080810;--s1:#0e0e1a;--s2:#13131f;--s3:#181826;
+  --bd:rgba(255,255,255,0.07);--bd2:rgba(255,255,255,0.12);
+  --tx:#eeeef5;--mu:#7878a0;--fa:#33334a;
+  --p:#7c3aed;--p2:#a855f7;--pg:linear-gradient(135deg,#7c3aed,#a855f7);
+  --glow:rgba(124,58,237,0.3);
+  --gr:#22c55e;--go:#f59e0b;
+  --r:12px;--rs:8px;--rl:20px;
+  --nav:60px;
+}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);line-height:1.5;overflow-x:hidden;font-size:15px}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;font-family:inherit}
 
-    /* ── NAV ── */
-    nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 clamp(1rem, 5vw, 3rem);
-      height: 64px;
-      background: rgba(10,10,15,0.85);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-    }
-    .nav-logo {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em;
-    }
-    .nav-logo svg { flex-shrink: 0; }
-    .nav-logo span { background: linear-gradient(135deg, #a855f7, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .nav-links { display: flex; align-items: center; gap: 2rem; }
-    .nav-links a { color: var(--muted); font-size: 0.9rem; font-weight: 500; transition: color .2s; }
-    .nav-links a:hover { color: var(--text); }
-    .nav-cta {
-      display: flex; gap: 0.75rem;
-    }
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 0.55rem 1.25rem; border-radius: 9999px;
-      font-size: 0.875rem; font-weight: 600; cursor: pointer;
-      transition: all .2s; border: none;
-    }
-    .btn-ghost {
-      background: transparent; color: var(--muted);
-      border: 1px solid var(--border);
-    }
-    .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
-    .btn-primary {
-      background: linear-gradient(135deg, #7c3aed, #a855f7);
-      color: #fff;
-      box-shadow: 0 0 20px var(--accent-glow);
-    }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 0 32px var(--accent-glow); }
-    .btn-lg {
-      padding: 0.85rem 2rem; font-size: 1rem; border-radius: 9999px;
-    }
+/* ══ NAV ══ */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:var(--nav);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 clamp(1rem,4vw,2.5rem);
+  background:rgba(8,8,16,0.8);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--bd);
+}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:1.05rem;letter-spacing:-.025em}
+.logo-mark{
+  width:30px;height:30px;border-radius:8px;
+  background:var(--pg);display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.logo-mark svg{width:16px;height:16px}
+.logo-text{background:var(--pg);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-mid{display:flex;gap:1.75rem}
+.nav-mid a{color:var(--mu);font-size:.85rem;font-weight:500;transition:color .18s}
+.nav-mid a:hover{color:var(--tx)}
+.nav-end{display:flex;gap:.6rem}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  padding:.45rem 1.1rem;border-radius:9999px;
+  font-size:.82rem;font-weight:600;border:none;transition:all .18s;
+}
+.btn-g{background:transparent;color:var(--mu);border:1px solid var(--bd)}
+.btn-g:hover{color:var(--tx);border-color:var(--bd2)}
+.btn-p{background:var(--pg);color:#fff;box-shadow:0 0 18px var(--glow)}
+.btn-p:hover{transform:translateY(-1px);box-shadow:0 0 28px var(--glow)}
+.btn-lg{padding:.72rem 1.75rem;font-size:.95rem}
+.btn-xl{padding:.9rem 2.25rem;font-size:1rem;border-radius:9999px}
 
-    /* ── HERO ── */
-    .hero {
-      min-height: 100vh;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      text-align: center;
-      padding: 6rem clamp(1rem, 5vw, 3rem) 4rem;
-      position: relative; overflow: hidden;
-    }
-    .hero-glow {
-      position: absolute; top: -20%; left: 50%; transform: translateX(-50%);
-      width: 800px; height: 600px;
-      background: radial-gradient(ellipse at center, rgba(124,58,237,0.18) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 0.35rem 1rem; border-radius: 9999px;
-      background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3);
-      font-size: 0.8rem; font-weight: 600; color: #c084fc;
-      margin-bottom: 1.5rem;
-    }
-    .hero-badge span { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; display: inline-block; animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
-    .hero h1 {
-      font-size: clamp(2.2rem, 6vw, 5rem);
-      font-weight: 900; line-height: 1.05; letter-spacing: -0.03em;
-      margin-bottom: 1.25rem;
-      max-width: 900px;
-    }
-    .hero h1 em {
-      font-style: normal;
-      background: linear-gradient(135deg, #a855f7 0%, #7c3aed 50%, #6366f1 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .hero-sub {
-      font-size: clamp(1rem, 2vw, 1.2rem); color: var(--muted);
-      max-width: 600px; margin-bottom: 2.5rem; line-height: 1.7;
-    }
-    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 3rem; }
-    .hero-social-proof {
-      display: flex; align-items: center; gap: 0.75rem;
-      color: var(--muted); font-size: 0.85rem;
-    }
-    .avatar-stack { display: flex; }
-    .avatar-stack img, .avatar-placeholder {
-      width: 32px; height: 32px; border-radius: 50%;
-      border: 2px solid var(--bg);
-      margin-left: -8px; background: linear-gradient(135deg, #7c3aed, #6366f1);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.6rem; font-weight: 700; color: white;
-    }
-    .avatar-stack .avatar-placeholder:first-child { margin-left: 0; }
-    .hero-stats {
-      display: flex; gap: clamp(1.5rem, 4vw, 4rem); flex-wrap: wrap; justify-content: center;
-      margin-top: 4rem; padding-top: 3rem;
-      border-top: 1px solid var(--border);
-      width: 100%; max-width: 700px;
-    }
-    .stat { text-align: center; }
-    .stat-num { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; letter-spacing: -0.03em; }
-    .stat-num.purple { background: linear-gradient(135deg, #a855f7, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+/* ══ TICKER ══ */
+.ticker{
+  background:linear-gradient(90deg,rgba(124,58,237,.12),rgba(124,58,237,.06),rgba(124,58,237,.12));
+  border-bottom:1px solid rgba(124,58,237,.2);
+  overflow:hidden;height:34px;display:flex;align-items:center;
+  margin-top:var(--nav);
+}
+.ticker-inner{
+  display:flex;gap:0;white-space:nowrap;
+  animation:ticker 30s linear infinite;
+}
+.ticker-inner:hover{animation-play-state:paused}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-item{
+  display:inline-flex;align-items:center;gap:.4rem;
+  padding:0 1.5rem;font-size:.75rem;font-weight:600;color:var(--mu);
+}
+.ticker-item b{color:var(--tx)}
+.ticker-dot{width:4px;height:4px;border-radius:50%;background:var(--p2);flex-shrink:0}
 
-    /* ── REDES ── */
-    .section { padding: clamp(3rem, 8vw, 6rem) clamp(1rem, 5vw, 3rem); }
-    .section-inner { max-width: 1100px; margin: 0 auto; }
-    .section-tag {
-      font-size: 0.75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
-      color: var(--accent2); margin-bottom: 0.75rem;
-    }
-    .section-title {
-      font-size: clamp(1.6rem, 3.5vw, 2.8rem); font-weight: 800; letter-spacing: -0.03em;
-      margin-bottom: 1rem; line-height: 1.15;
-    }
-    .section-sub { color: var(--muted); font-size: 1rem; max-width: 500px; line-height: 1.7; margin-bottom: 3rem; }
+/* ══ HERO ══ */
+.hero{
+  padding:3rem clamp(1rem,4vw,2.5rem) 0;
+  max-width:1200px;margin:0 auto;
+}
+.hero-top{
+  display:grid;grid-template-columns:1fr auto;
+  align-items:start;gap:2rem;margin-bottom:1.75rem;
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:.28rem .8rem;border-radius:9999px;
+  background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.28);
+  font-size:.72rem;font-weight:700;color:#c084fc;
+  margin-bottom:.9rem;letter-spacing:.02em;
+}
+.hero-badge i{width:6px;height:6px;border-radius:50%;background:var(--gr);display:inline-block;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.5)}}
+.hero h1{
+  font-size:clamp(2rem,5vw,4rem);font-weight:900;
+  line-height:1.0;letter-spacing:-.04em;margin-bottom:.8rem;
+}
+.hero h1 em{
+  font-style:normal;
+  background:linear-gradient(135deg,#c084fc 0%,#a855f7 40%,#7c3aed 70%,#6366f1 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero-sub{font-size:.95rem;color:var(--mu);line-height:1.65;max-width:480px;margin-bottom:1.25rem}
+.hero-actions{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}
+.hero-trust{display:flex;align-items:center;gap:.65rem;font-size:.78rem;color:var(--mu)}
+.avatars{display:flex}
+.av{
+  width:26px;height:26px;border-radius:50%;border:2px solid var(--bg);
+  background:var(--pg);display:flex;align-items:center;justify-content:center;
+  font-size:.55rem;font-weight:800;color:#fff;margin-left:-6px;
+}
+.av:first-child{margin-left:0}
+.trust-sep{width:1px;height:14px;background:var(--bd)}
+.trust-item{display:flex;align-items:center;gap:.3rem}
+.trust-item svg{width:13px;height:13px;color:var(--gr)}
 
-    .networks-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;
-    }
-    .network-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 1.5rem 1rem;
-      text-align: center; cursor: pointer;
-      transition: all .25s;
-    }
-    .network-card:hover { border-color: rgba(124,58,237,0.4); transform: translateY(-3px); background: var(--surface2); }
-    .network-icon { font-size: 2rem; margin-bottom: 0.5rem; }
-    .network-name { font-size: 0.85rem; font-weight: 600; }
-    .network-count { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+/* ══ BENTO ══ */
+.hero-bento{
+  display:grid;
+  grid-template-columns:repeat(12,1fr);
+  grid-template-rows:auto;
+  gap:.75rem;
+  padding-bottom:3rem;
+}
+.bc{
+  background:var(--s1);border:1px solid var(--bd);
+  border-radius:var(--r);overflow:hidden;
+  transition:border-color .22s, transform .22s;
+}
+.bc:hover{border-color:var(--bd2);transform:translateY(-2px)}
 
-    /* ── HOW IT WORKS ── */
-    .how-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem;
-    }
-    .how-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 2rem 1.5rem;
-      position: relative; overflow: hidden;
-    }
-    .how-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg, #7c3aed, #a855f7);
-      opacity: 0; transition: opacity .25s;
-    }
-    .how-card:hover::before { opacity: 1; }
-    .how-num {
-      font-size: 2.5rem; font-weight: 900; letter-spacing: -0.05em;
-      background: linear-gradient(135deg, rgba(168,85,247,0.3), rgba(124,58,237,0.1));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      margin-bottom: 0.75rem; line-height: 1;
-    }
-    .how-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
-    .how-desc { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+/* card 1 — stats wide */
+.bc-stats{
+  grid-column:span 8;
+  display:grid;grid-template-columns:repeat(4,1fr);
+  divide-x:1px solid var(--bd);
+}
+.bc-stat{
+  padding:1.25rem 1.25rem;
+  border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;justify-content:space-between;
+}
+.bc-stat:last-child{border-right:none}
+.bc-stat-num{
+  font-size:clamp(1.4rem,2.5vw,2rem);font-weight:900;letter-spacing:-.04em;
+  background:var(--pg);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  line-height:1;
+}
+.bc-stat-label{font-size:.72rem;color:var(--mu);margin-top:.3rem}
+.bc-stat-sub{font-size:.68rem;color:var(--fa);margin-top:.15rem}
 
-    /* ── PRICING ── */
-    .pricing-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;
-    }
-    .pricing-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 2rem;
-      display: flex; flex-direction: column; gap: 1.25rem;
-      transition: all .25s; position: relative; overflow: hidden;
-    }
-    .pricing-card.featured {
-      border-color: rgba(124,58,237,0.5);
-      background: linear-gradient(145deg, rgba(124,58,237,0.08), var(--surface));
-      box-shadow: 0 0 40px rgba(124,58,237,0.12);
-    }
-    .pricing-card:hover { transform: translateY(-4px); }
-    .pricing-badge {
-      position: absolute; top: 1rem; right: 1rem;
-      background: linear-gradient(135deg, #7c3aed, #a855f7);
-      color: white; font-size: 0.7rem; font-weight: 700; letter-spacing: .06em;
-      padding: 0.25rem 0.6rem; border-radius: 9999px; text-transform: uppercase;
-    }
-    .pricing-icon { font-size: 1.75rem; }
-    .pricing-name { font-size: 0.8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-    .pricing-price { display: flex; align-items: baseline; gap: 4px; }
-    .pricing-currency { font-size: 1rem; font-weight: 700; color: var(--muted); }
-    .pricing-amount { font-size: 2.8rem; font-weight: 900; letter-spacing: -0.04em; line-height: 1; }
-    .pricing-per { font-size: 0.8rem; color: var(--muted); }
-    .pricing-desc { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
-    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
-    .pricing-features li { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; }
-    .pricing-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
-    .pricing-cta { margin-top: auto; }
+/* card 2 — live orders */
+.bc-live{
+  grid-column:span 4;
+  padding:1.25rem;
+  display:flex;flex-direction:column;gap:.65rem;
+}
+.bc-live-header{display:flex;justify-content:space-between;align-items:center}
+.bc-live-title{font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu)}
+.live-badge{
+  display:flex;align-items:center;gap:4px;
+  font-size:.67rem;font-weight:700;color:var(--gr);
+}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--gr);animation:blink 1.5s infinite}
+.order-row{
+  display:flex;align-items:center;gap:.6rem;
+  padding:.5rem .6rem;border-radius:var(--rs);
+  background:var(--s2);
+  font-size:.75rem;
+}
+.order-net{font-size:1rem;flex-shrink:0}
+.order-info{flex:1;min-width:0}
+.order-svc{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.order-qty{color:var(--mu);font-size:.68rem}
+.order-status{
+  font-size:.67rem;font-weight:700;padding:.15rem .45rem;
+  border-radius:9999px;white-space:nowrap;
+}
+.st-ok{background:rgba(34,197,94,.12);color:var(--gr)}
+.st-run{background:rgba(124,58,237,.12);color:var(--p2)}
+.st-pend{background:rgba(245,158,11,.1);color:var(--go)}
 
-    /* ── TESTIMONIALS ── */
-    .testimonials-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem;
-    }
-    .testimonial-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 1.5rem;
-    }
-    .testimonial-stars { color: #facc15; font-size: 0.9rem; margin-bottom: 0.75rem; letter-spacing: 2px; }
-    .testimonial-text { font-size: 0.9rem; color: var(--muted); line-height: 1.7; margin-bottom: 1.25rem; }
-    .testimonial-author { display: flex; align-items: center; gap: 10px; }
-    .testimonial-avatar {
-      width: 36px; height: 36px; border-radius: 50%;
-      background: linear-gradient(135deg, #7c3aed, #6366f1);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.75rem; font-weight: 700; color: white; flex-shrink: 0;
-    }
-    .testimonial-name { font-size: 0.875rem; font-weight: 600; }
-    .testimonial-handle { font-size: 0.75rem; color: var(--muted); }
+/* card 3 — redes row */
+.bc-nets{
+  grid-column:span 12;
+  padding:.9rem 1.25rem;
+  display:flex;align-items:center;gap:0;
+  overflow-x:auto;scrollbar-width:none;
+}
+.bc-nets::-webkit-scrollbar{display:none}
+.net-pill{
+  display:flex;align-items:center;gap:.4rem;
+  padding:.45rem .9rem;border-radius:9999px;
+  border:1px solid var(--bd);
+  font-size:.78rem;font-weight:600;
+  white-space:nowrap;cursor:pointer;
+  transition:all .18s;flex-shrink:0;margin-right:.5rem;
+}
+.net-pill:hover,.net-pill.active{border-color:rgba(124,58,237,.4);background:rgba(124,58,237,.08);color:var(--tx)}
+.net-pill span{font-size:1rem}
+.net-count{font-size:.67rem;color:var(--mu)}
 
-    /* ── FAQ ── */
-    .faq-list { display: flex; flex-direction: column; gap: 1px; max-width: 750px; }
-    .faq-item { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
-    .faq-item + .faq-item { margin-top: 0.5rem; }
-    .faq-q {
-      width: 100%; background: var(--surface); border: none; color: var(--text);
-      padding: 1.1rem 1.25rem; text-align: left; font-size: 0.9rem; font-weight: 600;
-      cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 1rem;
-      font-family: inherit; transition: background .2s;
-    }
-    .faq-q:hover { background: var(--surface2); }
-    .faq-icon { font-size: 1.2rem; color: var(--accent2); flex-shrink: 0; transition: transform .25s; }
-    .faq-a {
-      background: var(--surface2); padding: 0 1.25rem; max-height: 0;
-      overflow: hidden; transition: max-height .3s ease, padding .3s ease;
-    }
-    .faq-a p { font-size: 0.875rem; color: var(--muted); line-height: 1.7; padding: 1rem 0; }
-    .faq-item.open .faq-a { max-height: 200px; }
-    .faq-item.open .faq-icon { transform: rotate(45deg); }
+/* card 4 — how 4 cols */
+.bc-how{
+  grid-column:span 12;
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:0;
+}
+.how-step{
+  padding:1.5rem 1.5rem;
+  border-right:1px solid var(--bd);
+  position:relative;
+}
+.how-step:last-child{border-right:none}
+.how-n{
+  font-size:2rem;font-weight:900;letter-spacing:-.05em;line-height:1;
+  background:linear-gradient(135deg,rgba(168,85,247,.25),rgba(124,58,237,.08));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:.6rem;
+}
+.how-t{font-size:.88rem;font-weight:700;margin-bottom:.35rem}
+.how-d{font-size:.78rem;color:var(--mu);line-height:1.55}
+.how-step::after{
+  content:attr(data-n);
+  position:absolute;top:.75rem;right:.75rem;
+  font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--fa);
+}
 
-    /* ── CTA FINAL ── */
-    .cta-section {
-      padding: clamp(3rem, 8vw, 6rem) clamp(1rem, 5vw, 3rem);
-      text-align: center;
-    }
-    .cta-box {
-      max-width: 700px; margin: 0 auto;
-      background: linear-gradient(145deg, rgba(124,58,237,0.12), rgba(99,102,241,0.08));
-      border: 1px solid rgba(124,58,237,0.3);
-      border-radius: 24px; padding: clamp(2.5rem, 5vw, 4rem);
-      position: relative; overflow: hidden;
-    }
-    .cta-box::before {
-      content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-      background: radial-gradient(ellipse at center, rgba(124,58,237,0.08) 0%, transparent 60%);
-      pointer-events: none;
-    }
-    .cta-box h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 1rem; }
-    .cta-box p { color: var(--muted); font-size: 1rem; margin-bottom: 2rem; line-height: 1.7; }
-    .cta-box-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+/* card 5 — pricing 3 cols */
+.bc-pricing{
+  grid-column:span 12;
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:0;
+}
+.price-col{
+  padding:1.75rem 1.5rem;
+  border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;gap:1rem;
+  position:relative;
+}
+.price-col:last-child{border-right:none}
+.price-col.pop{
+  background:linear-gradient(145deg,rgba(124,58,237,.07),transparent);
+}
+.pop-tag{
+  position:absolute;top:1.25rem;right:1.25rem;
+  background:var(--pg);color:#fff;
+  font-size:.65rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+  padding:.18rem .55rem;border-radius:9999px;
+}
+.p-icon{font-size:1.4rem}
+.p-name{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)}
+.p-price{display:flex;align-items:baseline;gap:3px;line-height:1}
+.p-cur{font-size:.85rem;font-weight:700;color:var(--mu)}
+.p-amt{font-size:2.2rem;font-weight:900;letter-spacing:-.04em}
+.p-per{font-size:.72rem;color:var(--mu);align-self:flex-end;padding-bottom:.15rem}
+.p-desc{font-size:.78rem;color:var(--mu);line-height:1.55}
+.p-feats{list-style:none;display:flex;flex-direction:column;gap:.4rem}
+.p-feats li{font-size:.78rem;display:flex;align-items:center;gap:6px}
+.p-feats li::before{content:'✓';color:var(--gr);font-weight:800;flex-shrink:0;font-size:.75rem}
+.price-cta{margin-top:auto}
 
-    /* ── FOOTER ── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 2.5rem clamp(1rem, 5vw, 3rem);
-    }
-    .footer-inner {
-      max-width: 1100px; margin: 0 auto;
-      display: flex; flex-wrap: wrap; gap: 1.5rem;
-      align-items: center; justify-content: space-between;
-    }
-    .footer-copy { font-size: 0.8rem; color: var(--faint); }
-    .footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
-    .footer-links a { font-size: 0.8rem; color: var(--faint); transition: color .2s; }
-    .footer-links a:hover { color: var(--muted); }
+/* card 6 — testimonials + faq row */
+.bc-social{grid-column:span 7;padding:1.5rem}
+.bc-faq{grid-column:span 5;padding:1.25rem;display:flex;flex-direction:column;gap:.4rem}
 
-    /* ── SCROLLBAR ── */
-    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 3px; }
+.testi-head{margin-bottom:1rem}
+.testi-title{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);margin-bottom:.4rem}
+.testi-stars{color:#facc15;font-size:.8rem;letter-spacing:1px}
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem}
+.tcard{background:var(--s2);border-radius:var(--rs);padding:.9rem}
+.tc-txt{font-size:.75rem;color:var(--mu);line-height:1.6;margin-bottom:.65rem}
+.tc-auth{display:flex;align-items:center;gap:.45rem}
+.tc-av{
+  width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  background:var(--pg);display:flex;align-items:center;justify-content:center;
+  font-size:.55rem;font-weight:800;color:#fff;
+}
+.tc-name{font-size:.75rem;font-weight:600}
+.tc-hand{font-size:.67rem;color:var(--fa)}
 
-    /* ── RESPONSIVE ── */
-    @media (max-width: 640px) {
-      .nav-links { display: none; }
-      .nav-cta .btn-ghost { display: none; }
-      .hero-stats { gap: 2rem; }
-    }
-  </style>
+.faq-head{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);margin-bottom:.6rem}
+.fi{border-bottom:1px solid var(--bd);overflow:hidden}
+.fi:first-of-type{border-top:1px solid var(--bd)}
+.fq{
+  width:100%;background:transparent;border:none;color:var(--tx);
+  padding:.7rem 0;text-align:left;font-size:.8rem;font-weight:600;
+  display:flex;justify-content:space-between;align-items:center;gap:.75rem;
+  font-family:inherit;
+}
+.fq-ic{font-size:1rem;color:var(--p2);flex-shrink:0;transition:transform .22s}
+.fa-ans{max-height:0;overflow:hidden;transition:max-height .28s ease}
+.fa-ans p{font-size:.75rem;color:var(--mu);line-height:1.6;padding-bottom:.7rem}
+.fi.open .fq-ic{transform:rotate(45deg)}
+.fi.open .fa-ans{max-height:160px}
+
+/* card 7 — CTA banner */
+.bc-cta{
+  grid-column:span 12;
+  padding:2.5rem;
+  background:linear-gradient(135deg,rgba(124,58,237,.1),rgba(99,102,241,.06));
+  border-color:rgba(124,58,237,.25) !important;
+  display:flex;align-items:center;justify-content:space-between;gap:2rem;
+  flex-wrap:wrap;
+}
+.cta-text h2{font-size:clamp(1.3rem,2.5vw,1.8rem);font-weight:900;letter-spacing:-.03em;margin-bottom:.35rem}
+.cta-text p{font-size:.85rem;color:var(--mu)}
+.cta-btns{display:flex;gap:.75rem;flex-wrap:wrap;flex-shrink:0}
+
+/* ══ FOOTER ══ */
+footer{
+  border-top:1px solid var(--bd);
+  padding:1.5rem clamp(1rem,4vw,2.5rem);
+}
+.foot{
+  max-width:1200px;margin:0 auto;
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;
+}
+.foot-logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:.9rem;letter-spacing:-.02em}
+.foot-txt{color:var(--p2)}
+.foot-links{display:flex;gap:1.25rem}
+.foot-links a{font-size:.75rem;color:var(--fa);transition:color .18s}
+.foot-links a:hover{color:var(--mu)}
+.foot-copy{font-size:.72rem;color:var(--fa)}
+
+/* ══ SCROLL ══ */
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--fa);border-radius:3px}
+
+/* ══ MOBILE ══ */
+@media(max-width:768px){
+  .nav-mid,.nav-end .btn-g{display:none}
+  .hero-top{grid-template-columns:1fr}
+  .bc-stats{grid-column:span 12;grid-template-columns:repeat(2,1fr)}
+  .bc-live{grid-column:span 12}
+  .bc-how{grid-template-columns:repeat(2,1fr)}
+  .how-step:nth-child(2){border-right:none}
+  .how-step:nth-child(1),.how-step:nth-child(2){border-bottom:1px solid var(--bd)}
+  .bc-pricing{grid-template-columns:1fr}
+  .price-col{border-right:none;border-bottom:1px solid var(--bd)}
+  .price-col:last-child{border-bottom:none}
+  .bc-social{grid-column:span 12}
+  .bc-faq{grid-column:span 12}
+  .testi-grid{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .bc-stats{grid-template-columns:repeat(2,1fr)}
+  .bc-stat:nth-child(even){border-right:none}
+  .bc-stat{border-bottom:1px solid var(--bd)}
+}
+</style>
 </head>
 <body>
 
 <!-- NAV -->
 <nav>
-  <div class="nav-logo">
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="AcheiSMM Logo">
-      <rect width="28" height="28" rx="8" fill="url(#grad)"/>
-      <path d="M7 14 C7 10 10 7 14 7 C18 7 21 10 21 14 C21 18 18 21 14 21" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-      <circle cx="14" cy="14" r="3" fill="white"/>
-      <defs><linearGradient id="grad" x1="0" y1="0" x2="28" y2="28"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#a855f7"/></linearGradient></defs>
-    </svg>
-    <span>AcheiSMM</span>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="8" cy="8" r="3" fill="white"/>
+        <path d="M3 8 C3 5 5 3 8 3 C11 3 13 5 13 8 C13 11 11 13 8 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <span class="logo-text">AcheiSMM</span>
   </div>
-  <div class="nav-links">
-    <a href="#redes">Redes</a>
-    <a href="#como-funciona">Como funciona</a>
+  <div class="nav-mid">
+    <a href="#como">Como funciona</a>
     <a href="#precos">Preços</a>
     <a href="#faq">FAQ</a>
   </div>
-  <div class="nav-cta">
-    <a href="{{ path('app_login') }}" class="btn btn-ghost">Entrar</a>
-    <a href="{{ path('app_register') }}" class="btn btn-primary">Começar grátis →</a>
+  <div class="nav-end">
+    <a href="{{ path('app_login') }}" class="btn btn-g">Entrar</a>
+    <a href="{{ path('app_register') }}" class="btn btn-p">Começar grátis →</a>
   </div>
 </nav>
 
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-inner" id="tickerInner">
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@influencer_top</b> comprou <b>5.000 seguidores</b> Instagram</div>
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@agencia_mk</b> comprou <b>10.000 views</b> TikTok</div>
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@criador_br</b> comprou <b>2.000 curtidas</b> Instagram</div>
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@youtuber_rj</b> comprou <b>500 inscritos</b> YouTube</div>
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@loja_moda</b> comprou <b>1.000 seguidores</b> TikTok</div>
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@podcast_cast</b> comprou <b>3.000 plays</b> Spotify</div>
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@fitness_vida</b> comprou <b>800 curtidas</b> Instagram</div>
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@startup_sp</b> comprou <b>1.500 conexões</b> LinkedIn</div>
+    <!-- duplicate para loop sem corte -->
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@influencer_top</b> comprou <b>5.000 seguidores</b> Instagram</div>
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@agencia_mk</b> comprou <b>10.000 views</b> TikTok</div>
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@criador_br</b> comprou <b>2.000 curtidas</b> Instagram</div>
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@youtuber_rj</b> comprou <b>500 inscritos</b> YouTube</div>
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@loja_moda</b> comprou <b>1.000 seguidores</b> TikTok</div>
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@podcast_cast</b> comprou <b>3.000 plays</b> Spotify</div>
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@fitness_vida</b> comprou <b>800 curtidas</b> Instagram</div>
+    <div class="ticker-item"><div class="ticker-dot"></div> <b>@startup_sp</b> comprou <b>1.500 conexões</b> LinkedIn</div>
+  </div>
+</div>
+
 <!-- HERO -->
-<section class="hero">
-  <div class="hero-glow"></div>
-  <div class="hero-badge">
-    <span></span> Mais de 12.000 pedidos entregues hoje
-  </div>
-  <h1>Cresça nas redes sociais<br><em>de verdade e rápido</em></h1>
-  <p class="hero-sub">Seguidores, curtidas, views e engajamento para Instagram, TikTok, YouTube, Kwai e muito mais. Entrega automática, preços a partir de R$1,00.</p>
-  <div class="hero-actions">
-    <a href="{{ path('app_register') }}" class="btn btn-primary btn-lg">Criar conta grátis →</a>
-    <a href="{{ path('app_catalog') is defined ? path('app_catalog') : '#precos' }}" class="btn btn-ghost btn-lg">Ver todos os serviços</a>
-  </div>
-  <div class="hero-social-proof">
-    <div class="avatar-stack">
-      <div class="avatar-placeholder">AG</div>
-      <div class="avatar-placeholder">MR</div>
-      <div class="avatar-placeholder">JP</div>
-      <div class="avatar-placeholder">TS</div>
-    </div>
-    <span>+4.800 clientes ativos este mês</span>
-  </div>
-  <div class="hero-stats">
-    <div class="stat"><div class="stat-num purple">12M+</div><div class="stat-label">Pedidos entregues</div></div>
-    <div class="stat"><div class="stat-num purple">98%</div><div class="stat-label">Taxa de satisfação</div></div>
-    <div class="stat"><div class="stat-num purple">R$1</div><div class="stat-label">Preço mínimo</div></div>
-    <div class="stat"><div class="stat-num purple">24/7</div><div class="stat-label">Suporte ativo</div></div>
-  </div>
-</section>
-
-<!-- REDES SOCIAIS -->
-<section class="section" id="redes">
-  <div class="section-inner">
-    <div class="section-tag">Plataformas</div>
-    <h2 class="section-title">Suporte a todas as redes</h2>
-    <p class="section-sub">Trabalhamos com as principais plataformas do mercado. Seguidores, curtidas, comentários, views e muito mais.</p>
-    <div class="networks-grid">
-      <div class="network-card"><div class="network-icon">📸</div><div class="network-name">Instagram</div><div class="network-count">+120 serviços</div></div>
-      <div class="network-card"><div class="network-icon">🎵</div><div class="network-name">TikTok</div><div class="network-count">+80 serviços</div></div>
-      <div class="network-card"><div class="network-icon">▶️</div><div class="network-name">YouTube</div><div class="network-count">+60 serviços</div></div>
-      <div class="network-card"><div class="network-icon">🐦</div><div class="network-name">X / Twitter</div><div class="network-count">+40 serviços</div></div>
-      <div class="network-card"><div class="network-icon">👥</div><div class="network-name">Facebook</div><div class="network-count">+50 serviços</div></div>
-      <div class="network-card"><div class="network-icon">💼</div><div class="network-name">LinkedIn</div><div class="network-count">+20 serviços</div></div>
-      <div class="network-card"><div class="network-icon">📌</div><div class="network-name">Pinterest</div><div class="network-count">+15 serviços</div></div>
-      <div class="network-card"><div class="network-icon">🎬</div><div class="network-name">Kwai</div><div class="network-count">+25 serviços</div></div>
-    </div>
-  </div>
-</section>
-
-<!-- COMO FUNCIONA -->
-<section class="section" id="como-funciona">
-  <div class="section-inner">
-    <div class="section-tag">Processo</div>
-    <h2 class="section-title">Como funciona</h2>
-    <p class="section-sub">Em menos de 5 minutos você já tem seu pedido em andamento.</p>
-    <div class="how-grid">
-      <div class="how-card"><div class="how-num">01</div><div class="how-title">Crie sua conta</div><div class="how-desc">Cadastro grátis em 30 segundos. Sem cartão de crédito obrigatório para começar.</div></div>
-      <div class="how-card"><div class="how-num">02</div><div class="how-title">Escolha o serviço</div><div class="how-desc">Navegue pelo catálogo com mais de 400 serviços. Filtre por rede, tipo e preço.</div></div>
-      <div class="how-card"><div class="how-num">03</div><div class="how-title">Adicione créditos</div><div class="how-desc">Depósito via Pix, boleto ou cartão. Aprovação automática e instantânea via Pix.</div></div>
-      <div class="how-card"><div class="how-num">04</div><div class="how-title">Acompanhe em tempo real</div><div class="how-desc">Painel com status ao vivo. Notificações automáticas quando o pedido for concluído.</div></div>
-    </div>
-  </div>
-</section>
-
-<!-- PREÇOS -->
-<section class="section" id="precos">
-  <div class="section-inner">
-    <div class="section-tag">Planos</div>
-    <h2 class="section-title">Preços diretos ao ponto</h2>
-    <p class="section-sub">Sem mensalidade. Você compra créditos e usa quando quiser. Quanto mais carrega, maior o desconto.</p>
-    <div class="pricing-grid">
-      <div class="pricing-card">
-        <div class="pricing-icon">🚀</div>
-        <div class="pricing-name">Starter</div>
-        <div class="pricing-price">
-          <span class="pricing-currency">R$</span>
-          <span class="pricing-amount">10</span>
-          <span class="pricing-per">em créditos</span>
+<div class="hero">
+  <div class="hero-top">
+    <div>
+      <div class="hero-badge"><i></i> 12.000+ pedidos entregues hoje</div>
+      <h1>Cresça nas redes<br><em>de verdade e rápido</em></h1>
+      <p class="hero-sub">Seguidores, curtidas, views e engajamento para Instagram, TikTok, YouTube e mais. Entrega automática, a partir de <strong style="color:var(--tx)">R$1,00</strong>.</p>
+      <div class="hero-actions">
+        <a href="{{ path('app_register') }}" class="btn btn-p btn-xl">Criar conta grátis →</a>
+        <a href="#precos" class="btn btn-g btn-lg">Ver serviços</a>
+      </div>
+      <div class="hero-trust">
+        <div class="avatars">
+          <div class="av">AG</div>
+          <div class="av">MR</div>
+          <div class="av">JP</div>
+          <div class="av">TS</div>
+          <div class="av">+</div>
         </div>
-        <div class="pricing-desc">Ideal para testar os serviços e ver a qualidade na prática.</div>
-        <ul class="pricing-features">
-          <li>Acesso a todos os serviços</li>
+        <span>+4.800 clientes ativos</span>
+        <div class="trust-sep"></div>
+        <div class="trust-item">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 7 6 11 12 3"/></svg>
+          Pix instantâneo
+        </div>
+        <div class="trust-sep"></div>
+        <div class="trust-item">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 7 6 11 12 3"/></svg>
+          Sem senha
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BENTO GRID -->
+  <div class="hero-bento">
+
+    <!-- STATS -->
+    <div class="bc bc-stats">
+      <div class="bc-stat">
+        <div class="bc-stat-num">12M+</div>
+        <div class="bc-stat-label">Pedidos entregues</div>
+        <div class="bc-stat-sub">↑ 18% este mês</div>
+      </div>
+      <div class="bc-stat">
+        <div class="bc-stat-num">98%</div>
+        <div class="bc-stat-label">Satisfação</div>
+        <div class="bc-stat-sub">Média das avaliações</div>
+      </div>
+      <div class="bc-stat">
+        <div class="bc-stat-num">400+</div>
+        <div class="bc-stat-label">Serviços ativos</div>
+        <div class="bc-stat-sub">8 plataformas</div>
+      </div>
+      <div class="bc-stat">
+        <div class="bc-stat-num">R$1</div>
+        <div class="bc-stat-label">Preço mínimo</div>
+        <div class="bc-stat-sub">Sem mensalidade</div>
+      </div>
+    </div>
+
+    <!-- LIVE ORDERS -->
+    <div class="bc bc-live">
+      <div class="bc-live-header">
+        <span class="bc-live-title">Pedidos ao vivo</span>
+        <div class="live-badge"><div class="live-dot"></div> LIVE</div>
+      </div>
+      <div class="order-row">
+        <div class="order-net">📸</div>
+        <div class="order-info"><div class="order-svc">1.000 Seguidores IG</div><div class="order-qty">há 12 seg</div></div>
+        <span class="order-status st-ok">Entregue</span>
+      </div>
+      <div class="order-row">
+        <div class="order-net">🎵</div>
+        <div class="order-info"><div class="order-svc">5.000 Views TikTok</div><div class="order-qty">há 38 seg</div></div>
+        <span class="order-status st-run">Em andamento</span>
+      </div>
+      <div class="order-row">
+        <div class="order-net">▶️</div>
+        <div class="order-info"><div class="order-svc">500 Inscritos YT</div><div class="order-qty">há 1 min</div></div>
+        <span class="order-status st-run">Em andamento</span>
+      </div>
+      <div class="order-row">
+        <div class="order-net">📸</div>
+        <div class="order-info"><div class="order-svc">2.000 Curtidas IG</div><div class="order-qty">há 2 min</div></div>
+        <span class="order-status st-ok">Entregue</span>
+      </div>
+      <div class="order-row">
+        <div class="order-net">🐦</div>
+        <div class="order-info"><div class="order-svc">300 Seguidores X</div><div class="order-qty">há 3 min</div></div>
+        <span class="order-status st-pend">Processando</span>
+      </div>
+    </div>
+
+    <!-- REDES PILLS -->
+    <div class="bc bc-nets">
+      <div class="net-pill active"><span>📸</span> Instagram <span class="net-count">120+</span></div>
+      <div class="net-pill"><span>🎵</span> TikTok <span class="net-count">80+</span></div>
+      <div class="net-pill"><span>▶️</span> YouTube <span class="net-count">60+</span></div>
+      <div class="net-pill"><span>🐦</span> X / Twitter <span class="net-count">40+</span></div>
+      <div class="net-pill"><span>👥</span> Facebook <span class="net-count">50+</span></div>
+      <div class="net-pill"><span>💼</span> LinkedIn <span class="net-count">20+</span></div>
+      <div class="net-pill"><span>📌</span> Pinterest <span class="net-count">15+</span></div>
+      <div class="net-pill"><span>🎬</span> Kwai <span class="net-count">25+</span></div>
+      <div class="net-pill"><span>🎙</span> Spotify <span class="net-count">18+</span></div>
+      <div class="net-pill"><span>📸</span> Telegram <span class="net-count">22+</span></div>
+    </div>
+
+    <!-- COMO FUNCIONA -->
+    <div class="bc bc-how" id="como">
+      <div class="how-step" data-n="passo 1">
+        <div class="how-n">01</div>
+        <div class="how-t">Crie sua conta</div>
+        <div class="how-d">Cadastro grátis em 30 segundos. Sem cartão obrigatório.</div>
+      </div>
+      <div class="how-step" data-n="passo 2">
+        <div class="how-n">02</div>
+        <div class="how-t">Escolha o serviço</div>
+        <div class="how-d">400+ serviços. Filtre por rede, tipo e preço.</div>
+      </div>
+      <div class="how-step" data-n="passo 3">
+        <div class="how-n">03</div>
+        <div class="how-t">Deposite via Pix</div>
+        <div class="how-d">Aprovação instantânea. Mínimo R$5. Também boleto e cartão.</div>
+      </div>
+      <div class="how-step" data-n="passo 4">
+        <div class="how-n">04</div>
+        <div class="how-t">Acompanhe ao vivo</div>
+        <div class="how-d">Painel com status em tempo real e notificações automáticas.</div>
+      </div>
+    </div>
+
+    <!-- PREÇOS -->
+    <div class="bc bc-pricing" id="precos">
+      <div class="price-col">
+        <div class="p-icon">🚀</div>
+        <div class="p-name">Starter</div>
+        <div class="p-price"><span class="p-cur">R$</span><span class="p-amt">10</span><span class="p-per">créditos</span></div>
+        <div class="p-desc">Para testar a qualidade dos serviços.</div>
+        <ul class="p-feats">
+          <li>Todos os serviços</li>
           <li>Entrega automática</li>
           <li>Suporte por chat</li>
-          <li>Painel de pedidos</li>
         </ul>
-        <div class="pricing-cta">
-          <a href="{{ path('app_register') }}" class="btn btn-ghost" style="width:100%;justify-content:center">Começar →</a>
-        </div>
+        <div class="price-cta"><a href="{{ path('app_register') }}" class="btn btn-g" style="width:100%">Começar →</a></div>
       </div>
-      <div class="pricing-card featured">
-        <div class="pricing-badge">Popular</div>
-        <div class="pricing-icon">⚡</div>
-        <div class="pricing-name">Pro</div>
-        <div class="pricing-price">
-          <span class="pricing-currency">R$</span>
-          <span class="pricing-amount">50</span>
-          <span class="pricing-per">em créditos</span>
-        </div>
-        <div class="pricing-desc">Para criadores e agências que precisam de volume e velocidade.</div>
-        <ul class="pricing-features">
+      <div class="price-col pop">
+        <div class="pop-tag">Popular</div>
+        <div class="p-icon">⚡</div>
+        <div class="p-name">Pro</div>
+        <div class="p-price"><span class="p-cur">R$</span><span class="p-amt">50</span><span class="p-per">créditos</span></div>
+        <div class="p-desc">Para criadores e agências com volume.</div>
+        <ul class="p-feats">
           <li>Tudo do Starter</li>
-          <li>+5% de bônus em créditos</li>
+          <li>+5% bônus em créditos</li>
           <li>Prioridade na fila</li>
           <li>API de integração</li>
-          <li>Histórico completo</li>
         </ul>
-        <div class="pricing-cta">
-          <a href="{{ path('app_register') }}" class="btn btn-primary" style="width:100%;justify-content:center">Quero este →</a>
-        </div>
+        <div class="price-cta"><a href="{{ path('app_register') }}" class="btn btn-p" style="width:100%">Quero este →</a></div>
       </div>
-      <div class="pricing-card">
-        <div class="pricing-icon">💎</div>
-        <div class="pricing-name">Elite</div>
-        <div class="pricing-price">
-          <span class="pricing-currency">R$</span>
-          <span class="pricing-amount">200</span>
-          <span class="pricing-per">em créditos</span>
-        </div>
-        <div class="pricing-desc">Máximo de crédito, máximo de bônus. Para quem faz isso profissionalmente.</div>
-        <ul class="pricing-features">
+      <div class="price-col">
+        <div class="p-icon">💎</div>
+        <div class="p-name">Elite</div>
+        <div class="p-price"><span class="p-cur">R$</span><span class="p-amt">200</span><span class="p-per">créditos</span></div>
+        <div class="p-desc">Para quem faz SMM profissionalmente.</div>
+        <ul class="p-feats">
           <li>Tudo do Pro</li>
-          <li>+12% de bônus em créditos</li>
-          <li>Gestor de conta dedicado</li>
-          <li>Preços especiais no atacado</li>
-          <li>Reabastecimento automático</li>
+          <li>+12% bônus em créditos</li>
+          <li>Gestor dedicado</li>
+          <li>Atacado com desconto</li>
         </ul>
-        <div class="pricing-cta">
-          <a href="{{ path('app_register') }}" class="btn btn-ghost" style="width:100%;justify-content:center">Quero este →</a>
+        <div class="price-cta"><a href="{{ path('app_register') }}" class="btn btn-g" style="width:100%">Quero este →</a></div>
+      </div>
+    </div>
+
+    <!-- DEPOIMENTOS + FAQ -->
+    <div class="bc bc-social">
+      <div class="testi-head">
+        <div class="testi-title">Depoimentos</div>
+        <div class="testi-stars">★★★★★ <span style="font-size:.72rem;color:var(--mu)">4.9/5 de 1.200+ avaliações</span></div>
+      </div>
+      <div class="testi-grid">
+        <div class="tcard">
+          <p class="tc-txt">"Comprei 1.000 seguidores às 23h e de manhã estava entregue. Qualidade real."</p>
+          <div class="tc-auth"><div class="tc-av">AG</div><div><div class="tc-name">Ana G.</div><div class="tc-hand">@anagostyle</div></div></div>
+        </div>
+        <div class="tcard">
+          <p class="tc-txt">"Uso para meus clientes de agência. Painel fácil, preços bons e entrega rápida."</p>
+          <div class="tc-auth"><div class="tc-av">MR</div><div><div class="tc-name">Marcos R.</div><div class="tc-hand">Agência MR</div></div></div>
+        </div>
+        <div class="tcard">
+          <p class="tc-txt">"Melhor custo-benefício que já testei. Pix aprovado na hora, entrega automática."</p>
+          <div class="tc-auth"><div class="tc-av">JP</div><div><div class="tc-name">João P.</div><div class="tc-hand">@jpcreator</div></div></div>
         </div>
       </div>
     </div>
-  </div>
-</section>
 
-<!-- DEPOIMENTOS -->
-<section class="section">
-  <div class="section-inner">
-    <div class="section-tag">Depoimentos</div>
-    <h2 class="section-title">O que nossos clientes dizem</h2>
-    <p class="section-sub" style="margin-bottom:2.5rem">Mais de 4.800 clientes ativos. Veja o que eles falam.</p>
-    <div class="testimonials-grid">
-      <div class="testimonial-card">
-        <div class="testimonial-stars">★★★★★</div>
-        <p class="testimonial-text">"Comprei 1000 seguidores para meu Instagram às 23h e de manhã já estava entregue. Serviço real, qualidade top."</p>
-        <div class="testimonial-author"><div class="testimonial-avatar">AG</div><div><div class="testimonial-name">Ana G.</div><div class="testimonial-handle">@anagostyle</div></div></div>
+    <div class="bc bc-faq" id="faq">
+      <div class="faq-head">Perguntas frequentes</div>
+      <div class="fi">
+        <button class="fq" onclick="tFaq(this)">Os seguidores são reais? <span class="fq-ic">+</span></button>
+        <div class="fa-ans"><p>Trabalhamos com diferentes qualidades. Cada serviço descreve o tipo no catálogo — do econômico ao premium.</p></div>
       </div>
-      <div class="testimonial-card">
-        <div class="testimonial-stars">★★★★★</div>
-        <p class="testimonial-text">"Uso para meus clientes de agência. Painel muito fácil, preços competitivos e entrega super rápida. Recomendo!"</p>
-        <div class="testimonial-author"><div class="testimonial-avatar">MR</div><div><div class="testimonial-name">Marcos R.</div><div class="testimonial-handle">Agência MR Digital</div></div></div>
+      <div class="fi">
+        <button class="fq" onclick="tFaq(this)">Quanto tempo demora? <span class="fq-ic">+</span></button>
+        <div class="fa-ans"><p>A maioria inicia em menos de 1 hora. Expressos em minutos. Prazo exato em cada serviço.</p></div>
       </div>
-      <div class="testimonial-card">
-        <div class="testimonial-stars">★★★★★</div>
-        <p class="testimonial-text">"Já testei outros painéis e esse é de longe o melhor custo-benefício. Pix aprovado na hora, entrega automática."</p>
-        <div class="testimonial-author"><div class="testimonial-avatar">JP</div><div><div class="testimonial-name">João P.</div><div class="testimonial-handle">@jpcreator</div></div></div>
+      <div class="fi">
+        <button class="fq" onclick="tFaq(this)">Como depositar? <span class="fq-ic">+</span></button>
+        <div class="fa-ans"><p>Pix (instantâneo), boleto ou cartão. Mínimo R$5 por depósito.</p></div>
+      </div>
+      <div class="fi">
+        <button class="fq" onclick="tFaq(this)">Precisa da minha senha? <span class="fq-ic">+</span></button>
+        <div class="fa-ans"><p>Nunca. Apenas o link ou @ do perfil público. Seus dados ficam 100% seguros.</p></div>
+      </div>
+      <div class="fi">
+        <button class="fq" onclick="tFaq(this)">E se cair seguidores? <span class="fq-ic">+</span></button>
+        <div class="fa-ans"><p>Serviços com garantia de reposição repõem automaticamente dentro do prazo descrito.</p></div>
       </div>
     </div>
-  </div>
-</section>
 
-<!-- FAQ -->
-<section class="section" id="faq">
-  <div class="section-inner">
-    <div class="section-tag">Dúvidas</div>
-    <h2 class="section-title">Perguntas frequentes</h2>
-    <p class="section-sub" style="margin-bottom:2.5rem">Respondemos as principais dúvidas aqui. Qualquer outra, é só chamar no chat.</p>
-    <div class="faq-list">
-      <div class="faq-item">
-        <button class="faq-q" onclick="toggleFaq(this)">Os seguidores são reais? <span class="faq-icon">+</span></button>
-        <div class="faq-a"><p>Trabalhamos com diferentes tipos de serviço — desde seguidores de alta qualidade com perfis ativos até serviços mais econômicos. Cada serviço tem a descrição detalhada da qualidade na página do catálogo.</p></div>
+    <!-- CTA BANNER -->
+    <div class="bc bc-cta">
+      <div class="cta-text">
+        <h2>Pronto para crescer de verdade?</h2>
+        <p>Crie sua conta agora, deposite via Pix e faça o primeiro pedido em menos de 5 minutos.</p>
       </div>
-      <div class="faq-item">
-        <button class="faq-q" onclick="toggleFaq(this)">Quanto tempo demora a entrega? <span class="faq-icon">+</span></button>
-        <div class="faq-a"><p>Depende do serviço escolhido. A maioria inicia em menos de 1 hora. Serviços expressos iniciam em minutos. O prazo exato está descrito em cada serviço no catálogo.</p></div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-q" onclick="toggleFaq(this)">Como faço para depositar? <span class="faq-icon">+</span></button>
-        <div class="faq-a"><p>Aceitamos Pix (aprovação instantânea), boleto bancário e cartão de crédito. Mínimo de R$5,00 por depósito.</p></div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-q" onclick="toggleFaq(this)">E se minha conta tiver queda de seguidores? <span class="faq-icon">+</span></button>
-        <div class="faq-a"><p>Serviços com garantia de reposição têm isso descrito claramente. Caso o pedido caia dentro do prazo de garantia, abrimos uma reclamação e o serviço é reposto automaticamente.</p></div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-q" onclick="toggleFaq(this)">Precisa da minha senha? <span class="faq-icon">+</span></button>
-        <div class="faq-a"><p>Nunca. Nenhum serviço nosso exige acesso à sua conta. Apenas o link ou @ do perfil público.</p></div>
+      <div class="cta-btns">
+        <a href="{{ path('app_register') }}" class="btn btn-p btn-xl">Criar conta grátis →</a>
+        <a href="{{ path('app_login') }}" class="btn btn-g btn-lg">Já tenho conta</a>
       </div>
     </div>
-  </div>
-</section>
 
-<!-- CTA FINAL -->
-<section class="cta-section">
-  <div class="cta-box">
-    <h2>Pronto para crescer?</h2>
-    <p>Crie sua conta grátis agora, deposite via Pix e faça seu primeiro pedido em menos de 5 minutos.</p>
-    <div class="cta-box-actions">
-      <a href="{{ path('app_register') }}" class="btn btn-primary btn-lg">Criar conta grátis →</a>
-      <a href="{{ path('app_login') }}" class="btn btn-ghost btn-lg">Já tenho conta</a>
-    </div>
-  </div>
-</section>
+  </div>{# /bento #}
+</div>{# /hero -->
 
 <!-- FOOTER -->
 <footer>
-  <div class="footer-inner">
-    <div class="footer-copy">© {{ "now"|date("Y") }} AcheiSMM. Todos os direitos reservados.</div>
-    <div class="footer-links">
-      <a href="{{ path('app_terms') is defined ? path('app_terms') : '#' }}">Termos de uso</a>
+  <div class="foot">
+    <div class="foot-logo">
+      <div class="logo-mark" style="width:22px;height:22px;border-radius:6px">
+        <svg viewBox="0 0 16 16" fill="none" width="10" height="10"><circle cx="8" cy="8" r="3" fill="white"/><path d="M3 8 C3 5 5 3 8 3 C11 3 13 5 13 8 C13 11 11 13 8 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <span class="foot-txt">AcheiSMM</span>
+    </div>
+    <div class="foot-links">
+      <a href="{{ path('app_terms') is defined ? path('app_terms') : '#' }}">Termos</a>
       <a href="{{ path('app_privacy') is defined ? path('app_privacy') : '#' }}">Privacidade</a>
       <a href="{{ path('app_support') is defined ? path('app_support') : '#' }}">Suporte</a>
     </div>
+    <div class="foot-copy">© {{ "now"|date("Y") }} AcheiSMM — Todos os direitos reservados</div>
   </div>
 </footer>
 
 <script>
-function toggleFaq(btn) {
-  const item = btn.closest('.faq-item');
-  const isOpen = item.classList.contains('open');
-  document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
-  if (!isOpen) item.classList.add('open');
+function tFaq(btn){
+  const fi=btn.closest('.fi'),open=fi.classList.contains('open');
+  document.querySelectorAll('.fi.open').forEach(i=>i.classList.remove('open'));
+  if(!open)fi.classList.add('open');
 }
 
-// Scroll reveal leve
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.style.opacity = '1';
-      e.target.style.transform = 'translateY(0)';
-    }
+// Net pills filter (visual only)
+document.querySelectorAll('.net-pill').forEach(p=>{
+  p.addEventListener('click',()=>{
+    document.querySelectorAll('.net-pill').forEach(x=>x.classList.remove('active'));
+    p.classList.add('active');
   });
-}, { threshold: 0.1 });
-
-document.querySelectorAll('.network-card, .how-card, .pricing-card, .testimonial-card').forEach(el => {
-  el.style.opacity = '0';
-  el.style.transform = 'translateY(24px)';
-  el.style.transition = 'opacity .5s ease, transform .5s ease';
-  observer.observe(el);
 });
+
+// Scroll reveal
+const io=new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)'}
+}),{threshold:.08});
+document.querySelectorAll('.bc,.how-step,.price-col,.tcard').forEach(el=>{
+  el.style.opacity='0';el.style.transform='translateY(20px)';
+  el.style.transition='opacity .45s ease, transform .45s ease';
+  io.observe(el);
+});
+
+// Live orders rotation
+const orders=[
+  {net:'📸',svc:'1.000 Seguidores IG',ago:'há 5 seg',st:'st-ok',lbl:'Entregue'},
+  {net:'🎵',svc:'3.000 Views TikTok',ago:'há 18 seg',st:'st-run',lbl:'Em andamento'},
+  {net:'▶️',svc:'200 Inscritos YT',ago:'há 41 seg',st:'st-ok',lbl:'Entregue'},
+  {net:'📸',svc:'500 Curtidas IG',ago:'há 1 min',st:'st-run',lbl:'Em andamento'},
+  {net:'🐦',svc:'100 Seguidores X',ago:'há 2 min',st:'st-pend',lbl:'Processando'},
+  {net:'💼',svc:'300 Conexões LI',ago:'há 3 min',st:'st-ok',lbl:'Entregue'},
+  {net:'🎬',svc:'2.000 Views Kwai',ago:'há 4 min',st:'st-run',lbl:'Em andamento'},
+];
+let oi=0;
+setInterval(()=>{
+  const rows=document.querySelectorAll('.order-row');
+  if(!rows.length)return;
+  const o=orders[oi%orders.length];
+  const r=rows[0];
+  r.style.opacity='0';r.style.transform='translateY(-8px)';
+  r.style.transition='opacity .3s, transform .3s';
+  setTimeout(()=>{
+    r.querySelector('.order-net').textContent=o.net;
+    r.querySelector('.order-svc').textContent=o.svc;
+    r.querySelector('.order-qty').textContent=o.ago;
+    const s=r.querySelector('.order-status');
+    s.className='order-status '+o.st;
+    s.textContent=o.lbl;
+    r.style.opacity='1';r.style.transform='translateY(0)';
+  },300);
+  oi++;
+},2800);
 </script>
 </body>
 </html>
