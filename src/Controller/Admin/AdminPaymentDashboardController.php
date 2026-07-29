@@ -11,7 +11,6 @@ use App\Entity\WalletTransaction;
 use App\Enum\TransactionType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -61,35 +60,37 @@ class AdminPaymentDashboardController extends AbstractController
             ->setMaxResults(50)
             ->getQuery()->getResult();
 
-        // --- Gráfico: receita por mês (últimos 6 meses) ---------------------
-        $monthlyData = $repo->createQueryBuilder('p')
-            ->select(
-                'YEAR(p.paidAt) as yr',
-                'MONTH(p.paidAt) as mo',
-                'SUM(p.amountCents) as total'
-            )
-            ->where('p.status = :s')->setParameter('s', Payment::STATUS_APPROVED)
-            ->andWhere('p.paidAt >= :since')
-            ->setParameter('since', new \DateTime('-6 months'))
-            ->groupBy('yr, mo')
-            ->orderBy('yr', 'ASC')->addOrderBy('mo', 'ASC')
-            ->getQuery()->getArrayResult();
+        // --- Gráfico: receita por mês (últimos 6 meses) — SQL nativo --------
+        // DQL não suporta YEAR()/MONTH() nativamente; usamos SQL direto.
+        $since = (new \DateTime('-6 months'))->format('Y-m-d H:i:s');
+        $conn  = $this->em->getConnection();
 
-        $chartMonths = [];
+        $monthlyRows = $conn->fetchAllAssociative(
+            "SELECT DATE_FORMAT(paid_at, '%Y-%m') AS ym,
+                    SUM(amount_cents) AS total
+             FROM payment
+             WHERE status = :status
+               AND paid_at >= :since
+             GROUP BY ym
+             ORDER BY ym ASC",
+            ['status' => Payment::STATUS_APPROVED, 'since' => $since]
+        );
+
+        $chartMonths   = [];
         $chartApproved = [];
-        foreach ($monthlyData as $row) {
-            $chartMonths[]   = sprintf('%02d/%04d', $row['mo'], $row['yr']);
-            $chartApproved[] = round((int)$row['total'] / 100, 2);
+        foreach ($monthlyRows as $row) {
+            // ym = '2026-07'  → exibe '07/2026'
+            [$yr, $mo]     = explode('-', $row['ym']);
+            $chartMonths[] = sprintf('%s/%s', $mo, $yr);
+            $chartApproved[] = round((int) $row['total'] / 100, 2);
         }
 
-        // --- Gráfico: status pizza -------------------------------------------
+        // --- Gráfico: status pizza (DQL simples, sem funções de data) ------
         $statusData = $repo->createQueryBuilder('p')
             ->select('p.status, COUNT(p.id) as cnt, SUM(p.amountCents) as total')
             ->groupBy('p.status')
             ->getQuery()->getArrayResult();
 
-        $statusLabels = [];
-        $statusValues = [];
         $statusColors = [
             Payment::STATUS_APPROVED  => '#22c55e',
             Payment::STATUS_PENDING   => '#f59e0b',
@@ -97,7 +98,6 @@ class AdminPaymentDashboardController extends AbstractController
             Payment::STATUS_CANCELLED => '#6b7280',
             Payment::STATUS_REFUNDED  => '#8b5cf6',
         ];
-        $statusChartColors = [];
         $statusNames = [
             Payment::STATUS_APPROVED  => 'Aprovado',
             Payment::STATUS_PENDING   => 'Pendente',
@@ -105,13 +105,17 @@ class AdminPaymentDashboardController extends AbstractController
             Payment::STATUS_CANCELLED => 'Cancelado',
             Payment::STATUS_REFUNDED  => 'Estornado',
         ];
+
+        $statusLabels      = [];
+        $statusValues      = [];
+        $statusChartColors = [];
         foreach ($statusData as $row) {
             $statusLabels[]      = $statusNames[$row['status']] ?? $row['status'];
-            $statusValues[]      = round((int)$row['total'] / 100, 2);
+            $statusValues[]      = round((int) $row['total'] / 100, 2);
             $statusChartColors[] = $statusColors[$row['status']] ?? '#94a3b8';
         }
 
-        // --- Lista de usuários para form manual ----------------------------
+        // --- Lista de usuários para forms manuais --------------------------
         $users = $this->em->getRepository(User::class)
             ->createQueryBuilder('u')
             ->orderBy('u.name', 'ASC')
@@ -133,16 +137,16 @@ class AdminPaymentDashboardController extends AbstractController
     }
 
     // -----------------------------------------------------------------------
-    // Criar pagamento manual (admin insere depósito direto)
+    // Criar pagamento manual
     // -----------------------------------------------------------------------
     #[Route('/create-manual', name: 'create_manual', methods: ['POST'])]
     public function createManual(Request $request): Response
     {
-        $userId    = (int) $request->request->get('user_id');
-        $amountStr = str_replace(',', '.', (string) $request->request->get('amount', '0'));
-        $amount    = (float) $amountStr;
-        $method    = $request->request->get('method', Payment::METHOD_PIX);
-        $note      = $request->request->get('note', 'Depósito manual via admin');
+        $userId      = (int) $request->request->get('user_id');
+        $amountStr   = str_replace(',', '.', (string) $request->request->get('amount', '0'));
+        $amount      = (float) $amountStr;
+        $method      = $request->request->get('method', Payment::METHOD_PIX);
+        $note        = $request->request->get('note', 'Depósito manual via admin');
         $autoApprove = $request->request->getBoolean('auto_approve', false);
 
         if ($amount <= 0 || $userId <= 0) {
@@ -170,7 +174,6 @@ class AdminPaymentDashboardController extends AbstractController
         if ($autoApprove) {
             $payment->approve();
 
-            // Creditar na carteira
             $wallet = $user->getWallet();
             if (!$wallet) {
                 $wallet = (new Wallet())->setUser($user)->setBalanceCents(0);
@@ -202,7 +205,7 @@ class AdminPaymentDashboardController extends AbstractController
     }
 
     // -----------------------------------------------------------------------
-    // Estorno: debita saldo do usuário (solicitado via suporte)
+    // Estorno: debita saldo do usuário
     // -----------------------------------------------------------------------
     #[Route('/refund-wallet', name: 'refund_wallet', methods: ['POST'])]
     public function refundWallet(Request $request): Response
@@ -240,10 +243,8 @@ class AdminPaymentDashboardController extends AbstractController
             return $this->redirectToRoute('admin_payments_dashboard_index');
         }
 
-        // Debitar da carteira
         $wallet->debit($amountCents);
 
-        // Registrar transação de REFUND
         $tx = (new WalletTransaction())
             ->setWallet($wallet)
             ->setType(TransactionType::REFUND)
