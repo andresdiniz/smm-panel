@@ -5,10 +5,7 @@
 {% block head_stylesheets %}
   {{ parent() }}
   <style>
-  /* ─ remove inner padding/max-width from every EasyAdmin content wrapper ─ */
-  .content-top,
-  .content-top .row { padding-left: 0 !important; padding-right: 0 !important; }
-
+  /* force full-width content area */
   .content-panel,
   .content-panel > .container,
   .content-panel > .container-fluid,
@@ -16,39 +13,34 @@
   .content-panel > .container-xl,
   .content-panel > .container-lg { max-width: 100% !important; padding-left: 16px !important; padding-right: 16px !important; }
 
-  /* hide EasyAdmin's own page title block (we render our own) */
   .content-header-wrapper { display: none !important; }
 
-  /* ─ table layout ─ */
+  /* table */
   .ord-tbl-wrap { overflow-x: auto; }
   .ord-tbl { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .ord-tbl col.c-id    { width: 58px; }
-  .ord-tbl col.c-user  { width: 20%; }
-  .ord-tbl col.c-svc   { width: auto; }
-  .ord-tbl col.c-st    { width: 118px; }
-  .ord-tbl col.c-val   { width: 88px; }
-  .ord-tbl col.c-qty   { width: 54px; }
-  .ord-tbl col.c-ext   { width: 100px; }
-  .ord-tbl col.c-date  { width: 100px; }
-  .ord-tbl col.c-acts  { width: 145px; }
+  .ord-tbl col.c-id   { width: 58px; }
+  .ord-tbl col.c-user { width: 20%; }
+  .ord-tbl col.c-svc  { width: auto; }
+  .ord-tbl col.c-st   { width: 118px; }
+  .ord-tbl col.c-val  { width: 88px; }
+  .ord-tbl col.c-qty  { width: 54px; }
+  .ord-tbl col.c-ext  { width: 100px; }
+  .ord-tbl col.c-date { width: 100px; }
+  .ord-tbl col.c-acts { width: 145px; }
 
   .ord-tbl thead th {
     font-size: 10px; font-weight: 700; text-transform: uppercase;
     letter-spacing: .07em; padding: 8px 10px;
-    border-bottom: 2px solid rgba(255,255,255,.08);
-    white-space: nowrap;
+    border-bottom: 2px solid rgba(255,255,255,.08); white-space: nowrap;
   }
   .ord-tbl tbody td {
-    padding: 10px 10px; border-bottom: 1px solid rgba(255,255,255,.04);
+    padding: 10px; border-bottom: 1px solid rgba(255,255,255,.04);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     vertical-align: middle; font-size: .8125rem;
   }
   .ord-tbl tbody tr:last-child td { border-bottom: none; }
   .ord-tbl tbody tr:hover { background: rgba(255,255,255,.03); }
-
   .tc-val, .tc-qty { text-align: right; }
-
-  /* user cell */
   .u-name  { font-weight: 600; display: block; }
   .u-email { font-size: .6875rem; opacity: .5; }
 
@@ -60,35 +52,31 @@
     letter-spacing: .04em; white-space: nowrap; line-height: 1.6;
   }
   .st::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
-  .st-completed   { background:rgba(77,143,37,.15);  color:#5aaa2a; }
-  .st-processing,
-  .st-in_progress { background:rgba(30,114,160,.15); color:#3a8fc4; }
-  .st-cancelled   { background:rgba(176,48,48,.14);  color:#cc4444; }
-  .st-pending     { background:rgba(201,138,0,.14);  color:#b07a00; }
-  .st-partial     { background:rgba(220,120,64,.14); color:#c06020; }
-  .st-refunded    { background:rgba(120,120,140,.12);color:#7070a0; }
+  .st-completed              { background:rgba(77,143,37,.15);  color:#5aaa2a; }
+  .st-processing,.st-in_progress { background:rgba(30,114,160,.15); color:#3a8fc4; }
+  .st-cancelled              { background:rgba(176,48,48,.14);  color:#cc4444; }
+  .st-pending                { background:rgba(201,138,0,.14);  color:#b07a00; }
+  .st-partial                { background:rgba(220,120,64,.14); color:#c06020; }
+  .st-refunded               { background:rgba(120,120,140,.12);color:#7070a0; }
 
-  /* ext id */
   .ext-id { font-family: monospace; font-size: .7rem; opacity: .55; }
-
-  /* actions */
   .row-acts { display:flex; gap:4px; }
   .row-acts .btn { padding: 3px 8px; font-size: .6875rem; }
 
-  /* chips in header */
+  /* header chips */
   .pg-chip {
     display:inline-flex; align-items:center; gap:4px;
     padding:2px 8px; border-radius:999px;
     font-size:10px; font-weight:700; text-transform:uppercase;
     letter-spacing:.04em; border:1px solid;
   }
-  .pg-chip.tot   { border-color:rgba(255,255,255,.15); color:rgba(255,255,255,.4); }
-  .pg-chip.can   { border-color:rgba(176,48,48,.4);    color:#cc4444; background:rgba(176,48,48,.08); }
-  .pg-chip.comp  { border-color:rgba(77,143,37,.4);    color:#5aaa2a; background:rgba(77,143,37,.08); }
-  .pg-chip.proc  { border-color:rgba(30,114,160,.4);   color:#3a8fc4; background:rgba(30,114,160,.08); }
-  .pg-chip.pend  { border-color:rgba(201,138,0,.4);    color:#b07a00; background:rgba(201,138,0,.08); }
-  .pg-chip.part  { border-color:rgba(220,120,64,.4);   color:#c06020; background:rgba(220,120,64,.08); }
-  .pg-chip.refu  { border-color:rgba(120,120,140,.3);  color:#7070a0; background:rgba(120,120,140,.06); }
+  .pg-chip.tot  { border-color:rgba(255,255,255,.15); color:rgba(255,255,255,.4); }
+  .pg-chip.can  { border-color:rgba(176,48,48,.4);    color:#cc4444; background:rgba(176,48,48,.08); }
+  .pg-chip.comp { border-color:rgba(77,143,37,.4);    color:#5aaa2a; background:rgba(77,143,37,.08); }
+  .pg-chip.proc { border-color:rgba(30,114,160,.4);   color:#3a8fc4; background:rgba(30,114,160,.08); }
+  .pg-chip.pend { border-color:rgba(201,138,0,.4);    color:#b07a00; background:rgba(201,138,0,.08); }
+  .pg-chip.part { border-color:rgba(220,120,64,.4);   color:#c06020; background:rgba(220,120,64,.08); }
+  .pg-chip.refu { border-color:rgba(120,120,140,.3);  color:#7070a0; background:rgba(120,120,140,.06); }
   </style>
 {% endblock %}
 
@@ -103,19 +91,14 @@
   'refunded':    ['st-refunded',   'Reembolsado'],
 } %}
 {% set chipMap = {
-  'completed':   'comp',
-  'processing':  'proc',
-  'in_progress': 'proc',
-  'pending':     'pend',
-  'cancelled':   'can',
-  'partial':     'part',
-  'refunded':    'refu',
+  'completed':'comp','processing':'proc','in_progress':'proc',
+  'pending':'pend','cancelled':'can','partial':'part','refunded':'refu'
 } %}
 {% set statusLabels = {
   'completed':'Concluídos','processing':'Processando','in_progress':'Em andamento',
   'pending':'Pendentes','cancelled':'Cancelados','partial':'Parciais','refunded':'Reembolsados'
 } %}
-{% set totalCount = paginator.numResults %}
+{% set totalCount  = paginator.numResults %}
 {% set searchQuery = app.request.query.get('query', '') %}
 {% set counted = {} %}
 {% for entityDto in entities %}
@@ -123,7 +106,7 @@
   {% set counted = counted|merge({(o.status): (counted[o.status] ?? 0) + 1}) %}
 {% endfor %}
 
-{# ─ header row ─ #}
+{# header #}
 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
   <div class="d-flex align-items-center gap-2 flex-wrap">
     <h4 class="mb-0 me-1">Pedidos</h4>
@@ -150,7 +133,7 @@
   </form>
 </div>
 
-{# ─ table ─ #}
+{# table #}
 <div class="ord-tbl-wrap">
   <table class="ord-tbl">
     <colgroup>
@@ -190,9 +173,19 @@
         </td>
         <td>
           <div class="row-acts">
-            <a class="btn btn-sm btn-outline-info" href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('show').setEntityId(order.id).generateUrl() }}">Show</a>
-            <a class="btn btn-sm btn-outline-warning" href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('edit').setEntityId(order.id).generateUrl() }}">Edit</a>
-            <a class="btn btn-sm btn-outline-danger" href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('delete').setEntityId(order.id).generateUrl() }}" onclick="return confirm('Excluir #{{ order.id }}?')">Del</a>
+            <a class="btn btn-sm btn-outline-info"
+               href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('detail').setEntityId(order.id).generateUrl() }}">
+              Show
+            </a>
+            <a class="btn btn-sm btn-outline-warning"
+               href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('edit').setEntityId(order.id).generateUrl() }}">
+              Edit
+            </a>
+            <a class="btn btn-sm btn-outline-danger"
+               href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('delete').setEntityId(order.id).generateUrl() }}"
+               onclick="return confirm('Excluir pedido #{{ order.id }}?')">
+              Del
+            </a>
           </div>
         </td>
       </tr>
