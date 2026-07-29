@@ -1,0 +1,262 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}Dashboard de Pagamentos{% endblock %}
+
+{% block main %}
+<style>
+.pd-kpi { border-radius: 12px; padding: 20px 24px; color: #fff; }
+.pd-kpi small { font-size: .75rem; opacity: .85; display:block; margin-bottom:4px; }
+.pd-kpi .value { font-size: 1.75rem; font-weight: 700; }
+.pd-section { background:#1a1a2e; border:1px solid #2a2a3e; border-radius:12px; padding:24px; margin-bottom:24px; }
+.pd-section h5 { color:#e2e8f0; margin-bottom:16px; font-size:1rem; font-weight:600; }
+.pd-table { width:100%; border-collapse:collapse; font-size:.875rem; }
+.pd-table th { background:#0f0f1a; color:#94a3b8; font-weight:600; padding:10px 12px; text-align:left; border-bottom:1px solid #2a2a3e; }
+.pd-table td { padding:10px 12px; border-bottom:1px solid #1e1e30; color:#e2e8f0; vertical-align:middle; }
+.pd-table tr:last-child td { border-bottom:none; }
+.badge-pending  { background:#f59e0b22; color:#f59e0b; border:1px solid #f59e0b44; padding:3px 10px; border-radius:20px; font-size:.75rem; }
+.badge-approved { background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; padding:3px 10px; border-radius:20px; font-size:.75rem; }
+.badge-failed   { background:#ef444422; color:#ef4444; border:1px solid #ef444444; padding:3px 10px; border-radius:20px; font-size:.75rem; }
+.badge-refunded { background:#8b5cf622; color:#8b5cf6; border:1px solid #8b5cf644; padding:3px 10px; border-radius:20px; font-size:.75rem; }
+.btn-approve { background:#22c55e; color:#fff; border:none; padding:5px 14px; border-radius:6px; font-size:.8rem; cursor:pointer; }
+.btn-cancel  { background:#ef4444; color:#fff; border:none; padding:5px 14px; border-radius:6px; font-size:.8rem; cursor:pointer; }
+.pd-form label { color:#94a3b8; font-size:.8rem; font-weight:600; display:block; margin-bottom:4px; }
+.pd-form select, .pd-form input[type=text], .pd-form input[type=number], .pd-form textarea { background:#0f0f1a; border:1px solid #2a2a3e; color:#e2e8f0; padding:8px 12px; border-radius:8px; width:100%; font-size:.875rem; }
+.pd-form select:focus, .pd-form input:focus, .pd-form textarea:focus { outline:none; border-color:#4f46e5; }
+.pd-form textarea { resize:vertical; height:70px; }
+.pd-tabs { display:flex; gap:8px; margin-bottom:20px; }
+.pd-tab { padding:8px 20px; border-radius:8px; border:1px solid #2a2a3e; background:#0f0f1a; color:#94a3b8; cursor:pointer; font-size:.875rem; transition:.2s; }
+.pd-tab.active { background:#4f46e5; border-color:#4f46e5; color:#fff; }
+.pd-tab-content { display:none; }
+.pd-tab-content.active { display:block; }
+.charts-row { display:grid; grid-template-columns:2fr 1fr; gap:24px; }
+@media(max-width:768px){ .charts-row { grid-template-columns:1fr; } }
+.kpi-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:24px; }
+</style>
+
+{# --- Flash messages -------------------------------------------------------- #}
+{% for type, messages in app.flashes %}
+  {% for msg in messages %}
+    <div class="alert alert-{{ type == 'success' ? 'success' : (type == 'danger' ? 'danger' : 'warning') }} alert-dismissible" role="alert" style="border-radius:10px;">
+      {{ msg }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endfor %}
+
+{# --- KPIs ------------------------------------------------------------------ #}
+<div class="kpi-row">
+  <div class="pd-kpi" style="background:linear-gradient(135deg,#22c55e,#16a34a)">
+    <small>💰 Total Recebido</small>
+    <div class="value">R$ {{ (totalApproved / 100)|number_format(2, ',', '.') }}</div>
+  </div>
+  <div class="pd-kpi" style="background:linear-gradient(135deg,#f59e0b,#d97706)">
+    <small>⏳ Pendente ({{ countPending }} pagto.)</small>
+    <div class="value">R$ {{ (totalPending / 100)|number_format(2, ',', '.') }}</div>
+  </div>
+  <div class="pd-kpi" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed)">
+    <small>↩️ Total Estornado</small>
+    <div class="value">R$ {{ (totalRefunded / 100)|number_format(2, ',', '.') }}</div>
+  </div>
+</div>
+
+{# --- Gráficos -------------------------------------------------------------- #}
+<div class="charts-row">
+  <div class="pd-section">
+    <h5>📈 Receita Aprovada — Últimos 6 Meses</h5>
+    <canvas id="chartMonthly" height="120"></canvas>
+  </div>
+  <div class="pd-section">
+    <h5>🍩 Distribuição por Status (R$)</h5>
+    <canvas id="chartStatus" height="200"></canvas>
+  </div>
+</div>
+
+{# --- Tabs de ação ---------------------------------------------------------- #}
+<div class="pd-section">
+  <div class="pd-tabs">
+    <button class="pd-tab active" onclick="showTab('tab-pending')">⏳ Pendentes ({{ countPending }})</button>
+    <button class="pd-tab" onclick="showTab('tab-manual')">➕ Inserir Pagamento Manual</button>
+    <button class="pd-tab" onclick="showTab('tab-refund')">↩️ Aplicar Estorno</button>
+  </div>
+
+  {# Tab 1: Pagamentos pendentes #}
+  <div id="tab-pending" class="pd-tab-content active">
+    {% if pendingPayments is empty %}
+      <p style="color:#64748b;text-align:center;padding:32px 0">✅ Nenhum pagamento pendente no momento.</p>
+    {% else %}
+      <div style="overflow-x:auto">
+        <table class="pd-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Usuário</th>
+              <th>Valor</th>
+              <th>Método</th>
+              <th>ID Externo</th>
+              <th>Taxa</th>
+              <th>Criado em</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in pendingPayments %}
+            <tr>
+              <td><strong>#{{ p.id }}</strong></td>
+              <td>
+                {{ p.user.name }}<br>
+                <small style="color:#64748b">{{ p.user.email }}</small>
+              </td>
+              <td style="font-weight:700;color:#22c55e">R$ {{ (p.amountCents / 100)|number_format(2, ',', '.') }}</td>
+              <td>{{ p.method }}</td>
+              <td style="font-size:.75rem;color:#64748b">{{ p.externalId ?? '—' }}</td>
+              <td>{{ p.feeCents > 0 ? 'R$ ' ~ (p.feeCents / 100)|number_format(2, ',', '.') : '—' }}</td>
+              <td>{{ p.createdAt|date('d/m/Y H:i') }}</td>
+              <td style="white-space:nowrap">
+                <a href="{{ path('admin_payment_approve', {id: p.id}) }}"
+                   onclick="return confirm('Aprovar pagamento #{{ p.id }} e creditar R$ {{ (p.amountCents / 100)|number_format(2, ',', '.') }} para {{ p.user.name }}?')"
+                   class="btn-approve">✔ Aprovar</a>
+                &nbsp;
+                <a href="{{ path('admin_payment_cancel', {id: p.id}) }}"
+                   onclick="return confirm('Cancelar pagamento #{{ p.id }}?')"
+                   class="btn-cancel">✖ Cancelar</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+
+  {# Tab 2: Inserir pagamento manual #}
+  <div id="tab-manual" class="pd-tab-content">
+    <form method="POST" action="{{ path('admin_payments_dashboard_create_manual') }}" class="pd-form">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+        <div>
+          <label>Usuário *</label>
+          <select name="user_id" required>
+            <option value="">— Selecione —</option>
+            {% for u in users %}
+              <option value="{{ u.id }}">{{ u.name }} ({{ u.email }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Valor (R$) *</label>
+          <input type="number" name="amount" step="0.01" min="0.01" placeholder="Ex: 50.00" required>
+        </div>
+        <div>
+          <label>Método</label>
+          <select name="method">
+            <option value="pix">Pix</option>
+            <option value="credit_card">Cartão de Crédito</option>
+            <option value="debit_card">Cartão de Débito</option>
+          </select>
+        </div>
+        <div>
+          <label>Observação / Comprovante</label>
+          <input type="text" name="note" placeholder="Ex: comprovante Pix enviado pelo cliente">
+        </div>
+      </div>
+      <div style="margin-top:14px;display:flex;align-items:center;gap:12px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
+          <input type="checkbox" name="auto_approve" value="1" style="width:auto">
+          <span style="color:#e2e8f0;font-size:.875rem">Aprovar imediatamente e creditar saldo</span>
+        </label>
+      </div>
+      <div style="margin-top:18px">
+        <button type="submit" style="background:#4f46e5;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:.875rem;cursor:pointer;font-weight:600">
+          ➕ Criar Pagamento Manual
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {# Tab 3: Estorno #}
+  <div id="tab-refund" class="pd-tab-content">
+    <p style="color:#f59e0b;font-size:.875rem;margin-bottom:16px">⚠️ O estorno débita diretamente o saldo da carteira do usuário. Use apenas quando solicitado via suporte.</p>
+    <form method="POST" action="{{ path('admin_payments_dashboard_refund_wallet') }}" class="pd-form">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+        <div>
+          <label>Usuário *</label>
+          <select name="user_id" required>
+            <option value="">— Selecione —</option>
+            {% for u in users %}
+              <option value="{{ u.id }}">{{ u.name }} ({{ u.email }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Valor a estornar (R$) *</label>
+          <input type="number" name="amount" step="0.01" min="0.01" placeholder="Ex: 25.00" required>
+        </div>
+        <div>
+          <label>Motivo / Ticket de suporte</label>
+          <input type="text" name="reason" placeholder="Ex: Ticket #123 — cliente solicitou reembolso">
+        </div>
+      </div>
+      <div style="margin-top:18px">
+        <button type="submit"
+          onclick="return confirm('Confirma o estorno? O valor será debitado do saldo do usuário.')"
+          style="background:#ef4444;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:.875rem;cursor:pointer;font-weight:600">
+          ↩️ Aplicar Estorno
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# --- Chart.js -------------------------------------------------------------- #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+const months   = {{ chartMonths|raw }};
+const approved = {{ chartApproved|raw }};
+const sLabels  = {{ statusLabels|raw }};
+const sValues  = {{ statusValues|raw }};
+const sColors  = {{ statusChartColors|raw }};
+
+new Chart(document.getElementById('chartMonthly'), {
+  type: 'bar',
+  data: {
+    labels: months,
+    datasets: [{
+      label: 'Receita Aprovada (R$)',
+      data: approved,
+      backgroundColor: 'rgba(79,70,229,0.7)',
+      borderColor: '#4f46e5',
+      borderWidth: 2,
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: '#94a3b8' } } },
+    scales: {
+      x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e1e30' } },
+      y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e1e30' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('chartStatus'), {
+  type: 'doughnut',
+  data: {
+    labels: sLabels,
+    datasets: [{ data: sValues, backgroundColor: sColors, borderWidth: 2, borderColor: '#1a1a2e' }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 12 } } }
+    }
+  }
+});
+
+function showTab(id) {
+  document.querySelectorAll('.pd-tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.pd-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+{% endblock %}
