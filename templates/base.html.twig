@@ -279,7 +279,8 @@
       {% if is_granted('ROLE_ADMIN') %}
       <p class="sidebar__section">Admin</p>
 
-      <a href="{{ path('admin') }}" class="sidebar__link sidebar__link--admin">
+      <a href="{{ path('admin_dashboard') }}" class="sidebar__link sidebar__link--admin"
+         title="Painel administrativo">
         <i data-lucide="shield" width="16" height="16" aria-hidden="true"></i>
         <span class="sidebar__link-label">Painel</span>
       </a>
