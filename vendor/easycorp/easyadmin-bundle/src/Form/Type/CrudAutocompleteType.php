@@ -1,0 +1,85 @@
+<?php
+
+namespace EasyCorp\Bundle\EasyAdminBundle\Form\Type;
+
+use EasyCorp\Bundle\EasyAdminBundle\Form\EventListener\CrudAutocompleteSubscriber;
+use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\DataMapperInterface;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Form\FormView;
+use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\PropertyAccess\PropertyPath;
+use Twig\Environment;
+
+/**
+ * @author Yonel Ceruto <yonelceruto@gmail.com>
+ */
+class CrudAutocompleteType extends AbstractType implements DataMapperInterface
+{
+    public function __construct(
+        private readonly Environment $twig,
+    ) {
+    }
+
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        $builder
+            ->addEventSubscriber(new CrudAutocompleteSubscriber($this->twig))
+            ->setDataMapper($this);
+    }
+
+    public function finishView(FormView $view, FormInterface $form, array $options): void
+    {
+        // Add a custom block prefix to inner field to ease theming:
+        array_splice($view['autocomplete']->vars['block_prefixes'], -1, 0, 'ea_autocomplete_inner');
+
+        // allowClear option needs a placeholder value (it can be empty)
+        if (($view->vars['attr']['data-allow-clear'] ?? false) && (!isset($view->vars['attr']['data-placeholder']))) {
+            $view->vars['attr']['data-placeholder'] = '';
+        }
+    }
+
+    public function configureOptions(OptionsResolver $resolver): void
+    {
+        $resolver->setDefaults([
+            'multiple' => false,
+            // force display errors on this form field
+            'error_bubbling' => false,
+            // options for custom rendering of selected items (to match the rendering of the other entries in the dropdown)
+            'autocomplete_callback' => null,
+            'autocomplete_template' => null,
+            // forwarded to the underlying EntityType so users can customize the
+            // label of the selected items via setFormTypeOption('value_type_options', ...)
+            'choice_label' => null,
+        ]);
+
+        $resolver->setRequired(['class']);
+        $resolver->setAllowedTypes('autocomplete_callback', ['null', 'callable']);
+        $resolver->setAllowedTypes('autocomplete_template', ['null', 'string']);
+        // mirror Symfony's ChoiceType allowed types for choice_label so anything accepted by
+        // EntityType is also accepted here (we only skip ChoiceLabel::class, which is marked as internal)
+        $resolver->setAllowedTypes('choice_label', ['null', 'bool', 'callable', 'string', PropertyPath::class]);
+    }
+
+    public function getBlockPrefix(): string
+    {
+        return 'ea_autocomplete';
+    }
+
+    public function mapDataToForms($data, $forms): void
+    {
+        $form = current(iterator_to_array($forms, false));
+        if (false !== $form) {
+            $form->setData($data);
+        }
+    }
+
+    public function mapFormsToData($forms, &$data): void
+    {
+        $form = current(iterator_to_array($forms, false));
+        if (false !== $form) {
+            $data = $form->getData();
+        }
+    }
+}

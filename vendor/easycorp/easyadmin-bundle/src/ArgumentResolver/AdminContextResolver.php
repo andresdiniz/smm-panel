@@ -1,0 +1,48 @@
+<?php
+
+namespace EasyCorp\Bundle\EasyAdminBundle\ArgumentResolver;
+
+use EasyCorp\Bundle\EasyAdminBundle\Contracts\Context\AdminContextInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Contracts\Provider\AdminContextProviderInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Controller\ArgumentValueResolverInterface;
+use Symfony\Component\HttpKernel\Controller\ValueResolverInterface;
+use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
+
+/*
+ * @author Javier Eguiluz <javier.eguiluz@gmail.com>
+ */
+if (interface_exists(ValueResolverInterface::class)) {
+    final class AdminContextResolver implements ValueResolverInterface
+    {
+        public function __construct(private readonly AdminContextProviderInterface $adminContextProvider)
+        {
+        }
+
+        public function resolve(Request $request, ArgumentMetadata $argument): iterable
+        {
+            if (!is_a($argument->getType(), AdminContextInterface::class, true)) {
+                return [];
+            }
+
+            yield $this->adminContextProvider->getContext();
+        }
+    }
+} else {
+    final class AdminContextResolver implements ArgumentValueResolverInterface
+    {
+        public function __construct(private readonly AdminContextProviderInterface $adminContextProvider)
+        {
+        }
+
+        public function supports(Request $request, ArgumentMetadata $argument): bool
+        {
+            return is_a($argument->getType(), AdminContextInterface::class, true);
+        }
+
+        public function resolve(Request $request, ArgumentMetadata $argument): iterable
+        {
+            yield $this->adminContextProvider->getContext();
+        }
+    }
+}
