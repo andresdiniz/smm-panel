@@ -158,4 +158,25 @@ class OrderRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    /**
+     * Retorna a contagem de pedidos agrupada por status.
+     *
+     * @return array<string, int>  ex: ['pending' => 5, 'completed' => 12, ...]
+     */
+    public function countAllByStatus(): array
+    {
+        $rows = $this->createQueryBuilder('o')
+            ->select('o.status, COUNT(o.id) AS cnt')
+            ->groupBy('o.status')
+            ->getQuery()
+            ->getArrayResult();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $result[$row['status']] = (int) $row['cnt'];
+        }
+
+        return $result;
+    }
 }
