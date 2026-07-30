@@ -1,0 +1,108 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block page_title %}Novo Usuário{% endblock %}
+
+{% block admin_content %}
+<style>
+  .uf-wrap { padding: 24px; max-width: 680px; }
+  .uf-topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .uf-back {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: .78rem; color: #6b708a; text-decoration: none;
+    padding: 5px 10px; border: 1px solid rgba(255,255,255,.07);
+    border-radius: 5px; transition: background .12s;
+  }
+  .uf-back:hover { background: rgba(255,255,255,.04); color: #dde1f0; }
+  .uf-title { font-size: 1.05rem; font-weight: 900; color: #f0f3ff; margin: 0; }
+  .uf-card {
+    background: #0b0e14; border: 1px solid rgba(255,255,255,.06);
+    border-radius: 8px; padding: 24px;
+  }
+  .uf-field { margin-bottom: 18px; }
+  .uf-label {
+    display: block; font-size: .72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .08em;
+    color: #3e4259; margin-bottom: 6px;
+  }
+  .uf-input {
+    width: 100%; background: #070910; border: 1px solid rgba(255,255,255,.08);
+    border-radius: 6px; color: #dde1f0; font-size: .85rem;
+    padding: 8px 12px; outline: none; transition: border-color .15s;
+  }
+  .uf-input:focus { border-color: rgba(78,204,211,.4); }
+  .uf-hint { font-size: .72rem; color: #3e4259; margin-top: 4px; }
+  .uf-roles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .uf-role-label {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: .8rem; color: #9196b0; cursor: pointer;
+    padding: 5px 10px; border: 1px solid rgba(255,255,255,.07);
+    border-radius: 5px; transition: background .12s;
+  }
+  .uf-role-label:has(input:checked) { background: rgba(78,204,211,.1); color: #4eccd3; border-color: rgba(78,204,211,.3); }
+  .uf-actions { display: flex; gap: 8px; margin-top: 24px; }
+  .btn {
+    padding: 8px 18px; border-radius: 5px; font-size: .82rem; font-weight: 700;
+    border: 1px solid; display: inline-flex; align-items: center; gap: 5px;
+    text-decoration: none; cursor: pointer; transition: background .15s;
+  }
+  .btn-primary { background: rgba(78,204,211,.12); color: #4eccd3; border-color: rgba(78,204,211,.3); }
+  .btn-primary:hover { background: rgba(78,204,211,.25); }
+  .btn-ghost { background: transparent; color: #6b708a; border-color: rgba(255,255,255,.08); }
+  .btn-ghost:hover { background: rgba(255,255,255,.04); color: #dde1f0; }
+</style>
+
+<div class="uf-wrap">
+  <div class="uf-topbar">
+    <a href="{{ path('admin_user_index') }}" class="uf-back">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Usuários
+    </a>
+    <h1 class="uf-title">Novo Usuário</h1>
+  </div>
+
+  <div class="uf-card">
+    <form method="post">
+      <div class="uf-field">
+        <label class="uf-label" for="name">Nome</label>
+        <input class="uf-input" type="text" id="name" name="name"
+               placeholder="Nome completo" required>
+      </div>
+
+      <div class="uf-field">
+        <label class="uf-label" for="email">E-mail</label>
+        <input class="uf-input" type="email" id="email" name="email"
+               placeholder="usuario@exemplo.com" required>
+      </div>
+
+      <div class="uf-field">
+        <label class="uf-label" for="password">Senha</label>
+        <input class="uf-input" type="password" id="password" name="password"
+               placeholder="Mínimo 8 caracteres" required minlength="8">
+        <p class="uf-hint">A senha será armazenada de forma segura (hash bcrypt).</p>
+      </div>
+
+      <div class="uf-field">
+        <label class="uf-label">Funções</label>
+        <div class="uf-roles">
+          {% set allRoles = ['ROLE_ADMIN', 'ROLE_SUPPORT', 'ROLE_RESELLER'] %}
+          {% for role in allRoles %}
+            <label class="uf-role-label">
+              <input type="checkbox" name="roles[]" value="{{ role }}"
+                     style="accent-color:#4eccd3;">
+              {{ role|replace({'ROLE_': ''}) }}
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="uf-actions">
+        <button type="submit" class="btn btn-primary">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Criar usuário
+        </button>
+        <a href="{{ path('admin_user_index') }}" class="btn btn-ghost">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
