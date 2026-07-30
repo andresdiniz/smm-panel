@@ -1,0 +1,194 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block page_title %}Editar Serviço #{{ service.id }}{% endblock %}
+
+{% block admin_content %}
+<style>
+  .svedit-wrap { padding: 24px; max-width: 720px; }
+  .svedit-topbar {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+  }
+  .svedit-back {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 6px; text-decoration: none;
+    background: rgba(255,255,255,.04); color: #6b708a;
+    border: 1px solid rgba(255,255,255,.08); transition: background .15s;
+  }
+  .svedit-back:hover { background: rgba(255,255,255,.08); color: #dde1f0; }
+  .svedit-title { font-size: 1.05rem; font-weight: 900; color: #f0f3ff; margin: 0; }
+  .svedit-card {
+    background: #0b0e14; border: 1px solid rgba(255,255,255,.06);
+    border-radius: 8px; padding: 24px;
+  }
+  .svedit-badge {
+    display: inline-flex; padding: 2px 8px; border-radius: 999px;
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; margin-left: 8px; vertical-align: middle;
+    background: rgba(78,204,211,.08); color: #4eccd3;
+  }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label {
+    font-size: .72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: #3e4259;
+  }
+  .form-control {
+    background: #0d1018; border: 1px solid rgba(255,255,255,.08);
+    border-radius: 6px; color: #dde1f0; font-size: .82rem;
+    padding: 8px 12px; outline: none; width: 100%;
+    transition: border-color .15s;
+  }
+  .form-control:focus { border-color: rgba(78,204,211,.4); }
+  .form-control:disabled {
+    color: #3e4259; background: #0b0d12; cursor: not-allowed;
+  }
+  textarea.form-control { resize: vertical; min-height: 80px; }
+  .form-hint { font-size: .7rem; color: #3e4259; margin-top: 2px; }
+  .toggle-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0;
+  }
+  .toggle-label { font-size: .82rem; color: #9196b0; cursor: pointer; user-select: none; }
+  /* toggle switch */
+  .toggle-switch { position: relative; display: inline-block; width: 36px; height: 20px; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0; border-radius: 999px;
+    background: rgba(255,255,255,.1); cursor: pointer;
+    transition: background .2s;
+  }
+  .toggle-slider:before {
+    content: ''; position: absolute;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #9196b0; left: 3px; top: 3px;
+    transition: transform .2s, background .2s;
+  }
+  .toggle-switch input:checked + .toggle-slider { background: rgba(90,170,42,.3); }
+  .toggle-switch input:checked + .toggle-slider:before { transform: translateX(16px); background: #5aaa2a; }
+  .divider { border: none; border-top: 1px solid rgba(255,255,255,.05); margin: 20px 0; }
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 24px;
+    background: rgba(255,255,255,.02); border-radius: 6px;
+    padding: 12px 14px; margin-top: 4px;
+  }
+  .meta-item { display: flex; flex-direction: column; gap: 3px; }
+  .meta-key { font-size: .65rem; text-transform: uppercase; letter-spacing: .08em; color: #3e4259; font-weight: 700; }
+  .meta-val { font-size: .78rem; color: #9196b0; font-family: monospace; }
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+  .btn-save {
+    padding: 8px 20px; border-radius: 6px; font-size: .82rem; font-weight: 700;
+    background: rgba(78,204,211,.15); color: #4eccd3;
+    border: 1px solid rgba(78,204,211,.3); cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-save:hover { background: rgba(78,204,211,.28); }
+  .btn-cancel {
+    padding: 8px 16px; border-radius: 6px; font-size: .82rem; font-weight: 700;
+    background: transparent; color: #6b708a;
+    border: 1px solid rgba(255,255,255,.08); text-decoration: none;
+    display: inline-flex; align-items: center; transition: background .15s;
+  }
+  .btn-cancel:hover { background: rgba(255,255,255,.04); color: #dde1f0; }
+  @media(max-width:600px){ .form-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="svedit-wrap">
+  <div class="svedit-topbar">
+    <a href="{{ path('admin_service_index') }}" class="svedit-back" title="Voltar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </a>
+    <h1 class="svedit-title">
+      Editar Serviço
+      <span class="svedit-badge">#{{ service.id }}</span>
+    </h1>
+  </div>
+
+  <div class="svedit-card">
+    <form method="post" action="{{ path('admin_service_edit', {id: service.id}) }}">
+
+      <div class="form-grid">
+
+        <div class="form-group full">
+          <label class="form-label" for="f-name">Nome do Serviço</label>
+          <input class="form-control" type="text" id="f-name" name="name"
+                 value="{{ service.name }}" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="f-category">Categoria</label>
+          <input class="form-control" type="text" id="f-category" name="category"
+                 value="{{ service.category ?? '' }}" placeholder="Ex: Instagram, YouTube…">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="f-price">Preço por 1.000 (centavos)</label>
+          <input class="form-control" type="number" id="f-price" name="pricePerThousandCents"
+                 value="{{ service.pricePerThousandCents }}" min="0" required>
+          <span class="form-hint">
+            = R$&nbsp;{{ (service.pricePerThousandCents / 100)|number_format(2, ',', '.') }} por 1.000
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="f-min">Quantidade mínima</label>
+          <input class="form-control" type="number" id="f-min" name="minQty"
+                 value="{{ service.minQty }}" min="1" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="f-max">Quantidade máxima</label>
+          <input class="form-control" type="number" id="f-max" name="maxQty"
+                 value="{{ service.maxQty }}" min="1" required>
+        </div>
+
+        <div class="form-group full">
+          <label class="form-label" for="f-desc">Descrição</label>
+          <textarea class="form-control" id="f-desc" name="description"
+                    placeholder="Descrição opcional do serviço…">{{ service.description ?? '' }}</textarea>
+        </div>
+
+        <div class="form-group full">
+          <div class="toggle-row">
+            <label class="toggle-switch">
+              <input type="checkbox" name="active" value="1"
+                     {{ service.active ? 'checked' : '' }}>
+              <span class="toggle-slider"></span>
+            </label>
+            <label class="toggle-label">Serviço ativo (visível para clientes)</label>
+          </div>
+        </div>
+
+      </div>{# /form-grid #}
+
+      <hr class="divider">
+
+      {# Campos somente-leitura do provider #}
+      <p class="form-label" style="margin-bottom:8px;">Dados do provider (somente leitura)</p>
+      <div class="meta-row">
+        <div class="meta-item">
+          <span class="meta-key">Provider</span>
+          <span class="meta-val">{{ service.providerSlug ?? '—' }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-key">ID Externo</span>
+          <span class="meta-val">{{ service.externalServiceId ?? '—' }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-key">ID interno</span>
+          <span class="meta-val">#{{ service.id }}</span>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ path('admin_service_index') }}" class="btn-cancel">Cancelar</a>
+        <button type="submit" class="btn-save">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:5px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Salvar alterações
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}

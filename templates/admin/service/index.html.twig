@@ -1,0 +1,263 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block page_title %}Serviços{% endblock %}
+
+{% block admin_content %}
+<style>
+  .sv-wrap { padding: 24px; }
+  .sv-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+  }
+  .sv-title { font-size: 1.05rem; font-weight: 900; color: #f0f3ff; margin: 0; }
+  .sv-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .sv-search-form { display: flex; gap: 6px; }
+  .sv-search-input {
+    background: #0b0e14; border: 1px solid rgba(255,255,255,.08);
+    border-radius: 6px; color: #dde1f0; font-size: .8rem;
+    padding: 6px 12px; width: 220px; outline: none;
+    transition: border-color .15s;
+  }
+  .sv-search-input:focus { border-color: rgba(78,204,211,.4); }
+  .sv-search-input::placeholder { color: #3e4259; }
+  .btn-sm {
+    padding: 6px 13px; border-radius: 5px; font-size: .78rem; font-weight: 700;
+    border: 1px solid; display: inline-flex; align-items: center; gap: 5px;
+    text-decoration: none; cursor: pointer; transition: background .15s;
+  }
+  .btn-primary { background: rgba(78,204,211,.12); color: #4eccd3; border-color: rgba(78,204,211,.3); }
+  .btn-primary:hover { background: rgba(78,204,211,.25); }
+  .btn-ghost { background: transparent; color: #6b708a; border-color: rgba(255,255,255,.08); }
+  .btn-ghost:hover { background: rgba(255,255,255,.04); color: #dde1f0; }
+  .sv-card {
+    background: #0b0e14; border: 1px solid rgba(255,255,255,.06);
+    border-radius: 8px; overflow: hidden;
+  }
+  .sv-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .sv-table thead tr { border-bottom: 1px solid rgba(255,255,255,.06); }
+  .sv-table th {
+    padding: 10px 14px; text-align: left;
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; color: #3e4259; white-space: nowrap;
+  }
+  .sv-table tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,.03);
+    transition: background .12s;
+  }
+  .sv-table tbody tr:last-child { border-bottom: none; }
+  .sv-table tbody tr:hover { background: rgba(255,255,255,.02); }
+  .sv-table td { padding: 10px 14px; vertical-align: middle; color: #9196b0; }
+  .sv-table td.td-name { color: #dde1f0; font-weight: 600; max-width: 260px; }
+  .sv-table td.td-mono { font-family: monospace; font-size: .74rem; }
+  .badge {
+    display: inline-flex; padding: 2px 7px; border-radius: 999px;
+    font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  }
+  .badge-active   { background: rgba(77,143,37,.14);  color: #5aaa2a; }
+  .badge-inactive { background: rgba(120,120,140,.12); color: #7070a0; }
+  .badge-cat {
+    background: rgba(78,204,211,.08); color: #4eccd3;
+    border-radius: 4px; padding: 2px 7px; font-size: .72rem;
+  }
+  .badge-provider {
+    background: rgba(201,138,0,.1); color: #b07a00;
+    border-radius: 4px; padding: 2px 6px; font-family: monospace; font-size: .72rem;
+  }
+  .row-actions { display: flex; gap: 6px; align-items: center; }
+  .ra {
+    width: 26px; height: 26px; border-radius: 5px; display: flex;
+    align-items: center; justify-content: center;
+    text-decoration: none; transition: background .12s; border: none; cursor: pointer;
+  }
+  .ra-edit   { background: rgba(201,138,0,.1);  color: #b07a00; }
+  .ra-edit:hover   { background: rgba(201,138,0,.25); }
+  .ra-delete { background: rgba(176,48,48,.1);  color: #cc4444; padding: 0; }
+  .ra-delete:hover { background: rgba(176,48,48,.25); }
+  .pag-wrap {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px;
+    padding: 14px 16px; border-top: 1px solid rgba(255,255,255,.04);
+    font-size: .75rem; color: #6b708a;
+  }
+  .pag-links { display: flex; gap: 4px; }
+  .pag-links a, .pag-links span {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 28px; height: 28px; padding: 0 6px;
+    border-radius: 5px; border: 1px solid rgba(255,255,255,.06);
+    text-decoration: none; font-size: .75rem; transition: background .12s;
+  }
+  .pag-links a { color: #9196b0; }
+  .pag-links a:hover { background: rgba(255,255,255,.05); color: #dde1f0; }
+  .pag-links span.current { background: rgba(78,204,211,.15); color: #4eccd3; border-color: rgba(78,204,211,.3); font-weight: 700; }
+  .pag-links span.disabled { color: #3e4259; cursor: default; }
+  .sv-empty { text-align: center; padding: 48px 16px; color: #3e4259; font-size: .85rem; }
+  @media(max-width:900px){ .sv-table .col-hide { display: none; } }
+</style>
+
+<div class="sv-wrap">
+
+  <div class="sv-topbar">
+    <h1 class="sv-title">
+      Serviços
+      <span style="font-size:.75rem;font-weight:400;color:#3e4259;margin-left:6px;">
+        {{ pagination.totalItemCount }} registro{{ pagination.totalItemCount != 1 ? 's' : '' }}
+      </span>
+    </h1>
+    <div class="sv-actions">
+      <form class="sv-search-form" method="get" action="">
+        <input class="sv-search-input" type="search" name="q"
+               value="{{ search }}" placeholder="Buscar nome, categoria…">
+        <button type="submit" class="btn-sm btn-primary">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Buscar
+        </button>
+        {% if search or category %}
+          <a href="{{ path('admin_service_index') }}" class="btn-sm btn-ghost">Limpar</a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <div class="sv-card">
+    {% if pagination.items|length > 0 %}
+    <table class="sv-table">
+      <thead>
+        <tr>
+          <th style="width:44px;">#</th>
+          <th>Nome</th>
+          <th class="col-hide">Categoria</th>
+          <th class="col-hide">Provider</th>
+          <th class="col-hide">ID Externo</th>
+          <th>Preço/1k</th>
+          <th class="col-hide">Min / Max</th>
+          <th>Status</th>
+          <th style="width:70px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for service in pagination.items %}
+        <tr>
+          <td class="td-mono" style="color:#3e4259;">#{{ service.id }}</td>
+
+          <td class="td-name">{{ service.name }}</td>
+
+          <td class="col-hide">
+            {% if service.category %}
+              <a href="?category={{ service.category|url_encode }}" class="badge-cat" style="text-decoration:none;">
+                {{ service.category }}
+              </a>
+            {% else %}
+              <span style="color:#3e4259;">—</span>
+            {% endif %}
+          </td>
+
+          <td class="col-hide">
+            {% if service.providerSlug %}
+              <span class="badge-provider">{{ service.providerSlug }}</span>
+            {% else %}
+              <span style="color:#3e4259;">—</span>
+            {% endif %}
+          </td>
+
+          <td class="col-hide td-mono" style="font-size:.72rem;">
+            {{ service.externalServiceId ?? '—' }}
+          </td>
+
+          <td style="color:#dde1f0;font-weight:600;">
+            R$&nbsp;{{ (service.pricePerThousandCents / 100)|number_format(2, ',', '.') }}
+          </td>
+
+          <td class="col-hide" style="white-space:nowrap;">
+            <span style="color:#5a5f78;">{{ service.minQty }}</span>
+            <span style="color:#3e4259;"> / </span>
+            <span style="color:#5a5f78;">{{ service.maxQty }}</span>
+          </td>
+
+          <td>
+            <span class="badge {{ service.active ? 'badge-active' : 'badge-inactive' }}">
+              {{ service.active ? 'Ativo' : 'Inativo' }}
+            </span>
+          </td>
+
+          <td>
+            <div class="row-actions">
+              <a href="{{ path('admin_service_edit', {id: service.id}) }}" class="ra ra-edit" title="Editar">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </a>
+              <form method="post" action="{{ path('admin_service_delete', {id: service.id}) }}"
+                    onsubmit="return confirm('Excluir serviço #{{ service.id }}?')" style="margin:0;">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete_service_' ~ service.id) }}">
+                <button type="submit" class="ra ra-delete" title="Excluir">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# paginação #}
+    {% set curPage    = pagination.currentPageNumber %}
+    {% set perPage    = pagination.itemNumberPerPage %}
+    {% set total      = pagination.totalItemCount %}
+    {% set totalPages = (total / perPage)|round(0, 'ceil') %}
+    {% set showingEnd = curPage * perPage > total ? total : curPage * perPage %}
+    {% set pStart     = curPage - 2 > 1 ? curPage - 2 : 1 %}
+    {% set pEnd       = curPage + 2 < totalPages ? curPage + 2 : totalPages %}
+
+    <div class="pag-wrap">
+      <span>
+        Mostrando {{ ((curPage - 1) * perPage) + 1 }}
+        –
+        {{ showingEnd }}
+        de {{ total }}
+      </span>
+      <div class="pag-links">
+        {% if curPage > 1 %}
+          <a href="?page={{ curPage - 1 }}{% if search %}&q={{ search|url_encode }}{% endif %}{% if category %}&category={{ category|url_encode }}{% endif %}">&lsaquo;</a>
+        {% else %}
+          <span class="disabled">&lsaquo;</span>
+        {% endif %}
+
+        {% if pStart > 1 %}
+          <a href="?page=1{% if search %}&q={{ search|url_encode }}{% endif %}{% if category %}&category={{ category|url_encode }}{% endif %}">1</a>
+          {% if pStart > 2 %}<span style="border:none;min-width:auto;padding:0 4px;color:#3e4259;">…</span>{% endif %}
+        {% endif %}
+
+        {% for p in pStart..pEnd %}
+          {% if p == curPage %}
+            <span class="current">{{ p }}</span>
+          {% else %}
+            <a href="?page={{ p }}{% if search %}&q={{ search|url_encode }}{% endif %}{% if category %}&category={{ category|url_encode }}{% endif %}">{{ p }}</a>
+          {% endif %}
+        {% endfor %}
+
+        {% if pEnd < totalPages %}
+          {% if pEnd < totalPages - 1 %}<span style="border:none;min-width:auto;padding:0 4px;color:#3e4259;">…</span>{% endif %}
+          <a href="?page={{ totalPages }}{% if search %}&q={{ search|url_encode }}{% endif %}{% if category %}&category={{ category|url_encode }}{% endif %}">{{ totalPages }}</a>
+        {% endif %}
+
+        {% if curPage < totalPages %}
+          <a href="?page={{ curPage + 1 }}{% if search %}&q={{ search|url_encode }}{% endif %}{% if category %}&category={{ category|url_encode }}{% endif %}">&rsaquo;</a>
+        {% else %}
+          <span class="disabled">&rsaquo;</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% else %}
+      <div class="sv-empty">
+        {% if search or category %}
+          Nenhum serviço encontrado para o filtro aplicado.
+          <br><a href="{{ path('admin_service_index') }}" style="color:#4eccd3;text-decoration:none;margin-top:8px;display:inline-block;">Ver todos os serviços</a>
+        {% else %}
+          Nenhum serviço cadastrado ainda.
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
