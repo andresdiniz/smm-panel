@@ -41,7 +41,7 @@ class DashboardController extends AbstractController
             'netProfitCents' => $this->txRepo->sumCreditThisMonth()
                                 - $this->txRepo->sumDebitThisMonth()
                                 - $this->txRepo->sumFeesThisMonth(),
-            'statusCounts'   => $this->orderRepo->countByStatus(),
+            'statusCounts'   => $this->orderRepo->countAllByStatus(),
             'credentials'    => $this->credRepo->findAll(),
             'recentOrders'   => $this->orderRepo->findRecent(10),
             'recentUsers'    => $this->userRepo->findRecent(10),
