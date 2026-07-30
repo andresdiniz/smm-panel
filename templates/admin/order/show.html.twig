@@ -16,6 +16,12 @@
   'pending':'Pendente','processing':'Processando','in_progress':'Em andamento',
   'completed':'Concluído','partial':'Parcial','cancelled':'Cancelado','refunded':'Reembolsado'
 } %}
+{% set acColors = {
+  'add':    {bg:'rgba(77,143,37,.15)',  color:'#5aaa2a'},
+  'status': {bg:'rgba(30,114,160,.15)', color:'#3a8fc4'},
+  'sync':   {bg:'rgba(201,138,0,.14)',  color:'#b07a00'},
+  'other':  {bg:'rgba(120,120,140,.12)',color:'#7070a0'},
+} %}
 {% set sc = stColors[order.status] ?? {bg:'rgba(120,120,140,.12)',color:'#7070a0'} %}
 <style>
   .show-wrap { padding: 24px; max-width: 1100px; }
@@ -41,7 +47,6 @@
   .btn-delete { background:rgba(176,48,48,.12);  color:#cc4444; border-color:rgba(176,48,48,.3); }
   .btn-delete:hover { background:rgba(176,48,48,.25); }
 
-  /* cards */
   .show-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
   @media(max-width:768px){ .show-grid { grid-template-columns: 1fr; } }
   .show-card {
@@ -63,7 +68,6 @@
                    max-width: 320px; overflow: hidden; text-overflow: ellipsis;
                    white-space: nowrap; display: block; }
 
-  /* status badge */
   .st-badge {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 4px 10px; border-radius: 999px;
@@ -71,7 +75,6 @@
   }
   .st-badge::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
 
-  /* amount highlight */
   .amount-big { font-size: 1.4rem; font-weight: 900; color: #f0f3ff; }
 
   /* logs */
@@ -79,14 +82,31 @@
     border-radius: 8px; padding: 20px; }
   .log-title { font-size: 9px; font-weight: 700; text-transform: uppercase;
     letter-spacing: .12em; color: #3e4259; margin-bottom: 14px; }
-  .log-entry { display: flex; gap: 12px; padding: 8px 0;
-    border-bottom: 1px solid rgba(255,255,255,.04); }
+  .log-entry {
+    display: grid;
+    grid-template-columns: 110px 70px 80px 1fr auto;
+    align-items: start; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.04);
+    font-size: .75rem;
+  }
   .log-entry:last-child { border-bottom: none; }
-  .log-dot { width: 8px; height: 8px; border-radius: 50%;
-    background: #3e4259; flex-shrink: 0; margin-top: 5px; }
-  .log-date { font-size: .7rem; color: #6b708a; white-space: nowrap; min-width: 110px; }
-  .log-msg  { font-size: .78rem; color: #9196b0; flex: 1; }
+  .log-date  { color: #6b708a; white-space: nowrap; }
+  .log-badge { display: inline-flex; align-items: center; padding: 2px 8px;
+               border-radius: 999px; font-size: 10px; font-weight: 700;
+               text-transform: uppercase; white-space: nowrap; }
+  .log-http  { font-family: monospace; font-size: .72rem; color: #9196b0; }
+  .log-http.ok   { color: #5aaa2a; }
+  .log-http.err  { color: #cc4444; }
+  .log-body  { color: #9196b0; line-height: 1.5; }
+  .log-body .err-msg { color: #cc4444; font-style: italic; }
+  .log-body .ctx { font-family: monospace; font-size: .68rem; color: #5a5f78;
+                   margin-top: 3px; word-break: break-all; }
+  .log-retry { color: #6b708a; font-size: .68rem; white-space: nowrap; }
   .log-empty { font-size: .78rem; color: #3e4259; text-align: center; padding: 20px 0; }
+  @media(max-width:600px){
+    .log-entry { grid-template-columns: 1fr 1fr; }
+    .log-body  { grid-column: 1/-1; }
+  }
 </style>
 
 <div class="show-wrap">
@@ -116,7 +136,7 @@
     </div>
   </div>
 
-  {# ── main value highlight ── #}
+  {# ── highlights numéricos ── #}
   <div class="show-card" style="margin-bottom:16px;display:flex;align-items:center;gap:32px;flex-wrap:wrap;">
     <div>
       <div class="show-label" style="margin-bottom:4px;">Valor total</div>
@@ -142,7 +162,7 @@
 
   <div class="show-grid">
 
-    {# ── Usuário ── #}
+    {# Usuário #}
     <div class="show-card">
       <div class="show-card-title">Usuário</div>
       <div class="show-row">
@@ -160,7 +180,7 @@
       </div>
     </div>
 
-    {# ── Serviço ── #}
+    {# Serviço #}
     <div class="show-card">
       <div class="show-card-title">Serviço</div>
       <div class="show-row">
@@ -179,7 +199,7 @@
       {% endif %}
     </div>
 
-    {# ── Detalhes do pedido ── #}
+    {# Detalhes #}
     <div class="show-card">
       <div class="show-card-title">Detalhes</div>
       <div class="show-row">
@@ -204,7 +224,7 @@
       </div>
     </div>
 
-    {# ── Datas ── #}
+    {# Datas #}
     <div class="show-card">
       <div class="show-card-title">Datas</div>
       <div class="show-row">
@@ -225,16 +245,61 @@
 
   {# ── Logs do pedido ── #}
   <div class="log-wrap">
-    <div class="log-title">Histórico / Logs</div>
-    {% set logs = order.orderLogs %}
-    {% if logs|length > 0 %}
-      {% for log in logs %}
-      <div class="log-entry">
-        <div class="log-dot"></div>
-        <div class="log-date">{{ log.createdAt|date('d/m/Y H:i') }}</div>
-        <div class="log-msg">{{ log.message ?? log }}</div>
+    <div class="log-title">Histórico / Logs ({{ order.orderLogs|length }})</div>
+
+    {% if order.orderLogs|length > 0 %}
+
+      {# cabeçalho da tabela #}
+      <div class="log-entry" style="color:#3e4259;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid rgba(255,255,255,.08);">
+        <span>Data</span><span>Ação</span><span>HTTP</span><span>Detalhes</span><span>Retry</span>
       </div>
+
+      {% for log in order.orderLogs %}
+        {% set ac = acColors[log.action] ?? {bg:'rgba(120,120,140,.12)',color:'#7070a0'} %}
+        {% set httpOk = log.httpStatus is not null and log.httpStatus >= 200 and log.httpStatus < 300 %}
+        <div class="log-entry">
+
+          {# data #}
+          <span class="log-date">{{ log.createdAt|date('d/m/Y H:i:s') }}</span>
+
+          {# ação + provedor #}
+          <span>
+            <span class="log-badge" style="background:{{ ac.bg }};color:{{ ac.color }};">{{ log.action }}</span>
+            {% if log.provider %}
+              <div style="font-size:.68rem;color:#5a5f78;margin-top:3px;">{{ log.provider }}</div>
+            {% endif %}
+          </span>
+
+          {# HTTP status #}
+          <span class="log-http {{ httpOk ? 'ok' : (log.httpStatus ? 'err' : '') }}">
+            {{ log.httpStatus ?? '—' }}
+            {% if log.elapsedMs is not null %}
+              <div style="font-size:.65rem;color:#5a5f78;">{{ log.elapsedMs }}ms</div>
+            {% endif %}
+          </span>
+
+          {# corpo / erro / contexto #}
+          <div class="log-body">
+            {% if log.errorMessage %}
+              <div class="err-msg">⚠ {{ log.errorMessage }}</div>
+            {% endif %}
+            {% if log.responseBody %}
+              <div class="ctx">{{ log.responseBody|json_encode(constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_UNESCAPED_SLASHES'))|slice(0,300) }}{% if (log.responseBody|json_encode)|length > 300 %}…{% endif %}</div>
+            {% endif %}
+            {% if log.context %}
+              <div class="ctx" style="color:#4a4f68;">ctx: {{ log.context|json_encode(constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_UNESCAPED_SLASHES'))|slice(0,200) }}{% if (log.context|json_encode)|length > 200 %}…{% endif %}</div>
+            {% endif %}
+            {% if not log.errorMessage and not log.responseBody and not log.context %}
+              <span style="color:#3e4259;">—</span>
+            {% endif %}
+          </div>
+
+          {# retry #}
+          <span class="log-retry">{{ log.retryCount > 0 ? 'retry '~log.retryCount : '' }}</span>
+
+        </div>
       {% endfor %}
+
     {% else %}
       <div class="log-empty">Nenhum log registrado para este pedido.</div>
     {% endif %}
