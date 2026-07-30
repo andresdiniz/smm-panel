@@ -1,0 +1,138 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block page_title %}{{ category is null ? 'Nova Categoria' : 'Editar Categoria' }}{% endblock %}
+
+{% block admin_content %}
+<style>
+  .scedit-wrap { padding: 24px; max-width: 520px; }
+  .scedit-topbar {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+  }
+  .scedit-back {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 6px; text-decoration: none;
+    background: rgba(255,255,255,.04); color: #6b708a;
+    border: 1px solid rgba(255,255,255,.08); transition: background .15s;
+  }
+  .scedit-back:hover { background: rgba(255,255,255,.08); color: #dde1f0; }
+  .scedit-title { font-size: 1.05rem; font-weight: 900; color: #f0f3ff; margin: 0; }
+  .scedit-badge {
+    display: inline-flex; padding: 2px 8px; border-radius: 999px;
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; margin-left: 8px; vertical-align: middle;
+    background: rgba(78,204,211,.08); color: #4eccd3;
+  }
+  .scedit-card {
+    background: #0b0e14; border: 1px solid rgba(255,255,255,.06);
+    border-radius: 8px; padding: 24px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .form-label {
+    font-size: .72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: #3e4259;
+  }
+  .form-control {
+    background: #0d1018; border: 1px solid rgba(255,255,255,.08);
+    border-radius: 6px; color: #dde1f0; font-size: .82rem;
+    padding: 8px 12px; outline: none; width: 100%;
+    transition: border-color .15s;
+  }
+  .form-control:focus { border-color: rgba(78,204,211,.4); }
+  .form-hint { font-size: .7rem; color: #3e4259; margin-top: 2px; }
+  .toggle-row { display: flex; align-items: center; gap: 10px; padding: 4px 0 16px; }
+  .toggle-label { font-size: .82rem; color: #9196b0; cursor: pointer; user-select: none; }
+  .toggle-switch { position: relative; display: inline-block; width: 36px; height: 20px; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0; border-radius: 999px;
+    background: rgba(255,255,255,.1); cursor: pointer; transition: background .2s;
+  }
+  .toggle-slider:before {
+    content: ''; position: absolute;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #9196b0; left: 3px; top: 3px;
+    transition: transform .2s, background .2s;
+  }
+  .toggle-switch input:checked + .toggle-slider { background: rgba(90,170,42,.3); }
+  .toggle-switch input:checked + .toggle-slider:before { transform: translateX(16px); background: #5aaa2a; }
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+  .btn-save {
+    padding: 8px 20px; border-radius: 6px; font-size: .82rem; font-weight: 700;
+    background: rgba(78,204,211,.15); color: #4eccd3;
+    border: 1px solid rgba(78,204,211,.3); cursor: pointer; transition: background .15s;
+  }
+  .btn-save:hover { background: rgba(78,204,211,.28); }
+  .btn-cancel {
+    padding: 8px 16px; border-radius: 6px; font-size: .82rem; font-weight: 700;
+    background: transparent; color: #6b708a;
+    border: 1px solid rgba(255,255,255,.08); text-decoration: none;
+    display: inline-flex; align-items: center; transition: background .15s;
+  }
+  .btn-cancel:hover { background: rgba(255,255,255,.04); color: #dde1f0; }
+</style>
+
+<div class="scedit-wrap">
+  <div class="scedit-topbar">
+    <a href="{{ path('admin_service_category_index') }}" class="scedit-back" title="Voltar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </a>
+    <h1 class="scedit-title">
+      {% if category is null %}
+        Nova Categoria
+      {% else %}
+        Editar Categoria
+        <span class="scedit-badge">#{{ category.id }}</span>
+      {% endif %}
+    </h1>
+  </div>
+
+  <div class="scedit-card">
+    <form method="post"
+          action="{{ category is null
+            ? path('admin_service_category_new')
+            : path('admin_service_category_edit', {id: category.id}) }}">
+
+      <div class="form-group">
+        <label class="form-label" for="f-name">Nome da Categoria</label>
+        <input class="form-control" type="text" id="f-name" name="name"
+               value="{{ category is not null ? category.name : '' }}"
+               placeholder="Ex: Instagram, YouTube, TikTok…" required autofocus>
+      </div>
+
+      {% if category is not null %}
+      <div class="form-group">
+        <label class="form-label" for="f-slug">Slug</label>
+        <input class="form-control" type="text" id="f-slug" name="slug"
+               value="{{ category.slug }}" placeholder="ex: instagram">
+        <span class="form-hint">Usado em URLs. Deixe em branco para gerar automaticamente pelo nome.</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="f-order">Ordem de exibição</label>
+        <input class="form-control" type="number" id="f-order" name="sortOrder"
+               value="{{ category.sortOrder }}" min="0">
+        <span class="form-hint">Menor número aparece primeiro.</span>
+      </div>
+
+      <div class="toggle-row">
+        <label class="toggle-switch">
+          <input type="checkbox" name="isActive" value="1"
+                 {{ category.isActive ? 'checked' : '' }}>
+          <span class="toggle-slider"></span>
+        </label>
+        <label class="toggle-label">Categoria ativa</label>
+      </div>
+      {% endif %}
+
+      <div class="form-actions">
+        <a href="{{ path('admin_service_category_index') }}" class="btn-cancel">Cancelar</a>
+        <button type="submit" class="btn-save">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:5px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          {{ category is null ? 'Criar categoria' : 'Salvar alterações' }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
