@@ -2,6 +2,14 @@
 framework:
     secret: '%env(APP_SECRET)%'
 
+    # Forca o Symfony a usar o var/cache do clone ativo da Hostinger.
+    # A Hostinger faz deploy em .git_clones/git_clone_XXXXX/ mas o cache
+    # padrao aponta para public_html/var/cache (deploy anterior), causando
+    # conflito de templates compilados com paths errados.
+    cache:
+        app: cache.adapter.filesystem
+        system: cache.adapter.system
+
     # Note that the session will be started ONLY if you read or write from it.
     session: true
 
