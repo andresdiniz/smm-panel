@@ -5,15 +5,12 @@
 {% block admin_content %}
 <style>
   .ub-wrap { padding: 24px; }
-  /* top bar */
   .ub-topbar {
     display: flex; align-items: center; justify-content: space-between;
     flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
   }
   .ub-title { font-size: 1.05rem; font-weight: 900; color: #f0f3ff; margin: 0; }
   .ub-actions { display: flex; gap: 8px; align-items: center; }
-
-  /* search */
   .ub-search-form { display: flex; gap: 6px; }
   .ub-search-input {
     background: #0b0e14; border: 1px solid rgba(255,255,255,.08);
@@ -32,8 +29,6 @@
   .btn-primary:hover { background: rgba(78,204,211,.25); }
   .btn-ghost   { background: transparent; color: #6b708a; border-color: rgba(255,255,255,.08); }
   .btn-ghost:hover { background: rgba(255,255,255,.04); color: #dde1f0; }
-
-  /* table */
   .ub-card {
     background: #0b0e14; border: 1px solid rgba(255,255,255,.06);
     border-radius: 8px; overflow: hidden;
@@ -54,8 +49,6 @@
   .ub-table td { padding: 10px 14px; vertical-align: middle; color: #9196b0; }
   .ub-table td.td-name { color: #dde1f0; font-weight: 600; }
   .ub-table td.td-mono { font-family: monospace; font-size: .74rem; }
-
-  /* badges */
   .role-badge {
     display: inline-flex; padding: 2px 7px; border-radius: 999px;
     font-size: 9px; font-weight: 700; text-transform: uppercase;
@@ -65,18 +58,12 @@
   .role-user   { background: rgba(30,114,160,.14); color: #3a8fc4; }
   .active-yes  { background: rgba(77,143,37,.14); color: #5aaa2a; }
   .active-no   { background: rgba(120,120,140,.12); color: #7070a0; }
-
-  /* wallet */
   .wallet-val { font-weight: 700; }
   .wallet-pos { color: #5aaa2a; }
   .wallet-zero { color: #3e4259; }
-
-  /* affiliate code */
   .aff-code { font-family: monospace; font-size: .72rem;
     background: rgba(201,138,0,.1); color: #b07a00;
     padding: 2px 6px; border-radius: 4px; }
-
-  /* row actions */
   .row-actions { display: flex; gap: 6px; }
   .ra {
     width: 26px; height: 26px; border-radius: 5px; display: flex;
@@ -89,8 +76,6 @@
   .ra-edit:hover   { background: rgba(201,138,0,.25); }
   .ra-delete { background: rgba(176,48,48,.1);  color: #cc4444; }
   .ra-delete:hover { background: rgba(176,48,48,.25); }
-
-  /* pagination */
   .pag-wrap {
     display: flex; align-items: center; justify-content: space-between;
     flex-wrap: wrap; gap: 10px;
@@ -108,13 +93,8 @@
   .pag-links a:hover { background: rgba(255,255,255,.05); color: #dde1f0; }
   .pag-links span.current { background: rgba(78,204,211,.15); color: #4eccd3; border-color: rgba(78,204,211,.3); font-weight: 700; }
   .pag-links span.disabled { color: #3e4259; cursor: default; }
-
-  /* empty */
   .ub-empty { text-align: center; padding: 48px 16px; color: #3e4259; font-size: .85rem; }
-
-  @media(max-width:900px){
-    .ub-table .col-hide { display: none; }
-  }
+  @media(max-width:900px){ .ub-table .col-hide { display: none; } }
 </style>
 
 <div class="ub-wrap">
@@ -243,38 +223,57 @@
     </table>
 
     {# paginação #}
+    {% set curPage   = pagination.currentPageNumber %}
+    {% set perPage   = pagination.itemNumberPerPage %}
+    {% set total     = pagination.totalItemCount %}
+    {% set totalPages = (total / perPage)|round(0, 'ceil') %}
+    {% set showingEnd = curPage * perPage > total ? total : curPage * perPage %}
+    {% set pStart = curPage - 2 > 1 ? curPage - 2 : 1 %}
+    {% set pEnd   = curPage + 2 < totalPages ? curPage + 2 : totalPages %}
+
     <div class="pag-wrap">
       <span>
-        Mostrando {{ ((pagination.currentPageNumber - 1) * pagination.itemNumberPerPage) + 1 }}
+        Mostrando {{ ((curPage - 1) * perPage) + 1 }}
         –
-        {{ [pagination.currentPageNumber * pagination.itemNumberPerPage, pagination.totalItemCount]|min }}
-        de {{ pagination.totalItemCount }}
+        {{ showingEnd }}
+        de {{ total }}
       </span>
       <div class="pag-links">
-        {% if pagination.currentPageNumber > 1 %}
-          <a href="?page={{ pagination.currentPageNumber - 1 }}{% if search %}&q={{ search|url_encode }}{% endif %}">&lsaquo;</a>
+        {# prev #}
+        {% if curPage > 1 %}
+          <a href="?page={{ curPage - 1 }}{% if search %}&q={{ search|url_encode }}{% endif %}">&lsaquo;</a>
         {% else %}
           <span class="disabled">&lsaquo;</span>
         {% endif %}
 
-        {% set totalPages = (pagination.totalItemCount / pagination.itemNumberPerPage)|round(0,'ceil') %}
-        {% set start = max(1, pagination.currentPageNumber - 2) %}
-        {% set end   = min(totalPages, pagination.currentPageNumber + 2) %}
+        {# primeira página + reticências #}
+        {% if pStart > 1 %}
+          <a href="?page=1{% if search %}&q={{ search|url_encode }}{% endif %}">1</a>
+          {% if pStart > 2 %}
+            <span style="border:none;min-width:auto;padding:0 4px;color:#3e4259;">…</span>
+          {% endif %}
+        {% endif %}
 
-        {% if start > 1 %}<a href="?page=1{% if search %}&q={{ search|url_encode }}{% endif %}">1</a>{% if start > 2 %}<span style="border:none;min-width:auto;padding:0 4px;color:#3e4259;">…</span>{% endif %}{% endif %}
-
-        {% for p in start..end %}
-          {% if p == pagination.currentPageNumber %}
+        {# janela de páginas #}
+        {% for p in pStart..pEnd %}
+          {% if p == curPage %}
             <span class="current">{{ p }}</span>
           {% else %}
             <a href="?page={{ p }}{% if search %}&q={{ search|url_encode }}{% endif %}">{{ p }}</a>
           {% endif %}
         {% endfor %}
 
-        {% if end < totalPages %}{% if end < totalPages - 1 %}<span style="border:none;min-width:auto;padding:0 4px;color:#3e4259;">…</span>{% endif %}<a href="?page={{ totalPages }}{% if search %}&q={{ search|url_encode }}{% endif %}">{{ totalPages }}</a>{% endif %}
+        {# última página + reticências #}
+        {% if pEnd < totalPages %}
+          {% if pEnd < totalPages - 1 %}
+            <span style="border:none;min-width:auto;padding:0 4px;color:#3e4259;">…</span>
+          {% endif %}
+          <a href="?page={{ totalPages }}{% if search %}&q={{ search|url_encode }}{% endif %}">{{ totalPages }}</a>
+        {% endif %}
 
-        {% if pagination.currentPageNumber < totalPages %}
-          <a href="?page={{ pagination.currentPageNumber + 1 }}{% if search %}&q={{ search|url_encode }}{% endif %}">&rsaquo;</a>
+        {# next #}
+        {% if curPage < totalPages %}
+          <a href="?page={{ curPage + 1 }}{% if search %}&q={{ search|url_encode }}{% endif %}">&rsaquo;</a>
         {% else %}
           <span class="disabled">&rsaquo;</span>
         {% endif %}
