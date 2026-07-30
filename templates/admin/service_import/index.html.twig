@@ -3,335 +3,575 @@
 {% block page_title %}Importar Serviços{% endblock %}
 
 {% block admin_content %}
-<div style="padding:24px">
+<style>
+/* ── Page shell ── */
+.imp-page { padding: 24px 28px; min-height: 100vh; background: #0d1016; color: #dde1f0; }
 
-    {# Flashes #}
-    {% for msg in app.flashes('success') %}
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fa fa-check-circle me-1"></i> {{ msg }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    {% endfor %}
-    {% for msg in app.flashes('error') %}
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fa fa-circle-xmark me-1"></i> {{ msg }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    {% endfor %}
+/* ── Steps ── */
+.imp-step { background: #12151c; border: 1px solid rgba(255,255,255,.07); border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+.imp-step-head { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,.06); }
+.imp-step-num { width: 24px; height: 24px; border-radius: 50%; background: #01868d; color: #fff; font-size: .7rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.imp-step-title { font-size: .875rem; font-weight: 700; color: #eef0ff; }
+.imp-badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: .7rem; font-weight: 700; background: rgba(255,255,255,.08); color: #9196b0; }
+.imp-badge.green { background: rgba(1,134,141,.18); color: #4eccd3; }
+.imp-step-body { padding: 20px; }
 
-    {# Step 1 — Selecionar Provedor #}
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white d-flex align-items-center gap-2 py-3">
-            <span class="badge bg-primary rounded-pill">1</span>
-            <strong>Selecionar Provedor</strong>
+/* ── Provider buttons ── */
+.prov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 10px; }
+.prov-btn { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); border-radius: 9px; padding: 12px 14px; cursor: pointer; text-align: left; transition: border-color .15s, background .15s; }
+.prov-btn:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.18); }
+.prov-btn.active { background: rgba(1,134,141,.14); border-color: #01868d; }
+.prov-btn .prov-slug { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #eef0ff; }
+.prov-btn .prov-url { font-size: .68rem; color: #4e5271; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Config row ── */
+.cfg-row { display: grid; grid-template-columns: 1fr 160px 180px 120px; gap: 12px; align-items: end; }
+@media(max-width:900px){ .cfg-row { grid-template-columns: 1fr 1fr; } }
+
+/* ── Form controls (dark) ── */
+.imp-label { display: block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #4e5271; margin-bottom: 6px; }
+.imp-select, .imp-input { width: 100%; background: #0b0e14; border: 1px solid rgba(255,255,255,.1); border-radius: 7px; padding: 8px 11px; font-size: .82rem; color: #dde1f0; outline: none; transition: border-color .15s; }
+.imp-select:focus, .imp-input:focus { border-color: #01868d; }
+.imp-input-group { display: flex; }
+.imp-input-group .imp-input { border-radius: 7px 0 0 7px; }
+.imp-input-group .imp-addon { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-left: none; border-radius: 0 7px 7px 0; padding: 8px 10px; font-size: .82rem; color: #4e5271; }
+
+/* ── Buttons ── */
+.btn-imp-primary { background: #01868d; color: #fff; border: none; border-radius: 7px; padding: 9px 18px; font-size: .82rem; font-weight: 700; cursor: pointer; transition: background .15s; white-space: nowrap; }
+.btn-imp-primary:hover { background: #0c6b72; }
+.btn-imp-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-imp-ghost { background: rgba(255,255,255,.05); color: #9196b0; border: 1px solid rgba(255,255,255,.09); border-radius: 7px; padding: 7px 14px; font-size: .78rem; font-weight: 600; cursor: pointer; transition: background .15s; white-space: nowrap; }
+.btn-imp-ghost:hover { background: rgba(255,255,255,.09); color: #dde1f0; }
+.btn-imp-danger { background: rgba(220,60,60,.15); color: #e06060; border: 1px solid rgba(220,60,60,.3); border-radius: 7px; padding: 7px 14px; font-size: .78rem; font-weight: 600; cursor: pointer; }
+
+/* ── Toolbar ── */
+.svc-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.svc-toolbar .sep { flex: 1; }
+.imp-search { background: #0b0e14; border: 1px solid rgba(255,255,255,.1); border-radius: 7px; padding: 7px 12px; font-size: .8rem; color: #dde1f0; outline: none; width: 200px; }
+.imp-search:focus { border-color: #01868d; }
+
+/* ── Service cards grid ── */
+.svc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr)); gap: 10px; padding: 16px; }
+
+/* ── Service card ── */
+.svc-card { background: #0f1219; border: 1px solid rgba(255,255,255,.07); border-radius: 10px; overflow: hidden; transition: border-color .15s; }
+.svc-card.selected { border-color: #01868d; }
+.svc-card.is-new { border-left: 3px solid #01868d; }
+.svc-card.is-update { border-left: 3px solid #d4a017; }
+
+.svc-card-top { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; cursor: pointer; }
+.svc-card-check { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; accent-color: #01868d; cursor: pointer; }
+.svc-card-info { flex: 1; min-width: 0; }
+.svc-card-name { font-size: .82rem; font-weight: 700; color: #eef0ff; line-height: 1.35; word-break: break-word; }
+.svc-card-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
+.svc-meta-tag { font-size: .67rem; font-weight: 700; padding: 2px 7px; border-radius: 20px; background: rgba(255,255,255,.06); color: #6b708a; }
+.svc-meta-tag.cat { background: rgba(99,102,241,.15); color: #a5b4fc; }
+.svc-meta-tag.new { background: rgba(1,134,141,.18); color: #4eccd3; }
+.svc-meta-tag.upd { background: rgba(212,160,23,.18); color: #f0c040; }
+.svc-prices { display: flex; gap: 14px; margin-top: 8px; }
+.svc-price-block { font-size: .72rem; color: #4e5271; }
+.svc-price-block span { display: block; font-size: .85rem; font-weight: 700; color: #dde1f0; margin-top: 1px; }
+.svc-price-block span.sell { color: #4eccd3; }
+.svc-card-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.btn-edit-toggle { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09); border-radius: 6px; padding: 5px 10px; font-size: .72rem; color: #9196b0; cursor: pointer; transition: background .15s; }
+.btn-edit-toggle:hover, .btn-edit-toggle.open { background: rgba(1,134,141,.18); color: #4eccd3; border-color: #01868d; }
+
+/* ── Inline edit panel ── */
+.svc-edit-panel { border-top: 1px solid rgba(255,255,255,.06); background: #0b0e14; padding: 14px 14px 16px; display: none; }
+.svc-edit-panel.open { display: block; }
+.edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.edit-grid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+.edit-full { grid-column: 1 / -1; }
+.edit-field { display: flex; flex-direction: column; gap: 4px; }
+.edit-field label { font-size: .67rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #4e5271; }
+.edit-field input, .edit-field select, .edit-field textarea { background: #12151c; border: 1px solid rgba(255,255,255,.1); border-radius: 6px; padding: 7px 10px; font-size: .8rem; color: #dde1f0; outline: none; font-family: inherit; transition: border-color .15s; resize: vertical; }
+.edit-field input:focus, .edit-field select:focus, .edit-field textarea:focus { border-color: #01868d; }
+.edit-field textarea { min-height: 64px; }
+.edit-toggle-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.toggle-sw { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+.toggle-sw input { opacity: 0; width: 0; height: 0; }
+.toggle-sw .slider { position: absolute; inset: 0; background: rgba(255,255,255,.1); border-radius: 20px; cursor: pointer; transition: background .2s; }
+.toggle-sw .slider::before { content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #fff; left: 3px; top: 3px; transition: transform .2s; }
+.toggle-sw input:checked + .slider { background: #01868d; }
+.toggle-sw input:checked + .slider::before { transform: translateX(16px); }
+.toggle-label { font-size: .78rem; font-weight: 600; color: #9196b0; }
+
+/* ── Footer bar ── */
+.svc-footer { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-top: 1px solid rgba(255,255,255,.06); flex-wrap: wrap; }
+.svc-count-txt { font-size: .78rem; color: #4e5271; }
+.svc-count-txt strong { color: #dde1f0; }
+
+/* ── Loader ── */
+.imp-loader { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 48px 0; }
+.imp-spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,.08); border-top-color: #01868d; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Alert ── */
+.imp-alert { border-radius: 9px; padding: 12px 16px; font-size: .82rem; margin-bottom: 16px; }
+.imp-alert.danger { background: rgba(220,60,60,.12); border: 1px solid rgba(220,60,60,.3); color: #e08080; }
+.imp-alert.warning { background: rgba(212,160,23,.1); border: 1px solid rgba(212,160,23,.25); color: #d4a017; }
+
+/* ── Toast ── */
+.imp-toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.imp-toast { background: #1a1e2e; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 12px 18px; font-size: .82rem; font-weight: 600; color: #eef0ff; box-shadow: 0 8px 24px rgba(0,0,0,.5); animation: toastIn .25s ease; min-width: 280px; max-width: 400px; display: flex; align-items: flex-start; gap: 10px; }
+.imp-toast.success { border-left: 3px solid #01868d; }
+.imp-toast.danger  { border-left: 3px solid #e06060; }
+@keyframes toastIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+</style>
+
+<div class="imp-page">
+
+{# ── STEP 1: Provedor ── #}
+<div class="imp-step">
+  <div class="imp-step-head">
+    <span class="imp-step-num">1</span>
+    <span class="imp-step-title">Selecionar Provedor</span>
+  </div>
+  <div class="imp-step-body">
+    {% if providers is empty %}
+      <div class="imp-alert warning">
+        ⚠ Nenhum provedor SMM cadastrado.
+        <a href="{{ path('admin_provider_credential_index') }}" style="color:#d4a017;font-weight:700;margin-left:6px">Cadastrar provedor →</a>
+      </div>
+    {% else %}
+      <div class="prov-grid">
+        {% for provider in providers %}
+          <button type="button" class="prov-btn" data-slug="{{ provider.slug }}">
+            <div class="prov-slug">{{ provider.slug }}</div>
+            <div class="prov-url">{{ provider.baseUrl }}</div>
+          </button>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ── STEP 2: Config ── #}
+<div class="imp-step" id="card-step2" style="display:none">
+  <div class="imp-step-head">
+    <span class="imp-step-num">2</span>
+    <span class="imp-step-title">Configurações</span>
+    <span class="imp-badge green" id="selected-provider-name"></span>
+  </div>
+  <div class="imp-step-body">
+    <div class="cfg-row">
+      <div>
+        <label class="imp-label">Categoria padrão (opcional)</label>
+        <select class="imp-select" id="default-category">
+          <option value="">— Usar categoria do provedor —</option>
+          {% for cat in categories %}
+            <option value="{{ cat.id }}">{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="imp-label">Markup (%)</label>
+        <div class="imp-input-group">
+          <input type="number" id="default-markup" class="imp-input" value="30" min="0" max="9999">
+          <span class="imp-addon">%</span>
         </div>
-        <div class="card-body">
-            {% if providers is empty %}
-                <div class="alert alert-warning mb-0">
-                    <i class="fa fa-triangle-exclamation me-2"></i>
-                    Nenhum provedor SMM cadastrado.
-                    <a href="{{ path('admin_provider_credential_new') }}" class="alert-link ms-1">Cadastrar provedor</a>
-                </div>
-            {% else %}
-                <div class="row g-3">
-                    {% for provider in providers %}
-                        <div class="col-sm-6 col-md-4 col-lg-3">
-                            <button type="button"
-                                class="btn btn-outline-secondary w-100 text-start provider-btn d-flex align-items-center gap-2 p-3"
-                                data-slug="{{ provider.slug }}"
-                                data-name="{{ provider.slug }}">
-                                <i class="fa fa-server fa-fw text-muted"></i>
-                                <div>
-                                    <div class="fw-semibold text-uppercase">{{ provider.slug }}</div>
-                                    <small class="text-muted">{{ provider.baseUrl|slice(0,40) }}{% if provider.baseUrl|length > 40 %}…{% endif %}</small>
-                                </div>
-                            </button>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        </div>
+      </div>
+      <div>
+        <label class="imp-label">Modo de importação</label>
+        <select class="imp-select" id="import-mode">
+          <option value="batch">Lote</option>
+          <option value="individual">Individual</option>
+        </select>
+      </div>
+      <div>
+        <label class="imp-label">&nbsp;</label>
+        <button type="button" class="btn-imp-primary" id="btn-fetch" style="width:100%">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-.15em;margin-right:5px"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Buscar Serviços
+        </button>
+      </div>
     </div>
+  </div>
+</div>
 
-    {# Step 2 — Configurações #}
-    <div class="card shadow-sm mb-4 d-none" id="card-step2">
-        <div class="card-header bg-white d-flex align-items-center gap-2 py-3">
-            <span class="badge bg-primary rounded-pill">2</span>
-            <strong>Configurações</strong>
-            <span class="ms-2 badge bg-secondary" id="selected-provider-name"></span>
-        </div>
-        <div class="card-body">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Categoria padrão <span class="text-muted fw-normal">(opcional)</span></label>
-                    <select class="form-select" id="default-category">
-                        <option value="">— Usar categoria do provedor —</option>
-                        {% for cat in categories %}
-                            <option value="{{ cat.id }}">{{ cat.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">Markup padrão (%)</label>
-                    <div class="input-group">
-                        <input type="number" id="default-markup" class="form-control" value="30" min="0" max="9999">
-                        <span class="input-group-text">%</span>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">Modo</label>
-                    <select class="form-select" id="import-mode">
-                        <option value="batch">Lote</option>
-                        <option value="individual">Individual</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="button" class="btn btn-primary w-100" id="btn-fetch">
-                        <i class="fa fa-search me-1"></i> Buscar
-                    </button>
-                </div>
-            </div>
-        </div>
+{# ── Loader ── #}
+<div class="imp-loader" id="loader" style="display:none">
+  <div class="imp-spinner"></div>
+  <span style="font-size:.82rem;color:#4e5271">Consultando API do provedor…</span>
+</div>
+
+{# ── Fetch error ── #}
+<div class="imp-alert danger" id="fetch-error" style="display:none">
+  <strong>Erro:</strong> <span id="fetch-error-msg"></span>
+  <pre id="fetch-error-detail" style="margin-top:6px;font-size:.72rem;white-space:pre-wrap;color:#c06060"></pre>
+</div>
+
+{# ── STEP 3: Serviços ── #}
+<div class="imp-step" id="card-step3" style="display:none">
+  <div class="imp-step-head">
+    <span class="imp-step-num">3</span>
+    <span class="imp-step-title">Serviços Disponíveis</span>
+    <span class="imp-badge" id="count-badge">0</span>
+    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      <input type="text" class="imp-search" id="search-services" placeholder="Filtrar por nome…">
+      <select class="imp-select" id="filter-status" style="width:150px">
+        <option value="all">Todos</option>
+        <option value="new">Novos</option>
+        <option value="existing">Já importados</option>
+      </select>
     </div>
+  </div>
 
-    {# Loader #}
-    <div class="text-center py-5 d-none" id="loader">
-        <div class="spinner-border text-primary" style="width:3rem;height:3rem;"></div>
-        <p class="mt-3 text-muted">Consultando API do provedor…</p>
+  {# Services grid #}
+  <div class="svc-grid" id="svc-grid"></div>
+
+  {# Footer #}
+  <div class="svc-footer">
+    <span class="svc-count-txt"><strong id="selected-count">0</strong> selecionados de <strong id="total-count">0</strong></span>
+    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn-imp-ghost" id="btn-select-new">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-.1em;margin-right:4px"><polyline points="20 6 9 17 4 12"/></svg>
+        Selecionar novos
+      </button>
+      <button type="button" class="btn-imp-ghost" id="btn-deselect-all">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-.1em;margin-right:4px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Desmarcar todos
+      </button>
+      <button type="button" class="btn-imp-primary" id="btn-save">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-.15em;margin-right:5px"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
+        Importar Selecionados
+      </button>
     </div>
+  </div>
+</div>
 
-    {# Erro fetch #}
-    <div class="alert alert-danger d-none" id="fetch-error">
-        <strong><i class="fa fa-circle-xmark me-1"></i> Erro:</strong>
-        <span id="fetch-error-msg"></span>
-        <pre id="fetch-error-detail" class="mt-2 mb-0 small" style="white-space:pre-wrap"></pre>
-    </div>
+{# ── Toast container ── #}
+<div class="imp-toast-wrap" id="toast-wrap"></div>
 
-    {# Step 3 — Serviços disponíveis #}
-    <div class="card shadow-sm d-none" id="card-step3">
-        <div class="card-header bg-white d-flex align-items-center gap-3 py-3 flex-wrap">
-            <span class="badge bg-primary rounded-pill">3</span>
-            <strong>Serviços Disponíveis</strong>
-            <span class="badge bg-secondary" id="count-badge">0</span>
-            <div class="ms-auto d-flex gap-2 flex-wrap">
-                <input type="text" class="form-control form-control-sm" id="search-services" placeholder="Filtrar…" style="width:220px">
-                <select class="form-select form-select-sm" id="filter-status" style="width:150px">
-                    <option value="all">Todos</option>
-                    <option value="new">Novos</option>
-                    <option value="existing">Já importados</option>
-                </select>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive" style="max-height:55vh;overflow-y:auto">
-                <table class="table table-hover table-sm align-middle mb-0">
-                    <thead class="table-light sticky-top">
-                        <tr>
-                            <th style="width:36px"><input type="checkbox" id="check-all" class="form-check-input"></th>
-                            <th>ID</th>
-                            <th>Nome</th>
-                            <th>Categoria</th>
-                            <th>Preço Provedor</th>
-                            <th>Preço Venda</th>
-                            <th style="width:85px">Mín.</th>
-                            <th>Máx.</th>
-                            <th class="text-center">★</th>
-                        </tr>
-                    </thead>
-                    <tbody id="services-tbody"></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="card-footer bg-white d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <span class="text-muted small"><span id="selected-count">0</span> selecionados de <span id="total-count">0</span></span>
-            <div class="d-flex gap-2">
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-select-new">
-                    <i class="fa fa-check-double me-1"></i> Selecionar novos
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-deselect-all">
-                    <i class="fa fa-xmark me-1"></i> Desmarcar
-                </button>
-                <button type="button" class="btn btn-success" id="btn-save">
-                    <i class="fa fa-cloud-arrow-down me-1"></i> Importar Selecionados
-                </button>
-            </div>
-        </div>
-    </div>
-
-    {# Toast #}
-    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:1090">
-        <div id="import-toast" class="toast align-items-center border-0" role="alert">
-            <div class="d-flex">
-                <div class="toast-body fw-semibold" id="toast-message"></div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div>
-        </div>
-    </div>
-
-</div>{# /padding #}
+</div>{# /imp-page #}
 
 <script>
-(function () {
-    'use strict';
+(function(){
+'use strict';
 
-    const FETCH_URL = {{ path('admin_service_import_fetch')|json_encode|raw }};
-    const SAVE_URL  = {{ path('admin_service_import_save')|json_encode|raw }};
+const FETCH_URL = {{ path('admin_service_import_fetch')|json_encode|raw }};
+const SAVE_URL  = {{ path('admin_service_import_save')|json_encode|raw }};
+const CATS = {{ categories|map(c => {id: c.id, name: c.name})|json_encode|raw }};
 
-    let allServices = [], existingIds = [], currentSlug = '', currentMode = 'batch';
+let allServices = [], existingIds = [], currentSlug = '', currentMode = 'batch';
+// Per-service overrides: keyed by external_id
+const overrides = {};
 
-    document.querySelectorAll('.provider-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.provider-btn').forEach(b => {
-                b.classList.remove('btn-primary'); b.classList.add('btn-outline-secondary');
-            });
-            btn.classList.remove('btn-outline-secondary'); btn.classList.add('btn-primary');
-            currentSlug = btn.dataset.slug;
-            document.getElementById('selected-provider-name').textContent = btn.dataset.name;
-            document.getElementById('card-step2').classList.remove('d-none');
-            document.getElementById('card-step3').classList.add('d-none');
-            document.getElementById('fetch-error').classList.add('d-none');
-        });
-    });
+// ── Provider select ──
+document.querySelectorAll('.prov-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.prov-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentSlug = btn.dataset.slug;
+    document.getElementById('selected-provider-name').textContent = btn.dataset.slug.toUpperCase();
+    document.getElementById('card-step2').style.display = '';
+    document.getElementById('card-step3').style.display = 'none';
+    document.getElementById('fetch-error').style.display = 'none';
+  });
+});
 
-    document.getElementById('btn-fetch').addEventListener('click', async () => {
-        if (!currentSlug) { alert('Selecione um provedor.'); return; }
-        currentMode = document.getElementById('import-mode').value;
-        document.getElementById('loader').classList.remove('d-none');
-        document.getElementById('card-step3').classList.add('d-none');
-        document.getElementById('fetch-error').classList.add('d-none');
-        try {
-            const fd = new FormData();
-            fd.append('provider_slug', currentSlug);
-            const res = await fetch(FETCH_URL, { method: 'POST', body: fd });
-            const ct  = res.headers.get('content-type') || '';
-            if (!ct.includes('application/json')) {
-                const txt = await res.text();
-                throw new Error(`HTTP ${res.status} — servidor retornou HTML. Sessão expirada?\n${txt.slice(0,300)}`);
-            }
-            const json = await res.json();
-            if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
-            allServices  = json.services   || [];
-            existingIds  = json.existingIds || [];
-            if (!allServices.length) throw new Error('Provedor retornou 0 serviços. Verifique URL base e chave de API.');
-            renderTable(allServices);
-        } catch (err) {
-            const [first, ...rest] = err.message.split('\n');
-            document.getElementById('fetch-error-msg').textContent    = first;
-            document.getElementById('fetch-error-detail').textContent = rest.join('\n');
-            document.getElementById('fetch-error').classList.remove('d-none');
-        } finally {
-            document.getElementById('loader').classList.add('d-none');
-        }
-    });
-
-    function renderTable(services) {
-        const markup = parseInt(document.getElementById('default-markup').value) || 30;
-        const tbody  = document.getElementById('services-tbody');
-        tbody.innerHTML = '';
-        services.forEach(svc => {
-            const isExisting = existingIds.includes(String(svc.external_id));
-            const sellPrice  = (svc.provider_price * (1 + markup / 100)).toFixed(4);
-            const tr = document.createElement('tr');
-            tr.dataset.id = svc.external_id; tr.dataset.existing = isExisting ? '1' : '0';
-            tr.innerHTML = `
-                <td><input type="checkbox" class="form-check-input row-check" ${isExisting?'':'checked'}></td>
-                <td><code style="font-size:.75rem">${esc(String(svc.external_id))}</code></td>
-                <td style="max-width:280px" class="fw-medium">${esc(svc.name)}</td>
-                <td><span class="badge bg-light text-dark border">${esc(svc.category||'—')}</span></td>
-                <td class="text-muted" style="font-size:.8rem">R$ ${Number(svc.provider_price).toFixed(4)}</td>
-                <td class="text-success fw-semibold">R$ ${sellPrice}</td>
-                <td><input type="number" class="form-control form-control-sm min-input" value="${svc.min_qty}" min="1" style="width:72px"></td>
-                <td class="text-muted" style="font-size:.8rem">${Number(svc.max_qty).toLocaleString('pt-BR')}</td>
-                <td class="text-center">${isExisting?'<span class="badge bg-warning text-dark">atualiza</span>':'<span class="badge bg-success">novo</span>'}</td>`;
-            tbody.appendChild(tr);
-        });
-        document.getElementById('card-step3').classList.remove('d-none');
-        document.getElementById('count-badge').textContent = services.length;
-        document.getElementById('total-count').textContent = services.length;
-        updateCounts();
-        document.getElementById('card-step3').scrollIntoView({ behavior:'smooth', block:'start' });
+// ── Fetch services ──
+document.getElementById('btn-fetch').addEventListener('click', async () => {
+  if (!currentSlug) { showToast('Selecione um provedor.', 'danger'); return; }
+  currentMode = document.getElementById('import-mode').value;
+  document.getElementById('loader').style.display = '';
+  document.getElementById('card-step3').style.display = 'none';
+  document.getElementById('fetch-error').style.display = 'none';
+  try {
+    const fd = new FormData();
+    fd.append('provider_slug', currentSlug);
+    const res = await fetch(FETCH_URL, { method: 'POST', body: fd });
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+      const txt = await res.text();
+      throw new Error(`HTTP ${res.status} — servidor retornou HTML. Sessão expirada?\n${txt.slice(0,300)}`);
     }
+    const json = await res.json();
+    if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+    allServices = json.services  || [];
+    existingIds = json.existingIds || [];
+    if (!allServices.length) throw new Error('Provedor retornou 0 serviços.');
+    renderGrid(allServices);
+  } catch(err) {
+    const [first, ...rest] = err.message.split('\n');
+    document.getElementById('fetch-error-msg').textContent = first;
+    document.getElementById('fetch-error-detail').textContent = rest.join('\n');
+    document.getElementById('fetch-error').style.display = '';
+  } finally {
+    document.getElementById('loader').style.display = 'none';
+  }
+});
 
-    document.getElementById('search-services').addEventListener('input', applyFilters);
-    document.getElementById('filter-status').addEventListener('change', applyFilters);
-    function applyFilters() {
-        const q = document.getElementById('search-services').value.toLowerCase();
-        const s = document.getElementById('filter-status').value;
-        document.querySelectorAll('#services-tbody tr').forEach(tr => {
-            const ex = tr.dataset.existing === '1';
-            tr.style.display = (!q||tr.textContent.toLowerCase().includes(q)) &&
-                (s==='all'||(s==='new'&&!ex)||(s==='existing'&&ex)) ? '' : 'none';
-        });
-        updateCounts();
-    }
+// ── Render card grid ──
+function renderGrid(services) {
+  const markup = parseInt(document.getElementById('default-markup').value) || 30;
+  const grid = document.getElementById('svc-grid');
+  grid.innerHTML = '';
 
-    document.getElementById('check-all').addEventListener('change', e => {
-        document.querySelectorAll('#services-tbody tr').forEach(tr => {
-            if (tr.style.display!=='none') tr.querySelector('.row-check').checked = e.target.checked;
-        }); updateCounts();
-    });
-    document.addEventListener('change', e => { if (e.target.classList.contains('row-check')) updateCounts(); });
-    document.getElementById('btn-select-new').addEventListener('click', () => {
-        document.querySelectorAll('#services-tbody tr').forEach(tr => {
-            if (tr.dataset.existing!=='1') tr.querySelector('.row-check').checked = true;
-        }); updateCounts();
-    });
-    document.getElementById('btn-deselect-all').addEventListener('click', () => {
-        document.querySelectorAll('.row-check').forEach(cb => cb.checked = false); updateCounts();
-    });
-    function updateCounts() {
-        document.getElementById('selected-count').textContent = document.querySelectorAll('.row-check:checked').length;
-    }
+  services.forEach(svc => {
+    const isExisting = existingIds.includes(String(svc.external_id));
+    const ov = overrides[String(svc.external_id)] || {};
+    const sellPrice = ((ov.provider_price ?? svc.provider_price) * (1 + (ov.markup ?? markup) / 100)).toFixed(4);
 
-    document.getElementById('btn-save').addEventListener('click', async () => {
-        const markup  = parseInt(document.getElementById('default-markup').value) || 30;
-        const catId   = document.getElementById('default-category').value || null;
-        const checked = document.querySelectorAll('.row-check:checked');
-        if (!checked.length) { alert('Selecione pelo menos um serviço.'); return; }
-        const selected = [];
-        checked.forEach(cb => {
-            const tr  = cb.closest('tr');
-            const svc = allServices.find(s => String(s.external_id) === String(tr.dataset.id));
-            if (!svc) return;
-            selected.push({ external_id: svc.external_id, name: svc.name,
-                provider_price: svc.provider_price, min_qty: svc.min_qty, max_qty: svc.max_qty,
-                category_name: svc.category, category_id: catId ? parseInt(catId) : null,
-                markup_percent: markup,
-                custom_min_qty: parseInt(tr.querySelector('.min-input')?.value)||null });
-        });
-        const btn = document.getElementById('btn-save');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Salvando…';
-        try {
-            const res  = await fetch(SAVE_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    provider_slug: currentSlug, mode: currentMode,
-                    category_id: catId ? parseInt(catId) : null,
-                    default_markup_percent: markup, services: selected
-                })
-            });
-            const json = await res.json();
-            if (json.error) throw new Error(json.error);
-            showToast(`✅ ${json.saved} novos, ${json.updated} atualizados.`, 'success');
-        } catch (err) {
-            showToast('Erro: ' + err.message, 'danger');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa fa-cloud-arrow-down me-1"></i> Importar Selecionados';
-        }
-    });
+    const card = document.createElement('div');
+    card.className = 'svc-card' + (isExisting ? ' is-update' : ' is-new') + (!isExisting ? ' selected' : '');
+    card.dataset.id = String(svc.external_id);
+    card.dataset.existing = isExisting ? '1' : '0';
+    card.dataset.name = (ov.name ?? svc.name).toLowerCase();
 
-    function esc(s) {
-        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const catName = ov.category_name ?? svc.category ?? '—';
+
+    card.innerHTML = `
+      <div class="svc-card-top">
+        <input type="checkbox" class="svc-card-check row-check" ${!isExisting ? 'checked' : ''}>
+        <div class="svc-card-info">
+          <div class="svc-card-name" data-field="display-name">${esc(ov.name ?? svc.name)}</div>
+          <div class="svc-card-meta">
+            <span class="svc-meta-tag">#${esc(String(svc.external_id))}</span>
+            <span class="svc-meta-tag cat" data-field="display-cat">${esc(catName)}</span>
+            ${isExisting
+              ? '<span class="svc-meta-tag upd">↻ atualiza</span>'
+              : '<span class="svc-meta-tag new">✦ novo</span>'}
+          </div>
+          <div class="svc-prices">
+            <div class="svc-price-block">Provedor<span>R$&nbsp;${Number(ov.provider_price ?? svc.provider_price).toFixed(4)}</span></div>
+            <div class="svc-price-block">Venda<span class="sell" data-field="display-sell">R$&nbsp;${sellPrice}</span></div>
+            <div class="svc-price-block">Mín.<span data-field="display-min">${ov.min_qty ?? svc.min_qty}</span></div>
+            <div class="svc-price-block">Máx.<span>${Number(svc.max_qty).toLocaleString('pt-BR')}</span></div>
+          </div>
+        </div>
+        <div class="svc-card-actions">
+          <button type="button" class="btn-edit-toggle" title="Editar serviço">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Editar
+          </button>
+        </div>
+      </div>
+      <div class="svc-edit-panel">
+        <div class="edit-grid">
+          <div class="edit-field edit-full">
+            <label>Nome do serviço</label>
+            <input type="text" class="ef-name" value="${esc(ov.name ?? svc.name)}">
+          </div>
+          <div class="edit-field edit-full">
+            <label>Descrição (visível ao cliente)</label>
+            <textarea class="ef-desc">${esc(ov.description ?? '')}</textarea>
+          </div>
+          <div class="edit-field">
+            <label>Preço do provedor (R$/1000)</label>
+            <input type="number" step="0.0001" class="ef-provider-price" value="${Number(ov.provider_price ?? svc.provider_price).toFixed(4)}">
+          </div>
+          <div class="edit-field">
+            <label>Markup (%)</label>
+            <input type="number" step="1" min="0" class="ef-markup" value="${ov.markup ?? markup}">
+          </div>
+          <div class="edit-field">
+            <label>Preço de venda (R$/1000)</label>
+            <input type="number" step="0.0001" class="ef-sell-price" value="${sellPrice}" style="background:rgba(1,134,141,.08);border-color:rgba(1,134,141,.3)">
+          </div>
+          <div class="edit-field">
+            <label>Qtd. mínima</label>
+            <input type="number" min="1" class="ef-min" value="${ov.min_qty ?? svc.min_qty}">
+          </div>
+          <div class="edit-field">
+            <label>Qtd. máxima</label>
+            <input type="number" min="1" class="ef-max" value="${ov.max_qty ?? svc.max_qty}">
+          </div>
+          <div class="edit-field">
+            <label>Categoria</label>
+            <input type="text" class="ef-cat" value="${esc(ov.category_name ?? svc.category ?? '')}" placeholder="Ex: Instagram — Seguidores">
+          </div>
+        </div>
+        <div class="edit-toggle-row">
+          <label class="toggle-sw">
+            <input type="checkbox" class="ef-active" ${(ov.active !== false) ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-label">Serviço ativo (visível no painel)</span>
+        </div>
+      </div>`;
+
+    grid.appendChild(card);
+    initCard(card, svc);
+  });
+
+  document.getElementById('card-step3').style.display = '';
+  document.getElementById('count-badge').textContent = services.length;
+  document.getElementById('total-count').textContent = services.length;
+  updateCounts();
+  document.getElementById('card-step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Per-card logic ──
+function initCard(card, svc) {
+  const id = String(svc.external_id);
+
+  // Checkbox
+  const cb = card.querySelector('.row-check');
+  cb.addEventListener('change', () => {
+    card.classList.toggle('selected', cb.checked);
+    updateCounts();
+  });
+  card.classList.toggle('selected', cb.checked);
+
+  // Edit toggle
+  const editBtn = card.querySelector('.btn-edit-toggle');
+  const editPanel = card.querySelector('.svc-edit-panel');
+  editBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = editPanel.classList.toggle('open');
+    editBtn.classList.toggle('open', open);
+    editBtn.innerHTML = open
+      ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg> Fechar`
+      : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editar`;
+  });
+
+  // Live update helpers
+  function saveOv() {
+    const markup = parseFloat(card.querySelector('.ef-markup').value) || 0;
+    const provPrice = parseFloat(card.querySelector('.ef-provider-price').value) || svc.provider_price;
+    const sellPrice = (provPrice * (1 + markup / 100)).toFixed(4);
+    card.querySelector('.ef-sell-price').value = sellPrice;
+    card.querySelector('[data-field="display-sell"]').textContent = 'R$\u00a0' + sellPrice;
+    const name = card.querySelector('.ef-name').value || svc.name;
+    card.querySelector('[data-field="display-name"]').textContent = name;
+    const cat = card.querySelector('.ef-cat').value || svc.category || '—';
+    card.querySelector('[data-field="display-cat"]').textContent = cat;
+    const min = card.querySelector('.ef-min').value;
+    card.querySelector('[data-field="display-min"]').textContent = min;
+    overrides[id] = {
+      name, description: card.querySelector('.ef-desc').value,
+      provider_price: provPrice, markup,
+      min_qty: parseInt(card.querySelector('.ef-min').value) || svc.min_qty,
+      max_qty: parseInt(card.querySelector('.ef-max').value) || svc.max_qty,
+      category_name: card.querySelector('.ef-cat').value || svc.category,
+      active: card.querySelector('.ef-active').checked,
+    };
+  }
+
+  // Sell price ↔ markup sync
+  card.querySelector('.ef-markup').addEventListener('input', saveOv);
+  card.querySelector('.ef-provider-price').addEventListener('input', saveOv);
+  card.querySelector('.ef-sell-price').addEventListener('input', () => {
+    const provPrice = parseFloat(card.querySelector('.ef-provider-price').value) || svc.provider_price;
+    const sell = parseFloat(card.querySelector('.ef-sell-price').value);
+    if (provPrice > 0 && sell > 0) {
+      const m = ((sell / provPrice - 1) * 100).toFixed(1);
+      card.querySelector('.ef-markup').value = m;
     }
-    function showToast(msg, type = 'success') {
-        const el = document.getElementById('import-toast');
-        el.className = `toast align-items-center text-bg-${type} border-0`;
-        document.getElementById('toast-message').textContent = msg;
-        bootstrap.Toast.getOrCreateInstance(el, { delay: 7000 }).show();
+    saveOv();
+  });
+  card.querySelector('.ef-name').addEventListener('input', saveOv);
+  card.querySelector('.ef-cat').addEventListener('input', saveOv);
+  card.querySelector('.ef-min').addEventListener('input', saveOv);
+  card.querySelector('.ef-max').addEventListener('input', saveOv);
+  card.querySelector('.ef-active').addEventListener('change', saveOv);
+  card.querySelector('.ef-desc').addEventListener('input', saveOv);
+}
+
+// ── Filters ──
+document.getElementById('search-services').addEventListener('input', applyFilters);
+document.getElementById('filter-status').addEventListener('change', applyFilters);
+function applyFilters() {
+  const q = document.getElementById('search-services').value.toLowerCase();
+  const s = document.getElementById('filter-status').value;
+  document.querySelectorAll('#svc-grid .svc-card').forEach(card => {
+    const ex = card.dataset.existing === '1';
+    const match = (!q || card.dataset.name.includes(q)) &&
+      (s === 'all' || (s === 'new' && !ex) || (s === 'existing' && ex));
+    card.style.display = match ? '' : 'none';
+  });
+  updateCounts();
+}
+
+// ── Select helpers ──
+document.getElementById('btn-select-new').addEventListener('click', () => {
+  document.querySelectorAll('#svc-grid .svc-card').forEach(card => {
+    if (card.dataset.existing !== '1' && card.style.display !== 'none') {
+      const cb = card.querySelector('.row-check');
+      cb.checked = true; card.classList.add('selected');
     }
+  }); updateCounts();
+});
+document.getElementById('btn-deselect-all').addEventListener('click', () => {
+  document.querySelectorAll('#svc-grid .svc-card').forEach(card => {
+    const cb = card.querySelector('.row-check');
+    cb.checked = false; card.classList.remove('selected');
+  }); updateCounts();
+});
+function updateCounts() {
+  document.getElementById('selected-count').textContent =
+    document.querySelectorAll('.row-check:checked').length;
+}
+
+// ── Save ──
+document.getElementById('btn-save').addEventListener('click', async () => {
+  const markup  = parseInt(document.getElementById('default-markup').value) || 30;
+  const catId   = document.getElementById('default-category').value || null;
+  const checked = document.querySelectorAll('.row-check:checked');
+  if (!checked.length) { showToast('Selecione pelo menos um serviço.', 'danger'); return; }
+
+  const selected = [];
+  checked.forEach(cb => {
+    const card = cb.closest('.svc-card');
+    const id   = String(card.dataset.id);
+    const svc  = allServices.find(s => String(s.external_id) === id);
+    if (!svc) return;
+    const ov = overrides[id] || {};
+    selected.push({
+      external_id:    svc.external_id,
+      name:           ov.name           ?? svc.name,
+      description:    ov.description    ?? null,
+      provider_price: ov.provider_price ?? svc.provider_price,
+      min_qty:        ov.min_qty        ?? svc.min_qty,
+      max_qty:        ov.max_qty        ?? svc.max_qty,
+      category_name:  ov.category_name  ?? svc.category,
+      category_id:    catId ? parseInt(catId) : null,
+      markup_percent: ov.markup         ?? markup,
+      active:         ov.active         !== undefined ? ov.active : true,
+    });
+  });
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:-.1em;margin-right:6px"></span>Salvando…';
+  try {
+    const res  = await fetch(SAVE_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        provider_slug: currentSlug, mode: currentMode,
+        category_id:   catId ? parseInt(catId) : null,
+        default_markup_percent: markup, services: selected,
+      }),
+    });
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    showToast(`✅ ${json.saved} novos importados, ${json.updated} atualizados.`, 'success');
+  } catch(err) {
+    showToast('Erro: ' + err.message, 'danger');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-.15em;margin-right:5px"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>Importar Selecionados`;
+  }
+});
+
+// ── Toast ──
+function showToast(msg, type = 'success') {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = `imp-toast ${type}`;
+  el.innerHTML = `<span style="flex:1">${esc(msg)}</span><button type="button" style="background:none;border:none;color:#6b708a;cursor:pointer;font-size:1rem;padding:0;margin-left:8px" onclick="this.closest('.imp-toast').remove()">✕</button>`;
+  wrap.prepend(el);
+  setTimeout(() => el.remove(), 7000);
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 }());
 </script>
 {% endblock %}
