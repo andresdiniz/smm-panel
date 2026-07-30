@@ -10,6 +10,7 @@ use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -18,8 +19,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class AdminUserController extends AbstractController
 {
     public function __construct(
-        private readonly EntityManagerInterface $em,
-        private readonly PaginatorInterface     $paginator,
+        private readonly EntityManagerInterface       $em,
+        private readonly PaginatorInterface           $paginator,
+        private readonly UserPasswordHasherInterface  $hasher,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -42,6 +44,30 @@ class AdminUserController extends AbstractController
             'pagination' => $pagination,
             'search'     => $search,
         ]);
+    }
+
+    #[Route('/novo', name: 'new', methods: ['GET', 'POST'])]
+    public function new(Request $request): Response
+    {
+        if ($request->isMethod('POST')) {
+            $user = new User();
+            $user->setName($request->request->get('name', ''));
+            $user->setEmail($request->request->get('email', ''));
+            $user->setRoles($request->request->all('roles') ?: ['ROLE_USER']);
+
+            $plainPassword = $request->request->get('password', '');
+            if ($plainPassword !== '') {
+                $user->setPassword($this->hasher->hashPassword($user, $plainPassword));
+            }
+
+            $this->em->persist($user);
+            $this->em->flush();
+
+            $this->addFlash('success', 'Usuário criado com sucesso.');
+            return $this->redirectToRoute('admin_user_show', ['id' => $user->getId()]);
+        }
+
+        return $this->render('admin/user/new.html.twig');
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'])]
