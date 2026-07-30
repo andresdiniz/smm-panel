@@ -1,21 +1,11 @@
-{% extends '@EasyAdmin/crud/index.html.twig' %}
+{% extends 'admin/layout.html.twig' %}
 
 {% block page_title %}Pedidos{% endblock %}
 
-{% block head_stylesheets %}
-  {{ parent() }}
-  <style>
-  /* force full-width content area */
-  .content-panel,
-  .content-panel > .container,
-  .content-panel > .container-fluid,
-  .content-panel > .container-xxl,
-  .content-panel > .container-xl,
-  .content-panel > .container-lg { max-width: 100% !important; padding-left: 16px !important; padding-right: 16px !important; }
-
-  .content-header-wrapper { display: none !important; }
-
+{% block admin_content %}
+<style>
   /* table */
+  .ord-wrap { padding: 24px; }
   .ord-tbl-wrap { overflow-x: auto; }
   .ord-tbl { width: 100%; border-collapse: collapse; table-layout: fixed; }
   .ord-tbl col.c-id   { width: 58px; }
@@ -32,11 +22,12 @@
     font-size: 10px; font-weight: 700; text-transform: uppercase;
     letter-spacing: .07em; padding: 8px 10px;
     border-bottom: 2px solid rgba(255,255,255,.08); white-space: nowrap;
+    color: #6b708a;
   }
   .ord-tbl tbody td {
     padding: 10px; border-bottom: 1px solid rgba(255,255,255,.04);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    vertical-align: middle; font-size: .8125rem;
+    vertical-align: middle; font-size: .8125rem; color: #dde1f0;
   }
   .ord-tbl tbody tr:last-child td { border-bottom: none; }
   .ord-tbl tbody tr:hover { background: rgba(255,255,255,.03); }
@@ -61,7 +52,16 @@
 
   .ext-id { font-family: monospace; font-size: .7rem; opacity: .55; }
   .row-acts { display:flex; gap:4px; }
-  .row-acts .btn { padding: 3px 8px; font-size: .6875rem; }
+  .row-acts .btn {
+    padding: 3px 8px; font-size: .6875rem; border-radius: 4px;
+    cursor: pointer; text-decoration: none; display: inline-flex; align-items: center;
+  }
+  .btn-info    { background: rgba(30,114,160,.15); color:#3a8fc4; border:1px solid rgba(30,114,160,.3); }
+  .btn-warning { background: rgba(201,138,0,.12);  color:#b07a00; border:1px solid rgba(201,138,0,.3); }
+  .btn-danger  { background: rgba(176,48,48,.12);  color:#cc4444; border:1px solid rgba(176,48,48,.3); }
+  .btn-info:hover    { background: rgba(30,114,160,.28); }
+  .btn-warning:hover { background: rgba(201,138,0,.25); }
+  .btn-danger:hover  { background: rgba(176,48,48,.25); }
 
   /* header chips */
   .pg-chip {
@@ -77,10 +77,39 @@
   .pg-chip.pend { border-color:rgba(201,138,0,.4);    color:#b07a00; background:rgba(201,138,0,.08); }
   .pg-chip.part { border-color:rgba(220,120,64,.4);   color:#c06020; background:rgba(220,120,64,.08); }
   .pg-chip.refu { border-color:rgba(120,120,140,.3);  color:#7070a0; background:rgba(120,120,140,.06); }
-  </style>
-{% endblock %}
 
-{% block main %}
+  /* pagination */
+  .ord-pager { display:flex; gap:4px; align-items:center; }
+  .ord-pager a, .ord-pager span {
+    padding: 4px 10px; border-radius:4px; font-size:.75rem; font-weight:600;
+    border: 1px solid rgba(255,255,255,.1); color:#6b708a; text-decoration:none;
+  }
+  .ord-pager a:hover { background:rgba(255,255,255,.05); color:#dde1f0; }
+  .ord-pager span.current { background:rgba(1,134,141,.2); border-color:rgba(1,134,141,.4); color:#4eccd3; }
+
+  /* filter bar */
+  .ord-filters { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .ord-filters a {
+    padding: 4px 10px; border-radius:999px; font-size:.72rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:.04em;
+    border:1px solid rgba(255,255,255,.1); color:#6b708a; text-decoration:none;
+  }
+  .ord-filters a:hover { background:rgba(255,255,255,.05); color:#dde1f0; }
+  .ord-filters a.active { background:rgba(1,134,141,.15); border-color:rgba(1,134,141,.4); color:#4eccd3; }
+
+  /* form inputs */
+  .ord-search input {
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+    color: #dde1f0; border-radius: 4px; padding: 4px 10px; font-size:.78rem;
+  }
+  .ord-search input:focus { outline: none; border-color: rgba(1,134,141,.5); }
+  .ord-search button {
+    background: rgba(1,134,141,.2); border: 1px solid rgba(1,134,141,.4);
+    color: #4eccd3; border-radius: 4px; padding: 4px 10px; cursor:pointer;
+  }
+  .ord-search button:hover { background: rgba(1,134,141,.35); }
+</style>
+
 {% set stMap = {
   'pending':     ['st-pending',    'Pendente'],
   'processing':  ['st-processing', 'Processando'],
@@ -98,107 +127,125 @@
   'completed':'Concluídos','processing':'Processando','in_progress':'Em andamento',
   'pending':'Pendentes','cancelled':'Cancelados','partial':'Parciais','refunded':'Reembolsados'
 } %}
-{% set totalCount  = paginator.numResults %}
-{% set searchQuery = app.request.query.get('query', '') %}
-{% set counted = {} %}
-{% for entityDto in entities %}
-  {% set o = entityDto.getInstance() %}
-  {% set counted = counted|merge({(o.status): (counted[o.status] ?? 0) + 1}) %}
-{% endfor %}
+{% set totalCount = pagination.totalItemCount %}
 
-{# header #}
-<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-  <div class="d-flex align-items-center gap-2 flex-wrap">
-    <h4 class="mb-0 me-1">Pedidos</h4>
-    <span class="pg-chip tot">{{ totalCount }} total</span>
-    {% for st, cnt in counted %}
-      {% if chipMap[st] is defined %}
-        <span class="pg-chip {{ chipMap[st] }}">{{ cnt }} {{ statusLabels[st] ?? st }}</span>
-      {% endif %}
-    {% endfor %}
-  </div>
-  <form method="get" action="" class="d-flex">
-    {% for key, val in app.request.query.all %}
-      {% if key != 'query' and key != 'page' %}
-        <input type="hidden" name="{{ key }}" value="{{ val }}">
-      {% endif %}
-    {% endfor %}
-    <div class="input-group input-group-sm">
-      <input type="search" name="query" class="form-control" placeholder="Buscar pedidos…"
-             value="{{ searchQuery }}" autocomplete="off" style="width:220px">
-      <button class="btn btn-secondary" type="submit">
+<div class="ord-wrap">
+
+  {# header #}
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <h4 style="margin:0;font-size:1rem;font-weight:800;color:#f0f3ff;">Pedidos</h4>
+      <span class="pg-chip tot">{{ totalCount }} total</span>
+    </div>
+    <form method="get" action="" class="ord-search" style="display:flex;gap:4px;">
+      {% for key, val in app.request.query.all %}
+        {% if key != 'search' and key != 'page' %}
+          <input type="hidden" name="{{ key }}" value="{{ val }}">
+        {% endif %}
+      {% endfor %}
+      <input type="search" name="search" placeholder="Buscar pedidos…" value="{{ search }}" autocomplete="off" style="width:220px">
+      <button type="submit">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       </button>
-    </div>
-  </form>
-</div>
+    </form>
+  </div>
 
-{# table #}
-<div class="ord-tbl-wrap">
-  <table class="ord-tbl">
-    <colgroup>
-      <col class="c-id"><col class="c-user"><col class="c-svc">
-      <col class="c-st"><col class="c-val"><col class="c-qty">
-      <col class="c-ext"><col class="c-date"><col class="c-acts">
-    </colgroup>
-    <thead>
-      <tr>
-        <th>#</th><th>Usuário</th><th>Serviço</th>
-        <th>Status</th><th class="tc-val">Valor</th><th class="tc-qty">Qtd</th>
-        <th>ID Ext.</th><th>Criado em</th><th></th>
-      </tr>
-    </thead>
-    <tbody>
-    {% if entities|length > 0 %}
-      {% for entityDto in entities %}
-      {% set order = entityDto.getInstance() %}
-      {% set stInfo = stMap[order.status] ?? ['st-refunded', order.status] %}
-      <tr>
-        <td><span class="text-muted" style="font-size:.75rem;font-weight:700">#{{ order.id }}</span></td>
-        <td>
-          <span class="u-name">{{ order.user.name }}</span>
-          <span class="u-email">{{ order.user.email }}</span>
-        </td>
-        <td title="{{ order.service.name }}">{{ order.service.name }}</td>
-        <td><span class="st {{ stInfo[0] }}">{{ stInfo[1] }}</span></td>
-        <td class="tc-val" style="font-weight:700">R$&nbsp;{{ (order.amountCents/100)|number_format(2,',','.') }}</td>
-        <td class="tc-qty">{{ order.quantity }}</td>
-        <td>
-          {% if order.externalOrderId %}<span class="ext-id">{{ order.externalOrderId }}</span>
-          {% else %}<span class="text-muted">—</span>{% endif %}
-        </td>
-        <td style="font-size:.75rem">
-          {{ order.createdAt|date('d/m/Y') }}<br>
-          <span class="text-muted" style="font-size:.7rem">{{ order.createdAt|date('H:i') }}</span>
-        </td>
-        <td>
-          <div class="row-acts">
-            <a class="btn btn-sm btn-outline-info"
-               href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('detail').setEntityId(order.id).generateUrl() }}">
-              Show
-            </a>
-            <a class="btn btn-sm btn-outline-warning"
-               href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('edit').setEntityId(order.id).generateUrl() }}">
-              Edit
-            </a>
-            <a class="btn btn-sm btn-outline-danger"
-               href="{{ ea_url().setController('App\\Controller\\Admin\\OrderCrudController').setAction('delete').setEntityId(order.id).generateUrl() }}"
-               onclick="return confirm('Excluir pedido #{{ order.id }}?')">
-              Del
-            </a>
-          </div>
-        </td>
-      </tr>
+  {# status filter tabs #}
+  <div class="ord-filters" style="margin-bottom:14px;">
+    <a href="{{ path('admin_order_index', {search: search}) }}" class="{{ status is null ? 'active' }}">Todos</a>
+    {% for st in statuses %}
+      <a href="{{ path('admin_order_index', {status: st, search: search}) }}"
+         class="{{ status == st ? 'active' }}">
+        {{ statusLabels[st] ?? st }}
+      </a>
+    {% endfor %}
+  </div>
+
+  {# table #}
+  <div class="ord-tbl-wrap">
+    <table class="ord-tbl">
+      <colgroup>
+        <col class="c-id"><col class="c-user"><col class="c-svc">
+        <col class="c-st"><col class="c-val"><col class="c-qty">
+        <col class="c-ext"><col class="c-date"><col class="c-acts">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>#</th><th>Usuário</th><th>Serviço</th>
+          <th>Status</th><th class="tc-val">Valor</th><th class="tc-qty">Qtd</th>
+          <th>ID Ext.</th><th>Criado em</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% if pagination.items|length > 0 %}
+        {% for order in pagination.items %}
+        {% set stInfo = stMap[order.status] ?? ['st-refunded', order.status] %}
+        <tr>
+          <td><span style="font-size:.75rem;font-weight:700;color:#6b708a;">#{{ order.id }}</span></td>
+          <td>
+            <span class="u-name">{{ order.user.name }}</span>
+            <span class="u-email">{{ order.user.email }}</span>
+          </td>
+          <td title="{{ order.service.name }}">{{ order.service.name }}</td>
+          <td><span class="st {{ stInfo[0] }}">{{ stInfo[1] }}</span></td>
+          <td class="tc-val" style="font-weight:700">R$&nbsp;{{ (order.amountCents/100)|number_format(2,',','.') }}</td>
+          <td class="tc-qty">{{ order.quantity }}</td>
+          <td>
+            {% if order.externalOrderId %}<span class="ext-id">{{ order.externalOrderId }}</span>
+            {% else %}<span style="opacity:.35;">&#8212;</span>{% endif %}
+          </td>
+          <td style="font-size:.75rem">
+            {{ order.createdAt|date('d/m/Y') }}<br>
+            <span style="opacity:.45;font-size:.7rem;">{{ order.createdAt|date('H:i') }}</span>
+          </td>
+          <td>
+            <div class="row-acts">
+              <a class="btn btn-info"
+                 href="{{ path('admin_order_show', {id: order.id}) }}">
+                Ver
+              </a>
+              <a class="btn btn-warning"
+                 href="{{ path('admin_order_edit', {id: order.id}) }}">
+                Editar
+              </a>
+              <a class="btn btn-danger"
+                 href="{{ path('admin_order_delete', {id: order.id}) }}"
+                 onclick="return confirm('Excluir pedido #{{ order.id }}?')">
+                Del
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="9" style="text-align:center;padding:40px;opacity:.4;">Nenhum pedido encontrado.</td></tr>
+      {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  {# pagination #}
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:8px;">
+    <small style="color:#6b708a;font-size:.75rem;">{{ totalCount }} resultado{{ totalCount != 1 ? 's' : '' }}</small>
+    <div class="ord-pager">
+      {% if pagination.currentPageNumber > 1 %}
+        <a href="{{ path('admin_order_index', app.request.query.all|merge({page: pagination.currentPageNumber - 1})) }}">&laquo;</a>
+      {% endif %}
+      {% for p in range(
+          max(1, pagination.currentPageNumber - 2),
+          min(pagination.pageCount, pagination.currentPageNumber + 2)
+        ) %}
+        {% if p == pagination.currentPageNumber %}
+          <span class="current">{{ p }}</span>
+        {% else %}
+          <a href="{{ path('admin_order_index', app.request.query.all|merge({page: p})) }}">{{ p }}</a>
+        {% endif %}
       {% endfor %}
-    {% else %}
-      <tr><td colspan="9" class="text-center text-muted py-5">Nenhum pedido encontrado.</td></tr>
-    {% endif %}
-    </tbody>
-  </table>
-</div>
+      {% if pagination.currentPageNumber < pagination.pageCount %}
+        <a href="{{ path('admin_order_index', app.request.query.all|merge({page: pagination.currentPageNumber + 1})) }}">&raquo;</a>
+      {% endif %}
+    </div>
+  </div>
 
-<div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
-  <small class="text-muted">{{ totalCount }} resultado{{ totalCount != 1 ? 's' : '' }}</small>
-  {{ include('@EasyAdmin/crud/paginator.html.twig') }}
 </div>
 {% endblock %}
