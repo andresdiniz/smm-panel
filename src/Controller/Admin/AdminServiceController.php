@@ -25,19 +25,32 @@ class AdminServiceController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $search = $request->query->get('q');
+        $search   = $request->query->get('q');
+        $category = $request->query->get('category');
+
+        // category is a plain string column — NOT an ORM association.
+        // Never use leftJoin on it.
         $qb = $this->em->getRepository(Service::class)
             ->createQueryBuilder('s')
-            ->leftJoin('s.category', 'c')->addSelect('c')
-            ->orderBy('s.id', 'ASC');
+            ->orderBy('s.category', 'ASC')
+            ->addOrderBy('s.id', 'ASC');
+
         if ($search) {
-            $qb->andWhere('s.name LIKE :q OR s.externalServiceId LIKE :q')
+            $qb->andWhere('s.name LIKE :q OR s.externalServiceId LIKE :q OR s.category LIKE :q')
                ->setParameter('q', '%'.$search.'%');
         }
+
+        if ($category) {
+            $qb->andWhere('s.category = :cat')
+               ->setParameter('cat', $category);
+        }
+
         $pagination = $this->paginator->paginate($qb, $request->query->getInt('page', 1), 50);
+
         return $this->render('admin/service/index.html.twig', [
             'pagination' => $pagination,
             'search'     => $search,
+            'category'   => $category,
         ]);
     }
 
@@ -46,13 +59,22 @@ class AdminServiceController extends AbstractController
     {
         if ($request->isMethod('POST')) {
             $service->setName($request->request->get('name', $service->getName()));
-            $service->setIsActive((bool)$request->request->get('isActive', $service->isActive()));
-            $priceCents = $request->request->get('priceCents');
-            if ($priceCents !== null) $service->setPriceCents((int)$priceCents);
+            $service->setCategory($request->request->get('category', $service->getCategory()));
+            $service->setDescription($request->request->get('description', $service->getDescription()));
+            $service->setActive((bool) $request->request->get('active', $service->isActive()));
+            $service->setMinQty((int) $request->request->get('minQty', $service->getMinQty()));
+            $service->setMaxQty((int) $request->request->get('maxQty', $service->getMaxQty()));
+
+            $priceCents = $request->request->get('pricePerThousandCents');
+            if ($priceCents !== null && $priceCents !== '') {
+                $service->setPricePerThousandCents((int) $priceCents);
+            }
+
             $this->em->flush();
             $this->addFlash('success', 'Serviço atualizado.');
             return $this->redirectToRoute('admin_service_index');
         }
+
         return $this->render('admin/service/edit.html.twig', ['service' => $service]);
     }
 
