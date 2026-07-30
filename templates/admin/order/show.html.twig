@@ -1,0 +1,244 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block page_title %}Pedido #{{ order.id }}{% endblock %}
+
+{% block admin_content %}
+{% set stColors = {
+  'pending':     {bg:'rgba(201,138,0,.14)',  color:'#b07a00'},
+  'processing':  {bg:'rgba(30,114,160,.15)', color:'#3a8fc4'},
+  'in_progress': {bg:'rgba(30,114,160,.15)', color:'#3a8fc4'},
+  'completed':   {bg:'rgba(77,143,37,.15)',  color:'#5aaa2a'},
+  'partial':     {bg:'rgba(220,120,64,.14)', color:'#c06020'},
+  'cancelled':   {bg:'rgba(176,48,48,.14)',  color:'#cc4444'},
+  'refunded':    {bg:'rgba(120,120,140,.12)',color:'#7070a0'},
+} %}
+{% set stLabels = {
+  'pending':'Pendente','processing':'Processando','in_progress':'Em andamento',
+  'completed':'Concluído','partial':'Parcial','cancelled':'Cancelado','refunded':'Reembolsado'
+} %}
+{% set sc = stColors[order.status] ?? {bg:'rgba(120,120,140,.12)',color:'#7070a0'} %}
+<style>
+  .show-wrap { padding: 24px; max-width: 1100px; }
+  .show-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: #6b708a; text-decoration: none; font-size: .78rem; font-weight: 600;
+    margin-bottom: 20px; transition: color .15s;
+  }
+  .show-back:hover { color: #dde1f0; }
+  .show-header {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px; margin-bottom: 24px;
+  }
+  .show-title { font-size: 1.1rem; font-weight: 900; color: #f0f3ff; margin: 0; }
+  .show-actions { display: flex; gap: 8px; }
+  .btn-act {
+    padding: 6px 14px; border-radius: 5px; font-size: .78rem; font-weight: 700;
+    text-decoration: none; cursor: pointer; border: 1px solid; display: inline-flex;
+    align-items: center; gap: 5px; transition: background .15s;
+  }
+  .btn-edit   { background:rgba(201,138,0,.12);  color:#b07a00; border-color:rgba(201,138,0,.3); }
+  .btn-edit:hover   { background:rgba(201,138,0,.25); }
+  .btn-delete { background:rgba(176,48,48,.12);  color:#cc4444; border-color:rgba(176,48,48,.3); }
+  .btn-delete:hover { background:rgba(176,48,48,.25); }
+
+  /* cards */
+  .show-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  @media(max-width:768px){ .show-grid { grid-template-columns: 1fr; } }
+  .show-card {
+    background: #0b0e14; border: 1px solid rgba(255,255,255,.06);
+    border-radius: 8px; padding: 20px;
+  }
+  .show-card-title {
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .12em; color: #3e4259; margin-bottom: 14px;
+  }
+  .show-row { display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+  .show-row:last-child { border-bottom: none; }
+  .show-label { font-size: .72rem; color: #6b708a; white-space: nowrap; flex-shrink: 0; }
+  .show-val   { font-size: .8125rem; color: #dde1f0; font-weight: 600;
+                text-align: right; word-break: break-all; }
+  .show-val.mono { font-family: monospace; font-size: .75rem; }
+  .show-val.url  { font-family: monospace; font-size: .7rem; opacity: .7;
+                   max-width: 320px; overflow: hidden; text-overflow: ellipsis;
+                   white-space: nowrap; display: block; }
+
+  /* status badge */
+  .st-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  }
+  .st-badge::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+
+  /* amount highlight */
+  .amount-big { font-size: 1.4rem; font-weight: 900; color: #f0f3ff; }
+
+  /* logs */
+  .log-wrap { background: #0b0e14; border: 1px solid rgba(255,255,255,.06);
+    border-radius: 8px; padding: 20px; }
+  .log-title { font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .12em; color: #3e4259; margin-bottom: 14px; }
+  .log-entry { display: flex; gap: 12px; padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,.04); }
+  .log-entry:last-child { border-bottom: none; }
+  .log-dot { width: 8px; height: 8px; border-radius: 50%;
+    background: #3e4259; flex-shrink: 0; margin-top: 5px; }
+  .log-date { font-size: .7rem; color: #6b708a; white-space: nowrap; min-width: 110px; }
+  .log-msg  { font-size: .78rem; color: #9196b0; flex: 1; }
+  .log-empty { font-size: .78rem; color: #3e4259; text-align: center; padding: 20px 0; }
+</style>
+
+<div class="show-wrap">
+
+  <a href="{{ path('admin_order_index') }}" class="show-back">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    Voltar para pedidos
+  </a>
+
+  <div class="show-header">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <h1 class="show-title">Pedido #{{ order.id }}</h1>
+      <span class="st-badge" style="background:{{ sc.bg }};color:{{ sc.color }};">
+        {{ stLabels[order.status] ?? order.status }}
+      </span>
+    </div>
+    <div class="show-actions">
+      <a href="{{ path('admin_order_edit', {id: order.id}) }}" class="btn-act btn-edit">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Editar
+      </a>
+      <a href="{{ path('admin_order_delete', {id: order.id}) }}" class="btn-act btn-delete"
+         onclick="return confirm('Excluir pedido #{{ order.id }}?')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        Excluir
+      </a>
+    </div>
+  </div>
+
+  {# ── main value highlight ── #}
+  <div class="show-card" style="margin-bottom:16px;display:flex;align-items:center;gap:32px;flex-wrap:wrap;">
+    <div>
+      <div class="show-label" style="margin-bottom:4px;">Valor total</div>
+      <div class="amount-big">R$&nbsp;{{ (order.amountCents / 100)|number_format(2, ',', '.') }}</div>
+    </div>
+    <div>
+      <div class="show-label" style="margin-bottom:4px;">Quantidade</div>
+      <div style="font-size:1.4rem;font-weight:900;color:#f0f3ff;">{{ order.quantity }}</div>
+    </div>
+    {% if order.startCount is not null %}
+    <div>
+      <div class="show-label" style="margin-bottom:4px;">Entregues</div>
+      <div style="font-size:1.4rem;font-weight:900;color:#5aaa2a;">{{ order.startCount }}</div>
+    </div>
+    {% endif %}
+    {% if order.remains is not null %}
+    <div>
+      <div class="show-label" style="margin-bottom:4px;">Restam</div>
+      <div style="font-size:1.4rem;font-weight:900;color:#b07a00;">{{ order.remains }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="show-grid">
+
+    {# ── Usuário ── #}
+    <div class="show-card">
+      <div class="show-card-title">Usuário</div>
+      <div class="show-row">
+        <span class="show-label">Nome</span>
+        <span class="show-val">{{ order.user.name }}</span>
+      </div>
+      <div class="show-row">
+        <span class="show-label">E-mail</span>
+        <span class="show-val">{{ order.user.email }}</span>
+      </div>
+      <div class="show-row">
+        <span class="show-label">ID</span>
+        <a href="{{ path('admin_user_show', {id: order.user.id}) }}"
+           class="show-val" style="color:#4eccd3;text-decoration:none;">#{{ order.user.id }}</a>
+      </div>
+    </div>
+
+    {# ── Serviço ── #}
+    <div class="show-card">
+      <div class="show-card-title">Serviço</div>
+      <div class="show-row">
+        <span class="show-label">Nome</span>
+        <span class="show-val">{{ order.service.name }}</span>
+      </div>
+      <div class="show-row">
+        <span class="show-label">ID Serviço</span>
+        <span class="show-val mono">#{{ order.service.id }}</span>
+      </div>
+      {% if order.service.providerSlug is defined and order.service.providerSlug %}
+      <div class="show-row">
+        <span class="show-label">Provedor</span>
+        <span class="show-val mono">{{ order.service.providerSlug }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    {# ── Detalhes do pedido ── #}
+    <div class="show-card">
+      <div class="show-card-title">Detalhes</div>
+      <div class="show-row">
+        <span class="show-label">Status</span>
+        <span class="show-val">
+          <span class="st-badge" style="background:{{ sc.bg }};color:{{ sc.color }};">
+            {{ stLabels[order.status] ?? order.status }}
+          </span>
+        </span>
+      </div>
+      <div class="show-row">
+        <span class="show-label">URL alvo</span>
+        <span class="show-val url" title="{{ order.targetUrl }}">{{ order.targetUrl }}</span>
+      </div>
+      <div class="show-row">
+        <span class="show-label">ID Externo</span>
+        <span class="show-val mono">{{ order.externalOrderId ?? '—' }}</span>
+      </div>
+      <div class="show-row">
+        <span class="show-label">Tentativas sync</span>
+        <span class="show-val">{{ order.syncAttempts }}</span>
+      </div>
+    </div>
+
+    {# ── Datas ── #}
+    <div class="show-card">
+      <div class="show-card-title">Datas</div>
+      <div class="show-row">
+        <span class="show-label">Criado em</span>
+        <span class="show-val">{{ order.createdAt|date('d/m/Y H:i:s') }}</span>
+      </div>
+      <div class="show-row">
+        <span class="show-label">Atualizado em</span>
+        <span class="show-val">{{ order.updatedAt ? order.updatedAt|date('d/m/Y H:i:s') : '—' }}</span>
+      </div>
+      <div class="show-row">
+        <span class="show-label">Concluído em</span>
+        <span class="show-val">{{ order.completedAt ? order.completedAt|date('d/m/Y H:i:s') : '—' }}</span>
+      </div>
+    </div>
+
+  </div>{# /show-grid #}
+
+  {# ── Logs do pedido ── #}
+  <div class="log-wrap">
+    <div class="log-title">Histórico / Logs</div>
+    {% set logs = order.orderLogs %}
+    {% if logs|length > 0 %}
+      {% for log in logs %}
+      <div class="log-entry">
+        <div class="log-dot"></div>
+        <div class="log-date">{{ log.createdAt|date('d/m/Y H:i') }}</div>
+        <div class="log-msg">{{ log.message ?? log }}</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="log-empty">Nenhum log registrado para este pedido.</div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
