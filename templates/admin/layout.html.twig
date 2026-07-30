@@ -17,7 +17,7 @@
 
     /* ── Sidebar ── */
     .adm-sidebar {
-      width: 220px;
+      width: 230px;
       flex-shrink: 0;
       background: #0b0e14;
       border-right: 1px solid rgba(255,255,255,.06);
@@ -28,7 +28,12 @@
       top: 0;
       height: 100vh;
       overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.08) transparent;
     }
+    .adm-sidebar::-webkit-scrollbar { width: 4px; }
+    .adm-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
+
     .adm-logo {
       padding: 0 18px 20px;
       font-size: .8125rem;
@@ -39,32 +44,35 @@
       align-items: center;
       gap: 8px;
       border-bottom: 1px solid rgba(255,255,255,.06);
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
     .adm-logo svg { color: #01868d; }
+
     .adm-section {
       font-size: 9px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: .12em;
       color: #3e4259;
-      padding: 14px 18px 6px;
+      padding: 14px 18px 5px;
     }
+
     .adm-nav a {
       display: flex;
       align-items: center;
       gap: 9px;
-      padding: 8px 18px;
-      font-size: .8rem;
+      padding: 7px 18px;
+      font-size: .78rem;
       font-weight: 600;
       color: #6b708a;
       text-decoration: none;
-      border-radius: 0;
       transition: background .15s, color .15s;
     }
     .adm-nav a:hover { background: rgba(255,255,255,.04); color: #dde1f0; }
     .adm-nav a.active { background: rgba(1,134,141,.12); color: #4eccd3; }
-    .adm-nav a svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .adm-nav a svg { width: 14px; height: 14px; flex-shrink: 0; opacity: .75; }
+    .adm-nav a.active svg { opacity: 1; }
+
     .adm-footer {
       margin-top: auto;
       padding: 12px 18px 0;
@@ -83,11 +91,7 @@
     .adm-footer a:hover { color: #e06060; }
 
     /* ── Main ── */
-    .adm-main {
-      flex: 1;
-      min-width: 0;
-      overflow-x: hidden;
-    }
+    .adm-main { flex: 1; min-width: 0; overflow-x: hidden; }
 
     /* ── Mobile toggle ── */
     .adm-mobile-bar {
@@ -102,35 +106,23 @@
       z-index: 100;
     }
     .adm-mobile-bar button {
-      background: none;
-      border: none;
-      color: #9196b0;
-      cursor: pointer;
-      padding: 4px;
-      display: flex;
+      background: none; border: none;
+      color: #9196b0; cursor: pointer; padding: 4px; display: flex;
     }
-    .adm-mobile-bar span {
-      font-size: .875rem;
-      font-weight: 800;
-      color: #f0f3ff;
-    }
+    .adm-mobile-bar span { font-size: .875rem; font-weight: 800; color: #f0f3ff; }
+
     @media(max-width: 768px) {
       .adm-mobile-bar { display: flex; }
       .adm-sidebar {
-        position: fixed;
-        top: 0; left: 0;
-        height: 100vh;
-        z-index: 200;
+        position: fixed; top: 0; left: 0;
+        height: 100vh; z-index: 200;
         transform: translateX(-100%);
         transition: transform .22s ease;
       }
       .adm-sidebar.open { transform: translateX(0); }
       .adm-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,.55);
-        z-index: 190;
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,.55); z-index: 190;
       }
       .adm-overlay.open { display: block; }
     }
@@ -150,6 +142,7 @@
 <div class="adm-overlay" id="adm-overlay"></div>
 
 {# ── Sidebar ── #}
+{% set route = app.request.attributes.get('_route') %}
 <aside class="adm-sidebar" id="adm-sidebar">
   <div class="adm-logo">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -161,27 +154,114 @@
     SMM Panel
   </div>
 
+  {# ── Principal ── #}
   <div class="adm-section">Principal</div>
   <nav class="adm-nav">
-    <a href="{{ path('admin_dashboard') }}" class="{% if app.request.attributes.get('_route') == 'admin_dashboard' %}active{% endif %}">
+    <a href="{{ path('admin_dashboard') }}" class="{{ route == 'admin_dashboard' ? 'active' }}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       Dashboard
     </a>
   </nav>
 
+  {# ── Gestão ── #}
   <div class="adm-section">Gestão</div>
   <nav class="adm-nav">
-    <a href="{{ path('admin_order_index') }}" class="{% if 'admin_order' in app.request.attributes.get('_route') %}active{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+    <a href="{{ path('admin_order_index') }}" class="{{ route starts with 'admin_order' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
       Pedidos
     </a>
-    <a href="{{ path('admin_user_index') }}" class="{% if 'admin_user' in app.request.attributes.get('_route') %}active{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+    <a href="{{ path('admin_user_index') }}" class="{{ route starts with 'admin_user' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       Usuários
     </a>
-    <a href="{{ path('admin_service_index') }}" class="{% if 'admin_service' in app.request.attributes.get('_route') %}active{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    <a href="{{ path('admin_service_index') }}" class="{{ route starts with 'admin_service' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
       Serviços
+    </a>
+    <a href="{{ path('admin_service_category_index') }}" class="{{ route starts with 'admin_service_category' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Categorias
+    </a>
+    <a href="{{ path('admin_service_import') }}" class="{{ route starts with 'admin_service_import' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
+      Importar Serviços
+    </a>
+  </nav>
+
+  {# ── Financeiro ── #}
+  <div class="adm-section">Financeiro</div>
+  <nav class="adm-nav">
+    <a href="{{ path('admin_payments_dashboard') }}" class="{{ route starts with 'admin_payments' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Painel Financeiro
+    </a>
+    <a href="{{ path('admin_payment_index') }}" class="{{ route starts with 'admin_payment' and route not starts with 'admin_payments' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Histórico de Pagamentos
+    </a>
+    <a href="{{ path('admin_wallet_transaction_index') }}" class="{{ route starts with 'admin_wallet' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+      Carteiras / Transações
+    </a>
+  </nav>
+
+  {# ── Provedores ── #}
+  <div class="adm-section">Provedores</div>
+  <nav class="adm-nav">
+    <a href="{{ path('admin_provider_credential_index') }}" class="{{ route starts with 'admin_provider_credential' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      Chaves de API
+    </a>
+    <a href="{{ path('admin_provider_balance') }}" class="{{ route == 'admin_provider_balance' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Balanço dos Provedores
+    </a>
+  </nav>
+
+  {# ── CRM / Suporte ── #}
+  <div class="adm-section">CRM / Suporte</div>
+  <nav class="adm-nav">
+    <a href="{{ path('admin_crm_dashboard') }}" class="{{ route starts with 'admin_crm' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      CRM
+    </a>
+    <a href="{{ path('admin_support_index') }}" class="{{ route starts with 'admin_support' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Suporte / Tickets
+    </a>
+    <a href="{{ path('admin_contact_index') }}" class="{{ route starts with 'admin_contact' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Contatos
+    </a>
+  </nav>
+
+  {# ── Blog ── #}
+  <div class="adm-section">Blog</div>
+  <nav class="adm-nav">
+    <a href="{{ path('admin_blog_post_index') }}" class="{{ route starts with 'admin_blog_post' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Posts
+    </a>
+    <a href="{{ path('admin_blog_category_index') }}" class="{{ route starts with 'admin_blog_category' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      Categorias Blog
+    </a>
+    <a href="{{ path('admin_blog_tag_index') }}" class="{{ route starts with 'admin_blog_tag' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+      Tags
+    </a>
+  </nav>
+
+  {# ── Sistema ── #}
+  <div class="adm-section">Sistema</div>
+  <nav class="adm-nav">
+    <a href="{{ path('admin_cron_log_index') }}" class="{{ route starts with 'admin_cron' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Logs de Cron
+    </a>
+    <a href="{{ path('admin_order_log_index') }}" class="{{ route starts with 'admin_order_log' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Logs de Pedidos
     </a>
   </nav>
 
