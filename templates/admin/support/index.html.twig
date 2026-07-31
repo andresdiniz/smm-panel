@@ -1,35 +1,36 @@
-{% extends 'base.html.twig' %}
+{% extends 'admin/layout.html.twig' %}
 {% block page_title %}Suporte — Admin{% endblock %}
 
-{% block content %}
+{% block admin_content %}
+<div style="padding:28px 32px;">
 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
   <div>
     <h1 style="font-size:1.25rem;font-weight:700;margin:0 0 2px;">Central de Suporte</h1>
-    <p style="font-size:.85rem;color:var(--color-text-muted);margin:0;">
+    <p style="font-size:.85rem;color:#6b708a;margin:0;">
       {{ tickets|length }} ticket{{ tickets|length != 1 ? 's' : '' }} aberto{{ tickets|length != 1 ? 's' : '' }}
-      {% if unreadCount > 0 %}&nbsp;—&nbsp;<strong style="color:var(--color-error);">{{ unreadCount }} não lido{{ unreadCount != 1 ? 's' : '' }}</strong>{% endif %}
+      {% if unreadCount > 0 %}&nbsp;—&nbsp;<strong style="color:#a12c7b;">{{ unreadCount }} não lido{{ unreadCount != 1 ? 's' : '' }}</strong>{% endif %}
     </p>
   </div>
 </div>
 
 {% if tickets|length == 0 %}
-<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:64px 16px;color:var(--color-text-muted);">
-  <i data-lucide="check-circle" width="48" height="48" style="margin-bottom:16px;color:var(--color-success);" aria-hidden="true"></i>
-  <h3 style="font-size:1rem;font-weight:600;color:var(--color-text);margin:0 0 6px;">Tudo em dia!</h3>
+<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:64px 16px;color:#6b708a;">
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4eccd3" stroke-width="1.5" style="margin-bottom:16px;" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+  <h3 style="font-size:1rem;font-weight:600;color:#dde1f0;margin:0 0 6px;">Tudo em dia!</h3>
   <p style="max-width:34ch;margin:0;font-size:.875rem;">Nenhum ticket aberto no momento.</p>
 </div>
 {% else %}
-<div class="card" style="overflow:hidden;">
+<div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden;">
   <table style="width:100%;border-collapse:collapse;">
     <thead>
-      <tr style="border-bottom:1px solid var(--color-border);background:var(--color-surface-2);">
-        <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);">#</th>
-        <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);">Usuário</th>
-        <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);">Assunto</th>
-        <th style="padding:10px 16px;text-align:center;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);">Status</th>
-        <th style="padding:10px 16px;text-align:center;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);">Prior.</th>
-        <th style="padding:10px 16px;text-align:center;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);">Msgs</th>
-        <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);">Atualizado</th>
+      <tr style="border-bottom:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);">
+        <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;">#</th>
+        <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;">Usuário</th>
+        <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;">Assunto</th>
+        <th style="padding:10px 16px;text-align:center;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;">Status</th>
+        <th style="padding:10px 16px;text-align:center;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;">Prior.</th>
+        <th style="padding:10px 16px;text-align:center;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;">Msgs</th>
+        <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;">Atualizado</th>
         <th style="padding:10px 16px;"></th>
       </tr>
     </thead>
@@ -37,40 +38,38 @@
     {% for ticket in tickets %}
       {%- set unread = ticket.countUnreadByAdmin() -%}
       {%- set subject = ticket.subject|length > 50 ? ticket.subject|slice(0,50) ~ '…' : ticket.subject -%}
-      <tr style="border-bottom:1px solid var(--color-border);transition:background .15s;" onmouseover="this.style.background='var(--color-surface-offset)'" onmouseout="this.style.background=''">
-        <td style="padding:11px 16px;font-size:.8rem;color:var(--color-text-muted);font-variant-numeric:tabular-nums;">#{{ ticket.id }}</td>
+      <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
+        <td style="padding:11px 16px;font-size:.8rem;color:#6b708a;font-variant-numeric:tabular-nums;">#{{ ticket.id }}</td>
         <td style="padding:11px 16px;">
-          <div style="font-size:.8rem;font-weight:600;">{{ ticket.user.name|split(' ')|first }}</div>
-          <div style="font-size:.7rem;color:var(--color-text-muted);">{{ ticket.user.email }}</div>
+          <div style="font-size:.8rem;font-weight:600;color:#dde1f0;">{{ ticket.user.name|split(' ')|first }}</div>
+          <div style="font-size:.7rem;color:#6b708a;">{{ ticket.user.email }}</div>
         </td>
-        <td style="padding:11px 16px;font-size:.875rem;font-weight:500;max-width:240px;">
+        <td style="padding:11px 16px;font-size:.875rem;font-weight:500;max-width:240px;color:#dde1f0;">
           {{ subject }}
           {% if unread > 0 %}
-          <span style="display:inline-flex;margin-left:6px;padding:1px 6px;font-size:.58rem;font-weight:700;border-radius:9999px;background:var(--color-error,#a12c7b);color:#fff;vertical-align:middle;">{{ unread }} novo{{ unread != 1 ? 's' : '' }}</span>
+          <span style="display:inline-flex;margin-left:6px;padding:1px 6px;font-size:.58rem;font-weight:700;border-radius:9999px;background:#a12c7b;color:#fff;vertical-align:middle;">{{ unread }} novo{{ unread != 1 ? 's' : '' }}</span>
           {% endif %}
         </td>
         <td style="padding:11px 16px;text-align:center;">
           <span style="padding:2px 9px;font-size:.68rem;font-weight:600;border-radius:9999px;
-            {% if ticket.status.value == 'open' %}background:color-mix(in srgb,var(--color-blue) 12%,transparent);color:var(--color-blue);
-            {% elseif ticket.status.value == 'in_progress' %}background:color-mix(in srgb,var(--color-orange) 12%,transparent);color:var(--color-orange);
-            {% elseif ticket.status.value == 'waiting_user' %}background:color-mix(in srgb,var(--color-gold) 12%,transparent);color:var(--color-gold);
-            {% else %}background:color-mix(in srgb,var(--color-success) 12%,transparent);color:var(--color-success);
+            {% if ticket.status.value == 'open' %}background:rgba(0,100,148,.18);color:#5591c7;
+            {% elseif ticket.status.value == 'in_progress' %}background:rgba(218,113,1,.15);color:#fdab43;
+            {% elseif ticket.status.value == 'waiting_user' %}background:rgba(209,153,0,.15);color:#e8af34;
+            {% else %}background:rgba(67,122,34,.18);color:#6daa45;
             {% endif %}">{{ ticket.status.label() }}</span>
         </td>
         <td style="padding:11px 16px;text-align:center;">
           <span style="padding:2px 9px;font-size:.68rem;font-weight:600;border-radius:9999px;
-            {% if ticket.priority.value == 'urgent' %}background:color-mix(in srgb,var(--color-error) 12%,transparent);color:var(--color-error);
-            {% elseif ticket.priority.value == 'high' %}background:color-mix(in srgb,var(--color-orange) 12%,transparent);color:var(--color-orange);
-            {% elseif ticket.priority.value == 'normal' %}background:color-mix(in srgb,var(--color-blue) 12%,transparent);color:var(--color-blue);
-            {% else %}background:color-mix(in srgb,var(--color-text-muted) 12%,transparent);color:var(--color-text-muted);
+            {% if ticket.priority.value == 'urgent' %}background:rgba(161,44,123,.18);color:#d163a7;
+            {% elseif ticket.priority.value == 'high' %}background:rgba(218,113,1,.15);color:#fdab43;
+            {% elseif ticket.priority.value == 'normal' %}background:rgba(0,100,148,.18);color:#5591c7;
+            {% else %}background:rgba(107,112,138,.15);color:#6b708a;
             {% endif %}">{{ ticket.priority.label() }}</span>
         </td>
-        <td style="padding:11px 16px;text-align:center;font-size:.8rem;color:var(--color-text-muted);font-variant-numeric:tabular-nums;">{{ ticket.messages|length }}</td>
-        <td style="padding:11px 16px;font-size:.8rem;color:var(--color-text-muted);white-space:nowrap;">
-          {{ (ticket.updatedAt ?? ticket.createdAt)|date('d/m/y H:i') }}
-        </td>
+        <td style="padding:11px 16px;text-align:center;font-size:.8rem;color:#6b708a;font-variant-numeric:tabular-nums;">{{ ticket.messages|length }}</td>
+        <td style="padding:11px 16px;font-size:.8rem;color:#6b708a;white-space:nowrap;">{{ (ticket.updatedAt ?? ticket.createdAt)|date('d/m/y H:i') }}</td>
         <td style="padding:11px 16px;text-align:right;">
-          <a href="{{ path('admin_support_show', {id: ticket.id}) }}" style="font-size:.8rem;font-weight:500;color:var(--color-primary);text-decoration:none;">Atender →</a>
+          <a href="{{ path('admin_support_show', {id: ticket.id}) }}" style="font-size:.8rem;font-weight:500;color:#4eccd3;text-decoration:none;">Atender →</a>
         </td>
       </tr>
     {% endfor %}
@@ -78,4 +77,5 @@
   </table>
 </div>
 {% endif %}
+</div>
 {% endblock %}

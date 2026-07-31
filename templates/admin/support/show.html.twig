@@ -1,12 +1,13 @@
-{% extends 'base.html.twig' %}
+{% extends 'admin/layout.html.twig' %}
 {% block page_title %}Ticket #{{ ticket.id }}{% endblock %}
 
-{% block content %}
-<div style="max-width:800px;margin:0 auto;">
+{% block admin_content %}
+<div style="padding:28px 32px;">
+<div style="max-width:860px;">
 
   <div style="margin-bottom:16px;">
-    <a href="{{ path('admin_support_index') }}" style="font-size:.85rem;color:var(--color-text-muted);text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
-      <i data-lucide="arrow-left" width="14" height="14" aria-hidden="true"></i> Todos os tickets
+    <a href="{{ path('admin_support_index') }}" style="font-size:.85rem;color:#6b708a;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg> Todos os tickets
     </a>
   </div>
 
@@ -15,8 +16,8 @@
     {# Coluna principal: conversa #}
     <div>
       <div style="margin-bottom:16px;">
-        <h1 style="font-size:1.1rem;font-weight:700;margin:0 0 4px;">{{ ticket.subject }}</h1>
-        <span style="font-size:.75rem;color:var(--color-text-muted);">{{ ticket.user.name }} &middot; {{ ticket.user.email }} &middot; aberto {{ ticket.createdAt|date('d/m/Y H:i') }}</span>
+        <h1 style="font-size:1.1rem;font-weight:700;margin:0 0 4px;color:#dde1f0;">{{ ticket.subject }}</h1>
+        <span style="font-size:.75rem;color:#6b708a;">{{ ticket.user.name }} · {{ ticket.user.email }} · aberto {{ ticket.createdAt|date('d/m/Y H:i') }}</span>
       </div>
 
       {# Thread #}
@@ -24,14 +25,14 @@
         {% for msg in ticket.messages %}
         <div style="display:flex;flex-direction:column;align-items:{% if msg.isFromAdmin() %}flex-end{% else %}flex-start{% endif %};">
           <div style="max-width:88%;">
-            <div style="font-size:.68rem;font-weight:600;margin-bottom:4px;color:var(--color-text-muted);text-align:{% if msg.isFromAdmin() %}right{% else %}left{% endif %};">
-              {% if msg.isFromAdmin() %}<span style="color:var(--color-primary);"><i data-lucide="headphones" width="11" height="11" style="vertical-align:middle;"></i> Suporte (você)</span>{% else %}{{ ticket.user.name|split(' ')|first }}{% endif %}
-              &nbsp;&middot;&nbsp;{{ msg.createdAt|date('d/m/y H:i') }}
+            <div style="font-size:.68rem;font-weight:600;margin-bottom:4px;color:#6b708a;text-align:{% if msg.isFromAdmin() %}right{% else %}left{% endif %};">
+              {% if msg.isFromAdmin() %}<span style="color:#4eccd3;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg> Suporte (você)</span>{% else %}{{ ticket.user.name|split(' ')|first }}{% endif %}
+              &nbsp;·&nbsp;{{ msg.createdAt|date('d/m/y H:i') }}
             </div>
             <div style="padding:12px 16px;border-radius:{% if msg.isFromAdmin() %}16px 4px 16px 16px{% else %}4px 16px 16px 16px{% endif %};
-              background:{% if msg.isFromAdmin() %}var(--color-primary){% else %}var(--color-surface){% endif %};
-              color:{% if msg.isFromAdmin() %}#fff{% else %}var(--color-text){% endif %};
-              border:1px solid {% if msg.isFromAdmin() %}transparent{% else %}var(--color-border){% endif %};
+              background:{% if msg.isFromAdmin() %}#01696f{% else %}rgba(255,255,255,.04){% endif %};
+              color:{% if msg.isFromAdmin() %}#fff{% else %}#dde1f0{% endif %};
+              border:1px solid {% if msg.isFromAdmin() %}transparent{% else %}rgba(255,255,255,.06){% endif %};
               font-size:.875rem;line-height:1.6;white-space:pre-wrap;word-break:break-word;">
               {{ msg.body|e|nl2br }}
             </div>
@@ -42,17 +43,17 @@
 
       {# Resposta #}
       {% if ticket.isOpen() %}
-      <div class="card" style="padding:16px;">
+      <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px;">
         <form method="POST">
           <input type="hidden" name="action" value="reply">
-          <label for="body" style="display:block;font-size:.8rem;font-weight:600;margin-bottom:8px;">Responder ao usuário</label>
+          <label for="body" style="display:block;font-size:.8rem;font-weight:600;margin-bottom:8px;color:#dde1f0;">Responder ao usuário</label>
           <textarea id="body" name="body" rows="4" required maxlength="4000"
                     placeholder="Digite sua resposta..."
-                    style="width:100%;padding:9px 12px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface-2);color:var(--color-text);font-size:.875rem;resize:vertical;outline:none;font-family:inherit;transition:border .15s;"
-                    onfocus="this.style.borderColor='var(--color-primary)'" onblur="this.style.borderColor='var(--color-border)'"></textarea>
+                    style="width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.03);color:#dde1f0;font-size:.875rem;resize:vertical;outline:none;font-family:inherit;transition:border .15s;"
+                    onfocus="this.style.borderColor='#4eccd3'" onblur="this.style.borderColor='rgba(255,255,255,.08)'"></textarea>
           <div style="display:flex;justify-content:flex-end;margin-top:10px;">
-            <button type="submit" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:6px;">
-              <i data-lucide="send" width="14" height="14" aria-hidden="true"></i>
+            <button type="submit" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#01696f;color:#fff;border:none;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#0c4e54'" onmouseout="this.style.background='#01696f'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               Enviar resposta
             </button>
           </div>
@@ -64,47 +65,48 @@
     {# Sidebar direita: controles #}
     <div style="display:flex;flex-direction:column;gap:12px;">
 
-      <div class="card" style="padding:16px;">
-        <p style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);margin:0 0 10px;">Status</p>
+      <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px;">
+        <p style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;margin:0 0 10px;">Status</p>
         <form method="POST" style="display:flex;flex-direction:column;gap:8px;">
           <input type="hidden" name="action" value="status">
-          <select name="status" style="width:100%;padding:7px 10px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface-2);color:var(--color-text);font-size:.875rem;outline:none;">
+          <select name="status" style="width:100%;padding:7px 10px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.03);color:#dde1f0;font-size:.875rem;outline:none;">
             {% for s in statuses %}
             <option value="{{ s.value }}" {% if ticket.status == s %}selected{% endif %}>{{ s.label() }}</option>
             {% endfor %}
           </select>
-          <button type="submit" class="btn btn-secondary" style="font-size:.8rem;">Atualizar status</button>
+          <button type="submit" style="padding:6px 12px;background:rgba(255,255,255,.05);color:#dde1f0;border:1px solid rgba(255,255,255,.08);border-radius:7px;font-size:.8rem;font-weight:500;cursor:pointer;">Atualizar status</button>
         </form>
       </div>
 
-      <div class="card" style="padding:16px;">
-        <p style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);margin:0 0 10px;">Prioridade</p>
+      <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px;">
+        <p style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;margin:0 0 10px;">Prioridade</p>
         <form method="POST" style="display:flex;flex-direction:column;gap:8px;">
           <input type="hidden" name="action" value="priority">
-          <select name="priority" style="width:100%;padding:7px 10px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface-2);color:var(--color-text);font-size:.875rem;outline:none;">
+          <select name="priority" style="width:100%;padding:7px 10px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.03);color:#dde1f0;font-size:.875rem;outline:none;">
             {% for p in priorities %}
             <option value="{{ p.value }}" {% if ticket.priority == p %}selected{% endif %}>{{ p.label() }}</option>
             {% endfor %}
           </select>
-          <button type="submit" class="btn btn-secondary" style="font-size:.8rem;">Atualizar prioridade</button>
+          <button type="submit" style="padding:6px 12px;background:rgba(255,255,255,.05);color:#dde1f0;border:1px solid rgba(255,255,255,.08);border-radius:7px;font-size:.8rem;font-weight:500;cursor:pointer;">Atualizar prioridade</button>
         </form>
       </div>
 
-      <div class="card" style="padding:16px;">
-        <p style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--color-text-muted);margin:0 0 10px;">Dados</p>
+      <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px;">
+        <p style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;margin:0 0 10px;">Dados</p>
         <dl style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:.78rem;">
-          <dt style="color:var(--color-text-muted);">Aberto</dt>
-          <dd>{{ ticket.createdAt|date('d/m/y H:i') }}</dd>
-          <dt style="color:var(--color-text-muted);">Mensagens</dt>
-          <dd>{{ ticket.messages|length }}</dd>
+          <dt style="color:#6b708a;">Aberto</dt>
+          <dd style="color:#dde1f0;">{{ ticket.createdAt|date('d/m/y H:i') }}</dd>
+          <dt style="color:#6b708a;">Mensagens</dt>
+          <dd style="color:#dde1f0;">{{ ticket.messages|length }}</dd>
           {% if ticket.closedAt %}
-          <dt style="color:var(--color-text-muted);">Fechado</dt>
-          <dd>{{ ticket.closedAt|date('d/m/y H:i') }}</dd>
+          <dt style="color:#6b708a;">Fechado</dt>
+          <dd style="color:#dde1f0;">{{ ticket.closedAt|date('d/m/y H:i') }}</dd>
           {% endif %}
         </dl>
       </div>
 
     </div>
   </div>
+</div>
 </div>
 {% endblock %}
