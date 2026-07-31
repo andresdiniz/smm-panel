@@ -1,0 +1,55 @@
+{% extends 'admin/layout.html.twig' %}
+{% block page_title %}{{ category ? 'Editar Categoria' : 'Nova Categoria' }}{% endblock %}
+
+{% block admin_content %}
+<div style="padding:28px 32px;">
+<div style="max-width:520px;">
+
+  {# ── Breadcrumb ── #}
+  <div style="margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;">
+    <a href="{{ path('admin_blog_category_index') }}" style="font-size:.85rem;color:#6b708a;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> Categorias
+    </a>
+    <h1 style="font-size:1rem;font-weight:700;color:#dde1f0;margin:0;">
+      {{ category ? 'Editar: ' ~ category.name : 'Nova categoria' }}
+    </h1>
+  </div>
+
+  {# ── Flash ── #}
+  {% for label, messages in app.flashes %}
+    {% for msg in messages %}
+      <div style="margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:.85rem;font-weight:500;
+        background:{% if label=='success' %}rgba(67,122,34,.15){% else %}rgba(161,44,123,.15){% endif %};
+        color:{% if label=='success' %}#6daa45{% else %}#d163a7{% endif %};
+        border:1px solid {% if label=='success' %}rgba(67,122,34,.25){% else %}rgba(161,44,123,.25){% endif %};">{{ msg }}</div>
+    {% endfor %}
+  {% endfor %}
+
+  {# ── Formulário ── #}
+  <form method="POST" style="display:flex;flex-direction:column;gap:16px;">
+
+    <div>
+      <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:6px;color:#dde1f0;">
+        Nome <span style="color:#d163a7;">*</span>
+      </label>
+      <input type="text" name="name" value="{{ category ? category.name : '' }}" required maxlength="120"
+             placeholder="Ex: Marketing Digital"
+             style="width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.03);color:#dde1f0;font-size:.9rem;outline:none;transition:border .15s;"
+             onfocus="this.style.borderColor='#4eccd3'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
+      <p style="font-size:.73rem;color:#3e4259;margin-top:5px;">O slug será gerado automaticamente a partir do nome.</p>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:4px;">
+      <a href="{{ path('admin_blog_category_index') }}"
+         style="padding:8px 16px;background:rgba(255,255,255,.05);color:#dde1f0;border:1px solid rgba(255,255,255,.08);border-radius:7px;font-size:.8rem;font-weight:500;text-decoration:none;">Cancelar</a>
+      <button type="submit"
+              style="padding:8px 20px;background:#01696f;color:#fff;border:none;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer;transition:background .15s;"
+              onmouseover="this.style.background='#0c4e54'" onmouseout="this.style.background='#01696f'">
+        {{ category ? 'Salvar alterações' : 'Criar categoria' }}
+      </button>
+    </div>
+
+  </form>
+</div>
+</div>
+{% endblock %}
