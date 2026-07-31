@@ -1,445 +1,181 @@
-{% extends 'base.html.twig' %}
+{% extends 'admin/layout.html.twig' %}
 
-{% block title %}Pagamentos — Admin{% endblock %}
-{% block page_title %}Dashboard de Pagamentos{% endblock %}
+{% block page_title %}Painel Financeiro{% endblock %}
 
-{% block stylesheets %}
+{% block admin_content %}
 <style>
-/* ══════════════════════════════════════════════
-   PAYMENTS DASHBOARD — usa variáveis do tema
-══════════════════════════════════════════════ */
+.pay-page { display:flex; flex-direction:column; gap:20px; padding:24px; }
 
-.pay-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5, 20px);
-}
+.pay-kpi-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; }
+.pay-kpi { background:#0b0e14; border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:18px 20px; display:flex; flex-direction:column; gap:6px; position:relative; overflow:hidden; }
+.pay-kpi::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:.07; pointer-events:none; }
+.pay-kpi--green::before  { background:#22c55e; }
+.pay-kpi--amber::before  { background:#f59e0b; }
+.pay-kpi--purple::before { background:#8b5cf6; }
+.pay-kpi__icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.pay-kpi--green  .pay-kpi__icon { background:rgba(34,197,94,.15);  color:#22c55e; }
+.pay-kpi--amber  .pay-kpi__icon { background:rgba(245,158,11,.15); color:#f59e0b; }
+.pay-kpi--purple .pay-kpi__icon { background:rgba(139,92,246,.15); color:#8b5cf6; }
+.pay-kpi__label { font-size:.72rem; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:#3e4259; line-height:1; }
+.pay-kpi__value { font-size:1.55rem; font-weight:700; color:#f0f3ff; line-height:1.15; letter-spacing:-.02em; }
+.pay-kpi__sub   { font-size:.72rem; color:#3e4259; }
 
-/* ── KPI row ─────────────────────────────────── */
-.pay-kpi-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-4, 16px);
-}
+.pay-charts-row { display:grid; grid-template-columns:2fr 1fr; gap:16px; }
+@media(max-width:768px){ .pay-charts-row { grid-template-columns:1fr; } }
 
-.pay-kpi {
-  background: var(--surface, #1c1b19);
-  border: 1px solid var(--border, #393836);
-  border-radius: 12px;
-  padding: 18px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  position: relative;
-  overflow: hidden;
-}
+.pay-card { background:#0b0e14; border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:20px 22px; }
+.pay-card__title { font-size:.82rem; font-weight:600; color:#dde1f0; margin-bottom:14px; display:flex; align-items:center; gap:7px; }
+.pay-card__title svg { color:#4eccd3; }
 
-.pay-kpi::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  opacity: .07;
-  pointer-events: none;
-}
+.pay-tabs { display:flex; gap:6px; flex-wrap:wrap; padding-bottom:16px; border-bottom:1px solid rgba(255,255,255,.06); margin-bottom:20px; }
+.pay-tab { padding:7px 16px; border-radius:8px; border:1px solid rgba(255,255,255,.08); background:transparent; color:#6b708a; font-size:.8rem; font-weight:500; cursor:pointer; transition:all .18s; display:flex; align-items:center; gap:6px; }
+.pay-tab:hover { border-color:#4eccd3; color:#dde1f0; }
+.pay-tab.is-active { background:#01868d; border-color:#01868d; color:#fff; }
+.pay-tab-content { display:none; }
+.pay-tab-content.is-active { display:block; }
 
-.pay-kpi--green::before  { background: #22c55e; }
-.pay-kpi--amber::before  { background: #f59e0b; }
-.pay-kpi--purple::before { background: #8b5cf6; }
+.pay-table-wrap { overflow-x:auto; }
+.pay-table { width:100%; border-collapse:collapse; font-size:.8rem; }
+.pay-table th { background:#0d1016; color:#3e4259; font-weight:700; font-size:.68rem; letter-spacing:.05em; text-transform:uppercase; padding:9px 13px; text-align:left; border-bottom:1px solid rgba(255,255,255,.06); white-space:nowrap; }
+.pay-table td { padding:10px 13px; color:#dde1f0; border-bottom:1px solid rgba(255,255,255,.04); vertical-align:middle; }
+.pay-table tbody tr:last-child td { border-bottom:none; }
+.pay-table tbody tr:hover td { background:rgba(1,134,141,.04); }
 
-.pay-kpi__icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
+.badge { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:20px; font-size:.68rem; font-weight:700; white-space:nowrap; }
+.badge--pending  { background:rgba(245,158,11,.12); color:#f59e0b; border:1px solid rgba(245,158,11,.25); }
+.badge--approved { background:rgba(34,197,94,.12);  color:#22c55e; border:1px solid rgba(34,197,94,.25); }
+.badge--failed   { background:rgba(239,68,68,.12);  color:#ef4444; border:1px solid rgba(239,68,68,.25); }
+.badge--refunded { background:rgba(139,92,246,.12); color:#8b5cf6; border:1px solid rgba(139,92,246,.25); }
 
-.pay-kpi--green  .pay-kpi__icon { background: rgba(34,197,94,.15);  color: #22c55e; }
-.pay-kpi--amber  .pay-kpi__icon { background: rgba(245,158,11,.15); color: #f59e0b; }
-.pay-kpi--purple .pay-kpi__icon { background: rgba(139,92,246,.15); color: #8b5cf6; }
+.pay-btn { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:7px; font-size:.76rem; font-weight:600; cursor:pointer; border:none; text-decoration:none; transition:opacity .15s, transform .1s; white-space:nowrap; }
+.pay-btn:active { transform:scale(.97); }
+.pay-btn--approve { background:rgba(34,197,94,.15);  color:#22c55e; border:1px solid rgba(34,197,94,.3); }
+.pay-btn--cancel  { background:rgba(239,68,68,.15);  color:#ef4444; border:1px solid rgba(239,68,68,.3); }
+.pay-btn--approve:hover { background:#22c55e; color:#fff; }
+.pay-btn--cancel:hover  { background:#ef4444; color:#fff; }
 
-.pay-kpi__label {
-  font-size: .72rem;
-  font-weight: 600;
-  letter-spacing: .03em;
-  text-transform: uppercase;
-  color: var(--text-2, #797876);
-  line-height: 1;
-}
-
-.pay-kpi__value {
-  font-size: 1.55rem;
-  font-weight: 700;
-  color: var(--text, #cdccca);
-  line-height: 1.15;
-  letter-spacing: -.02em;
-}
-
-.pay-kpi__sub {
-  font-size: .72rem;
-  color: var(--text-3, #5a5957);
-}
-
-/* ── Charts row ──────────────────────────────── */
-.pay-charts-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: var(--space-4, 16px);
-}
-@media (max-width: 768px) {
-  .pay-charts-row { grid-template-columns: 1fr; }
-}
-
-.pay-card {
-  background: var(--surface, #1c1b19);
-  border: 1px solid var(--border, #393836);
-  border-radius: 12px;
-  padding: 20px 22px;
-}
-
-.pay-card__title {
-  font-size: .82rem;
-  font-weight: 600;
-  color: var(--text, #cdccca);
-  margin-bottom: 14px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.pay-card__title i { color: var(--primary, #4f98a3); }
-
-/* ── Tabs ────────────────────────────────────── */
-.pay-tabs {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border, #393836);
-  margin-bottom: 20px;
-}
-
-.pay-tab {
-  padding: 7px 16px;
-  border-radius: 8px;
-  border: 1px solid var(--border, #393836);
-  background: transparent;
-  color: var(--text-2, #797876);
-  font-size: .8rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all .18s;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.pay-tab:hover { border-color: var(--primary, #4f98a3); color: var(--text, #cdccca); }
-
-.pay-tab.is-active {
-  background: var(--primary, #4f98a3);
-  border-color: var(--primary, #4f98a3);
-  color: #fff;
-}
-
-.pay-tab-content { display: none; }
-.pay-tab-content.is-active { display: block; }
-
-/* ── Table ───────────────────────────────────── */
-.pay-table-wrap { overflow-x: auto; }
-
-.pay-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: .82rem;
-}
-
-.pay-table th {
-  background: var(--surface-2, #201f1d);
-  color: var(--text-2, #797876);
-  font-weight: 600;
-  font-size: .72rem;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  padding: 10px 14px;
-  text-align: left;
-  border-bottom: 1px solid var(--border, #393836);
-  white-space: nowrap;
-}
-
-.pay-table td {
-  padding: 11px 14px;
-  color: var(--text, #cdccca);
-  border-bottom: 1px solid var(--border, #393836);
-  vertical-align: middle;
-}
-
-.pay-table tbody tr:last-child td { border-bottom: none; }
-
-.pay-table tbody tr:hover td {
-  background: color-mix(in srgb, var(--primary, #4f98a3) 4%, transparent);
-}
-
-/* ── Badges ──────────────────────────────────── */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: 20px;
-  font-size: .7rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.badge--pending  { background: rgba(245,158,11,.12); color: #f59e0b; border: 1px solid rgba(245,158,11,.25); }
-.badge--approved { background: rgba(34,197,94,.12);  color: #22c55e; border: 1px solid rgba(34,197,94,.25); }
-.badge--failed   { background: rgba(239,68,68,.12);  color: #ef4444; border: 1px solid rgba(239,68,68,.25); }
-.badge--refunded { background: rgba(139,92,246,.12); color: #8b5cf6; border: 1px solid rgba(139,92,246,.25); }
-
-/* ── Actions ─────────────────────────────────── */
-.pay-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  border-radius: 7px;
-  font-size: .78rem;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  text-decoration: none;
-  transition: opacity .15s, transform .1s;
-  white-space: nowrap;
-}
-
-.pay-btn:active { transform: scale(.97); }
-.pay-btn--approve { background: rgba(34,197,94,.15);  color: #22c55e; border: 1px solid rgba(34,197,94,.3); }
-.pay-btn--cancel  { background: rgba(239,68,68,.15);  color: #ef4444; border: 1px solid rgba(239,68,68,.3); }
-.pay-btn--approve:hover { background: #22c55e; color: #fff; }
-.pay-btn--cancel:hover  { background: #ef4444; color: #fff; }
-
-/* ── Form ────────────────────────────────────── */
-.pay-form {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 14px;
-}
-
-.pay-field { display: flex; flex-direction: column; gap: 5px; }
-
-.pay-field label {
-  font-size: .72rem;
-  font-weight: 600;
-  letter-spacing: .03em;
-  text-transform: uppercase;
-  color: var(--text-2, #797876);
-}
-
+.pay-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; }
+.pay-field { display:flex; flex-direction:column; gap:5px; }
+.pay-field label { font-size:.68rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#3e4259; }
 .pay-field input,
 .pay-field select,
-.pay-field textarea {
-  background: var(--surface-2, #201f1d);
-  border: 1px solid var(--border, #393836);
-  color: var(--text, #cdccca);
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: .85rem;
-  width: 100%;
-  transition: border-color .18s;
-}
-
+.pay-field textarea { background:#0d1016; border:1px solid rgba(255,255,255,.08); color:#dde1f0; padding:8px 12px; border-radius:8px; font-size:.85rem; width:100%; transition:border-color .18s; }
 .pay-field input:focus,
 .pay-field select:focus,
-.pay-field textarea:focus {
-  outline: none;
-  border-color: var(--primary, #4f98a3);
-}
+.pay-field textarea:focus { outline:none; border-color:#01868d; }
+.pay-field select option { background:#0d1016; }
+.pay-field textarea { resize:vertical; min-height:68px; }
+.pay-form-footer { margin-top:18px; }
 
-.pay-field textarea { resize: vertical; min-height: 68px; }
+.pay-btn-submit { display:inline-flex; align-items:center; gap:6px; padding:9px 22px; border-radius:8px; font-size:.85rem; font-weight:600; cursor:pointer; border:none; transition:opacity .15s, transform .1s; }
+.pay-btn-submit:active { transform:scale(.97); }
+.pay-btn-submit--primary { background:#01868d; color:#fff; }
+.pay-btn-submit--danger  { background:#ef4444; color:#fff; }
 
-.pay-form-footer { margin-top: 18px; }
+.pay-checkbox-row { display:flex; align-items:center; gap:8px; margin-top:6px; font-size:.83rem; color:#dde1f0; cursor:pointer; }
+.pay-checkbox-row input[type=checkbox] { width:14px; height:14px; accent-color:#01868d; }
 
-.pay-btn-submit {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 22px;
-  border-radius: 8px;
-  font-size: .85rem;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: opacity .15s, transform .1s;
-}
+.pay-empty { display:flex; flex-direction:column; align-items:center; gap:10px; padding:40px 20px; color:#3e4259; text-align:center; }
+.pay-empty p { font-size:.9rem; color:#6b708a; }
 
-.pay-btn-submit:active { transform: scale(.97); }
-.pay-btn-submit--primary { background: var(--primary, #4f98a3); color: #fff; }
-.pay-btn-submit--danger  { background: #ef4444; color: #fff; }
+.pay-warning { display:flex; align-items:flex-start; gap:8px; background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.2); border-radius:8px; padding:10px 14px; font-size:.82rem; color:#f59e0b; margin-bottom:16px; }
 
-/* ── Checkbox row ────────────────────────────── */
-.pay-checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 6px;
-  font-size: .83rem;
-  color: var(--text, #cdccca);
-  cursor: pointer;
-}
-
-.pay-checkbox-row input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--primary, #4f98a3); }
-
-/* ── Empty state ─────────────────────────────── */
-.pay-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 40px 20px;
-  color: var(--text-3, #5a5957);
-  text-align: center;
-}
-
-.pay-empty i { color: var(--text-3, #5a5957); }
-.pay-empty p { font-size: .9rem; color: var(--text-2, #797876); }
-
-/* ── Warning banner ──────────────────────────── */
-.pay-warning {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  background: rgba(245,158,11,.08);
-  border: 1px solid rgba(245,158,11,.2);
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: .82rem;
-  color: #f59e0b;
-  margin-bottom: 16px;
-}
-
-/* ── User cell ───────────────────────────────── */
-.user-cell strong {
-  display: block;
-  font-size: .83rem;
-  color: var(--text, #cdccca);
-}
-.user-cell small {
-  font-size: .72rem;
-  color: var(--text-3, #5a5957);
-}
-
-/* ── Value highlight ─────────────────────────── */
-.val-green { font-weight: 700; color: #22c55e; }
-.val-muted  { color: var(--text-3, #5a5957); font-size: .78rem; }
-
-/* ── Back link ───────────────────────────────── */
-.pay-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: .8rem;
-  color: var(--text-2, #797876);
-  text-decoration: none;
-  margin-bottom: 4px;
-  transition: color .15s;
-}
-.pay-back:hover { color: var(--text, #cdccca); }
+.user-cell strong { display:block; font-size:.82rem; color:#dde1f0; }
+.user-cell small  { font-size:.7rem; color:#3e4259; }
+.val-green { font-weight:700; color:#22c55e; }
+.val-muted  { color:#3e4259; font-size:.76rem; }
 </style>
-{% endblock %}
 
-{% block content %}
 <div class="pay-page">
 
-  <a href="{{ path('admin_dashboard') }}" class="pay-back">
-    <i data-lucide="arrow-left" width="14" height="14"></i> Voltar ao Admin
-  </a>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <h1 style="font-size:1.1rem;font-weight:800;color:#f0f3ff">Painel Financeiro</h1>
+    <a href="{{ path('admin_dashboard') }}" style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;color:#6b708a;text-decoration:none">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Voltar
+    </a>
+  </div>
 
-  {# ── Flash messages ─── #}
   {% for type, messages in app.flashes %}
     {% for msg in messages %}
-      <div class="flash flash--{{ type }}">
-        <i data-lucide="{% if type == 'success' %}check-circle{% elseif type == 'error' %}x-circle{% else %}alert-triangle{% endif %}" width="15" height="15"></i>
-        <span>{{ msg }}</span>
-        <button class="flash__close" onclick="this.closest('.flash').remove()" aria-label="Fechar">&times;</button>
+      <div style="padding:10px 14px;border-radius:8px;font-size:.82rem;
+           background:{{ type == 'success' ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)' }};
+           color:{{ type == 'success' ? '#22c55e' : '#ef4444' }};
+           border:1px solid {{ type == 'success' ? 'rgba(34,197,94,.25)' : 'rgba(239,68,68,.25)' }};">
+        {{ msg }}
       </div>
     {% endfor %}
   {% endfor %}
 
-  {# ══ KPI CARDS ══════════════════════════════════ #}
+  {# ══ KPI CARDS ══ #}
   <div class="pay-kpi-row">
-
     <div class="pay-kpi pay-kpi--green">
-      <div class="pay-kpi__icon"><i data-lucide="trending-up" width="16" height="16"></i></div>
+      <div class="pay-kpi__icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      </div>
       <span class="pay-kpi__label">Total Recebido</span>
       <span class="pay-kpi__value">R$ {{ (totalApproved / 100)|number_format(2, ',', '.') }}</span>
     </div>
-
     <div class="pay-kpi pay-kpi--amber">
-      <div class="pay-kpi__icon"><i data-lucide="clock" width="16" height="16"></i></div>
+      <div class="pay-kpi__icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
       <span class="pay-kpi__label">Pendente</span>
       <span class="pay-kpi__value">R$ {{ (totalPending / 100)|number_format(2, ',', '.') }}</span>
       <span class="pay-kpi__sub">{{ countPending }} pagamento{{ countPending != 1 ? 's' : '' }}</span>
     </div>
-
     <div class="pay-kpi pay-kpi--purple">
-      <div class="pay-kpi__icon"><i data-lucide="rotate-ccw" width="16" height="16"></i></div>
+      <div class="pay-kpi__icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.89"/></svg>
+      </div>
       <span class="pay-kpi__label">Total Estornado</span>
       <span class="pay-kpi__value">R$ {{ (totalRefunded / 100)|number_format(2, ',', '.') }}</span>
     </div>
-
   </div>
 
-  {# ══ CHARTS ══════════════════════════════════════ #}
+  {# ══ CHARTS ══ #}
   <div class="pay-charts-row">
-
     <div class="pay-card">
       <div class="pay-card__title">
-        <i data-lucide="bar-chart-2" width="15" height="15"></i>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         Receita Aprovada — Últimos 6 Meses
       </div>
       <canvas id="chartMonthly" height="110"></canvas>
     </div>
-
     <div class="pay-card">
       <div class="pay-card__title">
-        <i data-lucide="pie-chart" width="15" height="15"></i>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
         Distribuição por Status
       </div>
       <canvas id="chartStatus" height="200"></canvas>
     </div>
-
   </div>
 
-  {# ══ TABS SECTION ════════════════════════════════ #}
+  {# ══ TABS ══ #}
   <div class="pay-card">
-
     <div class="pay-tabs">
-      <button class="pay-tab is-active" onclick="payTab('tab-pending', this)">
-        <i data-lucide="clock" width="13" height="13"></i>
+      <button class="pay-tab is-active" onclick="payTab('tab-pending',this)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Pendentes
         {% if countPending > 0 %}
           <span class="badge badge--pending">{{ countPending }}</span>
         {% endif %}
       </button>
-      <button class="pay-tab" onclick="payTab('tab-manual', this)">
-        <i data-lucide="plus-circle" width="13" height="13"></i>
+      <button class="pay-tab" onclick="payTab('tab-manual',this)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
         Pagamento Manual
       </button>
-      <button class="pay-tab" onclick="payTab('tab-refund', this)">
-        <i data-lucide="rotate-ccw" width="13" height="13"></i>
+      <button class="pay-tab" onclick="payTab('tab-refund',this)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.89"/></svg>
         Aplicar Estorno
       </button>
     </div>
 
-    {# ── TAB 1: Pendentes ─────────────────────── #}
+    {# TAB 1: Pendentes #}
     <div id="tab-pending" class="pay-tab-content is-active">
       {% if pendingPayments is empty %}
         <div class="pay-empty">
-          <i data-lucide="check-circle" width="40" height="40"></i>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#3e4259" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
           <p>Nenhum pagamento pendente no momento.</p>
         </div>
       {% else %}
@@ -447,14 +183,8 @@
           <table class="pay-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Usuário</th>
-                <th>Valor</th>
-                <th>Método</th>
-                <th>ID Externo</th>
-                <th>Taxa</th>
-                <th>Criado em</th>
-                <th>Ações</th>
+                <th>ID</th><th>Usuário</th><th>Valor</th><th>Método</th>
+                <th>ID Externo</th><th>Taxa</th><th>Criado em</th><th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -466,9 +196,7 @@
                   <small>{{ p.user.email }}</small>
                 </td>
                 <td class="val-green">R$ {{ (p.amountCents / 100)|number_format(2, ',', '.') }}</td>
-                <td>
-                  <span class="badge badge--pending">{{ p.method }}</span>
-                </td>
+                <td><span class="badge badge--pending">{{ p.method }}</span></td>
                 <td class="val-muted">{{ p.externalId ?? '—' }}</td>
                 <td>{{ p.feeCents > 0 ? 'R$ ' ~ (p.feeCents / 100)|number_format(2, ',', '.') : '—' }}</td>
                 <td class="val-muted">{{ p.createdAt|date('d/m/Y H:i') }}</td>
@@ -476,12 +204,14 @@
                   <a href="{{ path('admin_payment_approve', {id: p.id}) }}"
                      onclick="return confirm('Aprovar pagamento #{{ p.id }} para {{ p.user.name }}?')"
                      class="pay-btn pay-btn--approve">
-                    <i data-lucide="check" width="12" height="12"></i> Aprovar
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    Aprovar
                   </a>
                   <a href="{{ path('admin_payment_cancel', {id: p.id}) }}"
                      onclick="return confirm('Cancelar pagamento #{{ p.id }}?')"
                      class="pay-btn pay-btn--cancel" style="margin-left:6px">
-                    <i data-lucide="x" width="12" height="12"></i> Cancelar
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    Cancelar
                   </a>
                 </td>
               </tr>
@@ -492,7 +222,7 @@
       {% endif %}
     </div>
 
-    {# ── TAB 2: Manual ───────────────────────── #}
+    {# TAB 2: Manual #}
     <div id="tab-manual" class="pay-tab-content">
       <form method="POST" action="{{ path('admin_payments_dashboard_create_manual') }}">
         <div class="pay-form">
@@ -528,17 +258,17 @@
         </label>
         <div class="pay-form-footer">
           <button type="submit" class="pay-btn-submit pay-btn-submit--primary">
-            <i data-lucide="plus-circle" width="14" height="14"></i>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
             Criar Pagamento Manual
           </button>
         </div>
       </form>
     </div>
 
-    {# ── TAB 3: Estorno ──────────────────────── #}
+    {# TAB 3: Estorno #}
     <div id="tab-refund" class="pay-tab-content">
       <div class="pay-warning">
-        <i data-lucide="alert-triangle" width="15" height="15" style="flex-shrink:0;margin-top:1px"></i>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         O estorno débita diretamente o saldo da carteira do usuário. Use apenas quando solicitado via suporte.
       </div>
       <form method="POST" action="{{ path('admin_payments_dashboard_refund_wallet') }}">
@@ -565,7 +295,7 @@
           <button type="submit"
             onclick="return confirm('Confirma o estorno? O valor sera debitado do saldo do usuario.')"
             class="pay-btn-submit pay-btn-submit--danger">
-            <i data-lucide="rotate-ccw" width="14" height="14"></i>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.89"/></svg>
             Aplicar Estorno
           </button>
         </div>
@@ -574,24 +304,15 @@
 
   </div>{# /pay-card #}
 </div>{# /pay-page #}
-{% endblock %}
 
-{% block javascripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-
-  /* ── Detecta tema atual ─────────────────── */
-  function isDark() {
-    return document.documentElement.getAttribute('data-theme') === 'dark';
-  }
-
   var gridColor  = 'rgba(255,255,255,.06)';
-  var tickColor  = '#797876';
-  var tooltipBg  = '#1c1b19';
-  var tooltipTxt = '#cdccca';
+  var tickColor  = '#3e4259';
+  var tooltipBg  = '#0b0e14';
+  var tooltipTxt = '#dde1f0';
 
-  /* ── Bar chart ──────────────────────────── */
   var ctxBar = document.getElementById('chartMonthly').getContext('2d');
   new Chart(ctxBar, {
     type: 'bar',
@@ -600,8 +321,8 @@ document.addEventListener('DOMContentLoaded', function () {
       datasets: [{
         label: 'Receita Aprovada (R$)',
         data: {{ chartApproved|raw }},
-        backgroundColor: 'rgba(79,152,163,.65)',
-        borderColor: 'var(--primary, #4f98a3)',
+        backgroundColor: 'rgba(1,134,141,.55)',
+        borderColor: '#01868d',
         borderWidth: 2,
         borderRadius: 6,
         borderSkipped: false
@@ -611,29 +332,15 @@ document.addEventListener('DOMContentLoaded', function () {
       responsive: true,
       plugins: {
         legend: { labels: { color: tickColor, font: { size: 11 } } },
-        tooltip: {
-          backgroundColor: tooltipBg,
-          titleColor: tooltipTxt,
-          bodyColor: tickColor,
-          borderColor: 'rgba(255,255,255,.08)',
-          borderWidth: 1,
-          padding: 10
-        }
+        tooltip: { backgroundColor: tooltipBg, titleColor: tooltipTxt, bodyColor: tickColor, borderColor: 'rgba(255,255,255,.08)', borderWidth: 1, padding: 10 }
       },
       scales: {
-        x: {
-          ticks: { color: tickColor, font: { size: 11 } },
-          grid: { color: gridColor }
-        },
-        y: {
-          ticks: { color: tickColor, font: { size: 11 } },
-          grid: { color: gridColor }
-        }
+        x: { ticks: { color: tickColor, font: { size: 11 } }, grid: { color: gridColor } },
+        y: { ticks: { color: tickColor, font: { size: 11 } }, grid: { color: gridColor } }
       }
     }
   });
 
-  /* ── Doughnut chart ─────────────────────── */
   var ctxDnt = document.getElementById('chartStatus').getContext('2d');
   new Chart(ctxDnt, {
     type: 'doughnut',
@@ -643,7 +350,7 @@ document.addEventListener('DOMContentLoaded', function () {
         data: {{ statusValues|raw }},
         backgroundColor: {{ statusChartColors|raw }},
         borderWidth: 2,
-        borderColor: 'var(--surface, #1c1b19)',
+        borderColor: '#0b0e14',
         hoverBorderColor: '#fff'
       }]
     },
@@ -651,32 +358,18 @@ document.addEventListener('DOMContentLoaded', function () {
       responsive: true,
       cutout: '68%',
       plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { color: tickColor, font: { size: 11 }, padding: 16, usePointStyle: true }
-        },
-        tooltip: {
-          backgroundColor: tooltipBg,
-          titleColor: tooltipTxt,
-          bodyColor: tickColor,
-          borderColor: 'rgba(255,255,255,.08)',
-          borderWidth: 1,
-          padding: 10
-        }
+        legend: { position: 'bottom', labels: { color: tickColor, font: { size: 11 }, padding: 16, usePointStyle: true } },
+        tooltip: { backgroundColor: tooltipBg, titleColor: tooltipTxt, bodyColor: tickColor, borderColor: 'rgba(255,255,255,.08)', borderWidth: 1, padding: 10 }
       }
     }
   });
 
-  /* ── Tabs ───────────────────────────────── */
   window.payTab = function (id, btn) {
-    document.querySelectorAll('.pay-tab-content').forEach(function (el) { el.classList.remove('is-active'); });
-    document.querySelectorAll('.pay-tab').forEach(function (el) { el.classList.remove('is-active'); });
+    document.querySelectorAll('.pay-tab-content').forEach(function(el){ el.classList.remove('is-active'); });
+    document.querySelectorAll('.pay-tab').forEach(function(el){ el.classList.remove('is-active'); });
     document.getElementById(id).classList.add('is-active');
     btn.classList.add('is-active');
   };
-
-  /* Re-render Lucide icons inside this block */
-  if (window.lucide) lucide.createIcons();
 });
 </script>
 {% endblock %}
