@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\BlogPost;
+use App\Enum\BlogPostStatus;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -82,21 +83,38 @@ class AdminBlogPostController extends AbstractController
     {
         $slugger = new AsciiSlugger();
         $title   = $request->request->get('title', '');
+
         $post->setTitle($title);
         $post->setSlug($slugger->slug($title)->lower()->toString());
         $post->setContent($request->request->get('content', ''));
-        $post->setSummary($request->request->get('summary', ''));
-        $post->setIsPublished((bool)$request->request->get('isPublished', false));
+        $post->setExcerpt($request->request->get('summary') ?: null);
+        $post->setThumbnail($request->request->get('thumbnail') ?: null);
+        $post->setMetaTitle($request->request->get('metaTitle') ?: null);
+        $post->setMetaDescription($request->request->get('metaDescription') ?: null);
 
+        // Status: usa enum BlogPostStatus
+        $isPublished = (bool) $request->request->get('isPublished', false);
+        $post->setStatus($isPublished ? BlogPostStatus::Published : BlogPostStatus::Draft);
+
+        // Publicado em: define publishedAt na primeira vez que publica
+        if ($isPublished && $post->getPublishedAt() === null) {
+            $post->setPublishedAt(new \DateTimeImmutable());
+        } elseif (!$isPublished) {
+            $post->setPublishedAt(null);
+        }
+
+        // Categoria
         $catId = $request->request->get('category');
+        $post->setCategory(null);
         if ($catId) {
-            $cat = $this->em->find(\App\Entity\BlogCategory::class, (int)$catId);
+            $cat = $this->em->find(\App\Entity\BlogCategory::class, (int) $catId);
             if ($cat) $post->setCategory($cat);
         }
 
+        // Tags
         $post->getTags()->clear();
         foreach ($request->request->all('tags') as $tagId) {
-            $tag = $this->em->find(\App\Entity\BlogTag::class, (int)$tagId);
+            $tag = $this->em->find(\App\Entity\BlogTag::class, (int) $tagId);
             if ($tag) $post->addTag($tag);
         }
     }
