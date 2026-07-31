@@ -3,7 +3,7 @@
 {% block page_title %}{{ credential ? 'Editar Provedor #' ~ credential.id : 'Novo Provedor' }}{% endblock %}
 
 {% block admin_content %}
-<div style="padding:24px;display:flex;flex-direction:column;gap:20px;max-width:600px">
+<div style="padding:24px;display:flex;flex-direction:column;gap:20px;max-width:620px">
 
   <div style="display:flex;align-items:center;gap:10px">
     <a href="{{ path('admin_provider_credential_index') }}"
@@ -12,9 +12,7 @@
       Provedores
     </a>
     <span style="color:#3e4259;font-size:.78rem">/</span>
-    <span style="font-size:.78rem;color:#9196b0">
-      {{ credential ? 'Editar #' ~ credential.id : 'Novo' }}
-    </span>
+    <span style="font-size:.78rem;color:#9196b0">{{ credential ? 'Editar #' ~ credential.id : 'Novo' }}</span>
   </div>
 
   {% for type, messages in app.flashes %}
@@ -29,80 +27,85 @@
   {% endfor %}
 
   <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:24px">
-    <p style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
-              color:#3e4259;margin-bottom:20px">
-      {{ credential ? 'Editar Provedor' : 'Cadastrar Novo Provedor' }}
-    </p>
-
     <form method="POST" action="{{ credential
-      ? path('admin_provider_credential_edit',  {id: credential.id})
+      ? path('admin_provider_credential_edit', {id: credential.id})
       : path('admin_provider_credential_new') }}">
 
       <div style="display:flex;flex-direction:column;gap:16px">
 
+        {# Tipo #}
         <div style="display:flex;flex-direction:column;gap:5px">
-          <label for="f_name"
-                 style="font-size:.68rem;font-weight:700;text-transform:uppercase;
-                        letter-spacing:.06em;color:#3e4259">Nome *</label>
-          <input id="f_name" type="text" name="name"
-                 value="{{ credential ? credential.name : '' }}"
-                 placeholder="Ex: SMM Raja, Just Another Panel…"
-                 required
-                 style="background:#0d1016;border:1px solid rgba(255,255,255,.08);
-                        color:#dde1f0;padding:9px 13px;border-radius:8px;
-                        font-size:.85rem;width:100%;outline:none;
-                        transition:border-color .18s"
-                 onfocus="this.style.borderColor='#01868d'"
-                 onblur="this.style.borderColor='rgba(255,255,255,.08)'">
+          <label for="f_type" style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#3e4259">Tipo *</label>
+          <select id="f_type" name="type" required
+                  style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
+                         padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none">
+            <option value="smm_provider"    {{ (credential and credential.type == 'smm_provider')    ? 'selected' : '' }}>SMM Provider</option>
+            <option value="payment_gateway" {{ (credential and credential.type == 'payment_gateway') ? 'selected' : '' }}>Payment Gateway</option>
+          </select>
         </div>
 
+        {# Slug #}
         <div style="display:flex;flex-direction:column;gap:5px">
-          <label for="f_url"
-                 style="font-size:.68rem;font-weight:700;text-transform:uppercase;
-                        letter-spacing:.06em;color:#3e4259">URL da API *</label>
-          <input id="f_url" type="url" name="apiUrl"
-                 value="{{ credential ? credential.apiUrl : '' }}"
+          <label for="f_slug" style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#3e4259">Slug *</label>
+          <input id="f_slug" type="text" name="slug"
+                 value="{{ credential ? credential.slug : '' }}"
+                 placeholder="ex: smmkings, justanother, asaas…"
+                 required
+                 style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
+                        padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none"
+                 onfocus="this.style.borderColor='#01868d'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
+          <span style="font-size:.7rem;color:#3e4259">Identificador único (lowercase). Ex: smmkings, asaas, mercadopago.</span>
+        </div>
+
+        {# Base URL #}
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label for="f_url" style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#3e4259">Base URL *</label>
+          <input id="f_url" type="url" name="baseUrl"
+                 value="{{ credential ? credential.baseUrl : '' }}"
                  placeholder="https://painel.exemplo.com/api/v2"
                  required
-                 style="background:#0d1016;border:1px solid rgba(255,255,255,.08);
-                        color:#dde1f0;padding:9px 13px;border-radius:8px;
-                        font-size:.85rem;width:100%;outline:none;
-                        transition:border-color .18s"
-                 onfocus="this.style.borderColor='#01868d'"
-                 onblur="this.style.borderColor='rgba(255,255,255,.08)'">
+                 style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
+                        padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none"
+                 onfocus="this.style.borderColor='#01868d'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
         </div>
 
+        {# API Key #}
         <div style="display:flex;flex-direction:column;gap:5px">
-          <label for="f_key"
-                 style="font-size:.68rem;font-weight:700;text-transform:uppercase;
-                        letter-spacing:.06em;color:#3e4259">Chave de API *</label>
+          <label for="f_key" style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#3e4259">Chave de API *</label>
           <div style="position:relative">
             <input id="f_key" type="password" name="apiKey"
                    value="{{ credential ? credential.apiKey : '' }}"
-                   placeholder="Cole a chave aqui…"
-                   required
-                   style="background:#0d1016;border:1px solid rgba(255,255,255,.08);
-                          color:#dde1f0;padding:9px 40px 9px 13px;border-radius:8px;
-                          font-size:.85rem;width:100%;outline:none;font-family:monospace;
-                          transition:border-color .18s"
-                   onfocus="this.style.borderColor='#01868d'"
-                   onblur="this.style.borderColor='rgba(255,255,255,.08)'">
+                   placeholder="Cole a chave aqui…" required
+                   style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
+                          padding:9px 40px 9px 13px;border-radius:8px;font-size:.85rem;
+                          width:100%;outline:none;font-family:monospace"
+                   onfocus="this.style.borderColor='#01868d'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
             <button type="button"
                     onclick="var i=document.getElementById('f_key');i.type=i.type==='password'?'text':'password'"
                     style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
                            background:none;border:none;color:#3e4259;cursor:pointer;padding:2px">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
               </svg>
             </button>
           </div>
         </div>
 
-        <label style="display:flex;align-items:center;gap:9px;cursor:pointer;
-                      font-size:.84rem;color:#dde1f0;margin-top:2px">
-          <input type="checkbox" name="isActive" value="1"
-                 {{ (credential is null or credential.isActive) ? 'checked' : '' }}
+        {# Secret Token (opcional) #}
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label for="f_secret" style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#3e4259">Token Secreto <span style="font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+          <input id="f_secret" type="password" name="secretToken"
+                 value="{{ credential ? credential.secretToken : '' }}"
+                 placeholder="Webhook secret, bearer token…"
+                 style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
+                        padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none;font-family:monospace"
+                 onfocus="this.style.borderColor='#01868d'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
+        </div>
+
+        {# Ativo #}
+        <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.84rem;color:#dde1f0;margin-top:2px">
+          <input type="checkbox" name="active" value="1"
+                 {{ (credential is null or credential.active) ? 'checked' : '' }}
                  style="width:15px;height:15px;accent-color:#01868d">
           Provedor ativo
         </label>
@@ -112,18 +115,16 @@
       <div style="display:flex;align-items:center;gap:10px;margin-top:24px;
                   padding-top:18px;border-top:1px solid rgba(255,255,255,.06)">
         <button type="submit"
-                style="display:inline-flex;align-items:center;gap:6px;
-                       padding:9px 22px;border-radius:8px;background:#01868d;
-                       color:#fff;border:none;font-size:.85rem;font-weight:600;
-                       cursor:pointer;transition:background .15s">
+                style="display:inline-flex;align-items:center;gap:6px;padding:9px 22px;
+                       border-radius:8px;background:#01868d;color:#fff;border:none;
+                       font-size:.85rem;font-weight:600;cursor:pointer">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           {{ credential ? 'Salvar Alterações' : 'Cadastrar Provedor' }}
         </button>
         <a href="{{ path('admin_provider_credential_index') }}"
-           style="display:inline-flex;align-items:center;gap:5px;
-                  padding:9px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.08);
-                  color:#6b708a;font-size:.85rem;font-weight:600;text-decoration:none;
-                  transition:all .15s">
+           style="display:inline-flex;align-items:center;gap:5px;padding:9px 18px;
+                  border-radius:8px;border:1px solid rgba(255,255,255,.08);
+                  color:#6b708a;font-size:.85rem;font-weight:600;text-decoration:none">
           Cancelar
         </a>
       </div>

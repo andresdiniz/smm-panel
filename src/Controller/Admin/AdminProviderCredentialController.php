@@ -30,10 +30,12 @@ class AdminProviderCredentialController extends AbstractController
     public function edit(ProviderCredential $credential, Request $request): Response
     {
         if ($request->isMethod('POST')) {
-            $credential->setName($request->request->get('name', $credential->getName()));
-            $credential->setApiUrl($request->request->get('apiUrl', $credential->getApiUrl()));
+            $credential->setType($request->request->get('type', $credential->getType()));
+            $credential->setSlug($request->request->get('slug', $credential->getSlug()));
+            $credential->setBaseUrl($request->request->get('baseUrl', $credential->getBaseUrl()));
             $credential->setApiKey($request->request->get('apiKey', $credential->getApiKey()));
-            $credential->setIsActive((bool)$request->request->get('isActive', $credential->isActive()));
+            $credential->setSecretToken($request->request->get('secretToken') ?: null);
+            $credential->setActive((bool) $request->request->get('active', false));
             $this->em->flush();
             $this->addFlash('success', 'Provedor atualizado.');
             return $this->redirectToRoute('admin_provider_credential_index');
@@ -46,10 +48,12 @@ class AdminProviderCredentialController extends AbstractController
     {
         if ($request->isMethod('POST')) {
             $credential = new ProviderCredential();
-            $credential->setName($request->request->get('name', ''));
-            $credential->setApiUrl($request->request->get('apiUrl', ''));
+            $credential->setType($request->request->get('type', ProviderCredential::TYPE_SMM));
+            $credential->setSlug($request->request->get('slug', ''));
+            $credential->setBaseUrl($request->request->get('baseUrl', ''));
             $credential->setApiKey($request->request->get('apiKey', ''));
-            $credential->setIsActive((bool)$request->request->get('isActive', true));
+            $credential->setSecretToken($request->request->get('secretToken') ?: null);
+            $credential->setActive((bool) $request->request->get('active', true));
             $this->em->persist($credential);
             $this->em->flush();
             $this->addFlash('success', 'Provedor criado.');
