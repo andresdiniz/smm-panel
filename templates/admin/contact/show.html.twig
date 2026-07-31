@@ -1,0 +1,57 @@
+{% extends 'admin/layout.html.twig' %}
+{% block page_title %}Contato #{{ contact.id }}{% endblock %}
+
+{% block admin_content %}
+<div style="padding:28px 32px;">
+<div style="max-width:680px;">
+
+  <div style="margin-bottom:16px;">
+    <a href="{{ path('admin_contact_index') }}" style="font-size:.85rem;color:#6b708a;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg> Todos os contatos
+    </a>
+  </div>
+
+  <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;">
+
+    {# Cabeçalho #}
+    <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+      <div>
+        <h1 style="font-size:1rem;font-weight:700;color:#dde1f0;margin:0 0 4px;">{{ contact.name }}</h1>
+        <a href="mailto:{{ contact.email }}" style="font-size:.85rem;color:#4eccd3;text-decoration:none;">{{ contact.email }}</a>
+      </div>
+      <span style="font-size:.75rem;color:#6b708a;white-space:nowrap;">{{ contact.createdAt|date('d/m/Y H:i') }}</span>
+    </div>
+
+    {# Assunto #}
+    {% if contact.subject is defined and contact.subject %}
+    <div style="padding:14px 24px;border-bottom:1px solid rgba(255,255,255,.06);">
+      <p style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;margin:0 0 4px;">Assunto</p>
+      <p style="font-size:.9rem;font-weight:600;color:#dde1f0;margin:0;">{{ contact.subject }}</p>
+    </div>
+    {% endif %}
+
+    {# Mensagem #}
+    <div style="padding:20px 24px;">
+      <p style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;margin:0 0 10px;">Mensagem</p>
+      <div style="font-size:.9rem;color:#dde1f0;line-height:1.7;white-space:pre-wrap;word-break:break-word;">{{ contact.message|e|nl2br }}</div>
+    </div>
+
+    {# Ações #}
+    <div style="padding:14px 24px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:10px;align-items:center;">
+      <a href="mailto:{{ contact.email }}?subject=Re: {{ contact.subject|default('Seu contato')|url_encode }}" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#01696f;color:#fff;border-radius:7px;font-size:.8rem;font-weight:600;text-decoration:none;transition:background .15s;" onmouseover="this.style.background='#0c4e54'" onmouseout="this.style.background='#01696f'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Responder por e-mail
+      </a>
+      <form method="POST" action="{{ path('admin_contact_delete', {id: contact.id}) }}" onsubmit="return confirm('Remover este contato permanentemente?')" style="margin:0;">
+        <input type="hidden" name="_token" value="{{ csrf_token('delete_contact_' ~ contact.id) }}">
+        <button type="submit" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(161,44,123,.12);color:#d163a7;border:1px solid rgba(161,44,123,.2);border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(161,44,123,.22)'" onmouseout="this.style.background='rgba(161,44,123,.12)'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          Remover
+        </button>
+      </form>
+    </div>
+
+  </div>
+</div>
+</div>
+{% endblock %}

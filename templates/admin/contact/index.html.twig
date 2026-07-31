@@ -1,0 +1,77 @@
+{% extends 'admin/layout.html.twig' %}
+{% block page_title %}Contatos{% endblock %}
+
+{% block admin_content %}
+<div style="padding:28px 32px;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+    <div>
+      <h1 style="font-size:1.25rem;font-weight:700;margin:0 0 2px;">Contatos</h1>
+      <p style="font-size:.85rem;color:#6b708a;margin:0;">Mensagens recebidas pelo formulário de contato</p>
+    </div>
+  </div>
+
+  {% for label, messages in app.flashes %}
+    {% for msg in messages %}
+      <div style="margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:.85rem;font-weight:500;
+        background:{% if label=='success' %}rgba(67,122,34,.15){% else %}rgba(161,44,123,.15){% endif %};
+        color:{% if label=='success' %}#6daa45{% else %}#d163a7{% endif %};border:1px solid {% if label=='success' %}rgba(67,122,34,.25){% else %}rgba(161,44,123,.25){% endif %};">{{ msg }}</div>
+    {% endfor %}
+  {% endfor %}
+
+  {% if pagination.items|length == 0 %}
+  <div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:64px 16px;color:#6b708a;">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4eccd3" stroke-width="1.5" style="margin-bottom:14px;" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    <h3 style="font-size:1rem;font-weight:600;color:#dde1f0;margin:0 0 6px;">Nenhum contato ainda</h3>
+    <p style="max-width:34ch;margin:0;font-size:.875rem;">As mensagens enviadas pelo formulário aparecerão aqui.</p>
+  </div>
+  {% else %}
+  <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden;">
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="border-bottom:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);">
+          <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;">#</th>
+          <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;">Nome</th>
+          <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;">E-mail</th>
+          <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;">Assunto</th>
+          <th style="padding:10px 16px;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;">Recebido</th>
+          <th style="padding:10px 16px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for contact in pagination %}
+        <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
+          <td style="padding:11px 16px;font-size:.8rem;color:#6b708a;font-variant-numeric:tabular-nums;">#{{ contact.id }}</td>
+          <td style="padding:11px 16px;font-size:.875rem;font-weight:600;color:#dde1f0;">{{ contact.name }}</td>
+          <td style="padding:11px 16px;font-size:.8rem;color:#6b708a;">{{ contact.email }}</td>
+          <td style="padding:11px 16px;font-size:.875rem;color:#dde1f0;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ contact.subject|default('—') }}</td>
+          <td style="padding:11px 16px;font-size:.8rem;color:#6b708a;white-space:nowrap;">{{ contact.createdAt|date('d/m/y H:i') }}</td>
+          <td style="padding:11px 16px;text-align:right;display:flex;gap:10px;justify-content:flex-end;align-items:center;">
+            <a href="{{ path('admin_contact_show', {id: contact.id}) }}" style="font-size:.8rem;font-weight:500;color:#4eccd3;text-decoration:none;">Ver →</a>
+            <form method="POST" action="{{ path('admin_contact_delete', {id: contact.id}) }}" onsubmit="return confirm('Remover este contato?')" style="margin:0;">
+              <input type="hidden" name="_token" value="{{ csrf_token('delete_contact_' ~ contact.id) }}">
+              <button type="submit" style="font-size:.8rem;font-weight:500;color:#6b708a;background:none;border:none;cursor:pointer;padding:0;transition:color .15s;" onmouseover="this.style.color='#d163a7'" onmouseout="this.style.color='#6b708a'">Remover</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Paginação #}
+  {% if pagination.pageCount > 1 %}
+  <div style="display:flex;justify-content:center;gap:6px;margin-top:16px;">
+    {% if pagination.currentPageNumber > 1 %}
+      <a href="?page={{ pagination.currentPageNumber - 1 }}" style="padding:5px 12px;font-size:.8rem;border:1px solid rgba(255,255,255,.08);border-radius:6px;color:#6b708a;text-decoration:none;transition:color .15s,border-color .15s;" onmouseover="this.style.color='#dde1f0'" onmouseout="this.style.color='#6b708a'">‹ Anterior</a>
+    {% endif %}
+    <span style="padding:5px 12px;font-size:.8rem;border:1px solid rgba(1,134,141,.35);border-radius:6px;color:#4eccd3;">{{ pagination.currentPageNumber }}</span>
+    {% if pagination.currentPageNumber < pagination.pageCount %}
+      <a href="?page={{ pagination.currentPageNumber + 1 }}" style="padding:5px 12px;font-size:.8rem;border:1px solid rgba(255,255,255,.08);border-radius:6px;color:#6b708a;text-decoration:none;transition:color .15s,border-color .15s;" onmouseover="this.style.color='#dde1f0'" onmouseout="this.style.color='#6b708a'">Próxima ›</a>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% endif %}
+
+</div>
+{% endblock %}
