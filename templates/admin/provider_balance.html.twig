@@ -1,45 +1,68 @@
-{% extends '@EasyAdmin/page/content.html.twig' %}
+{% extends 'admin/layout.html.twig' %}
 
 {% block page_title %}Saldo nos Providers{% endblock %}
 
-{% block main %}
-<div class="container-fluid">
-    <h1 class="mb-4">💰 Saldo nos Providers</h1>
+{% block admin_content %}
+<div style="padding:24px;display:flex;flex-direction:column;gap:20px">
 
-    {% if balances is empty %}
-        <div class="alert alert-warning">Nenhum provider ativo encontrado.</div>
-    {% else %}
-        <div class="row g-3">
-            {% for item in balances %}
-                <div class="col-md-4">
-                    <div class="card {% if item.error %}border-danger{% else %}border-success{% endif %} shadow-sm">
-                        <div class="card-header fw-bold text-uppercase">
-                            {{ item.slug }}
-                        </div>
-                        <div class="card-body">
-                            {% if item.error %}
-                                <p class="text-danger mb-0">
-                                    <strong>Erro:</strong> {{ item.error }}
-                                </p>
-                            {% else %}
-                                <p class="display-6 mb-0 text-success fw-bold">
-                                    $ {{ item.balance|number_format(2, '.', ',') }}
-                                </p>
-                            {% endif %}
-                        </div>
-                        <div class="card-footer text-muted small">
-                            Atualizado agora
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <h1 style="font-size:1.1rem;font-weight:800;color:#f0f3ff">💰 Saldo nos Providers</h1>
+    <a href="{{ path('admin_provider_balance') }}"
+       style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;
+              background:#01868d;color:#fff;border-radius:8px;font-size:.8rem;
+              font-weight:600;text-decoration:none">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+      Atualizar
+    </a>
+  </div>
 
-    <div class="mt-4">
-        <a href="{{ ea_url().setRoute('admin_provider_balance') }}" class="btn btn-secondary">
-            🔄 Atualizar
-        </a>
+  {% if balances is empty %}
+    <div style="padding:14px 18px;border-radius:8px;font-size:.85rem;
+                background:rgba(245,158,11,.08);color:#f59e0b;
+                border:1px solid rgba(245,158,11,.25)">
+      Nenhum provider SMM ativo encontrado.
     </div>
+  {% else %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">
+      {% for item in balances %}
+        <div style="background:#0b0e14;border:1px solid {{ item.error is defined and item.error ? 'rgba(239,68,68,.25)' : 'rgba(34,197,94,.2)' }};
+                    border-radius:10px;overflow:hidden">
+          <div style="padding:10px 14px;background:#0d1016;
+                      border-bottom:1px solid rgba(255,255,255,.06);
+                      display:flex;align-items:center;justify-content:space-between">
+            <strong style="font-size:.78rem;font-weight:700;text-transform:uppercase;
+                           letter-spacing:.06em;color:#dde1f0">{{ item.slug }}</strong>
+            {% if item.error is defined and item.error %}
+              <span style="font-size:.65rem;padding:2px 8px;border-radius:20px;font-weight:700;
+                           background:rgba(239,68,68,.12);color:#ef4444;
+                           border:1px solid rgba(239,68,68,.25)">Erro</span>
+            {% else %}
+              <span style="font-size:.65rem;padding:2px 8px;border-radius:20px;font-weight:700;
+                           background:rgba(34,197,94,.12);color:#22c55e;
+                           border:1px solid rgba(34,197,94,.25)">OK</span>
+            {% endif %}
+          </div>
+          <div style="padding:16px 14px">
+            {% if item.error is defined and item.error %}
+              <p style="font-size:.8rem;color:#ef4444;margin:0">
+                <strong>Erro:</strong> {{ item.error }}
+              </p>
+            {% else %}
+              <p style="font-size:1.6rem;font-weight:800;color:#22c55e;margin:0;font-variant-numeric:tabular-nums">
+                $ {{ item.balance|number_format(2, '.', ',') }}
+              </p>
+            {% endif %}
+          </div>
+          <div style="padding:7px 14px;border-top:1px solid rgba(255,255,255,.04)">
+            <span style="font-size:.7rem;color:#3e4259">Atualizado agora</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
 </div>
 {% endblock %}
