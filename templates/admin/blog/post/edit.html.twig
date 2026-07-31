@@ -2,8 +2,69 @@
 {% block page_title %}{{ post ? 'Editar Post' : 'Novo Post' }}{% endblock %}
 
 {% block admin_content %}
+{# ─── Quill CSS ─── #}
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+<style>
+  /* ── Quill theme override para dark ── */
+  .ql-toolbar.ql-snow{
+    background:#12151c;border:1px solid rgba(255,255,255,.08)!important;
+    border-bottom:1px solid rgba(255,255,255,.05)!important;
+    border-radius:8px 8px 0 0;padding:6px 10px;flex-wrap:wrap;
+  }
+  .ql-container.ql-snow{
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)!important;
+    border-top:none!important;border-radius:0 0 8px 8px;
+    font-size:.9rem;color:#dde1f0;min-height:320px;
+  }
+  .ql-editor{min-height:320px;color:#dde1f0;line-height:1.75;padding:14px 16px;}
+  .ql-editor.ql-blank::before{color:#3e4259;font-style:normal;}
+  /* toolbar buttons */
+  .ql-snow .ql-stroke{stroke:#6b708a!important;}
+  .ql-snow .ql-fill{fill:#6b708a!important;}
+  .ql-snow .ql-picker-label{color:#6b708a!important;}
+  .ql-snow.ql-toolbar button:hover .ql-stroke,
+  .ql-snow .ql-toolbar button:hover .ql-stroke,
+  .ql-snow.ql-toolbar button.ql-active .ql-stroke{stroke:#4eccd3!important;}
+  .ql-snow.ql-toolbar button:hover .ql-fill,
+  .ql-snow .ql-toolbar button:hover .ql-fill,
+  .ql-snow.ql-toolbar button.ql-active .ql-fill{fill:#4eccd3!important;}
+  .ql-snow.ql-toolbar button:hover,
+  .ql-snow .ql-toolbar button:hover,
+  .ql-snow.ql-toolbar button.ql-active{background:rgba(78,204,211,.08)!important;border-radius:4px;}
+  .ql-snow .ql-picker-options{background:#12151c;border:1px solid rgba(255,255,255,.08)!important;}
+  .ql-snow .ql-picker-item{color:#dde1f0!important;}
+  /* link/image dialogs */
+  .ql-snow .ql-tooltip{
+    background:#0b0e14!important;border:1px solid rgba(255,255,255,.08)!important;
+    color:#dde1f0!important;border-radius:6px;
+  }
+  .ql-snow .ql-tooltip input[type=text]{
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+    color:#dde1f0;border-radius:5px;
+  }
+  .ql-snow .ql-tooltip a.ql-action::after{color:#4eccd3!important;}
+  .ql-snow .ql-tooltip a.ql-remove::before{color:#d163a7!important;}
+  /* HTML source mode textarea */
+  #content-html-source{
+    display:none;width:100%;min-height:320px;padding:14px 16px;
+    border:1px solid rgba(255,255,255,.08);border-radius:0 0 8px 8px;
+    background:rgba(255,255,255,.03);color:#4eccd3;font-family:'Courier New',monospace;
+    font-size:.82rem;line-height:1.6;resize:vertical;outline:none;
+  }
+  /* toggle html button */
+  #btn-html-toggle{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:3px 10px;font-size:.72rem;font-weight:600;
+    border:1px solid rgba(255,255,255,.1);border-radius:6px;
+    background:transparent;color:#6b708a;cursor:pointer;transition:all .15s;
+  }
+  #btn-html-toggle:hover,#btn-html-toggle.active{
+    border-color:rgba(78,204,211,.4);color:#4eccd3;background:rgba(78,204,211,.06);
+  }
+</style>
+
 <div style="padding:28px 32px;">
-<div style="max-width:860px;">
+<div style="max-width:900px;">
 
   <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
     <a href="{{ path('admin_blog_post_index') }}" style="font-size:.85rem;color:#6b708a;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
@@ -20,17 +81,17 @@
     {% endfor %}
   {% endfor %}
 
-  <form method="POST" style="display:flex;flex-direction:column;gap:16px;">
+  <form method="POST" id="post-form" style="display:flex;flex-direction:column;gap:16px;">
 
-    {# T&iacute;tulo #}
+    {# Título #}
     <div>
-      <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:6px;color:#dde1f0;">T&iacute;tulo <span style="color:#d163a7;">*</span></label>
+      <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:6px;color:#dde1f0;">Título <span style="color:#d163a7;">*</span></label>
       <input type="text" name="title" value="{{ post ? post.title : '' }}" required maxlength="200"
              style="width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.03);color:#dde1f0;font-size:.9rem;outline:none;transition:border .15s;"
              onfocus="this.style.borderColor='#4eccd3'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
     </div>
 
-    {# Resumo / Excerpt #}
+    {# Resumo #}
     <div>
       <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:6px;color:#dde1f0;">Resumo (excerpt)</label>
       <textarea name="summary" rows="2" maxlength="500"
@@ -38,15 +99,25 @@
                 onfocus="this.style.borderColor='#4eccd3'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">{{ post ? post.excerpt : '' }}</textarea>
     </div>
 
-    {# Conte&uacute;do #}
+    {# ─── Editor de Conteúdo ─── #}
     <div>
-      <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:6px;color:#dde1f0;">Conte&uacute;do <span style="color:#d163a7;">*</span></label>
-      <textarea name="content" rows="16" required
-                style="width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.03);color:#dde1f0;font-size:.875rem;resize:vertical;outline:none;font-family:'Courier New',monospace;line-height:1.6;transition:border .15s;"
-                onfocus="this.style.borderColor='#4eccd3'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">{{ post ? post.content : '' }}</textarea>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <label style="font-size:.8rem;font-weight:600;color:#dde1f0;">Conteúdo <span style="color:#d163a7;">*</span></label>
+        <button type="button" id="btn-html-toggle" title="Alternar entre editor visual e HTML">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          HTML
+        </button>
+      </div>
+
+      {# Quill editor container #}
+      <div id="quill-editor"></div>
+      {# HTML source fallback #}
+      <textarea id="content-html-source" spellcheck="false" placeholder="Cole ou edite HTML diretamente aqui..."></textarea>
+      {# Hidden input que vai para o PHP #}
+      <input type="hidden" name="content" id="content-hidden">
     </div>
 
-    {# Categoria + Status lado a lado #}
+    {# Categoria + Status #}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
       <div>
         <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:6px;color:#dde1f0;">Categoria</label>
@@ -107,15 +178,79 @@
       </div>
     </details>
 
-    {# Bot&otilde;es #}
+    {# Botões #}
     <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:4px;">
       <a href="{{ path('admin_blog_post_index') }}" style="padding:8px 16px;background:rgba(255,255,255,.05);color:#dde1f0;border:1px solid rgba(255,255,255,.08);border-radius:7px;font-size:.8rem;font-weight:500;text-decoration:none;">Cancelar</a>
       <button type="submit" style="padding:8px 20px;background:#01696f;color:#fff;border:none;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#0c4e54'" onmouseout="this.style.background='#01696f'">
-        {{ post ? 'Salvar altera&ccedil;&otilde;es' : 'Criar post' }}
+        {{ post ? 'Salvar alterações' : 'Criar post' }}
       </button>
     </div>
 
   </form>
 </div>
 </div>
+
+{# ─── Quill JS ─── #}
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script>
+(function () {
+  // Conteúdo inicial vindo do PHP/Twig
+  const initialContent = {{ post ? post.content|json_encode|raw : '""' }};
+
+  // ── Inicializa Quill ──
+  const quill = new Quill('#quill-editor', {
+    theme: 'snow',
+    placeholder: 'Escreva o conteúdo do post aqui...',
+    modules: {
+      toolbar: [
+        [{ header: [1, 2, 3, 4, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ color: [] }, { background: [] }],
+        [{ list: 'ordered' }, { list: 'bullet' }, { list: 'check' }],
+        [{ indent: '-1' }, { indent: '+1' }],
+        [{ align: [] }],
+        ['blockquote', 'code-block'],
+        ['link', 'image', 'video'],
+        ['clean']
+      ]
+    }
+  });
+
+  // Carrega conteúdo HTML existente
+  if (initialContent) {
+    quill.clipboard.dangerouslyPasteHTML(initialContent);
+  }
+
+  // ── Toggle HTML / Visual ──
+  const btn      = document.getElementById('btn-html-toggle');
+  const source   = document.getElementById('content-html-source');
+  const editorEl = document.getElementById('quill-editor');
+  let htmlMode   = false;
+
+  btn.addEventListener('click', function () {
+    htmlMode = !htmlMode;
+    if (htmlMode) {
+      // Visual → HTML: extrai HTML do Quill e mostra no textarea
+      source.value = quill.getSemanticHTML();
+      editorEl.style.display = 'none';
+      source.style.display   = 'block';
+      btn.classList.add('active');
+    } else {
+      // HTML → Visual: injeta HTML de volta no Quill
+      quill.clipboard.dangerouslyPasteHTML(source.value);
+      source.style.display   = 'none';
+      editorEl.style.display = 'block';
+      btn.classList.remove('active');
+    }
+  });
+
+  // ── Antes de submeter: sincroniza o hidden input ──
+  document.getElementById('post-form').addEventListener('submit', function () {
+    const html = htmlMode
+      ? source.value
+      : quill.getSemanticHTML();
+    document.getElementById('content-hidden').value = html;
+  });
+})();
+</script>
 {% endblock %}
