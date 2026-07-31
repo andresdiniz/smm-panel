@@ -1,0 +1,278 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Pagamentos — Admin{% endblock %}
+{% block page_title %}Gerenciar Pagamentos{% endblock %}
+
+{% block stylesheets %}
+<style>
+.pmt-page { display: flex; flex-direction: column; gap: 20px; }
+
+.pmt-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  background: var(--surface, #1c1b19);
+  border: 1px solid var(--border, #393836);
+  border-radius: 10px; padding: 14px 18px;
+}
+
+.pmt-search {
+  flex: 1 1 220px; display: flex; align-items: center; gap: 8px;
+  background: var(--surface-2, #201f1d);
+  border: 1px solid var(--border, #393836);
+  border-radius: 8px; padding: 7px 12px;
+  transition: border-color .18s;
+}
+.pmt-search:focus-within { border-color: var(--primary, #4f98a3); }
+.pmt-search input {
+  border: none; background: transparent;
+  color: var(--text, #cdccca); font-size: .85rem;
+  width: 100%; outline: none;
+}
+.pmt-search input::placeholder { color: var(--text-3, #5a5957); }
+
+.pmt-status-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
+.pmt-stab {
+  padding: 6px 14px; border-radius: 7px;
+  border: 1px solid var(--border, #393836);
+  background: transparent; color: var(--text-2, #797876);
+  font-size: .78rem; font-weight: 600;
+  cursor: pointer; text-decoration: none;
+  transition: all .18s; white-space: nowrap;
+}
+.pmt-stab:hover { border-color: var(--primary, #4f98a3); color: var(--text, #cdccca); }
+.pmt-stab.is-active { background: var(--primary, #4f98a3); border-color: var(--primary, #4f98a3); color: #fff; }
+
+.pmt-card {
+  background: var(--surface, #1c1b19);
+  border: 1px solid var(--border, #393836);
+  border-radius: 12px; overflow: hidden;
+}
+
+.pmt-table-wrap { overflow-x: auto; }
+
+.pmt-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.pmt-table th {
+  background: var(--surface-2, #201f1d);
+  color: var(--text-2, #797876);
+  font-weight: 600; font-size: .72rem;
+  letter-spacing: .04em; text-transform: uppercase;
+  padding: 10px 14px; text-align: left;
+  border-bottom: 1px solid var(--border, #393836);
+  white-space: nowrap;
+}
+.pmt-table td {
+  padding: 11px 14px; color: var(--text, #cdccca);
+  border-bottom: 1px solid var(--border, #393836);
+  vertical-align: middle;
+}
+.pmt-table tbody tr:last-child td { border-bottom: none; }
+.pmt-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--primary, #4f98a3) 4%, transparent);
+}
+
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: .7rem; font-weight: 600; white-space: nowrap;
+}
+.badge--pending   { background: rgba(245,158,11,.12); color: #f59e0b; border: 1px solid rgba(245,158,11,.25); }
+.badge--approved  { background: rgba(34,197,94,.12);  color: #22c55e; border: 1px solid rgba(34,197,94,.25); }
+.badge--failed    { background: rgba(239,68,68,.12);  color: #ef4444; border: 1px solid rgba(239,68,68,.25); }
+.badge--cancelled { background: rgba(107,114,128,.12); color: #9ca3af; border: 1px solid rgba(107,114,128,.25); }
+.badge--refunded  { background: rgba(139,92,246,.12); color: #8b5cf6; border: 1px solid rgba(139,92,246,.25); }
+
+.user-cell strong { display: block; font-size: .83rem; color: var(--text, #cdccca); }
+.user-cell small  { font-size: .72rem; color: var(--text-3, #5a5957); }
+
+.val-green { font-weight: 700; color: #22c55e; }
+.val-muted  { color: var(--text-3, #5a5957); font-size: .78rem; }
+
+.pmt-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 11px; border-radius: 7px;
+  font-size: .78rem; font-weight: 600;
+  text-decoration: none; border: 1px solid var(--border, #393836);
+  color: var(--text-2, #797876); background: transparent;
+  transition: all .15s; white-space: nowrap;
+}
+.pmt-btn:hover { border-color: var(--primary, #4f98a3); color: var(--primary, #4f98a3); }
+
+.pmt-pagination {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: 6px; padding: 14px 18px;
+  border-top: 1px solid var(--border, #393836);
+  flex-wrap: wrap;
+}
+.pmt-pagination a,
+.pmt-pagination span {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 32px; height: 32px; padding: 0 8px;
+  border-radius: 7px; font-size: .8rem; font-weight: 500;
+  text-decoration: none; border: 1px solid var(--border, #393836);
+  color: var(--text-2, #797876); transition: all .15s;
+}
+.pmt-pagination a:hover { border-color: var(--primary, #4f98a3); color: var(--primary, #4f98a3); }
+.pmt-pagination .current { background: var(--primary, #4f98a3); border-color: var(--primary, #4f98a3); color: #fff; }
+.pmt-pagination .disabled { opacity: .35; pointer-events: none; }
+
+.pmt-empty {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px; padding: 48px 20px;
+  color: var(--text-3, #5a5957); text-align: center;
+}
+.pmt-empty p { font-size: .9rem; color: var(--text-2, #797876); }
+
+.pmt-back {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .8rem; color: var(--text-2, #797876);
+  text-decoration: none; transition: color .15s;
+}
+.pmt-back:hover { color: var(--text, #cdccca); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pmt-page">
+
+  <a href="{{ path('admin_dashboard') }}" class="pmt-back">
+    <i data-lucide="arrow-left" width="14" height="14"></i> Voltar ao Admin
+  </a>
+
+  {% for type, messages in app.flashes %}
+    {% for msg in messages %}
+      <div class="flash flash--{{ type }}">
+        <span>{{ msg }}</span>
+        <button onclick="this.closest('.flash').remove()" style="background:none;border:none;cursor:pointer;color:inherit">&times;</button>
+      </div>
+    {% endfor %}
+  {% endfor %}
+
+  {# TOOLBAR #}
+  <form method="GET" action="" class="pmt-toolbar">
+    <div class="pmt-status-tabs">
+      <a href="{{ path('admin_payment_index') }}"
+         class="pmt-stab {{ status is null ? 'is-active' : '' }}">
+        Todos
+      </a>
+      {% for s in statuses %}
+        <a href="{{ path('admin_payment_index', {status: s}) }}"
+           class="pmt-stab {{ status == s ? 'is-active' : '' }}">
+          {{ s|capitalize }}
+        </a>
+      {% endfor %}
+    </div>
+
+    <div class="pmt-search">
+      <i data-lucide="search" width="14" height="14"></i>
+      <input type="text" name="q" value="{{ search }}" placeholder="Buscar por e-mail, nome ou ID externo…">
+      {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+    </div>
+
+    <button type="submit"
+            style="padding:7px 16px;border-radius:8px;background:var(--primary,#4f98a3);color:#fff;border:none;font-size:.83rem;cursor:pointer">
+      Buscar
+    </button>
+  </form>
+
+  {# TABLE #}
+  <div class="pmt-card">
+    {% if pagination.items|length == 0 %}
+      <div class="pmt-empty">
+        <i data-lucide="inbox" width="40" height="40"></i>
+        <p>Nenhum pagamento encontrado para os filtros aplicados.</p>
+      </div>
+    {% else %}
+      <div class="pmt-table-wrap">
+        <table class="pmt-table">
+          <thead>
+            <tr>
+              <th>#ID</th>
+              <th>Usuário</th>
+              <th>Valor</th>
+              <th>Taxa</th>
+              <th>Método</th>
+              <th>Status</th>
+              <th>ID Externo</th>
+              <th>Criado em</th>
+              <th>Pago em</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for payment in pagination %}
+            <tr>
+              <td><strong>#{{ payment.id }}</strong></td>
+              <td class="user-cell">
+                <strong>{{ payment.user.name }}</strong>
+                <small>{{ payment.user.email }}</small>
+              </td>
+              <td class="val-green">
+                R$ {{ (payment.amountCents / 100)|number_format(2, ',', '.') }}
+              </td>
+              <td class="val-muted">
+                {{ payment.feeCents > 0 ? 'R$ ' ~ (payment.feeCents / 100)|number_format(2, ',', '.') : '—' }}
+              </td>
+              <td>{{ payment.method|replace({'_': ' '})|capitalize }}</td>
+              <td>
+                <span class="badge badge--{{ payment.status }}">
+                  {{ payment.status|capitalize }}
+                </span>
+              </td>
+              <td class="val-muted">{{ payment.externalId ?? '—' }}</td>
+              <td class="val-muted">{{ payment.createdAt|date('d/m/Y H:i') }}</td>
+              <td class="val-muted">
+                {{ payment.paidAt ? payment.paidAt|date('d/m/Y H:i') : '—' }}
+              </td>
+              <td>
+                <a href="{{ path('admin_payment_show', {id: payment.id}) }}" class="pmt-btn">
+                  <i data-lucide="eye" width="12" height="12"></i> Ver
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if pagination.pageCount > 1 %}
+      <div class="pmt-pagination">
+        {% if pagination.currentPageNumber > 1 %}
+          <a href="{{ path('admin_payment_index', {page: pagination.currentPageNumber - 1, status: status, q: search}) }}">
+            <i data-lucide="chevron-left" width="14" height="14"></i>
+          </a>
+        {% else %}
+          <span class="disabled"><i data-lucide="chevron-left" width="14" height="14"></i></span>
+        {% endif %}
+
+        {% for page in 1..pagination.pageCount %}
+          {% if page == pagination.currentPageNumber %}
+            <span class="current">{{ page }}</span>
+          {% elseif page == 1 or page == pagination.pageCount
+                    or (page >= pagination.currentPageNumber - 2 and page <= pagination.currentPageNumber + 2) %}
+            <a href="{{ path('admin_payment_index', {page: page, status: status, q: search}) }}">{{ page }}</a>
+          {% elseif page == pagination.currentPageNumber - 3 or page == pagination.currentPageNumber + 3 %}
+            <span>…</span>
+          {% endif %}
+        {% endfor %}
+
+        {% if pagination.currentPageNumber < pagination.pageCount %}
+          <a href="{{ path('admin_payment_index', {page: pagination.currentPageNumber + 1, status: status, q: search}) }}">
+            <i data-lucide="chevron-right" width="14" height="14"></i>
+          </a>
+        {% else %}
+          <span class="disabled"><i data-lucide="chevron-right" width="14" height="14"></i></span>
+        {% endif %}
+      </div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (window.lucide) lucide.createIcons();
+});
+</script>
+{% endblock %}

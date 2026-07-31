@@ -1,0 +1,160 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Pagamento #{{ payment.id }} — Admin{% endblock %}
+{% block page_title %}Pagamento #{{ payment.id }}{% endblock %}
+
+{% block stylesheets %}
+<style>
+.pay-show { display: flex; flex-direction: column; gap: 20px; max-width: 720px; }
+
+.pay-show-card {
+  background: var(--surface, #1c1b19);
+  border: 1px solid var(--border, #393836);
+  border-radius: 12px; padding: 22px 24px;
+}
+
+.pay-show-title {
+  font-size: .82rem; font-weight: 600;
+  color: var(--text-2, #797876);
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 7px;
+}
+.pay-show-title i { color: var(--primary, #4f98a3); }
+
+.pay-dl {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 10px 16px;
+}
+.pay-dl dt {
+  font-size: .72rem; font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-3, #5a5957); align-self: start; padding-top: 2px;
+}
+.pay-dl dd { font-size: .88rem; color: var(--text, #cdccca); word-break: break-all; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: .7rem; font-weight: 600; white-space: nowrap;
+}
+.badge--pending   { background: rgba(245,158,11,.12); color: #f59e0b; border: 1px solid rgba(245,158,11,.25); }
+.badge--approved  { background: rgba(34,197,94,.12);  color: #22c55e; border: 1px solid rgba(34,197,94,.25); }
+.badge--failed    { background: rgba(239,68,68,.12);  color: #ef4444; border: 1px solid rgba(239,68,68,.25); }
+.badge--cancelled { background: rgba(107,114,128,.12); color: #9ca3af; border: 1px solid rgba(107,114,128,.25); }
+.badge--refunded  { background: rgba(139,92,246,.12); color: #8b5cf6; border: 1px solid rgba(139,92,246,.25); }
+
+.val-green { font-weight: 700; color: #22c55e; }
+.val-muted  { color: var(--text-3, #5a5957); font-size: .83rem; }
+
+.pay-back {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .8rem; color: var(--text-2, #797876);
+  text-decoration: none; transition: color .15s;
+}
+.pay-back:hover { color: var(--text, #cdccca); }
+
+.pix-box {
+  background: var(--surface-2, #201f1d);
+  border: 1px solid var(--border, #393836);
+  border-radius: 8px; padding: 10px 14px;
+  font-size: .78rem; color: var(--text, #cdccca);
+  word-break: break-all; font-family: monospace;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pay-show">
+
+  <a href="{{ path('admin_payment_index') }}" class="pay-back">
+    <i data-lucide="arrow-left" width="14" height="14"></i> Voltar à listagem
+  </a>
+
+  {% for type, messages in app.flashes %}
+    {% for msg in messages %}
+      <div class="flash flash--{{ type }}">
+        <span>{{ msg }}</span>
+        <button onclick="this.closest('.flash').remove()" style="background:none;border:none;cursor:pointer;color:inherit">&times;</button>
+      </div>
+    {% endfor %}
+  {% endfor %}
+
+  <div class="pay-show-card">
+    <div class="pay-show-title">
+      <i data-lucide="credit-card" width="15" height="15"></i>
+      Informações do Pagamento
+    </div>
+    <dl class="pay-dl">
+      <dt>ID</dt>
+      <dd><strong>#{{ payment.id }}</strong></dd>
+
+      <dt>Usuário</dt>
+      <dd>{{ payment.user.name }} <span class="val-muted">&lt;{{ payment.user.email }}&gt;</span></dd>
+
+      <dt>Tipo</dt>
+      <dd>{{ payment.type|capitalize }}</dd>
+
+      <dt>Status</dt>
+      <dd><span class="badge badge--{{ payment.status }}">{{ payment.status|capitalize }}</span></dd>
+
+      <dt>Método</dt>
+      <dd>{{ payment.method|replace({'_': ' '})|capitalize }}</dd>
+
+      <dt>Valor</dt>
+      <dd class="val-green">R$ {{ (payment.amountCents / 100)|number_format(2, ',', '.') }}</dd>
+
+      <dt>Taxa</dt>
+      <dd>{{ payment.feeCents > 0 ? 'R$ ' ~ (payment.feeCents / 100)|number_format(2, ',', '.') : '—' }}</dd>
+
+      <dt>ID Externo</dt>
+      <dd>{{ payment.externalId ?? '—' }}</dd>
+
+      <dt>Criado em</dt>
+      <dd>{{ payment.createdAt|date('d/m/Y H:i:s') }}</dd>
+
+      <dt>Pago em</dt>
+      <dd>{{ payment.paidAt ? payment.paidAt|date('d/m/Y H:i:s') : '—' }}</dd>
+    </dl>
+  </div>
+
+  {% if payment.pixCode or payment.qrCodeBase64 %}
+  <div class="pay-show-card">
+    <div class="pay-show-title">
+      <i data-lucide="qr-code" width="15" height="15"></i>
+      Dados Pix
+    </div>
+    {% if payment.pixCode %}
+      <dl class="pay-dl">
+        <dt>Código Pix</dt>
+        <dd><div class="pix-box">{{ payment.pixCode }}</div></dd>
+      </dl>
+    {% endif %}
+    {% if payment.qrCodeBase64 %}
+      <img src="data:image/png;base64,{{ payment.qrCodeBase64 }}"
+           alt="QR Code Pix #{{ payment.id }}"
+           style="max-width:200px;margin-top:12px;border-radius:8px;border:1px solid var(--border,#393836)">
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if payment.gatewayResponse %}
+  <div class="pay-show-card">
+    <div class="pay-show-title">
+      <i data-lucide="code" width="15" height="15"></i>
+      Resposta do Gateway
+    </div>
+    <div class="pix-box" style="max-height:280px;overflow:auto;white-space:pre-wrap">{{ payment.gatewayResponse }}</div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (window.lucide) lucide.createIcons();
+});
+</script>
+{% endblock %}
