@@ -1,0 +1,201 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Transações de Carteira — Admin{% endblock %}
+{% block page_title %}Transações de Carteira{% endblock %}
+
+{% block stylesheets %}
+<style>
+.wtx-page { display: flex; flex-direction: column; gap: 20px; }
+
+.wtx-back {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .8rem; color: var(--text-2, #797876);
+  text-decoration: none; transition: color .15s;
+}
+.wtx-back:hover { color: var(--text, #cdccca); }
+
+.wtx-card {
+  background: var(--surface, #1c1b19);
+  border: 1px solid var(--border, #393836);
+  border-radius: 12px; overflow: hidden;
+}
+
+.wtx-table-wrap { overflow-x: auto; }
+
+.wtx-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.wtx-table th {
+  background: var(--surface-2, #201f1d);
+  color: var(--text-2, #797876);
+  font-weight: 600; font-size: .72rem;
+  letter-spacing: .04em; text-transform: uppercase;
+  padding: 10px 14px; text-align: left;
+  border-bottom: 1px solid var(--border, #393836);
+  white-space: nowrap;
+}
+.wtx-table td {
+  padding: 11px 14px; color: var(--text, #cdccca);
+  border-bottom: 1px solid var(--border, #393836);
+  vertical-align: middle;
+}
+.wtx-table tbody tr:last-child td { border-bottom: none; }
+.wtx-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--primary, #4f98a3) 4%, transparent);
+}
+
+.user-cell strong { display: block; font-size: .83rem; color: var(--text, #cdccca); }
+.user-cell small  { font-size: .72rem; color: var(--text-3, #5a5957); }
+
+.badge-type {
+  display: inline-flex; align-items: center;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: .7rem; font-weight: 600; white-space: nowrap;
+}
+.badge-type--credit   { background: rgba(34,197,94,.12);  color: #22c55e; border: 1px solid rgba(34,197,94,.25); }
+.badge-type--debit    { background: rgba(239,68,68,.12);  color: #ef4444; border: 1px solid rgba(239,68,68,.25); }
+.badge-type--refund   { background: rgba(139,92,246,.12); color: #8b5cf6; border: 1px solid rgba(139,92,246,.25); }
+.badge-type--bonus    { background: rgba(245,158,11,.12); color: #f59e0b; border: 1px solid rgba(245,158,11,.25); }
+.badge-type--cashback { background: rgba(79,152,163,.12); color: #4f98a3; border: 1px solid rgba(79,152,163,.25); }
+
+.val-green { font-weight: 700; color: #22c55e; }
+.val-red   { font-weight: 700; color: #ef4444; }
+.val-muted { color: var(--text-3, #5a5957); font-size: .78rem; }
+
+.wtx-pagination {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: 6px; padding: 14px 18px;
+  border-top: 1px solid var(--border, #393836);
+  flex-wrap: wrap;
+}
+.wtx-pagination a,
+.wtx-pagination span {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 32px; height: 32px; padding: 0 8px;
+  border-radius: 7px; font-size: .8rem; font-weight: 500;
+  text-decoration: none; border: 1px solid var(--border, #393836);
+  color: var(--text-2, #797876); transition: all .15s;
+}
+.wtx-pagination a:hover { border-color: var(--primary, #4f98a3); color: var(--primary, #4f98a3); }
+.wtx-pagination .current { background: var(--primary, #4f98a3); border-color: var(--primary, #4f98a3); color: #fff; }
+.wtx-pagination .disabled { opacity: .35; pointer-events: none; }
+
+.wtx-empty {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px; padding: 48px 20px;
+  color: var(--text-3, #5a5957); text-align: center;
+}
+.wtx-empty p { font-size: .9rem; color: var(--text-2, #797876); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wtx-page">
+
+  <a href="{{ path('admin_dashboard') }}" class="wtx-back">
+    <i data-lucide="arrow-left" width="14" height="14"></i> Voltar ao Admin
+  </a>
+
+  {% for type, messages in app.flashes %}
+    {% for msg in messages %}
+      <div class="flash flash--{{ type }}">
+        <span>{{ msg }}</span>
+        <button onclick="this.closest('.flash').remove()" style="background:none;border:none;cursor:pointer;color:inherit">&times;</button>
+      </div>
+    {% endfor %}
+  {% endfor %}
+
+  <div class="wtx-card">
+    {% if pagination.items|length == 0 %}
+      <div class="wtx-empty">
+        <i data-lucide="wallet" width="40" height="40"></i>
+        <p>Nenhuma transação encontrada.</p>
+      </div>
+    {% else %}
+      <div class="wtx-table-wrap">
+        <table class="wtx-table">
+          <thead>
+            <tr>
+              <th>#ID</th>
+              <th>Usuário</th>
+              <th>Saldo Atual</th>
+              <th>Tipo</th>
+              <th>Valor</th>
+              <th>Saldo Após</th>
+              <th>Descrição</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tx in pagination %}
+            {% set typeSlug = tx.type.value|lower %}
+            <tr>
+              <td><strong>#{{ tx.id }}</strong></td>
+              <td class="user-cell">
+                <strong>{{ tx.wallet.user.name }}</strong>
+                <small>{{ tx.wallet.user.email }}</small>
+              </td>
+              <td class="val-muted">
+                R$ {{ (tx.wallet.balanceCents / 100)|number_format(2, ',', '.') }}
+              </td>
+              <td>
+                <span class="badge-type badge-type--{{ typeSlug }}">
+                  {{ tx.type.value|capitalize }}
+                </span>
+              </td>
+              <td class="{{ typeSlug in ['credit','bonus','cashback','refund'] ? 'val-green' : 'val-red' }}">
+                {{ typeSlug in ['credit','bonus','cashback','refund'] ? '+' : '-' }}
+                R$ {{ (tx.amountCents / 100)|number_format(2, ',', '.') }}
+              </td>
+              <td class="val-muted">
+                R$ {{ (tx.balanceAfterCents / 100)|number_format(2, ',', '.') }}
+              </td>
+              <td class="val-muted">{{ tx.description }}</td>
+              <td class="val-muted">{{ tx.createdAt|date('d/m/Y H:i') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if pagination.pageCount > 1 %}
+      <div class="wtx-pagination">
+        {% if pagination.currentPageNumber > 1 %}
+          <a href="{{ path('admin_wallet_transaction_index', {page: pagination.currentPageNumber - 1}) }}">
+            <i data-lucide="chevron-left" width="14" height="14"></i>
+          </a>
+        {% else %}
+          <span class="disabled"><i data-lucide="chevron-left" width="14" height="14"></i></span>
+        {% endif %}
+
+        {% for page in 1..pagination.pageCount %}
+          {% if page == pagination.currentPageNumber %}
+            <span class="current">{{ page }}</span>
+          {% elseif page == 1 or page == pagination.pageCount
+                    or (page >= pagination.currentPageNumber - 2 and page <= pagination.currentPageNumber + 2) %}
+            <a href="{{ path('admin_wallet_transaction_index', {page: page}) }}">{{ page }}</a>
+          {% elseif page == pagination.currentPageNumber - 3 or page == pagination.currentPageNumber + 3 %}
+            <span>…</span>
+          {% endif %}
+        {% endfor %}
+
+        {% if pagination.currentPageNumber < pagination.pageCount %}
+          <a href="{{ path('admin_wallet_transaction_index', {page: pagination.currentPageNumber + 1}) }}">
+            <i data-lucide="chevron-right" width="14" height="14"></i>
+          </a>
+        {% else %}
+          <span class="disabled"><i data-lucide="chevron-right" width="14" height="14"></i></span>
+        {% endif %}
+      </div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (window.lucide) lucide.createIcons();
+});
+</script>
+{% endblock %}
