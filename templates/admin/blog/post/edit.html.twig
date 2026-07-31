@@ -1,0 +1,121 @@
+{% extends 'admin/layout.html.twig' %}
+{% block page_title %}{{ post ? 'Editar Post' : 'Novo Post' }}{% endblock %}
+
+{% block admin_content %}
+<div style="padding:28px 32px;">
+<div style="max-width:860px;">
+
+  <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
+    <a href="{{ path('admin_blog_post_index') }}" style="font-size:.85rem;color:#6b708a;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> Posts
+    </a>
+    <h1 style="font-size:1rem;font-weight:700;color:#dde1f0;margin:0;">{{ post ? 'Editar: ' ~ post.title|slice(0,40) : 'Novo post' }}</h1>
+  </div>
+
+  {% for label, messages in app.flashes %}
+    {% for msg in messages %}
+      <div style="margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:.85rem;font-weight:500;
+        background:{% if label=='success' %}rgba(67,122,34,.15){% else %}rgba(161,44,123,.15){% endif %};
+        color:{% if label=='success' %}#6daa45{% else %}#d163a7{% endif %};border:1px solid {% if label=='success' %}rgba(67,122,34,.25){% else %}rgba(161,44,123,.25){% endif %};">{{ msg }}</div>
+    {% endfor %}
+  {% endfor %}
+
+  <form method="POST" style="display:flex;flex-direction:column;gap:16px;">
+
+    {# T&iacute;tulo #}
+    <div>
+      <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:6px;color:#dde1f0;">T&iacute;tulo <span style="color:#d163a7;">*</span></label>
+      <input type="text" name="title" value="{{ post ? post.title : '' }}" required maxlength="200"
+             style="width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.03);color:#dde1f0;font-size:.9rem;outline:none;transition:border .15s;"
+             onfocus="this.style.borderColor='#4eccd3'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
+    </div>
+
+    {# Resumo / Excerpt #}
+    <div>
+      <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:6px;color:#dde1f0;">Resumo (excerpt)</label>
+      <textarea name="summary" rows="2" maxlength="500"
+                style="width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.03);color:#dde1f0;font-size:.875rem;resize:vertical;outline:none;font-family:inherit;transition:border .15s;"
+                onfocus="this.style.borderColor='#4eccd3'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">{{ post ? post.excerpt : '' }}</textarea>
+    </div>
+
+    {# Conte&uacute;do #}
+    <div>
+      <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:6px;color:#dde1f0;">Conte&uacute;do <span style="color:#d163a7;">*</span></label>
+      <textarea name="content" rows="16" required
+                style="width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.03);color:#dde1f0;font-size:.875rem;resize:vertical;outline:none;font-family:'Courier New',monospace;line-height:1.6;transition:border .15s;"
+                onfocus="this.style.borderColor='#4eccd3'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">{{ post ? post.content : '' }}</textarea>
+    </div>
+
+    {# Categoria + Status lado a lado #}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:6px;color:#dde1f0;">Categoria</label>
+        <select name="category" style="width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:#0b0e14;color:#dde1f0;font-size:.875rem;outline:none;">
+          <option value="">— Sem categoria —</option>
+          {% for cat in categories %}
+            <option value="{{ cat.id }}" {{ post and post.category and post.category.id == cat.id ? 'selected' }}>{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:6px;color:#dde1f0;">Status</label>
+        <select name="isPublished" style="width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:#0b0e14;color:#dde1f0;font-size:.875rem;outline:none;">
+          <option value="0" {{ post and not post.isPublished() ? 'selected' }}>Rascunho</option>
+          <option value="1" {{ post and post.isPublished() ? 'selected' }}>Publicado</option>
+        </select>
+      </div>
+    </div>
+
+    {# Tags #}
+    {% if tags|length > 0 %}
+    <div>
+      <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:8px;color:#dde1f0;">Tags</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        {% for tag in tags %}
+          {% set checked = post and post.tags.contains(tag) %}
+          <label style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid rgba(255,255,255,.08);border-radius:9999px;cursor:pointer;font-size:.78rem;color:#6b708a;transition:all .15s;" onmouseover="this.style.borderColor='#4eccd3';this.style.color='#4eccd3'" onmouseout="this.style.borderColor='rgba(255,255,255,.08)';this.style.color='#6b708a'">
+            <input type="checkbox" name="tags[]" value="{{ tag.id }}" {% if checked %}checked{% endif %} style="accent-color:#01696f;">
+            {{ tag.name }}
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Thumbnail URL #}
+    <div>
+      <label style="display:block;font-size:.8rem;font-weight:600;margin-bottom:6px;color:#dde1f0;">Thumbnail (URL)</label>
+      <input type="text" name="thumbnail" value="{{ post ? post.thumbnail : '' }}" placeholder="https://..."
+             style="width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.03);color:#dde1f0;font-size:.875rem;outline:none;transition:border .15s;"
+             onfocus="this.style.borderColor='#4eccd3'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
+    </div>
+
+    {# SEO #}
+    <details style="border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px 16px;">
+      <summary style="font-size:.8rem;font-weight:600;color:#6b708a;cursor:pointer;list-style:none;">SEO (opcional)</summary>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+        <div>
+          <label style="display:block;font-size:.78rem;font-weight:600;margin-bottom:5px;color:#dde1f0;">Meta Title</label>
+          <input type="text" name="metaTitle" value="{{ post ? post.metaTitle : '' }}" maxlength="200"
+                 style="width:100%;padding:8px 12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.03);color:#dde1f0;font-size:.875rem;outline:none;">
+        </div>
+        <div>
+          <label style="display:block;font-size:.78rem;font-weight:600;margin-bottom:5px;color:#dde1f0;">Meta Description</label>
+          <textarea name="metaDescription" rows="2" maxlength="300"
+                    style="width:100%;padding:8px 12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.03);color:#dde1f0;font-size:.875rem;resize:vertical;outline:none;font-family:inherit;">{{ post ? post.metaDescription : '' }}</textarea>
+        </div>
+      </div>
+    </details>
+
+    {# Bot&otilde;es #}
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:4px;">
+      <a href="{{ path('admin_blog_post_index') }}" style="padding:8px 16px;background:rgba(255,255,255,.05);color:#dde1f0;border:1px solid rgba(255,255,255,.08);border-radius:7px;font-size:.8rem;font-weight:500;text-decoration:none;">Cancelar</a>
+      <button type="submit" style="padding:8px 20px;background:#01696f;color:#fff;border:none;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#0c4e54'" onmouseout="this.style.background='#01696f'">
+        {{ post ? 'Salvar altera&ccedil;&otilde;es' : 'Criar post' }}
+      </button>
+    </div>
+
+  </form>
+</div>
+</div>
+{% endblock %}
