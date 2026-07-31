@@ -5,7 +5,7 @@
 {# ─── Quill CSS ─── #}
 <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
 <style>
-  /* ── Quill theme override para dark ── */
+  /* ── Quill dark theme ── */
   .ql-toolbar.ql-snow{
     background:#12151c;border:1px solid rgba(255,255,255,.08)!important;
     border-bottom:1px solid rgba(255,255,255,.05)!important;
@@ -18,7 +18,6 @@
   }
   .ql-editor{min-height:320px;color:#dde1f0;line-height:1.75;padding:14px 16px;}
   .ql-editor.ql-blank::before{color:#3e4259;font-style:normal;}
-  /* toolbar buttons */
   .ql-snow .ql-stroke{stroke:#6b708a!important;}
   .ql-snow .ql-fill{fill:#6b708a!important;}
   .ql-snow .ql-picker-label{color:#6b708a!important;}
@@ -33,7 +32,6 @@
   .ql-snow.ql-toolbar button.ql-active{background:rgba(78,204,211,.08)!important;border-radius:4px;}
   .ql-snow .ql-picker-options{background:#12151c;border:1px solid rgba(255,255,255,.08)!important;}
   .ql-snow .ql-picker-item{color:#dde1f0!important;}
-  /* link/image dialogs */
   .ql-snow .ql-tooltip{
     background:#0b0e14!important;border:1px solid rgba(255,255,255,.08)!important;
     color:#dde1f0!important;border-radius:6px;
@@ -44,14 +42,30 @@
   }
   .ql-snow .ql-tooltip a.ql-action::after{color:#4eccd3!important;}
   .ql-snow .ql-tooltip a.ql-remove::before{color:#d163a7!important;}
-  /* HTML source mode textarea */
+
+  /* ── Tooltip CSS ── */
+  [data-ql-tip]{position:relative;}
+  [data-ql-tip]::after{
+    content: attr(data-ql-tip);
+    position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+    white-space:nowrap;pointer-events:none;
+    background:#0b0e14;border:1px solid rgba(255,255,255,.1);
+    color:#dde1f0;font-size:.7rem;font-weight:500;font-family:inherit;
+    padding:3px 8px;border-radius:5px;
+    opacity:0;transition:opacity .15s;
+    z-index:9999;
+  }
+  [data-ql-tip]:hover::after{opacity:1;}
+  /* picker tooltips ficam na toolbar */
+  .ql-toolbar .ql-picker[data-ql-tip]{position:relative;}
+
+  /* HTML source mode */
   #content-html-source{
     display:none;width:100%;min-height:320px;padding:14px 16px;
     border:1px solid rgba(255,255,255,.08);border-radius:0 0 8px 8px;
     background:rgba(255,255,255,.03);color:#4eccd3;font-family:'Courier New',monospace;
     font-size:.82rem;line-height:1.6;resize:vertical;outline:none;
   }
-  /* toggle html button */
   #btn-html-toggle{
     display:inline-flex;align-items:center;gap:5px;
     padding:3px 10px;font-size:.72rem;font-weight:600;
@@ -103,17 +117,13 @@
     <div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
         <label style="font-size:.8rem;font-weight:600;color:#dde1f0;">Conteúdo <span style="color:#d163a7;">*</span></label>
-        <button type="button" id="btn-html-toggle" title="Alternar entre editor visual e HTML">
+        <button type="button" id="btn-html-toggle" title="Alternar entre editor visual e código HTML">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
           HTML
         </button>
       </div>
-
-      {# Quill editor container #}
       <div id="quill-editor"></div>
-      {# HTML source fallback #}
       <textarea id="content-html-source" spellcheck="false" placeholder="Cole ou edite HTML diretamente aqui..."></textarea>
-      {# Hidden input que vai para o PHP #}
       <input type="hidden" name="content" id="content-hidden">
     </div>
 
@@ -194,10 +204,8 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script>
 (function () {
-  // Conteúdo inicial vindo do PHP/Twig
   const initialContent = {{ post ? post.content|json_encode|raw : '""' }};
 
-  // ── Inicializa Quill ──
   const quill = new Quill('#quill-editor', {
     theme: 'snow',
     placeholder: 'Escreva o conteúdo do post aqui...',
@@ -216,10 +224,60 @@
     }
   });
 
-  // Carrega conteúdo HTML existente
   if (initialContent) {
     quill.clipboard.dangerouslyPasteHTML(initialContent);
   }
+
+  // ── Tooltips em português para cada botão da toolbar ──
+  const TIPS = {
+    'ql-bold':        'Negrito (Ctrl+B)',
+    'ql-italic':      'Itálico (Ctrl+I)',
+    'ql-underline':   'Sublinhado (Ctrl+U)',
+    'ql-strike':      'Tachado',
+    'ql-blockquote':  'Citação',
+    'ql-code-block':  'Bloco de código',
+    'ql-link':        'Inserir link',
+    'ql-image':       'Inserir imagem',
+    'ql-video':       'Inserir vídeo',
+    'ql-clean':       'Remover formatação',
+    'ql-color':       'Cor do texto',
+    'ql-background':  'Cor de fundo',
+    'ql-header':      'Estilo de título',
+    'ql-list-ordered':'Lista numerada',
+    'ql-list-bullet': 'Lista com marcadores',
+    'ql-list-check':  'Lista de tarefas',
+    'ql-indent--1':   'Diminuir recuo',
+    'ql-indent-+1':   'Aumentar recuo',
+    'ql-align':       'Alinhamento',
+  };
+
+  // Aguarda o DOM do Quill ser renderizado
+  requestAnimationFrame(function applyTips() {
+    const toolbar = document.querySelector('.ql-toolbar');
+    if (!toolbar) { requestAnimationFrame(applyTips); return; }
+
+    // Botões simples
+    toolbar.querySelectorAll('button').forEach(function(btn) {
+      // Detecta classe tipo ql-bold, ql-list etc.
+      const cls = Array.from(btn.classList).find(c => c.startsWith('ql-'));
+      if (!cls) return;
+      const val = btn.getAttribute('value'); // ex: 'ordered', 'bullet', '+1'
+      const key = val ? cls + '-' + val : cls;
+      const tip = TIPS[key] || TIPS[cls];
+      if (tip) {
+        btn.setAttribute('data-ql-tip', tip);
+        btn.setAttribute('aria-label', tip);
+      }
+    });
+
+    // Pickers (header, color, align, background)
+    toolbar.querySelectorAll('.ql-picker').forEach(function(picker) {
+      const cls = Array.from(picker.classList).find(c => c.startsWith('ql-') && c !== 'ql-picker' && c !== 'ql-color-picker' && c !== 'ql-icon-picker');
+      if (!cls) return;
+      const tip = TIPS[cls];
+      if (tip) picker.setAttribute('data-ql-tip', tip);
+    });
+  });
 
   // ── Toggle HTML / Visual ──
   const btn      = document.getElementById('btn-html-toggle');
@@ -230,13 +288,11 @@
   btn.addEventListener('click', function () {
     htmlMode = !htmlMode;
     if (htmlMode) {
-      // Visual → HTML: extrai HTML do Quill e mostra no textarea
       source.value = quill.getSemanticHTML();
       editorEl.style.display = 'none';
       source.style.display   = 'block';
       btn.classList.add('active');
     } else {
-      // HTML → Visual: injeta HTML de volta no Quill
       quill.clipboard.dangerouslyPasteHTML(source.value);
       source.style.display   = 'none';
       editorEl.style.display = 'block';
@@ -244,12 +300,11 @@
     }
   });
 
-  // ── Antes de submeter: sincroniza o hidden input ──
+  // ── Sincroniza hidden input no submit ──
   document.getElementById('post-form').addEventListener('submit', function () {
-    const html = htmlMode
+    document.getElementById('content-hidden').value = htmlMode
       ? source.value
       : quill.getSemanticHTML();
-    document.getElementById('content-hidden').value = html;
   });
 })();
 </script>
