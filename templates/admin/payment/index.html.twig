@@ -1,230 +1,140 @@
-{% extends 'base.html.twig' %}
+{% extends 'admin/layout.html.twig' %}
 
-{% block title %}Pagamentos — Admin{% endblock %}
-{% block page_title %}Gerenciar Pagamentos{% endblock %}
+{% block page_title %}Histórico de Pagamentos{% endblock %}
 
-{% block stylesheets %}
-<style>
-.pmt-page { display: flex; flex-direction: column; gap: 20px; }
+{% block admin_content %}
+<div style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
 
-.pmt-toolbar {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
-  background: var(--surface, #1c1b19);
-  border: 1px solid var(--border, #393836);
-  border-radius: 10px; padding: 14px 18px;
-}
-
-.pmt-search {
-  flex: 1 1 220px; display: flex; align-items: center; gap: 8px;
-  background: var(--surface-2, #201f1d);
-  border: 1px solid var(--border, #393836);
-  border-radius: 8px; padding: 7px 12px;
-  transition: border-color .18s;
-}
-.pmt-search:focus-within { border-color: var(--primary, #4f98a3); }
-.pmt-search input {
-  border: none; background: transparent;
-  color: var(--text, #cdccca); font-size: .85rem;
-  width: 100%; outline: none;
-}
-.pmt-search input::placeholder { color: var(--text-3, #5a5957); }
-
-.pmt-status-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
-.pmt-stab {
-  padding: 6px 14px; border-radius: 7px;
-  border: 1px solid var(--border, #393836);
-  background: transparent; color: var(--text-2, #797876);
-  font-size: .78rem; font-weight: 600;
-  cursor: pointer; text-decoration: none;
-  transition: all .18s; white-space: nowrap;
-}
-.pmt-stab:hover { border-color: var(--primary, #4f98a3); color: var(--text, #cdccca); }
-.pmt-stab.is-active { background: var(--primary, #4f98a3); border-color: var(--primary, #4f98a3); color: #fff; }
-
-.pmt-card {
-  background: var(--surface, #1c1b19);
-  border: 1px solid var(--border, #393836);
-  border-radius: 12px; overflow: hidden;
-}
-
-.pmt-table-wrap { overflow-x: auto; }
-
-.pmt-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
-.pmt-table th {
-  background: var(--surface-2, #201f1d);
-  color: var(--text-2, #797876);
-  font-weight: 600; font-size: .72rem;
-  letter-spacing: .04em; text-transform: uppercase;
-  padding: 10px 14px; text-align: left;
-  border-bottom: 1px solid var(--border, #393836);
-  white-space: nowrap;
-}
-.pmt-table td {
-  padding: 11px 14px; color: var(--text, #cdccca);
-  border-bottom: 1px solid var(--border, #393836);
-  vertical-align: middle;
-}
-.pmt-table tbody tr:last-child td { border-bottom: none; }
-.pmt-table tbody tr:hover td {
-  background: color-mix(in srgb, var(--primary, #4f98a3) 4%, transparent);
-}
-
-.badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 9px; border-radius: 20px;
-  font-size: .7rem; font-weight: 600; white-space: nowrap;
-}
-.badge--pending   { background: rgba(245,158,11,.12); color: #f59e0b; border: 1px solid rgba(245,158,11,.25); }
-.badge--approved  { background: rgba(34,197,94,.12);  color: #22c55e; border: 1px solid rgba(34,197,94,.25); }
-.badge--failed    { background: rgba(239,68,68,.12);  color: #ef4444; border: 1px solid rgba(239,68,68,.25); }
-.badge--cancelled { background: rgba(107,114,128,.12); color: #9ca3af; border: 1px solid rgba(107,114,128,.25); }
-.badge--refunded  { background: rgba(139,92,246,.12); color: #8b5cf6; border: 1px solid rgba(139,92,246,.25); }
-
-.user-cell strong { display: block; font-size: .83rem; color: var(--text, #cdccca); }
-.user-cell small  { font-size: .72rem; color: var(--text-3, #5a5957); }
-
-.val-green { font-weight: 700; color: #22c55e; }
-.val-muted  { color: var(--text-3, #5a5957); font-size: .78rem; }
-
-.pmt-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 11px; border-radius: 7px;
-  font-size: .78rem; font-weight: 600;
-  text-decoration: none; border: 1px solid var(--border, #393836);
-  color: var(--text-2, #797876); background: transparent;
-  transition: all .15s; white-space: nowrap;
-}
-.pmt-btn:hover { border-color: var(--primary, #4f98a3); color: var(--primary, #4f98a3); }
-
-.pmt-pagination {
-  display: flex; align-items: center; justify-content: flex-end;
-  gap: 6px; padding: 14px 18px;
-  border-top: 1px solid var(--border, #393836);
-  flex-wrap: wrap;
-}
-.pmt-pagination a,
-.pmt-pagination span {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 32px; height: 32px; padding: 0 8px;
-  border-radius: 7px; font-size: .8rem; font-weight: 500;
-  text-decoration: none; border: 1px solid var(--border, #393836);
-  color: var(--text-2, #797876); transition: all .15s;
-}
-.pmt-pagination a:hover { border-color: var(--primary, #4f98a3); color: var(--primary, #4f98a3); }
-.pmt-pagination .current { background: var(--primary, #4f98a3); border-color: var(--primary, #4f98a3); color: #fff; }
-.pmt-pagination .disabled { opacity: .35; pointer-events: none; }
-
-.pmt-empty {
-  display: flex; flex-direction: column; align-items: center;
-  gap: 10px; padding: 48px 20px;
-  color: var(--text-3, #5a5957); text-align: center;
-}
-.pmt-empty p { font-size: .9rem; color: var(--text-2, #797876); }
-
-.pmt-back {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: .8rem; color: var(--text-2, #797876);
-  text-decoration: none; transition: color .15s;
-}
-.pmt-back:hover { color: var(--text, #cdccca); }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="pmt-page">
-
-  <a href="{{ path('admin_dashboard') }}" class="pmt-back">
-    <i data-lucide="arrow-left" width="14" height="14"></i> Voltar ao Admin
-  </a>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <h1 style="font-size:1.1rem;font-weight:800;color:#f0f3ff">Histórico de Pagamentos</h1>
+    <a href="{{ path('admin_dashboard') }}"
+       style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;color:#6b708a;text-decoration:none">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Voltar
+    </a>
+  </div>
 
   {% for type, messages in app.flashes %}
     {% for msg in messages %}
-      <div class="flash flash--{{ type }}">
-        <span>{{ msg }}</span>
-        <button onclick="this.closest('.flash').remove()" style="background:none;border:none;cursor:pointer;color:inherit">&times;</button>
+      <div style="padding:10px 14px;border-radius:8px;font-size:.82rem;
+           background:{{ type == 'success' ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)' }};
+           color:{{ type == 'success' ? '#22c55e' : '#ef4444' }};
+           border:1px solid {{ type == 'success' ? 'rgba(34,197,94,.25)' : 'rgba(239,68,68,.25)' }};">
+        {{ msg }}
       </div>
     {% endfor %}
   {% endfor %}
 
   {# TOOLBAR #}
-  <form method="GET" action="" class="pmt-toolbar">
-    <div class="pmt-status-tabs">
+  <form method="GET" action=""
+        style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+               background:#0b0e14;border:1px solid rgba(255,255,255,.06);
+               border-radius:10px;padding:14px 18px">
+
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
       <a href="{{ path('admin_payment_index') }}"
-         class="pmt-stab {{ status is null ? 'is-active' : '' }}">
+         style="padding:6px 13px;border-radius:7px;font-size:.75rem;font-weight:600;
+                text-decoration:none;border:1px solid;
+                {{ status is null
+                   ? 'background:rgba(1,134,141,.15);border-color:#01868d;color:#4eccd3'
+                   : 'border-color:rgba(255,255,255,.1);color:#6b708a' }}">
         Todos
       </a>
       {% for s in statuses %}
         <a href="{{ path('admin_payment_index', {status: s}) }}"
-           class="pmt-stab {{ status == s ? 'is-active' : '' }}">
+           style="padding:6px 13px;border-radius:7px;font-size:.75rem;font-weight:600;
+                  text-decoration:none;border:1px solid;
+                  {{ status == s
+                     ? 'background:rgba(1,134,141,.15);border-color:#01868d;color:#4eccd3'
+                     : 'border-color:rgba(255,255,255,.1);color:#6b708a' }}">
           {{ s|capitalize }}
         </a>
       {% endfor %}
     </div>
 
-    <div class="pmt-search">
-      <i data-lucide="search" width="14" height="14"></i>
-      <input type="text" name="q" value="{{ search }}" placeholder="Buscar por e-mail, nome ou ID externo…">
+    <div style="flex:1 1 200px;display:flex;align-items:center;gap:7px;
+                background:#161a24;border:1px solid rgba(255,255,255,.08);
+                border-radius:7px;padding:6px 11px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b708a" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" name="q" value="{{ search }}"
+             placeholder="Buscar por e-mail, nome ou ID externo…"
+             style="border:none;background:transparent;color:#dde1f0;font-size:.8rem;width:100%;outline:none">
       {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
     </div>
 
     <button type="submit"
-            style="padding:7px 16px;border-radius:8px;background:var(--primary,#4f98a3);color:#fff;border:none;font-size:.83rem;cursor:pointer">
+            style="padding:7px 16px;border-radius:7px;background:#01868d;color:#fff;
+                   border:none;font-size:.8rem;font-weight:600;cursor:pointer">
       Buscar
     </button>
   </form>
 
   {# TABLE #}
-  <div class="pmt-card">
+  <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden">
     {% if pagination.items|length == 0 %}
-      <div class="pmt-empty">
-        <i data-lucide="inbox" width="40" height="40"></i>
-        <p>Nenhum pagamento encontrado para os filtros aplicados.</p>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;
+                  padding:48px 20px;color:#3e4259;text-align:center">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <p style="font-size:.88rem;color:#6b708a">Nenhum pagamento encontrado.</p>
       </div>
     {% else %}
-      <div class="pmt-table-wrap">
-        <table class="pmt-table">
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:.8rem">
           <thead>
             <tr>
-              <th>#ID</th>
-              <th>Usuário</th>
-              <th>Valor</th>
-              <th>Taxa</th>
-              <th>Método</th>
-              <th>Status</th>
-              <th>ID Externo</th>
-              <th>Criado em</th>
-              <th>Pago em</th>
-              <th></th>
+              {% for col in ['#ID','Usuário','Valor','Taxa','Método','Status','ID Externo','Criado em','Pago em',''] %}
+                <th style="background:#0d1016;color:#3e4259;font-weight:700;font-size:.68rem;
+                            letter-spacing:.05em;text-transform:uppercase;padding:9px 13px;
+                            text-align:left;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap">
+                  {{ col }}
+                </th>
+              {% endfor %}
             </tr>
           </thead>
           <tbody>
             {% for payment in pagination %}
-            <tr>
-              <td><strong>#{{ payment.id }}</strong></td>
-              <td class="user-cell">
-                <strong>{{ payment.user.name }}</strong>
-                <small>{{ payment.user.email }}</small>
+            <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+              <td style="padding:10px 13px;color:#9196b0"><strong style="color:#dde1f0">#{{ payment.id }}</strong></td>
+              <td style="padding:10px 13px">
+                <strong style="display:block;font-size:.82rem;color:#dde1f0">{{ payment.user.name }}</strong>
+                <small style="font-size:.7rem;color:#3e4259">{{ payment.user.email }}</small>
               </td>
-              <td class="val-green">
+              <td style="padding:10px 13px;color:#22c55e;font-weight:700">
                 R$ {{ (payment.amountCents / 100)|number_format(2, ',', '.') }}
               </td>
-              <td class="val-muted">
+              <td style="padding:10px 13px;color:#3e4259;font-size:.76rem">
                 {{ payment.feeCents > 0 ? 'R$ ' ~ (payment.feeCents / 100)|number_format(2, ',', '.') : '—' }}
               </td>
-              <td>{{ payment.method|replace({'_': ' '})|capitalize }}</td>
-              <td>
-                <span class="badge badge--{{ payment.status }}">
+              <td style="padding:10px 13px;color:#9196b0">
+                {{ payment.method|replace({'_': ' '})|capitalize }}
+              </td>
+              <td style="padding:10px 13px">
+                {% set sc = {
+                  'pending':   'rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25)',
+                  'approved':  'rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25)',
+                  'failed':    'rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25)',
+                  'cancelled': 'rgba(107,114,128,.12);color:#9ca3af;border:1px solid rgba(107,114,128,.25)',
+                  'refunded':  'rgba(139,92,246,.12);color:#8b5cf6;border:1px solid rgba(139,92,246,.25)'
+                } %}
+                <span style="display:inline-flex;padding:3px 9px;border-radius:20px;
+                             font-size:.68rem;font-weight:700;
+                             background:{{ sc[payment.status] ?? 'rgba(255,255,255,.06);color:#9196b0;border:1px solid rgba(255,255,255,.1)' }}">
                   {{ payment.status|capitalize }}
                 </span>
               </td>
-              <td class="val-muted">{{ payment.externalId ?? '—' }}</td>
-              <td class="val-muted">{{ payment.createdAt|date('d/m/Y H:i') }}</td>
-              <td class="val-muted">
+              <td style="padding:10px 13px;color:#3e4259;font-size:.76rem">{{ payment.externalId ?? '—' }}</td>
+              <td style="padding:10px 13px;color:#3e4259;font-size:.76rem">{{ payment.createdAt|date('d/m/Y H:i') }}</td>
+              <td style="padding:10px 13px;color:#3e4259;font-size:.76rem">
                 {{ payment.paidAt ? payment.paidAt|date('d/m/Y H:i') : '—' }}
               </td>
-              <td>
-                <a href="{{ path('admin_payment_show', {id: payment.id}) }}" class="pmt-btn">
-                  <i data-lucide="eye" width="12" height="12"></i> Ver
+              <td style="padding:10px 13px">
+                <a href="{{ path('admin_payment_show', {id: payment.id}) }}"
+                   style="display:inline-flex;align-items:center;gap:4px;
+                          padding:4px 10px;border-radius:6px;font-size:.74rem;font-weight:600;
+                          border:1px solid rgba(255,255,255,.08);color:#6b708a;text-decoration:none;
+                          transition:all .15s">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  Ver
                 </a>
               </td>
             </tr>
@@ -234,32 +144,39 @@
       </div>
 
       {% if pagination.pageCount > 1 %}
-      <div class="pmt-pagination">
+      <div style="display:flex;align-items:center;justify-content:flex-end;
+                  gap:5px;padding:13px 18px;
+                  border-top:1px solid rgba(255,255,255,.06);flex-wrap:wrap">
         {% if pagination.currentPageNumber > 1 %}
-          <a href="{{ path('admin_payment_index', {page: pagination.currentPageNumber - 1, status: status, q: search}) }}">
-            <i data-lucide="chevron-left" width="14" height="14"></i>
+          <a href="{{ path('admin_payment_index', {page: pagination.currentPageNumber - 1, status: status, q: search}) }}"
+             style="display:inline-flex;align-items:center;justify-content:center;
+                    min-width:30px;height:30px;padding:0 7px;border-radius:6px;font-size:.76rem;
+                    border:1px solid rgba(255,255,255,.08);color:#6b708a;text-decoration:none">
+            &lsaquo;
           </a>
-        {% else %}
-          <span class="disabled"><i data-lucide="chevron-left" width="14" height="14"></i></span>
         {% endif %}
-
         {% for page in 1..pagination.pageCount %}
           {% if page == pagination.currentPageNumber %}
-            <span class="current">{{ page }}</span>
+            <span style="display:inline-flex;align-items:center;justify-content:center;
+                         min-width:30px;height:30px;padding:0 7px;border-radius:6px;font-size:.76rem;
+                         background:#01868d;border:1px solid #01868d;color:#fff;font-weight:700">{{ page }}</span>
           {% elseif page == 1 or page == pagination.pageCount
                     or (page >= pagination.currentPageNumber - 2 and page <= pagination.currentPageNumber + 2) %}
-            <a href="{{ path('admin_payment_index', {page: page, status: status, q: search}) }}">{{ page }}</a>
+            <a href="{{ path('admin_payment_index', {page: page, status: status, q: search}) }}"
+               style="display:inline-flex;align-items:center;justify-content:center;
+                       min-width:30px;height:30px;padding:0 7px;border-radius:6px;font-size:.76rem;
+                       border:1px solid rgba(255,255,255,.08);color:#6b708a;text-decoration:none">{{ page }}</a>
           {% elseif page == pagination.currentPageNumber - 3 or page == pagination.currentPageNumber + 3 %}
-            <span>…</span>
+            <span style="color:#3e4259;font-size:.76rem">…</span>
           {% endif %}
         {% endfor %}
-
         {% if pagination.currentPageNumber < pagination.pageCount %}
-          <a href="{{ path('admin_payment_index', {page: pagination.currentPageNumber + 1, status: status, q: search}) }}">
-            <i data-lucide="chevron-right" width="14" height="14"></i>
+          <a href="{{ path('admin_payment_index', {page: pagination.currentPageNumber + 1, status: status, q: search}) }}"
+             style="display:inline-flex;align-items:center;justify-content:center;
+                    min-width:30px;height:30px;padding:0 7px;border-radius:6px;font-size:.76rem;
+                    border:1px solid rgba(255,255,255,.08);color:#6b708a;text-decoration:none">
+            &rsaquo;
           </a>
-        {% else %}
-          <span class="disabled"><i data-lucide="chevron-right" width="14" height="14"></i></span>
         {% endif %}
       </div>
       {% endif %}
@@ -267,12 +184,4 @@
   </div>
 
 </div>
-{% endblock %}
-
-{% block javascripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  if (window.lucide) lucide.createIcons();
-});
-</script>
 {% endblock %}
