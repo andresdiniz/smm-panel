@@ -1,0 +1,79 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block page_title %}Suporte{% endblock %}
+
+{% block admin_content %}
+<div style="padding:24px;display:flex;flex-direction:column;gap:20px">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <h1 style="font-size:1.1rem;font-weight:800;color:#f0f3ff">Suporte</h1>
+  </div>
+
+  {% for type, messages in app.flashes %}
+    {% for msg in messages %}
+      <div style="padding:10px 14px;border-radius:8px;font-size:.82rem;
+           background:{{ type == 'success' ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)' }};
+           color:{{ type == 'success' ? '#22c55e' : '#ef4444' }};
+           border:1px solid {{ type == 'success' ? 'rgba(34,197,94,.25)' : 'rgba(239,68,68,.25)' }};">
+        {{ msg }}
+      </div>
+    {% endfor %}
+  {% endfor %}
+
+  {% if tickets is defined and tickets is not empty %}
+  <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <thead>
+          <tr>
+            {% for col in ['#','Usuário','Assunto','Status','Data','Ações'] %}
+            <th style="background:#0d1016;color:#3e4259;font-weight:700;font-size:.65rem;letter-spacing:.05em;text-transform:uppercase;padding:9px 13px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap">{{ col }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for ticket in tickets %}
+          <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+            <td style="padding:10px 13px;color:#3e4259">{{ ticket.id }}</td>
+            <td style="padding:10px 13px;color:#dde1f0">{{ ticket.user.email ?? ticket.email ?? '-' }}</td>
+            <td style="padding:10px 13px;color:#9196b0">{{ ticket.subject ?? ticket.assunto ?? '-' }}</td>
+            <td style="padding:10px 13px">
+              {% set st = ticket.status ?? 'open' %}
+              {% if st == 'open' or st == 'aberto' %}
+                <span style="display:inline-flex;padding:3px 9px;border-radius:20px;font-size:.65rem;font-weight:700;background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25)">Aberto</span>
+              {% elseif st == 'answered' or st == 'respondido' %}
+                <span style="display:inline-flex;padding:3px 9px;border-radius:20px;font-size:.65rem;font-weight:700;background:rgba(99,102,241,.12);color:#818cf8;border:1px solid rgba(99,102,241,.25)">Respondido</span>
+              {% else %}
+                <span style="display:inline-flex;padding:3px 9px;border-radius:20px;font-size:.65rem;font-weight:700;background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25)">Fechado</span>
+              {% endif %}
+            </td>
+            <td style="padding:10px 13px;color:#3e4259;font-size:.75rem">{{ ticket.createdAt is defined ? ticket.createdAt|date('d/m/Y H:i') : '-' }}</td>
+            <td style="padding:10px 13px;white-space:nowrap">
+              {% if ticket.id is defined %}
+              <a href="{{ path('admin_suporte_show', {id: ticket.id}) }}"
+                 style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+                        border-radius:6px;font-size:.74rem;font-weight:600;
+                        border:1px solid rgba(255,255,255,.08);color:#6b708a;text-decoration:none">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Ver
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:48px 20px;text-align:center;
+              background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px">
+    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#3e4259" stroke-width="1.5">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+    <p style="font-size:.88rem;color:#6b708a">Nenhum ticket de suporte encontrado.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

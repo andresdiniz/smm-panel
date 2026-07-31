@@ -1,932 +1,148 @@
-{% extends '@EasyAdmin/page/content.html.twig' %}
-{% block page_title %}CRM{% endblock %}
-{% block content_title %}{% endblock %}
+{% extends 'admin/layout.html.twig' %}
 
-{% block main %}
-<!DOCTYPE html>
-<style>
-/* ══ RESET & BASE ══════════════════════════════════════════════════════════ */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-.crm{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
-  background:#0b0d14;min-height:100vh;color:#dde1f0;padding:0}
+{% block page_title %}CRM Dashboard{% endblock %}
 
-/* ══ SIDEBAR ═══════════════════════════════════════════════════════════════ */
-.crm-wrap{display:flex;min-height:100vh}
-.sidebar{width:220px;background:#0f1220;border-right:1px solid rgba(255,255,255,.06);
-  display:flex;flex-direction:column;gap:2px;padding:20px 10px;flex-shrink:0;
-  position:sticky;top:0;height:100vh;overflow-y:auto}
-.sidebar-logo{font-size:.8rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase;
-  color:#4fb8be;padding:0 8px 18px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:10px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;
-  font-size:.8rem;font-weight:600;color:#8b90a8;cursor:pointer;
-  transition:background .15s,color .15s;text-decoration:none;border:none;background:none;width:100%;text-align:left}
-.nav-item:hover{background:rgba(255,255,255,.05);color:#dde1f0}
-.nav-item.active{background:rgba(79,184,190,.12);color:#4fb8be}
-.nav-icon{width:16px;height:16px;flex-shrink:0}
-.nav-sep{height:1px;background:rgba(255,255,255,.06);margin:8px 0}
+{% block admin_content %}
+<div style="padding:24px;display:flex;flex-direction:column;gap:24px">
 
-/* ══ MAIN CONTENT ══════════════════════════════════════════════════════════ */
-.crm-main{flex:1;overflow:hidden}
-.view{display:none;padding:28px 32px;animation:fadeIn .2s ease}
-.view.active{display:block}
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <h1 style="font-size:1.1rem;font-weight:800;color:#f0f3ff">CRM Dashboard</h1>
+  </div>
 
-/* ══ PAGE HEADER ═══════════════════════════════════════════════════════════ */
-.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
-.ph h1{font-size:1.1rem;font-weight:900;letter-spacing:-.025em;color:#f0f4ff}
-.ph-sub{font-size:.75rem;color:#505570}
-
-/* ══ KPI GRID ═══════════════════════════════════════════════════════════════ */
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:28px}
-.kpi{background:#141724;border:1px solid rgba(255,255,255,.07);border-radius:12px;
-  padding:16px 18px 12px;position:relative;overflow:hidden;cursor:default}
-.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
-.kpi--teal::before{background:#01696f} .kpi--green::before{background:#437a22}
-.kpi--gold::before{background:#c98a00}  .kpi--blue::before{background:#1a5f8f}
-.kpi--red::before{background:#8e1f5e}   .kpi--purple::before{background:#6b3fa0}
-.kpi--orange::before{background:#da7101}
-.kpi__l{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#505570;margin-bottom:6px}
-.kpi__v{font-size:1.7rem;font-weight:900;letter-spacing:-.04em;line-height:1;color:#f0f4ff;font-variant-numeric:tabular-nums}
-.kpi__v--teal{color:#4fb8be} .kpi__v--green{color:#7abf4a} .kpi__v--gold{color:#e8af34}
-.kpi__v--red{color:#e06fc0}  .kpi__v--muted{color:#8b90a8} .kpi__v--orange{color:#fdab43}
-.kpi__delta{font-size:.7rem;color:#505570;margin-top:4px}
-
-/* ══ SECTION HEADING ════════════════════════════════════════════════════════ */
-.sh{display:flex;align-items:center;gap:10px;font-size:9.5px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.1em;color:#505570;margin-bottom:14px}
-.sh::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.06)}
-
-/* ══ CARD ═══════════════════════════════════════════════════════════════════ */
-.card{background:#141724;border:1px solid rgba(255,255,255,.07);border-radius:12px;
-  overflow:hidden;margin-bottom:24px}
-.card-head{display:flex;align-items:center;justify-content:space-between;
-  padding:12px 16px;background:#0f1220;border-bottom:1px solid rgba(255,255,255,.06)}
-.card-title{font-size:.8125rem;font-weight:800;letter-spacing:-.02em;color:#dde1f0}
-.card-meta{font-size:.7rem;color:#505570}
-
-/* ══ TABLE ═══════════════════════════════════════════════════════════════════ */
-.tw{overflow-x:auto}
-.t{width:100%;border-collapse:collapse}
-.t th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
-  color:#505570;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06);
-  background:#0f1220;white-space:nowrap;cursor:pointer;user-select:none}
-.t th:hover{color:#dde1f0}
-.t td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04);
-  font-size:.79rem;color:#dde1f0;vertical-align:middle}
-.t tbody tr:hover{background:rgba(255,255,255,.03)}
-.t tbody tr:last-child td{border-bottom:none}
-.t-empty{text-align:center;padding:40px;color:#505570;font-size:.8rem}
-
-/* ══ BADGE ═══════════════════════════════════════════════════════════════════ */
-.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;
-  border-radius:999px;font-size:9.5px;font-weight:700;white-space:nowrap}
-.b-teal{background:rgba(1,105,111,.2);color:#4fb8be}
-.b-green{background:rgba(67,122,34,.2);color:#7abf4a}
-.b-gold{background:rgba(201,138,0,.2);color:#e8af34}
-.b-grey{background:rgba(255,255,255,.07);color:#8b90a8}
-.b-blue{background:rgba(26,95,143,.2);color:#5ba8d4}
-.b-red{background:rgba(142,31,94,.2);color:#e06fc0}
-.b-orange{background:rgba(218,113,1,.2);color:#fdab43}
-
-/* ══ FILTERS ═══════════════════════════════════════════════════════════════ */
-.filters{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;
-  border-bottom:1px solid rgba(255,255,255,.06)}
-.filters input,.filters select{background:#0b0d14;border:1px solid rgba(255,255,255,.1);
-  border-radius:7px;color:#dde1f0;font-size:.775rem;padding:6px 10px;outline:none;
-  transition:border-color .15s}
-.filters input:focus,.filters select:focus{border-color:#4fb8be}
-.fi-search{min-width:220px}
-.fi-count{font-size:.7rem;color:#505570;margin-left:auto;align-self:center}
-
-/* ══ FORM ════════════════════════════════════════════════════════════════════ */
-.form{padding:20px 18px;display:flex;flex-direction:column;gap:16px}
-.form-row{display:grid;gap:14px}
-.form-row--2{grid-template-columns:1fr 1fr}
-.form-row--3{grid-template-columns:1fr 1fr 1fr}
-.form-row--4{grid-template-columns:1fr 1fr 1fr 1fr}
-@media(max-width:860px){.form-row--3,.form-row--4{grid-template-columns:1fr 1fr}}
-@media(max-width:560px){.form-row--2,.form-row--3,.form-row--4{grid-template-columns:1fr}}
-.form label{font-size:10px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.08em;color:#8b90a8;display:flex;flex-direction:column;gap:6px}
-.form input[type=text],.form input[type=number],.form textarea,.form select{
-  background:#0b0d14;border:1px solid rgba(255,255,255,.1);border-radius:8px;
-  color:#dde1f0;font-size:.85rem;padding:9px 12px;outline:none;width:100%;
-  transition:border-color .15s;resize:vertical;font-family:inherit}
-.form input:focus,.form textarea:focus,.form select:focus{border-color:#4fb8be}
-.form textarea{min-height:130px}
-
-/* ══ BUTTONS ════════════════════════════════════════════════════════════════ */
-.btn-row{display:flex;gap:10px;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;
-  border-radius:8px;font-size:.8rem;font-weight:700;border:none;cursor:pointer;
-  transition:opacity .15s,background .15s;text-decoration:none}
-.btn--primary{background:#01696f;color:#fff} .btn--primary:hover{opacity:.82}
-.btn--ghost{background:rgba(255,255,255,.07);color:#dde1f0}
-.btn--ghost:hover{background:rgba(255,255,255,.12)}
-.btn--danger{background:rgba(142,31,94,.2);color:#e06fc0}
-.btn--pay{background:rgba(67,122,34,.15);color:#7abf4a;border:1px solid rgba(67,122,34,.3)}
-.btn--pay:hover{background:rgba(67,122,34,.28)}
-.btn--sm{padding:5px 12px;font-size:.74rem}
-.btn--profile{background:rgba(79,184,190,.1);color:#4fb8be}
-.btn--profile:hover{background:rgba(79,184,190,.2)}
-
-/* ══ FLASH ════════════════════════════════════════════════════════════════ */
-.flash{padding:12px 16px;border-radius:8px;font-size:.82rem;margin-bottom:20px}
-.flash--success{background:rgba(67,122,34,.12);border:1px solid rgba(67,122,34,.25);color:#7abf4a}
-.flash--info{background:rgba(26,95,143,.12);border:1px solid rgba(26,95,143,.25);color:#5ba8d4}
-.flash--warn{background:rgba(201,138,0,.12);border:1px solid rgba(201,138,0,.25);color:#e8af34}
-.flash ul{margin:8px 0 0 18px;font-size:.76rem;color:#dde1f0}
-
-/* ══ PROFILE ═══════════════════════════════════════════════════════════════ */
-.profile-hero{display:flex;align-items:center;gap:20px;padding:24px;
-  background:#141724;border:1px solid rgba(255,255,255,.07);border-radius:12px;margin-bottom:20px}
-.avatar{width:56px;height:56px;border-radius:50%;background:#01696f;
-  display:flex;align-items:center;justify-content:center;font-size:1.3rem;
-  font-weight:900;color:#fff;flex-shrink:0}
-.profile-name{font-size:1rem;font-weight:800;color:#f0f4ff}
-.profile-email{font-size:.78rem;color:#8b90a8;margin-top:2px}
-.profile-meta{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
-.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
-@media(max-width:720px){.profile-grid{grid-template-columns:1fr}}
-
-/* timeline */
-.timeline{padding:16px 18px;display:flex;flex-direction:column;gap:0}
-.tl-item{display:flex;gap:12px;position:relative;padding-bottom:16px}
-.tl-item:last-child{padding-bottom:0}
-.tl-item:not(:last-child)::before{content:'';position:absolute;left:8px;top:20px;
-  bottom:0;width:1px;background:rgba(255,255,255,.08)}
-.tl-dot{width:17px;height:17px;border-radius:50%;background:#01696f;flex-shrink:0;margin-top:2px;
-  display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;z-index:1}
-.tl-content{flex:1}
-.tl-event{font-size:.79rem;font-weight:700;color:#dde1f0}
-.tl-at{font-size:.7rem;color:#505570;margin-top:2px}
-.tl-payload{font-size:.72rem;color:#8b90a8;margin-top:4px}
-
-/* ══ ANALYTICS ═════════════════════════════════════════════════════════════ */
-.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
-@media(max-width:800px){.analytics-grid{grid-template-columns:1fr}}
-.chart-wrap{position:relative;height:240px}
-
-.utm-bar{display:flex;flex-direction:column;gap:10px;padding:16px 18px}
-.utm-row{display:flex;flex-direction:column;gap:4px}
-.utm-label{display:flex;justify-content:space-between;font-size:.775rem}
-.utm-name{color:#dde1f0;font-weight:600}
-.utm-val{color:#8b90a8}
-.utm-track{height:6px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden}
-.utm-fill{height:100%;border-radius:999px;background:#01696f;transition:width .6s ease}
-
-/* ══ STATUS DOTS ════════════════════════════════════════════════════════════ */
-.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
-.dot--green{background:#7abf4a} .dot--gold{background:#e8af34}
-.dot--blue{background:#5ba8d4}  .dot--red{background:#e06fc0}
-.dot--grey{background:#505570}  .dot--teal{background:#4fb8be}
-
-/* ══ PREVIEW BOX ═══════════════════════════════════════════════════════════ */
-.preview-box{background:#0b0d14;border:1px solid rgba(255,255,255,.08);border-radius:8px;
-  padding:14px 16px;max-height:240px;overflow-y:auto}
-.preview-box li{font-size:.76rem;color:#8b90a8;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)}
-.preview-box li:last-child{border-bottom:none}
-
-/* ══ RESPONSIVE HIDE ════════════════════════════════════════════════════════ */
-@media(max-width:900px){.sidebar{display:none}.crm-wrap{flex-direction:column}}
-
-/* ══ AFFILIATE PAY BAR ══════════════════════════════════════════════════════ */
-.aff-bar{display:flex;align-items:center;gap:8px;}
-.aff-pending-zero{color:#505570;font-size:.75rem;font-style:italic}
-</style>
-
-{% set cf = app.flashes('crm_campaign')|first|default(null) %}
-{% set flashSuccess = app.flashes('success')|first|default(null) %}
-
-<div class="crm">
-<div class="crm-wrap">
-
-  {# ══ SIDEBAR ══ #}
-  <nav class="sidebar">
-    <div class="sidebar-logo">&#9673; CRM</div>
-    <button class="nav-item" data-view="overview" onclick="switchView('overview')">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-      </svg>Dashboard
-    </button>
-    <button class="nav-item" data-view="users" onclick="switchView('users')">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-      </svg>Usu&#225;rios
-    </button>
-    <button class="nav-item" data-view="affiliates" onclick="switchView('affiliates')">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-      </svg>Afiliados
-    </button>
-    <button class="nav-item" data-view="campaigns" onclick="switchView('campaigns')">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-        <polyline points="22,6 12,13 2,6"/>
-      </svg>Campanhas
-    </button>
-    <button class="nav-item" data-view="analytics" onclick="switchView('analytics')">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/>
-      </svg>Analytics
-    </button>
-    {% if profileUser %}
-    <div class="nav-sep"></div>
-    <button class="nav-item" data-view="profile" onclick="switchView('profile')">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-      </svg>Perfil
-    </button>
-    {% endif %}
-    <div class="nav-sep"></div>
-    <a class="nav-item" href="/admin">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M19 12H5M12 5l-7 7 7 7"/>
-      </svg>Voltar ao admin
-    </a>
-  </nav>
-
-  <div class="crm-main">
-
-  {# ══════════════════════════════════════════════════════════════════════
-     VIEW: OVERVIEW
-  ══════════════════════════════════════════════════════════════════════ #}
-  <div class="view" id="view-overview">
-    <div class="ph">
-      <h1>Dashboard CRM</h1>
-      <span class="ph-sub">{{ 'now'|date('d/m/Y H:i') }}</span>
+  {# ── KPIs ── #}
+  {% if stats is defined %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px">
+    {% for label, value in stats %}
+    <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px">
+      <p style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#3e4259;margin:0 0 6px">{{ label }}</p>
+      <p style="font-size:1.4rem;font-weight:800;color:#dde1f0;margin:0;font-variant-numeric:tabular-nums">{{ value }}</p>
     </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
-    {% if flashSuccess %}
-      <div class="flash flash--success">&#10003; {{ flashSuccess }}</div>
-    {% endif %}
-    {% if cf %}
-      <div class="flash flash--{{ cf.preview ? 'info' : (cf.errors|length ? 'warn' : 'success') }}">
-        {% if cf.preview %}
-          <strong>Preview:</strong> {{ cf.recipients|length }} destinat&#225;rio(s) seriam impactados.
-          <ul>{% for r in cf.recipients|slice(0,8) %}<li>{{ r.name }} &lt;{{ r.email }}&gt;</li>{% endfor %}
-          {% if cf.recipients|length > 8 %}<li>&#8230; e mais {{ cf.recipients|length - 8 }}</li>{% endif %}</ul>
-        {% elseif cf.errors|length %}
-          <strong>Parcialmente enviado.</strong> {{ cf.sent }} ok, {{ cf.errors|length }} erro(s).
-          <ul>{% for e in cf.errors|slice(0,5) %}<li>{{ e }}</li>{% endfor %}</ul>
-        {% else %}
-          <strong>&#10003; Enviado!</strong> {{ cf.sent }} e-mail(s) enviados com sucesso.
-        {% endif %}
-      </div>
-    {% endif %}
-
-    <div class="kpi-grid">
-      <div class="kpi kpi--green">
-        <div class="kpi__l">Receita este m&#234;s</div>
-        <div class="kpi__v kpi__v--green">R$&#160;{{ (stats.revenueMonthCents/100)|number_format(2,',','.') }}</div>
-      </div>
-      <div class="kpi kpi--teal">
-        <div class="kpi__l">Receita total (CRM)</div>
-        <div class="kpi__v kpi__v--teal">R$&#160;{{ (stats.totalRevenueCents/100)|number_format(2,',','.') }}</div>
-      </div>
-      <div class="kpi kpi--gold">
-        <div class="kpi__l">LTV m&#233;dio</div>
-        <div class="kpi__v kpi__v--gold">R$&#160;{{ (stats.ltvAvgCents/100)|number_format(2,',','.') }}</div>
-      </div>
-      <div class="kpi kpi--blue">
-        <div class="kpi__l">Total usu&#225;rios</div>
-        <div class="kpi__v">{{ stats.totalUsers }}</div>
-        <div class="kpi__delta">+{{ stats.newThisMonth }} este m&#234;s</div>
-      </div>
-      <div class="kpi kpi--red">
-        <div class="kpi__l">Whales (&gt;R$500)</div>
-        <div class="kpi__v kpi__v--red">{{ stats.whales }}</div>
-      </div>
-      <div class="kpi kpi--purple">
-        <div class="kpi__l">Ativos 30d</div>
-        <div class="kpi__v">{{ stats.activeContacts }}</div>
-      </div>
+  {# ── Receita Mensal ── #}
+  {% if monthlyRevenue is defined and monthlyRevenue is not empty %}
+  <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden">
+    <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
+      <p style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#3e4259;margin:0">Receita Mensal</p>
     </div>
-
-    <div class="analytics-grid">
-      <div class="card">
-        <div class="card-head"><span class="card-title">Receita mensal</span></div>
-        <div style="padding:16px"><div class="chart-wrap"><canvas id="chart-revenue"></canvas></div></div>
-      </div>
-      <div class="card">
-        <div class="card-head"><span class="card-title">Segmentos de clientes</span></div>
-        <div style="padding:16px"><div class="chart-wrap"><canvas id="chart-segments"></canvas></div></div>
-      </div>
-    </div>
-
-    <div class="sh">Top clientes</div>
-    <div class="card">
-      <div class="tw">
-        <table class="t">
-          <thead><tr>
-            <th>Usu&#225;rio</th><th>E-mail</th><th>Origem</th>
-            <th style="text-align:right">Gasto total</th><th>Segmento</th><th></th>
-          </tr></thead>
-          <tbody>
-          {% for row in crmUsers|slice(0,10) %}
-            {% set spent = row.totalSpentCents %}
-            {% set seg = spent >= 50000 ? 'whale' : (spent > 0 ? 'active' : 'new') %}
-            <tr>
-              <td><strong>{{ row.user.name }}</strong></td>
-              <td style="color:#8b90a8">{{ row.user.email }}</td>
-              <td>{% if row.utmSource %}<span class="badge b-teal">{{ row.utmSource }}</span>{% else %}<span style="color:#505570">direto</span>{% endif %}</td>
-              <td style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;
-                color:{{ seg=='whale'?'#e8af34':(seg=='active'?'#7abf4a':'#8b90a8') }}">
-                R$&#160;{{ (spent/100)|number_format(2,',','.') }}
-              </td>
-              <td>
-                {% if seg=='whale' %}<span class="badge b-gold">&#128011; Whale</span>
-                {% elseif seg=='active' %}<span class="badge b-green">&#10003; Ativo</span>
-                {% else %}<span class="badge b-grey">&#127381; Novo</span>{% endif %}
-              </td>
-              <td><a class="btn btn--sm btn--profile" href="/admin/crm/user/{{ row.user.id }}">Ver</a></td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>{# /view-overview #}
-
-  {# ══════════════════════════════════════════════════════════════════════
-     VIEW: USUARIOS
-  ══════════════════════════════════════════════════════════════════════ #}
-  <div class="view" id="view-users">
-    <div class="ph">
-      <h1>Usu&#225;rios</h1>
-      <span class="ph-sub">{{ crmUsers|length }} no total</span>
-    </div>
-    <div class="card">
-      <div class="filters">
-        <input class="fi-search" type="search" id="u-search" placeholder="&#128269; Nome, e-mail ou origem&#8230;" oninput="filterUsers()">
-        <select id="u-origin" onchange="filterUsers()">
-          <option value="">Todas as origens</option>
-          {% for src in utmSources %}<option>{{ src }}</option>{% endfor %}
-          <option value="__direct">Direto</option>
-        </select>
-        <select id="u-seg" onchange="filterUsers()">
-          <option value="">Todos segmentos</option>
-          <option value="whale">&#128011; Whale</option>
-          <option value="active">&#10003; Ativo</option>
-          <option value="new">&#127381; Novo</option>
-        </select>
-        <select id="u-sort" onchange="sortUsers()">
-          <option value="spent-desc">Maior gasto</option>
-          <option value="spent-asc">Menor gasto</option>
-          <option value="orders-desc">Mais pedidos</option>
-          <option value="date-desc">Mais recente</option>
-        </select>
-        <span class="fi-count" id="u-count">{{ crmUsers|length }} vis&#237;veis</span>
-      </div>
-      <div class="tw">
-        <table class="t" id="u-table">
-          <thead><tr>
-            <th onclick="sortByCol('id')">ID &#8597;</th>
-            <th onclick="sortByCol('name')">Usu&#225;rio &#8597;</th>
-            <th>E-mail</th>
-            <th onclick="sortByCol('origin')">Origem &#8597;</th>
-            <th>Campanha</th>
-            <th>Tags</th>
-            <th onclick="sortByCol('spent')" style="text-align:right">Gasto &#8597;</th>
-            <th onclick="sortByCol('orders')" style="text-align:right">Pedidos &#8597;</th>
-            <th style="text-align:right">Saldo</th>
-            <th onclick="sortByCol('date')">Cadastro &#8597;</th>
-            <th>Seg.</th>
-            <th></th>
-          </tr></thead>
-          <tbody id="u-tbody">
-          {% for row in crmUsers %}
-            {% set spent = row.totalSpentCents %}
-            {% set seg = spent >= 50000 ? 'whale' : (spent > 0 ? 'active' : 'new') %}
-            <tr
-              data-id="{{ row.user.id }}"
-              data-name="{{ row.user.name|lower }}"
-              data-email="{{ row.user.email|lower }}"
-              data-origin="{{ row.utmSource|lower|default('__direct') }}"
-              data-seg="{{ seg }}"
-              data-spent="{{ spent }}"
-              data-orders="{{ row.orderCount }}"
-              data-date="{{ row.user.createdAt|date('Y-m-d') }}"
-            >
-              <td style="color:#505570;font-size:.72rem">{{ row.user.id }}</td>
-              <td><strong>{{ row.user.name }}</strong></td>
-              <td style="color:#8b90a8">{{ row.user.email }}</td>
-              <td>{% if row.utmSource %}<span class="badge b-teal">{{ row.utmSource }}</span>{% else %}<span style="color:#505570">direto</span>{% endif %}</td>
-              <td style="color:#8b90a8;font-size:.72rem">{{ row.utmCampaign ?? '&#8212;' }}</td>
-              <td>{% for tag in row.tags %}<span class="badge b-blue" style="margin-right:2px">{{ tag }}</span>{% endfor %}</td>
-              <td style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;
-                color:{{ seg=='whale'?'#e8af34':(seg=='active'?'#7abf4a':'#8b90a8') }}">
-                R$&#160;{{ (spent/100)|number_format(2,',','.') }}
-              </td>
-              <td style="text-align:right;color:#8b90a8">{{ row.orderCount }}</td>
-              <td style="text-align:right;font-size:.72rem;color:#8b90a8">
-                R$&#160;{{ row.user.wallet ? (row.user.wallet.balanceCents/100)|number_format(2,',','.') : '0,00' }}
-              </td>
-              <td style="font-size:.72rem;color:#505570;white-space:nowrap">{{ row.user.createdAt|date('d/m/Y') }}</td>
-              <td>{% if seg=='whale' %}<span class="badge b-gold">&#128011;</span>
-                {% elseif seg=='active' %}<span class="badge b-green">&#10003;</span>
-                {% else %}<span class="badge b-grey">&#127381;</span>{% endif %}</td>
-              <td><a class="btn btn--sm btn--profile" href="/admin/crm/user/{{ row.user.id }}">&#128270; Ver</a></td>
-            </tr>
-          {% else %}
-            <tr><td colspan="12" class="t-empty">Nenhum usu&#225;rio.</td></tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>{# /view-users #}
-
-  {# ══════════════════════════════════════════════════════════════════════
-     VIEW: AFILIADOS
-  ══════════════════════════════════════════════════════════════════════ #}
-  <div class="view" id="view-affiliates">
-    <div class="ph">
-      <h1>&#128200; Afiliados</h1>
-      <span class="ph-sub">Taxa padr&#227;o: {{ (defaultRate * 100)|number_format(1) }}%</span>
-    </div>
-
-    {% if flashSuccess %}
-      <div class="flash flash--success">&#10003; {{ flashSuccess }}</div>
-    {% endif %}
-
-    {# KPIs globais #}
-    <div class="kpi-grid">
-      <div class="kpi kpi--orange">
-        <div class="kpi__l">Saldo devedor (pendente)</div>
-        <div class="kpi__v kpi__v--orange">R$&#160;{{ affStats.pending.total|number_format(2,',','.') }}</div>
-        <div class="kpi__delta">{{ affStats.pending.qty }} comiss&#245;es</div>
-      </div>
-      <div class="kpi kpi--green">
-        <div class="kpi__l">Total j&#225; pago</div>
-        <div class="kpi__v kpi__v--green">R$&#160;{{ affStats.paid.total|number_format(2,',','.') }}</div>
-        <div class="kpi__delta">{{ affStats.paid.qty }} comiss&#245;es</div>
-      </div>
-      <div class="kpi kpi--teal">
-        <div class="kpi__l">Hist&#243;rico total gerado</div>
-        <div class="kpi__v kpi__v--teal">R$&#160;{{ (affStats.pending.total + affStats.paid.total)|number_format(2,',','.') }}</div>
-      </div>
-      <div class="kpi kpi--blue">
-        <div class="kpi__l">Afiliados ativos</div>
-        <div class="kpi__v">{{ affiliateRows|length }}</div>
-      </div>
-    </div>
-
-    {# Tabela de afiliados #}
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">Afiliados com comiss&#245;es</span>
-        <span class="card-meta">ordenado por saldo pendente</span>
-      </div>
-      <div class="tw">
-        <table class="t">
-          <thead><tr>
-            <th>Afiliado</th>
-            <th>E-mail</th>
-            <th style="text-align:center">Taxa</th>
-            <th style="text-align:center">Indicados</th>
-            <th style="text-align:center">Comiss&#245;es</th>
-            <th style="text-align:right">Hist&#243;rico total</th>
-            <th style="text-align:right">J&#225; pago</th>
-            <th style="text-align:right">&#128308; Saldo devedor</th>
-            <th style="text-align:center">A&#231;&#227;o</th>
-          </tr></thead>
-          <tbody>
-          {% for row in affiliateRows %}
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <thead>
           <tr>
-            <td>
-              <strong>{{ row.user.name }}</strong>
-              {% if row.user.affiliateCode %}
-                <br><span style="font-size:.68rem;color:#505570;font-family:monospace">{{ row.user.affiliateCode }}</span>
-              {% endif %}
-            </td>
-            <td style="color:#8b90a8">{{ row.user.email }}</td>
-            <td style="text-align:center">
-              <span class="badge b-teal">{{ (row.rate * 100)|number_format(1) }}%</span>
-            </td>
-            <td style="text-align:center;color:#8b90a8">{{ row.referredCount }}</td>
-            <td style="text-align:center;color:#8b90a8">{{ row.commissions }}</td>
-            {# Hist&#243;rico total — nunca zera, soma cumulativa de tudo que gerou #}
-            <td style="text-align:right;font-weight:700;color:#8b90a8;font-variant-numeric:tabular-nums">
-              R$&#160;{{ row.totalEarned|number_format(2,',','.') }}
-            </td>
-            {# J&#225; pago ao afiliado #}
-            <td style="text-align:right;color:#7abf4a;font-variant-numeric:tabular-nums">
-              R$&#160;{{ row.paid|number_format(2,',','.') }}
-            </td>
-            {# Saldo devedor — zera ap&#243;s pagar #}
-            <td style="text-align:right;font-variant-numeric:tabular-nums">
-              {% if row.pending > 0 %}
-                <strong style="color:#fdab43">R$&#160;{{ row.pending|number_format(2,',','.') }}</strong>
-              {% else %}
-                <span class="aff-pending-zero">&#10003; quitado</span>
-              {% endif %}
-            </td>
-            <td style="text-align:center">
-              {% if row.pending > 0 %}
-                <form method="post" action="/admin/crm/affiliate/pay/{{ row.user.id }}"
-                      onsubmit="return confirm('Pagar R$ {{ row.pending|number_format(2,',','.') }} para {{ row.user.name }}?')">
-                  <input type="hidden" name="_token" value="{{ csrf_token('aff_pay_' ~ row.user.id) }}">
-                  <button type="submit" class="btn btn--sm btn--pay">&#128181; Pagar</button>
-                </form>
-              {% else %}
-                <span style="color:#505570;font-size:.72rem">&#8212;</span>
-              {% endif %}
-            </td>
+            {% for col in ['Mês','Receita','Pedidos'] %}
+            <th style="background:#0d1016;color:#3e4259;font-weight:700;font-size:.65rem;letter-spacing:.05em;text-transform:uppercase;padding:8px 13px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)">{{ col }}</th>
+            {% endfor %}
           </tr>
-          {% else %}
-            <tr><td colspan="9" class="t-empty">Nenhum afiliado com comiss&#245;es ainda.</td></tr>
+        </thead>
+        <tbody>
+          {% for row in monthlyRevenue %}
+          <tr style="border-bottom:1px solid rgba(255,255,255,.03)">
+            <td style="padding:9px 13px;color:#9196b0">{{ row.month ?? row[0] ?? '-' }}</td>
+            <td style="padding:9px 13px;color:#22c55e;font-variant-numeric:tabular-nums">R$ {{ (row.revenue ?? row[1] ?? 0)|number_format(2,',','.') }}</td>
+            <td style="padding:9px 13px;color:#dde1f0">{{ row.orders ?? row[2] ?? '-' }}</td>
+          </tr>
           {% endfor %}
-          </tbody>
-        </table>
-      </div>
+        </tbody>
+      </table>
     </div>
-  </div>{# /view-affiliates #}
+  </div>
+  {% endif %}
 
-  {# ══════════════════════════════════════════════════════════════════════
-     VIEW: CAMPANHAS
-  ══════════════════════════════════════════════════════════════════════ #}
-  <div class="view" id="view-campaigns">
-    <div class="ph">
-      <h1>Campanhas de E-mail</h1>
-      <span class="ph-sub">Segmente e dispare</span>
+  {# ── UTM Sources ── #}
+  {% if utmSources is defined and utmSources is not empty %}
+  <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden">
+    <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
+      <p style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#3e4259;margin:0">UTM Sources</p>
     </div>
-
-    <div class="card" style="margin-bottom:20px">
-      <div class="card-head"><span class="card-title">&#128202; Estim&#228;tiva de audi&#234;ncia</span></div>
-      <div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px">
-        <div class="kpi kpi--gold" style="cursor:pointer" onclick="setSegFilter('whale');filterCampaign()">
-          <div class="kpi__l">Whales</div>
-          <div class="kpi__v kpi__v--gold">{{ stats.whales }}</div>
-          <div class="kpi__delta">&gt;R$500 gasto</div>
-        </div>
-        <div class="kpi kpi--green" style="cursor:pointer" onclick="setSegFilter('active');filterCampaign()">
-          <div class="kpi__l">Ativos</div>
-          <div class="kpi__v kpi__v--green">{{ stats.actives }}</div>
-          <div class="kpi__delta">Compraram algo</div>
-        </div>
-        <div class="kpi kpi--blue" style="cursor:pointer" onclick="setSegFilter('new');filterCampaign()">
-          <div class="kpi__l">Sem compra</div>
-          <div class="kpi__v">{{ stats.news }}</div>
-          <div class="kpi__delta">Primeiro pedido</div>
-        </div>
-        <div class="kpi kpi--teal" style="cursor:pointer" onclick="setSegFilter('');filterCampaign()">
-          <div class="kpi__l">Todos</div>
-          <div class="kpi__v kpi__v--teal">{{ stats.totalUsers }}</div>
-          <div class="kpi__delta">Usu&#225;rios ativos</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><span class="card-title">&#128231; Novo disparo</span></div>
-      <form class="form" method="post" action="/admin/crm/send-marketing">
-        <input type="hidden" name="_token" value="{{ csrf_token('crm_marketing') }}">
-        <div class="sh">Segmenta&#231;&#227;o</div>
-        <div class="form-row form-row--4">
-          <label>Gasto m&#237;nimo (R$)
-            <input type="number" name="min_spent" id="c-min" value="0" min="0" step="0.01" oninput="updateAudiencePreview()">
-          </label>
-          <label>Gasto m&#225;ximo (R$) &#8212; opcional
-            <input type="number" name="max_spent" id="c-max" value="" min="0" step="0.01" placeholder="sem limite" oninput="updateAudiencePreview()">
-          </label>
-          <label>Origem UTM
-            <select name="utm_source" id="c-utm" onchange="updateAudiencePreview()">
-              <option value="">Todas</option>
-              {% for src in utmSources %}<option>{{ src }}</option>{% endfor %}
-            </select>
-          </label>
-          <label>Segmento
-            <select name="segment" id="c-seg" onchange="updateAudiencePreview()">
-              <option value="">Todos</option>
-              <option value="whale">&#128011; Whale</option>
-              <option value="active">&#10003; Ativo</option>
-              <option value="new">&#127381; Novo (sem compra)</option>
-            </select>
-          </label>
-        </div>
-        <div style="background:#0b0d14;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px 14px;
-          font-size:.8rem;color:#8b90a8;display:flex;gap:8px;align-items:center">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4fb8be" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-          Audi&#234;ncia estimada:&#160;
-          <strong id="audience-count" style="color:#4fb8be;font-size:1rem">{{ crmUsers|length }}</strong>&#160;destinat&#225;rios
-        </div>
-        <div class="sh">Conte&#250;do</div>
-        <div class="form-row form-row--2">
-          <label>Assunto
-            <input type="text" name="subject" required placeholder="Ex: Oferta exclusiva para voc&#234;!" id="c-subject">
-          </label>
-          <label>De (remetente vis&#237;vel)
-            <input type="text" name="from_name" value="AcheiReviews" placeholder="Nome do remetente">
-          </label>
-        </div>
-        <label>Corpo do e-mail
-          <textarea name="body" required id="c-body" placeholder="Escreva o conte&#250;do. Use {{nome}} para personalizar com o nome do usu&#225;rio."></textarea>
-        </label>
-        <div class="sh">Preview do e-mail</div>
-        <div id="email-preview" style="background:#fff;border-radius:8px;overflow:hidden;font-family:Arial,sans-serif;font-size:14px;color:#333;min-height:80px">
-          <div style="background:#01696f;padding:16px 24px"><strong style="color:#fff;font-size:15px">AcheiReviews</strong></div>
-          <div style="padding:20px 24px">
-            <p>Ol&#225;, <strong>[Nome]</strong>!</p>
-            <div id="preview-body" style="margin-top:12px;white-space:pre-wrap;color:#444"></div>
-          </div>
-          <div style="background:#f5f5f5;padding:12px 24px;font-size:11px;color:#999">AcheiReviews &#8212; Para cancelar recebimentos, entre em contato.</div>
-        </div>
-        <div class="btn-row">
-          <button type="submit" class="btn btn--primary">&#128231; Enviar campanha</button>
-          <button type="submit" name="preview_only" value="1" class="btn btn--ghost">&#128270; Apenas preview</button>
-        </div>
-      </form>
-    </div>
-  </div>{# /view-campaigns #}
-
-  {# ══════════════════════════════════════════════════════════════════════
-     VIEW: ANALYTICS
-  ══════════════════════════════════════════════════════════════════════ #}
-  <div class="view" id="view-analytics">
-    <div class="ph">
-      <h1>Analytics de Origem</h1>
-      <span class="ph-sub">UTM sources e segmentos</span>
-    </div>
-    <div class="analytics-grid">
-      <div class="card">
-        <div class="card-head"><span class="card-title">Receita por m&#234;s</span></div>
-        <div style="padding:16px"><div class="chart-wrap"><canvas id="chart-revenue-2"></canvas></div></div>
-      </div>
-      <div class="card">
-        <div class="card-head"><span class="card-title">Distribui&#231;&#227;o de segmentos</span></div>
-        <div style="padding:16px"><div class="chart-wrap"><canvas id="chart-segments-2"></canvas></div></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">Origens UTM &#8212; usu&#225;rios &amp; receita</span>
-        <span class="card-meta">{{ utmSources|length }} origens</span>
-      </div>
-      {% if utmMap %}
-        {% set maxCount = 0 %}
-        {% for k,v in utmMap %}{% if v.count > maxCount %}{% set maxCount = v.count %}{% endif %}{% endfor %}
-        <div class="utm-bar">
-          {% for src, data in utmMap %}
-          <div class="utm-row">
-            <div class="utm-label">
-              <span class="utm-name">{{ src }}</span>
-              <span class="utm-val">{{ data.count }} user(s) &#8212; R$&#160;{{ (data.revenue/100)|number_format(2,',','.') }}</span>
-            </div>
-            <div class="utm-track">
-              <div class="utm-fill" style="width:{{ maxCount > 0 ? ((data.count/maxCount)*100)|round : 0 }}%"></div>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="t-empty">Nenhum dado de UTM dispon&#237;vel ainda.</div>
-      {% endif %}
-    </div>
-    <div class="card">
-      <div class="card-head"><span class="card-title">Usu&#225;rios recentes (&#250;ltimos 30 dias)</span></div>
-      <div class="tw">
-        <table class="t">
-          <thead><tr><th>Usu&#225;rio</th><th>Origem</th><th>Gasto</th><th>Cadastro</th><th>Seg.</th></tr></thead>
-          <tbody>
-          {% for row in crmUsers|filter(r => r.user.createdAt >= date('-30 days'))|slice(0,20) %}
-            {% set seg = row.totalSpentCents >= 50000 ? 'whale' : (row.totalSpentCents > 0 ? 'active' : 'new') %}
-            <tr>
-              <td><strong>{{ row.user.name }}</strong><br><span style="color:#8b90a8;font-size:.72rem">{{ row.user.email }}</span></td>
-              <td>{% if row.utmSource %}<span class="badge b-teal">{{ row.utmSource }}</span>{% else %}<span style="color:#505570">direto</span>{% endif %}</td>
-              <td style="font-weight:700;color:{{ seg=='whale'?'#e8af34':(seg=='active'?'#7abf4a':'#8b90a8') }}">
-                R$&#160;{{ (row.totalSpentCents/100)|number_format(2,',','.') }}
-              </td>
-              <td style="color:#505570;font-size:.72rem">{{ row.user.createdAt|date('d/m/Y H:i') }}</td>
-              <td>{% if seg=='whale' %}<span class="badge b-gold">&#128011; Whale</span>
-                {% elseif seg=='active' %}<span class="badge b-green">&#10003; Ativo</span>
-                {% else %}<span class="badge b-grey">&#127381; Novo</span>{% endif %}</td>
-            </tr>
-          {% else %}
-            <tr><td colspan="5" class="t-empty">Nenhum usu&#225;rio novo nos &#250;ltimos 30 dias.</td></tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>{# /view-analytics #}
-
-  {# ══════════════════════════════════════════════════════════════════════
-     VIEW: PERFIL
-  ══════════════════════════════════════════════════════════════════════ #}
-  {% if profileUser %}
-  <div class="view" id="view-profile">
-    <div class="ph">
-      <h1>Perfil do Usu&#225;rio</h1>
-      <a class="btn btn--ghost btn--sm" href="/admin/crm">&#8592; Voltar</a>
-    </div>
-    {% set u = profileUser.user %}
-    {% set c = profileUser.contact %}
-    {% set orders = profileUser.orders %}
-    {% set totalSpent = profileUser.totalSpent %}
-    {% set seg = totalSpent >= 50000 ? 'whale' : (totalSpent > 0 ? 'active' : 'new') %}
-    <div class="profile-hero">
-      <div class="avatar">{{ u.name|first|upper }}</div>
-      <div>
-        <div class="profile-name">{{ u.name }}</div>
-        <div class="profile-email">{{ u.email }}</div>
-        <div class="profile-meta">
-          {% if seg=='whale' %}<span class="badge b-gold">&#128011; Whale</span>
-          {% elseif seg=='active' %}<span class="badge b-green">&#10003; Ativo</span>
-          {% else %}<span class="badge b-grey">&#127381; Novo</span>{% endif %}
-          {% if c and c.utmSource %}<span class="badge b-teal">{{ c.utmSource }}</span>{% endif %}
-          {% if not u.active %}<span class="badge b-red">Inativo</span>{% endif %}
-          {% if c %}{% for tag in c.tags %}<span class="badge b-blue">{{ tag }}</span>{% endfor %}{% endif %}
-        </div>
-      </div>
-      <div style="margin-left:auto;text-align:right">
-        <div style="font-size:.7rem;color:#505570;margin-bottom:4px">Gasto total</div>
-        <div style="font-size:1.8rem;font-weight:900;color:{{ seg=='whale'?'#e8af34':(seg=='active'?'#7abf4a':'#8b90a8') }};font-variant-numeric:tabular-nums">
-          R$&#160;{{ (totalSpent/100)|number_format(2,',','.') }}
-        </div>
-      </div>
-    </div>
-    <div class="profile-grid">
-      <div class="card">
-        <div class="card-head"><span class="card-title">Informa&#231;&#245;es gerais</span></div>
-        <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
-          {% macro row(label, value) %}<div style="display:flex;justify-content:space-between;font-size:.8rem;border-bottom:1px solid rgba(255,255,255,.05);padding-bottom:8px">
-            <span style="color:#8b90a8">{{ label }}</span><span style="color:#dde1f0;font-weight:600">{{ value }}</span></div>{% endmacro %}
-          {{ _self.row('ID', '#'~u.id) }}
-          {{ _self.row('Nome', u.name) }}
-          {{ _self.row('E-mail', u.email) }}
-          {{ _self.row('Status', u.active ? 'Ativo' : 'Inativo') }}
-          {{ _self.row('Cadastro', u.createdAt|date('d/m/Y H:i')) }}
-          {% if u.wallet %}{{ _self.row('Saldo', 'R$ '~(u.wallet.balanceCents/100)|number_format(2,',','.')) }}{% endif %}
-          {{ _self.row('Pedidos', orders|length) }}
-          {% if u.referredBy %}{{ _self.row('Indicado por', u.referredBy.name) }}{% endif %}
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-head"><span class="card-title">Origem &amp; UTM</span></div>
-        <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
-          {% macro row(label, value) %}<div style="display:flex;justify-content:space-between;font-size:.8rem;border-bottom:1px solid rgba(255,255,255,.05);padding-bottom:8px">
-            <span style="color:#8b90a8">{{ label }}</span><span style="color:#dde1f0;font-weight:600">{{ value }}</span></div>{% endmacro %}
-          {{ _self.row('Source', c ? (c.utmSource ?? 'direto') : 'sem CRM') }}
-          {{ _self.row('Medium', c ? (c.utmMedium ?? '—') : '—') }}
-          {{ _self.row('Campanha', c ? (c.utmCampaign ?? '—') : '—') }}
-          {% if c %}{{ _self.row('CRM desde', c.createdAt|date('d/m/Y')) }}{{ _self.row('últ. update', c.updatedAt|date('d/m/Y H:i')) }}{% endif %}
-        </div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:16px">
-      <div class="card">
-        <div class="card-head"><span class="card-title">Timeline de eventos</span></div>
-        {% if c and c.timeline %}
-          <div class="timeline">
-            {% for ev in c.timeline|reverse|slice(0,20) %}
-            <div class="tl-item">
-              <div class="tl-dot">&#9679;</div>
-              <div class="tl-content">
-                <div class="tl-event">{{ ev.event }}</div>
-                <div class="tl-at">{{ ev.at }}</div>
-                {% if ev.payload %}<div class="tl-payload">{{ ev.payload|json_encode(constant('JSON_UNESCAPED_UNICODE')) }}</div>{% endif %}
-              </div>
-            </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <thead>
+          <tr>
+            <th style="background:#0d1016;color:#3e4259;font-weight:700;font-size:.65rem;letter-spacing:.05em;text-transform:uppercase;padding:8px 13px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)">Source</th>
+            {% for src in utmSources %}
+            <th style="background:#0d1016;color:#3e4259;font-weight:700;font-size:.65rem;letter-spacing:.05em;text-transform:uppercase;padding:8px 13px;text-align:right;border-bottom:1px solid rgba(255,255,255,.06)">{{ src }}</th>
             {% endfor %}
-          </div>
-        {% else %}
-          <div class="t-empty">Sem eventos registrados.</div>
-        {% endif %}
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <span class="card-title">Pedidos recentes</span>
-          <span class="card-meta">{{ orders|length }} pedidos</span>
-        </div>
-        <div class="tw">
-          <table class="t">
-            <thead><tr><th>#</th><th>Servi&#231;o</th><th>Status</th><th style="text-align:right">Valor</th><th>Data</th></tr></thead>
-            <tbody>
-            {% for o in orders %}
-              {% set sc = {'completed': 'b-green', 'pending': 'b-grey', 'processing': 'b-teal','in_progress': 'b-blue', 'partial': 'b-orange', 'cancelled': 'b-red', 'refunded': 'b-red'} %}
-              <tr>
-                <td style="color:#505570;font-size:.72rem">{{ o.id }}</td>
-                <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ o.service.name }}</td>
-                <td><span class="badge {{ sc[o.status]|default('b-grey') }}">{{ o.status }}</span></td>
-                <td style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">R$&#160;{{ (o.amountCents/100)|number_format(2,',','.') }}</td>
-                <td style="color:#505570;font-size:.72rem">{{ o.createdAt|date('d/m/Y') }}</td>
-              </tr>
-            {% else %}
-              <tr><td colspan="5" class="t-empty">Nenhum pedido.</td></tr>
+          </tr>
+        </thead>
+        <tbody>
+          {% if utmMap is defined %}
+          {% for rowKey, rowData in utmMap %}
+          <tr style="border-bottom:1px solid rgba(255,255,255,.03)">
+            <td style="padding:9px 13px;color:#9196b0">{{ rowKey }}</td>
+            {% for src in utmSources %}
+            <td style="padding:9px 13px;color:#dde1f0;text-align:right;font-variant-numeric:tabular-nums">{{ rowData[src] ?? 0 }}</td>
             {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          </tr>
+          {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
     </div>
-  </div>{% endif %}{# /view-profile #}
+  </div>
+  {% endif %}
 
-  </div>{# /crm-main #}
-</div>{# /crm-wrap #}
-</div>{# /crm #}
+  {# ── Afiliados ── #}
+  {% if affiliateRows is defined and affiliateRows is not empty %}
+  <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden">
+    <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
+      <p style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#3e4259;margin:0">Afiliados</p>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <thead>
+          <tr>
+            {% for col in ['Afiliado','Indicados','Comissão Total','Pendente'] %}
+            <th style="background:#0d1016;color:#3e4259;font-weight:700;font-size:.65rem;letter-spacing:.05em;text-transform:uppercase;padding:8px 13px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)">{{ col }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in affiliateRows %}
+          <tr style="border-bottom:1px solid rgba(255,255,255,.03)">
+            <td style="padding:9px 13px;color:#dde1f0">{{ row.name ?? row.email ?? '-' }}</td>
+            <td style="padding:9px 13px;color:#9196b0">{{ row.referrals ?? 0 }}</td>
+            <td style="padding:9px 13px;color:#22c55e;font-variant-numeric:tabular-nums">R$ {{ (row.totalCommission ?? 0)|number_format(2,',','.') }}</td>
+            <td style="padding:9px 13px;color:#f59e0b;font-variant-numeric:tabular-nums">R$ {{ (row.pendingCommission ?? 0)|number_format(2,',','.') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script>
-const MONTHLY = {{ monthlyRevenue|json_encode|raw }};
-const SEGS    = { whale: {{ stats.whales }}, active: {{ stats.actives }}, new: {{ stats.news }} };
-const USERS   = {{ crmUsers|map(r => {
-  spent:  r.totalSpentCents,
-  orders: r.orderCount,
-  origin: r.utmSource ?? '__direct',
-  seg:    r.totalSpentCents >= 50000 ? 'whale' : (r.totalSpentCents > 0 ? 'active' : 'new')
-})|json_encode|raw }};
+  {# ── Usuários CRM ── #}
+  {% if crmUsers is defined and crmUsers is not empty %}
+  <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden">
+    <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
+      <p style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#3e4259;margin:0">Usuários CRM</p>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <thead>
+          <tr>
+            {% for col in ['#','E-mail','Saldo','Pedidos','Cadastro'] %}
+            <th style="background:#0d1016;color:#3e4259;font-weight:700;font-size:.65rem;letter-spacing:.05em;text-transform:uppercase;padding:8px 13px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)">{{ col }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in crmUsers %}
+          <tr style="border-bottom:1px solid rgba(255,255,255,.03)">
+            <td style="padding:9px 13px;color:#3e4259">{{ user.id }}</td>
+            <td style="padding:9px 13px;color:#dde1f0">{{ user.email }}</td>
+            <td style="padding:9px 13px;color:#22c55e;font-variant-numeric:tabular-nums">R$ {{ (user.balance ?? 0)|number_format(2,',','.') }}</td>
+            <td style="padding:9px 13px;color:#9196b0">{{ user.orderCount ?? 0 }}</td>
+            <td style="padding:9px 13px;color:#3e4259;font-size:.75rem">{{ user.createdAt is defined ? user.createdAt|date('d/m/Y') : '-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
 
-const VIEWS = ['overview','users','affiliates','campaigns','analytics'{% if profileUser %},'profile'{% endif %}];
-function switchView(v){
-  VIEWS.forEach(id=>{
-    document.getElementById('view-'+id)?.classList.remove('active');
-    document.querySelector(`[data-view="${id}"]`)?.classList.remove('active');
-  });
-  document.getElementById('view-'+v)?.classList.add('active');
-  document.querySelector(`[data-view="${v}"]`)?.classList.add('active');
-  location.hash=v;
-}
-const hash=(location.hash.replace('#','')||'');
-const initView=VIEWS.includes(hash)?hash:{% if profileUser %}'profile'{% else %}'overview'{% endif %};
-switchView(initView);
-
-Chart.defaults.color='#8b90a8';
-Chart.defaults.font.family='-apple-system,sans-serif';
-Chart.defaults.font.size=11;
-
-function makeRevChart(id){
-  const ctx=document.getElementById(id); if(!ctx)return;
-  new Chart(ctx,{type:'bar',data:{labels:MONTHLY.map(m=>m.label),datasets:[{label:'Receita (R$)',
-    data:MONTHLY.map(m=>m.amount/100),backgroundColor:'rgba(1,105,111,.5)',borderColor:'#01696f',
-    borderWidth:2,borderRadius:6,borderSkipped:false}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'R$ '+c.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:2})}}},
-      scales:{x:{grid:{color:'rgba(255,255,255,.05)'},border:{display:false}},
-        y:{grid:{color:'rgba(255,255,255,.05)'},border:{display:false},ticks:{callback:v=>'R$'+v.toLocaleString('pt-BR')}}}}});
-}
-function makeSegChart(id){
-  const ctx=document.getElementById(id); if(!ctx)return;
-  new Chart(ctx,{type:'doughnut',data:{labels:['Whales','Ativos','Novos'],
-    datasets:[{data:[SEGS.whale,SEGS.active,SEGS.new],
-      backgroundColor:['rgba(232,175,52,.7)','rgba(122,191,74,.7)','rgba(139,144,168,.4)'],
-      borderColor:['#e8af34','#7abf4a','#8b90a8'],borderWidth:2}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'bottom',labels:{padding:12,font:{size:11}}}}}});
-}
-makeRevChart('chart-revenue'); makeSegChart('chart-segments');
-makeRevChart('chart-revenue-2'); makeSegChart('chart-segments-2');
-
-function filterUsers(){
-  const q=(document.getElementById('u-search').value||'').toLowerCase();
-  const org=document.getElementById('u-origin').value.toLowerCase();
-  const seg=document.getElementById('u-seg').value;
-  let vis=0;
-  document.querySelectorAll('#u-tbody tr[data-id]').forEach(tr=>{
-    const ok=(!q||(tr.dataset.name+' '+tr.dataset.email).includes(q))&&(!org||tr.dataset.origin===org)&&(!seg||tr.dataset.seg===seg);
-    tr.style.display=ok?'':'none'; if(ok)vis++;
-  });
-  document.getElementById('u-count').textContent=vis+' visíveis';
-}
-function sortUsers(){
-  const v=document.getElementById('u-sort').value;
-  const[col,dir]=v.split('-');
-  sortByCol({spent:'spent',orders:'orders',date:'date'}[col]||col,dir==='asc');
-}
-let _sortCol='',_sortAsc=false;
-function sortByCol(col,asc){
-  if(col===_sortCol)_sortAsc=!_sortAsc; else{_sortCol=col;_sortAsc=asc??false;}
-  const tbody=document.getElementById('u-tbody');
-  const rows=[...tbody.querySelectorAll('tr[data-id]')];
-  rows.sort((a,b)=>{let av=a.dataset[col]??'',bv=b.dataset[col]??'';
-    if(['spent','orders','id'].includes(col)){av=+av;bv=+bv;}
-    return _sortAsc?(av>bv?1:-1):(av<bv?1:-1);});
-  rows.forEach(r=>tbody.appendChild(r));
-}
-function setSegFilter(s){document.getElementById('c-seg').value=s;}
-function filterCampaign(){
-  if(!document.getElementById('view-campaigns').classList.contains('active'))switchView('campaigns');
-}
-function updateAudiencePreview(){
-  const minC=(+document.getElementById('c-min').value||0)*100;
-  const maxS=document.getElementById('c-max').value;
-  const maxC=maxS!==''?(+maxS)*100:Infinity;
-  const utm=document.getElementById('c-utm').value;
-  const seg=document.getElementById('c-seg').value;
-  const count=USERS.filter(u=>{
-    if(u.spent<minC||u.spent>maxC)return false;
-    if(utm&&u.origin!==utm)return false;
-    if(seg&&u.seg!==seg)return false;
-    return true;
-  }).length;
-  document.getElementById('audience-count').textContent=count;
-}
-document.getElementById('c-body')?.addEventListener('input',function(){
-  document.getElementById('preview-body').textContent=this.value;
-});
-</script>
+</div>
 {% endblock %}
