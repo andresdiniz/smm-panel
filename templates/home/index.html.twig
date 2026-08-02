@@ -1,20 +1,47 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ title }}{% endblock %}
-{% block description %}{{ description }}{% endblock %}
+{% block title %}SMM Panel profissional para vender mais{% endblock %}
+{% block description %}Automatize pedidos, centralize serviços e apresente sua plataforma com páginas públicas otimizadas para SEO.{% endblock %}
 
 {% block body %}
-<main>
-    <section>
-        <h1>SMM Panel profissional para vender mais com automação</h1>
-        <p>Centralize pedidos, pagamentos e serviços em uma plataforma feita para escalar operação, aumentar conversão e melhorar sua presença orgânica.</p>
-        <p>
-            <a href="/login">Entrar</a>
-            <a href="/precos">Ver preços</a>
-        </p>
+<main class="home-page">
+    <section class="hero">
+        <div class="hero-copy">
+            <p class="eyebrow">Plataforma pública + painel privado</p>
+            <h1>SMM Panel profissional para vender mais com automação</h1>
+            <p>Centralize pedidos, pagamentos e serviços em uma plataforma feita para escalar operação, aumentar conversão e melhorar sua presença orgânica.</p>
+            <div class="hero-actions">
+                <a class="btn btn-primary" href="/login">Entrar no painel</a>
+                <a class="btn btn-secondary" href="/precos">Ver preços</a>
+            </div>
+        </div>
+        <div class="hero-card">
+            <h2>O que você encontra</h2>
+            <ul>
+                <li>Páginas públicas indexáveis.</li>
+                <li>Área autenticada separada.</li>
+                <li>Conteúdo comercial com links internos.</li>
+            </ul>
+        </div>
     </section>
-    <section>
-        <h2>Recursos</h2>
+
+    <section class="feature-grid">
+        <article>
+            <h2>Widget de avaliações</h2>
+            <p>Publique provas sociais e aumente conversão em páginas de venda.</p>
+        </article>
+        <article>
+            <h2>Coleta de feedback</h2>
+            <p>Receba retornos de clientes e melhore continuamente sua operação.</p>
+        </article>
+        <article>
+            <h2>Integração com Google Meu Negócio</h2>
+            <p>Conecte fluxos de reputação e captura de avaliações com o SEO local.</p>
+        </article>
+    </section>
+
+    <section class="content-links">
+        <h2>Explorar</h2>
         <ul>
             <li><a href="/recursos/widget-de-avaliacoes">Widget de avaliações</a></li>
             <li><a href="/recursos/coleta-de-feedback">Coleta de feedback</a></li>

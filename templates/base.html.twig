@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{{ title|default('SMM Panel') }}{% endblock %}</title>
     <meta name="description" content="{% block description %}{{ description|default('Plataforma profissional de SMM Panel com automação, integração e foco em performance.') }}{% endblock %}">
+    <meta name="robots" content="index,follow">
+    <meta name="theme-color" content="#111827">
     <link rel="canonical" href="{{ app.request.uri }}">
     <link rel="stylesheet" href="/assets/styles/app.css">
     {% block stylesheets %}{% endblock %}

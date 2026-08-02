@@ -1,11 +1,12 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Login{% endblock %}
+{% block title %}Login | SMM Panel{% endblock %}
 {% block description %}Acesse sua conta para gerenciar pedidos, pagamentos e configurações da plataforma.{% endblock %}
 
 {% block body %}
 <main class="login-page">
     <section class="login-card">
+        <p class="eyebrow">Área restrita</p>
         <h1>Login</h1>
         <p>Entre na sua conta para acessar o painel administrativo.</p>
         <form method="post" action="/login" class="login-form">
@@ -21,6 +22,7 @@
                 <button type="submit">Entrar</button>
             </div>
         </form>
+        <p class="login-note"><a href="/">Voltar para a home pública</a></p>
     </section>
 </main>
 {% endblock %}
