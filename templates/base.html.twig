@@ -6,6 +6,7 @@
     <title>{% block title %}{{ title|default('SMM Panel') }}{% endblock %}</title>
     <meta name="description" content="{% block description %}{{ description|default('Plataforma profissional de SMM Panel com automação, integração e foco em performance.') }}{% endblock %}">
     <link rel="canonical" href="{{ app.request.uri }}">
+    <link rel="stylesheet" href="/assets/styles/app.css">
     {% block stylesheets %}{% endblock %}
 </head>
 <body>

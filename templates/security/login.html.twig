@@ -4,20 +4,20 @@
 {% block description %}Acesse sua conta para gerenciar pedidos, pagamentos e configurações da plataforma.{% endblock %}
 
 {% block body %}
-<main>
-    <section>
+<main class="login-page">
+    <section class="login-card">
         <h1>Login</h1>
         <p>Entre na sua conta para acessar o painel administrativo.</p>
-        <form method="post" action="/login">
-            <div>
+        <form method="post" action="/login" class="login-form">
+            <div class="form-field">
                 <label for="email">E-mail</label>
                 <input id="email" name="email" type="email" autocomplete="email" required>
             </div>
-            <div>
+            <div class="form-field">
                 <label for="password">Senha</label>
                 <input id="password" name="password" type="password" autocomplete="current-password" required>
             </div>
-            <div>
+            <div class="form-actions">
                 <button type="submit">Entrar</button>
             </div>
         </form>
