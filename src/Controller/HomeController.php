@@ -16,4 +16,16 @@ class HomeController extends AbstractController
             'description' => 'Plataforma completa para gerenciar serviços SMM, automação de pedidos, pagamentos e crescimento com foco em conversão e SEO.',
         ]);
     }
+
+    #[Route('/politica-de-privacidade', name: 'privacy')]
+    public function privacy(): Response
+    {
+        return $this->render('home/privacy.html.twig');
+    }
+
+    #[Route('/politica-de-cookies', name: 'cookies')]
+    public function cookies(): Response
+    {
+        return $this->render('home/cookies.html.twig');
+    }
 }
