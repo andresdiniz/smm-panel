@@ -7,11 +7,21 @@
     <meta name="description" content="{% block description %}{{ description|default('Plataforma profissional de SMM Panel com automação, integração e foco em performance.') }}{% endblock %}">
     <meta name="robots" content="index,follow">
     <meta name="theme-color" content="#111827">
+    <meta name="color-scheme" content="light dark">
     <link rel="canonical" href="{{ app.request.uri }}">
     <link rel="stylesheet" href="/assets/styles/app.css">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     {% block stylesheets %}{% endblock %}
 </head>
 <body>
     {% block body %}{% endblock %}
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').catch(function() {});
+            });
+        }
+    </script>
 </body>
 </html>

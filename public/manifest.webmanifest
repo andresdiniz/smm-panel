@@ -1,0 +1,10 @@
+{
+  "name": "SMM Panel",
+  "short_name": "SMM Panel",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#111827",
+  "icons": []
+}
