@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Pix payment{% endblock %}
+
+{% block body %}
+<div class="card auth-card">
+    <h1>Pix charge</h1>
+    <p><strong>Amount:</strong> R$ {{ charge.amount }}</p>
+    <p><strong>Status:</strong> {{ charge.status }}</p>
+
+    {% if charge.qrCode %}
+        <img class="pix-qr" src="data:image/png;base64,{{ charge.qrCode }}" alt="Pix QR Code">
+    {% endif %}
+
+    {% if charge.copyPasteCode %}
+        <label>Copy and paste</label>
+        <textarea id="pix-code" readonly>{{ charge.copyPasteCode }}</textarea>
+        <button class="btn" id="copy-pix">Copy Pix code</button>
+    {% endif %}
+</div>
+{% endblock %}

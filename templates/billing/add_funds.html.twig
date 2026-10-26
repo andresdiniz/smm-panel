@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Add funds{% endblock %}
+
+{% block body %}
+<div class="card auth-card">
+    <h1>Add funds with Pix</h1>
+    <form method="post" action="{{ path('app_billing_pix') }}">
+        <label>Amount (BRL)
+            <input type="number" step="0.01" min="5" name="amount" value="20.00" required>
+        </label>
+        <button class="btn" type="submit">Generate Pix</button>
+    </form>
+</div>
+{% endblock %}

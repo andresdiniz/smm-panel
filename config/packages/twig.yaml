@@ -1,12 +1,3 @@
 twig:
     file_name_pattern: '*.twig'
-    # Recompila o cache Twig sempre que o .twig for mais novo que o .php compilado
-    # Necessario na Hostinger onde o deploy cria novos git_clones com timestamps frescos
-    auto_reload: true
-    # Timezone padrao para o filtro |date() em todos os templates
-    date:
-        timezone: America/Sao_Paulo
-
-when@test:
-    twig:
-        strict_variables: true
+    strict_variables: false

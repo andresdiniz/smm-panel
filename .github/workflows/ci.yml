@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [main, feature/symfony-8-rewrite]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: pdo_mysql, intl, zip
+          coverage: none
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+      - name: Validate composer
+        run: composer validate --strict
+      - name: Check routes
+        run: php bin/console debug:router
