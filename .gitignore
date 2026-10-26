@@ -1,25 +1,11 @@
-/.env.local.php
-/config/secrets/prod/prod.decrypt.private.php
-/public/bundles/
-/var/cache/
-/var/sessions/
-#/vendor/
-/node_modules/
-*.log
-.idea/
-.vscode/
-.DS_Store
-/coverage/
-
-# Manter diretorio var/log no repositorio via .gitkeep
-!var/log/.gitkeep
-
-###> phpunit/phpunit ###
-/phpunit.xml
+/.env
+/.env.*
+!/.env.example
+/var/*
+/vendor/*
+/node_modules/*
+/public/build/*
+/public/uploads/*
 /.phpunit.cache/
-###< phpunit/phpunit ###
-
-###> symfony/asset-mapper ###
-#/public/assets/
-#/assets/vendor/
-###< symfony/asset-mapper ###
+/phpunit.xml
+/composer.lock

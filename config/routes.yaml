@@ -1,17 +1,7 @@
 controllers:
-    resource:
-        path: ../src/Controller/
-        namespace: App\Controller
+    resource: ../src/Controller/
     type: attribute
 
-home:
-    path: /
-    controller: App\Controller\HomeController::index
-
-login:
-    path: /login
-    controller: App\Controller\SecurityController::login
-
-logout:
-    path: /logout
-    controller: App\Controller\SecurityController::logout
+kernel:
+    resource: ../src/Kernel.php
+    type: annotation

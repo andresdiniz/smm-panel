@@ -3,25 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}{{ title|default('SMM Panel') }}{% endblock %}</title>
-    <meta name="description" content="{% block description %}{{ description|default('Plataforma profissional de SMM Panel com automação, integração e foco em performance.') }}{% endblock %}">
-    <meta name="robots" content="index,follow">
-    <meta name="theme-color" content="#111827">
-    <meta name="color-scheme" content="light dark">
-    <link rel="canonical" href="{{ app.request.uri }}">
-    <link rel="stylesheet" href="/assets/styles/app.css">
-    <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    {% block stylesheets %}{% endblock %}
+    <title>{% block title %}SMM Panel{% endblock %}</title>
+    <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
 </head>
 <body>
+<header class="topbar">
+    <a class="brand" href="{{ path('app_dashboard') }}">SMM<span>Panel</span></a>
+    <nav>
+        {% if app.user %}
+            <a href="{{ path('app_dashboard') }}">Dashboard</a>
+            <a href="{{ path('app_orders') }}">New order</a>
+            <a href="{{ path('app_billing_add_funds') }}">Add funds</a>
+            {% if is_granted('ROLE_ADMIN') %}<a href="{{ path('app_admin_dashboard') }}">Admin</a>{% endif %}
+            <a href="{{ path('app_logout') }}">Logout</a>
+        {% else %}
+            <a href="{{ path('app_login') }}">Login</a>
+        {% endif %}
+    </nav>
+</header>
+
+<main class="container">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ type }}">{{ message }}</div>
+        {% endfor %}
+    {% endfor %}
+
     {% block body %}{% endblock %}
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').catch(function() {});
-            });
-        }
-    </script>
+</main>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+<script src="{{ asset('app.js') }}"></script>
 </body>
 </html>

@@ -1,43 +1,15 @@
-# config/services.yaml
 parameters:
-    admin_email: '%env(ADMIN_EMAIL)%'
-    affiliate.default_rate: '%env(float:AFFILIATE_DEFAULT_RATE)%'
+    app.asaas_webhook_token: '%env(ASAAS_WEBHOOK_TOKEN)%'
+    app.smm_provider_key: '%env(SMM_PROVIDER_KEY)%'
+    app.smm_api_token: '%env(SMM_API_TOKEN)%'
 
 services:
     _defaults:
         autowire: true
         autoconfigure: true
 
-    App\:
+    App\\:
         resource: '../src/'
         exclude:
-            - '../src/DependencyInjection/'
             - '../src/Entity/'
             - '../src/Kernel.php'
-
-    # ─── Gateways de Pagamento (instânciados dinamicamente do banco) ───
-    App\Billing\PaymentGatewayInterface:
-        alias: App\Billing\DynamicGatewayLoader
-
-    App\Billing\GatewayRegistry:
-        factory: ['@App\Billing\DynamicGatewayLoader', 'buildRegistry']
-
-    # ─── Registry SMM (instânciado dinamicamente do banco) ───
-    App\Smm\SmmProviderRegistry:
-        factory: ['@App\Smm\DynamicSmmProviderLoader', 'buildRegistry']
-
-    # ─── DailyReportSchedule: injeta adminEmail ───
-    App\Scheduler\DailyReportSchedule:
-        arguments:
-            $adminEmail: '%admin_email%'
-
-    App\Billing\AsaasGateway:
-        arguments:
-            $apiKey:       '%env(ASAAS_API_KEY)%'
-            $baseUrl:      '%env(ASAAS_BASE_URL)%'
-            $webhookToken: '%env(ASAAS_WEBHOOK_TOKEN)%'
-
-    # ─── AffiliateService: taxa padrão de comissão (ex.: 0.05 = 5%) ───
-    App\Service\AffiliateService:
-        arguments:
-            $defaultRate: '%affiliate.default_rate%'

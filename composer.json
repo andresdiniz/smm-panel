@@ -1,59 +1,46 @@
 {
     "name": "andresdiniz/smm-panel",
-    "description": "SMM Panel — PHP 8.2+ + Symfony 7",
+    "description": "Modern SMM Panel built with Symfony, PHP 8.5, Asaas Pix and SMM API v2",
     "type": "project",
     "license": "proprietary",
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.5",
         "ext-ctype": "*",
         "ext-iconv": "*",
-        "doctrine/doctrine-bundle": "^2.11",
-        "doctrine/doctrine-migrations-bundle": "^3.3",
-        "doctrine/orm": "^3.1",
-        "dragonmantank/cron-expression": "^3.6",
-        "knplabs/knp-paginator-bundle": "^6.3",
-        "symfony/apache-pack": "*",
-        "symfony/asset": "7.*",
-        "symfony/asset-mapper": "7.*",
-        "symfony/console": "7.*",
-        "symfony/doctrine-messenger": "7.*",
-        "symfony/dotenv": "7.*",
-        "symfony/flex": "^2",
-        "symfony/form": "7.*",
-        "symfony/framework-bundle": "7.*",
-        "symfony/http-client": "7.*",
-        "symfony/mailer": "7.*",
-        "symfony/messenger": "7.*",
-        "symfony/mime": "7.*",
-        "symfony/monolog-bundle": "^3.10",
-        "symfony/password-hasher": "7.*",
-        "symfony/runtime": "7.*",
-        "symfony/scheduler": "7.*",
-        "symfony/security-bundle": "7.*",
-        "symfony/twig-bridge": "7.*",
-        "symfony/twig-bundle": "7.*",
-        "symfony/uid": "7.*",
-        "symfony/ux-twig-component": "^2.18",
-        "symfony/validator": "7.*",
-        "symfony/yaml": "7.*",
-        "twig/extra-bundle": "^3.10",
-        "twig/twig": "^3.10"
+        "ext-pdo": "*",
+        "symfony/console": "8.1.*",
+        "symfony/dotenv": "8.1.*",
+        "symfony/flex": "^2.7",
+        "symfony/form": "8.1.*",
+        "symfony/framework-bundle": "8.1.*",
+        "symfony/http-client": "8.1.*",
+        "symfony/rate-limiter": "8.1.*",
+        "symfony/runtime": "8.1.*",
+        "symfony/security-bundle": "8.1.*",
+        "symfony/twig-bundle": "8.1.*",
+        "symfony/validator": "8.1.*",
+        "symfony/yaml": "8.1.*",
+        "doctrine/doctrine-bundle": "^4.0",
+        "doctrine/doctrine-migrations-bundle": "^4.0",
+        "doctrine/orm": "^3.5",
+        "symfony/asset": "8.1.*",
+        "symfony/asset-mapper": "8.1.*",
+        "twig/twig": "^3.21"
     },
     "require-dev": {
-        "doctrine/doctrine-fixtures-bundle": "^3.6",
-        "phpunit/phpunit": "^11",
-        "symfony/browser-kit": "7.*",
-        "symfony/css-selector": "7.*",
-        "symfony/maker-bundle": "^1.57",
-        "symfony/phpunit-bridge": "7.*"
+        "symfony/debug-bundle": "8.1.*",
+        "symfony/maker-bundle": "^1.64",
+        "symfony/stopwatch": "8.1.*",
+        "symfony/web-profiler-bundle": "8.1.*",
+        "phpunit/phpunit": "^12.0"
     },
     "config": {
         "allow-plugins": {
-            "php-http/discovery": true,
             "symfony/flex": true,
             "symfony/runtime": true
         },
-        "sort-packages": true
+        "sort-packages": true,
+        "optimize-autoloader": true
     },
     "autoload": {
         "psr-4": {
@@ -66,18 +53,24 @@
         }
     },
     "scripts": {
-        "post-install-cmd": ["@auto-scripts"],
-        "post-update-cmd": ["@auto-scripts"],
         "auto-scripts": {
             "cache:clear": "symfony-cmd",
-            "assets:install %PUBLIC_DIR%": "symfony-cmd",
-            "importmap:install": "symfony-cmd"
-        }
+            "assets:install %PUBLIC_DIR%": "symfony-cmd"
+        },
+        "post-install-cmd": [
+            "@auto-scripts"
+        ],
+        "post-update-cmd": [
+            "@auto-scripts"
+        ]
+    },
+    "conflict": {
+        "symfony/symfony": "*"
     },
     "extra": {
         "symfony": {
             "allow-contrib": false,
-            "require": "7.*"
+            "require": "8.1.*"
         }
     }
 }

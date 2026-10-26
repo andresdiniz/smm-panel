@@ -1,23 +1,26 @@
-# see https://symfony.com/doc/current/reference/configuration/framework.html
 framework:
     secret: '%env(APP_SECRET)%'
-
-    # Forca o Symfony a usar o var/cache do clone ativo da Hostinger.
-    # A Hostinger faz deploy em .git_clones/git_clone_XXXXX/ mas o cache
-    # padrao aponta para public_html/var/cache (deploy anterior), causando
-    # conflito de templates compilados com paths errados.
-    cache:
-        app: cache.adapter.filesystem
-        system: cache.adapter.system
-
-    # Note that the session will be started ONLY if you read or write from it.
-    session: true
-
-    #esi: true
-    #fragments: true
-
-when@test:
-    framework:
-        test: true
-        session:
-            storage_factory_id: session.storage.factory.mock_file
+    http_method_override: false
+    handle_all_throwables: true
+    php_errors:
+        log: true
+    session:
+        handler_id: null
+        cookie_secure: auto
+        cookie_httponly: true
+        cookie_samesite: lax
+        storage_factory_id: session.storage.factory.native
+    csrf_protection: true
+    http_client:
+        scoped_clients:
+            asaas.client:
+                base_uri: '%env(ASAAS_API_URL)%'
+                timeout: 15
+            smm.client:
+                base_uri: '%env(SMM_PROVIDER_URL)%'
+                timeout: 20
+    rate_limiter:
+        api:
+            policy: 'sliding_window'
+            limit: 120
+            interval: '1 minute'

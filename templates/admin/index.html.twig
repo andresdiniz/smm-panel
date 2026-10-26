@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Admin{% endblock %}
+
+{% block body %}
+<div class="grid stats">
+    <div class="card"><span>Users</span><strong>{{ userCount }}</strong></div>
+    <div class="card"><span>Orders</span><strong>{{ orderCount }}</strong></div>
+</div>
+
+<div class="card">
+    <h2>Recent orders</h2>
+    <table>
+        <thead><tr><th>ID</th><th>User</th><th>Service</th><th>Status</th><th>Charge</th></tr></thead>
+        <tbody>
+        {% for order in recentOrders %}
+            <tr>
+                <td>#{{ order.id }}</td>
+                <td>{{ order.user.email }}</td>
+                <td>{{ order.service.name }}</td>
+                <td>{{ order.status }}</td>
+                <td>R$ {{ order.charge }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
