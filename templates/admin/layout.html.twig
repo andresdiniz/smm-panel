@@ -132,18 +132,18 @@
 
 {# ── Mobile bar ── #}
 <div class="adm-mobile-bar">
-  <button id="adm-toggle" aria-label="Abrir menu">
+  <button id="adm-toggle" type="button" aria-label="Abrir menu" aria-controls="adm-sidebar" aria-expanded="false">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
     </svg>
   </button>
   <span>Admin</span>
 </div>
-<div class="adm-overlay" id="adm-overlay"></div>
+<div class="adm-overlay" id="adm-overlay" aria-hidden="true"></div>
 
 {# ── Sidebar ── #}
 {% set route = app.request.attributes.get('_route') %}
-<aside class="adm-sidebar" id="adm-sidebar">
+<aside class="adm-sidebar" id="adm-sidebar" aria-label="Navegação administrativa">
   <div class="adm-logo">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -287,10 +287,26 @@
   const sidebar = document.getElementById('adm-sidebar');
   const overlay = document.getElementById('adm-overlay');
   const toggle  = document.getElementById('adm-toggle');
-  function openMenu()  { sidebar.classList.add('open');  overlay.classList.add('open'); }
-  function closeMenu() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
+  function openMenu()  {
+    sidebar.classList.add('open');
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+    toggle.setAttribute('aria-expanded', 'true');
+  }
+  function closeMenu() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+    toggle.setAttribute('aria-expanded', 'false');
+  }
   toggle.addEventListener('click', openMenu);
   overlay.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && sidebar.classList.contains('open')) {
+      closeMenu();
+      toggle.focus();
+    }
+  });
 </script>
 
 </body>

@@ -26,15 +26,15 @@ class RegistrationFormType extends AbstractType
             ->add('name', TextType::class, [
                 'label'       => 'Nome completo',
                 'constraints' => [
-                    new NotBlank(['message' => 'Informe seu nome.']),
-                    new Length(['min' => 2, 'max' => 120, 'minMessage' => 'Mínimo 2 caracteres.']),
+                    new NotBlank(message: 'Informe seu nome.'),
+                    new Length(min: 2, max: 120, minMessage: 'Mínimo 2 caracteres.'),
                 ],
             ])
             ->add('email', EmailType::class, [
                 'label'       => 'E-mail',
                 'constraints' => [
-                    new NotBlank(['message' => 'Informe seu e-mail.']),
-                    new Email(['message' => 'E-mail inválido.']),
+                    new NotBlank(message: 'Informe seu e-mail.'),
+                    new Email(message: 'E-mail inválido.'),
                 ],
             ])
             ->add('plainPassword', RepeatedType::class, [
@@ -44,19 +44,19 @@ class RegistrationFormType extends AbstractType
                 'second_options'  => ['label' => 'Confirmar senha'],
                 'invalid_message' => 'As senhas não coincidem.',
                 'constraints'     => [
-                    new NotBlank(['message' => 'Defina uma senha.']),
-                    new Length([
-                        'min'        => 8,
-                        'max'        => 4096,
-                        'minMessage' => 'A senha deve ter ao menos 8 caracteres.',
-                    ]),
+                    new NotBlank(message: 'Defina uma senha.'),
+                    new Length(
+                        min: 8,
+                        max: 4096,
+                        minMessage: 'A senha deve ter ao menos 8 caracteres.',
+                    ),
                 ],
             ])
             ->add('agreeTerms', CheckboxType::class, [
                 'mapped'      => false,
                 'label'       => 'Aceito os termos de uso',
                 'constraints' => [
-                    new IsTrue(['message' => 'Você precisa aceitar os termos para continuar.']),
+                    new IsTrue(message: 'Você precisa aceitar os termos para continuar.'),
                 ],
             ]);
     }

@@ -21,13 +21,13 @@
 
 {# ── Navbar admin própria — sem dependência do EasyAdmin context ── #}
 <nav class="navbar navbar-expand-lg navbar-admin px-3 py-2 mb-4 shadow-sm">
-  <a class="navbar-brand" href="{{ path('admin') }}">
+  <a class="navbar-brand" href="{{ path('admin_dashboard') }}">
     <i class="fa fa-gauge-high me-2"></i>SMM Panel Admin
   </a>
   <div class="collapse navbar-collapse">
     <ul class="navbar-nav me-auto">
       <li class="nav-item">
-        <a class="nav-link" href="{{ path('admin') }}?crudController=App%5CController%5CAdmin%5COrderCrudController&crudAction=index">
+        <a class="nav-link" href="{{ path('admin_order_index') }}">
           <i class="fa fa-cart-shopping me-1"></i>Pedidos
         </a>
       </li>
@@ -47,7 +47,7 @@
 
   {# ── Cabeçalho ─────────────────────────────────────────────────────── #}
   <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
-    <a href="{{ path('admin') }}?crudController=App%5CController%5CAdmin%5COrderCrudController&crudAction=index"
+    <a href="{{ path('admin_order_index') }}"
        class="btn btn-sm btn-outline-secondary">
       <i class="fa fa-arrow-left me-1"></i>Voltar aos pedidos
     </a>
@@ -98,9 +98,9 @@
           </table>
         </div>
         <div class="card-footer text-end">
-          <a href="{{ path('admin') }}?crudController=App%5CController%5CAdmin%5COrderCrudController&crudAction=detail&entityId={{ order.id }}"
+          <a href="{{ path('admin_order_show', {id: order.id}) }}"
              class="btn btn-sm btn-outline-primary">
-            <i class="fa fa-external-link-alt me-1"></i>Abrir no EasyAdmin
+            <i class="fa fa-external-link-alt me-1"></i>Abrir pedido
           </a>
         </div>
       </div>

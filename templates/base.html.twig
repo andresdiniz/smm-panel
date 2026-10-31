@@ -3,36 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}{{ title|default('SMM Panel') }}{% endblock %}</title>
+    <title>{% block title %}{{ title|default('PulseSMM') }}{% endblock %}</title>
     <meta name="description" content="{% block description %}{{ description|default('Plataforma profissional de SMM Panel com automação, integração e foco em performance.') }}{% endblock %}">
     <meta name="robots" content="index,follow">
-    <meta name="theme-color" content="#111827">
+    <meta name="theme-color" content="#087f86">
     <meta name="color-scheme" content="light dark">
     <link rel="canonical" href="{{ app.request.uri }}">
     <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+    <link rel="stylesheet" href="{{ asset('styles/app-shell.css') }}">
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     {% block stylesheets %}{% endblock %}
 </head>
 <body>
     <header class="site-header">
-        <a class="site-brand" href="{{ path('home') }}">PulseSMM</a>
+        <a class="site-brand" href="{{ path('home') }}" aria-label="PulseSMM — início">
+            <span class="site-brand__mark" aria-hidden="true">P</span>
+            <span>Pulse<span class="site-brand__accent">SMM</span></span>
+        </a>
         <nav class="site-nav" aria-label="Navegação principal">
-            <a href="{{ path('home') }}">Início</a>
-            <a href="{{ path('app_catalog') }}">Serviços</a>
-            <a href="{{ path('app_how_it_works') }}">Como funciona</a>
-            <a href="{{ path('blog_index') }}">Blog</a>
+            <a href="{{ path('home') }}" {% if app.request.attributes.get('_route') == 'home' %}aria-current="page"{% endif %}>Início</a>
+            <a href="{{ path('app_catalog') }}" {% if app.request.attributes.get('_route') == 'app_catalog' %}aria-current="page"{% endif %}>Serviços</a>
+            <a href="{{ path('app_how_it_works') }}" {% if app.request.attributes.get('_route') == 'app_how_it_works' %}aria-current="page"{% endif %}>Como funciona</a>
+            <a href="{{ path('blog_index') }}" {% if app.request.attributes.get('_route') starts with 'blog_' %}aria-current="page"{% endif %}>Blog</a>
+            {% if app.user %}
+                <a href="{{ path('app_order_new') }}" {% if app.request.attributes.get('_route') starts with 'app_order_' %}aria-current="page"{% endif %}>Novo pedido</a>
+                <a href="{{ path('app_wallet_index') }}" {% if app.request.attributes.get('_route') starts with 'app_wallet_' %}aria-current="page"{% endif %}>Carteira</a>
+                <a href="{{ path('support_index') }}" {% if app.request.attributes.get('_route') starts with 'support_' %}aria-current="page"{% endif %}>Suporte</a>
+            {% endif %}
         </nav>
         <div class="site-account">
             {% if app.user %}
+                <span class="site-account__identity">{{ app.user.userIdentifier }}</span>
                 <a class="btn btn-primary" href="{{ path('app_dashboard') }}">Meu painel</a>
+                <a class="site-login-link" href="{{ path('app_logout') }}">Sair</a>
             {% else %}
                 <a class="site-login-link" href="{{ path('app_login') }}">Entrar</a>
                 <a class="btn btn-primary" href="{{ path('app_register') }}">Criar conta</a>
             {% endif %}
         </div>
     </header>
-    {% block body %}{% endblock %}
+    {% block body %}
+        <main class="site-main" id="main-content">
+            {% block auth_body %}{% endblock %}
+            {% block content %}{% endblock %}
+        </main>
+    {% endblock %}
+    <footer class="site-footer">
+        <span>&copy; {{ "now"|date("Y") }} PulseSMM</span>
+        <nav aria-label="Links institucionais">
+            <a href="{{ path('app_terms') }}">Termos</a>
+            <a href="{{ path('app_privacy') }}">Privacidade</a>
+            {% if app.user %}
+                <a href="{{ path('support_index') }}">Suporte</a>
+            {% endif %}
+        </nav>
+    </footer>
     {% block javascripts %}{% endblock %}
     <script>
         if ('serviceWorker' in navigator) {
