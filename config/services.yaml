@@ -2,6 +2,7 @@
 parameters:
     admin_email: '%env(ADMIN_EMAIL)%'
     affiliate.default_rate: '%env(float:AFFILIATE_DEFAULT_RATE)%'
+    asaas.environment_default: 'sandbox'
 
 services:
     _defaults:
@@ -14,13 +15,17 @@ services:
             - '../src/DependencyInjection/'
             - '../src/Entity/'
             - '../src/Kernel.php'
+            - '../src/Controller/Admin/*CrudController.php'
+            - '../src/Billing/AsaasGateway.php'
+            - '../src/Billing/Service/AsaasPaymentService.php'
 
     # ─── Gateways de Pagamento (instânciados dinamicamente do banco) ───
-    App\Billing\PaymentGatewayInterface:
-        alias: App\Billing\DynamicGatewayLoader
-
     App\Billing\GatewayRegistry:
         factory: ['@App\Billing\DynamicGatewayLoader', 'buildRegistry']
+
+    App\Billing\DynamicGatewayLoader:
+        arguments:
+            $asaasEnvironment: '%env(default:asaas.environment_default:ASAAS_ENV)%'
 
     # ─── Registry SMM (instânciado dinamicamente do banco) ───
     App\Smm\SmmProviderRegistry:
@@ -30,12 +35,6 @@ services:
     App\Scheduler\DailyReportSchedule:
         arguments:
             $adminEmail: '%admin_email%'
-
-    App\Billing\AsaasGateway:
-        arguments:
-            $apiKey:       '%env(ASAAS_API_KEY)%'
-            $baseUrl:      '%env(ASAAS_BASE_URL)%'
-            $webhookToken: '%env(ASAAS_WEBHOOK_TOKEN)%'
 
     # ─── AffiliateService: taxa padrão de comissão (ex.: 0.05 = 5%) ───
     App\Service\AffiliateService:

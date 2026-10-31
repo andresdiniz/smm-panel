@@ -1,58 +1,52 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}SMM Panel profissional para vender mais{% endblock %}
-{% block description %}Automatize pedidos, centralize serviços e apresente sua plataforma com páginas públicas otimizadas para SEO.{% endblock %}
+{% block description %}Conheça serviços para redes sociais, consulte preços no catálogo público e gerencie seus pedidos em um só lugar.{% endblock %}
 
 {% block body %}
 <main class="home-page">
     <section class="hero">
         <div class="hero-copy">
-            <p class="eyebrow">Plataforma pública + painel privado</p>
-            <h1>SMM Panel profissional para vender mais com automação</h1>
-            <p>Centralize pedidos, pagamentos e serviços em uma plataforma feita para escalar operação, aumentar conversão e melhorar sua presença orgânica.</p>
+            <p class="eyebrow">PulseSMM</p>
+            <h1>Encontre serviços para impulsionar sua presença nas redes sociais</h1>
+            <p>Explore o catálogo, compare os serviços disponíveis e acompanhe seus pedidos em uma área simples e organizada.</p>
             <div class="hero-actions">
-                <a class="btn btn-primary" href="/login">Entrar no painel</a>
-                <a class="btn btn-secondary" href="/precos">Ver preços</a>
+                <a class="btn btn-primary" href="{{ path('app_catalog') }}">Explorar serviços</a>
+                <a class="btn btn-secondary" href="{{ path('app_how_it_works') }}">Como funciona</a>
             </div>
         </div>
         <div class="hero-card">
-            <h2>O que você encontra</h2>
+            <h2>Comece em poucos passos</h2>
             <ul>
-                <li>Páginas públicas indexáveis.</li>
-                <li>Área autenticada separada.</li>
-                <li>Conteúdo comercial com links internos.</li>
-                <li>SEO técnico e versão offline básica.</li>
+                <li>Consulte serviços e preços sem criar conta.</li>
+                <li>Crie sua conta para enviar um pedido.</li>
+                <li>Acompanhe o andamento pelo painel.</li>
             </ul>
         </div>
     </section>
 
     <section class="feature-grid">
         <article>
-            <h2>Widget de avaliações</h2>
-            <p>Publique provas sociais e aumente conversão em páginas de venda.</p>
+            <h2>Catálogo transparente</h2>
+            <p>Veja preços, quantidades mínimas e máximas antes de fazer seu pedido.</p>
         </article>
         <article>
-            <h2>Coleta de feedback</h2>
-            <p>Receba retornos de clientes e melhore continuamente sua operação.</p>
+            <h2>Pedidos organizados</h2>
+            <p>Consulte o histórico e o status dos pedidos na sua conta.</p>
         </article>
         <article>
-            <h2>Integração com Google Meu Negócio</h2>
-            <p>Conecte fluxos de reputação e captura de avaliações com o SEO local.</p>
+            <h2>Área do cliente</h2>
+            <p>Gerencie sua carteira e acompanhe as movimentações em um só lugar.</p>
         </article>
     </section>
 
-    <section class="content-links">
-        <h2>Explorar</h2>
-        <ul>
-            <li><a href="/recursos/widget-de-avaliacoes">Widget de avaliações</a></li>
-            <li><a href="/recursos/coleta-de-feedback">Coleta de feedback</a></li>
-            <li><a href="/integracoes/google-meu-negocio">Integração com Google Meu Negócio</a></li>
-            <li><a href="/precos">Preços</a></li>
-            <li><a href="/blog">Blog</a></li>
-            <li><a href="/politica-de-privacidade">Política de privacidade</a></li>
-            <li><a href="/politica-de-cookies">Política de cookies</a></li>
-            <li><a href="/termos-de-uso">Termos de uso</a></li>
-        </ul>
+    <section class="public-cta">
+        <h2>Pronto para começar?</h2>
+        <p>Veja o catálogo público ou crie uma conta para acessar os pedidos.</p>
+        <div class="hero-actions">
+            <a class="btn btn-secondary" href="{{ path('app_catalog') }}">Ver catálogo</a>
+            <a class="btn btn-primary" href="{{ path('app_register') }}">Criar conta</a>
+        </div>
     </section>
 </main>
 {% endblock %}

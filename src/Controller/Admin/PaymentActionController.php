@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\Payment;
+use App\Entity\Wallet;
 use App\Entity\WalletTransaction;
 use App\Enum\TransactionType;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -28,9 +30,15 @@ class PaymentActionController extends AbstractController
      *  2. Credita amountCents - feeCents na Wallet do usuário
      *  3. Registra WalletTransaction do tipo CREDIT
      */
-    #[Route('/{id}/approve', name: 'approve', methods: ['GET'])]
+    #[Route('/{id}/approve', name: 'approve', methods: ['POST'])]
     public function approve(int $id, Request $request): RedirectResponse
     {
+        $token = $request->request->get('_token');
+        if (!is_string($token) || !$this->isCsrfTokenValid('approve_payment_'.$id, $token)) {
+            $this->addFlash('danger', 'Token inválido. Recarregue a página.');
+            return $this->redirectToAdminList($request);
+        }
+
         $payment = $this->em->find(Payment::class, $id);
 
         if (!$payment) {
@@ -38,48 +46,61 @@ class PaymentActionController extends AbstractController
             return $this->redirectToAdminList($request);
         }
 
-        if ($payment->getStatus() !== Payment::STATUS_PENDING) {
-            $this->addFlash('warning', sprintf(
-                'Pagamento #%d não está pendente (status atual: %s).',
-                $id,
-                $payment->getStatus()
-            ));
+        $result = $this->em->wrapInTransaction(function () use ($payment): array {
+            $gatewayResponse = $payment->getGatewayResponse();
+            $this->em->refresh($payment, LockMode::PESSIMISTIC_WRITE);
+            if ($gatewayResponse !== null) {
+                $payment->setGatewayResponse($gatewayResponse);
+            }
+
+            if ($payment->getStatus() !== Payment::STATUS_PENDING) {
+                return ['status' => 'already_processed'];
+            }
+
+            $wallet = $this->em->createQueryBuilder()
+                ->select('w')
+                ->from(Wallet::class, 'w')
+                ->where('w.user = :user')
+                ->setParameter('user', $payment->getUser())
+                ->getQuery()
+                ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+                ->getOneOrNullResult();
+            if ($wallet === null) {
+                return ['status' => 'no_wallet'];
+            }
+
+            $netCents = $payment->getAmountCents() - $payment->getFeeCents();
+            if ($netCents <= 0) {
+                throw new \DomainException('O valor líquido do pagamento deve ser positivo.');
+            }
+
+            $wallet->credit($netCents);
+            $transaction = (new WalletTransaction())
+                ->setWallet($wallet)
+                ->setType(TransactionType::CREDIT)
+                ->setAmountCents($netCents)
+                ->setBalanceAfterCents($wallet->getBalanceCents())
+                ->setDescription(sprintf(
+                    'Depósito aprovado manualmente (Payment #%d via %s)',
+                    $payment->getId(),
+                    $payment->getMethod(),
+                ));
+
+            $payment->approve();
+            $this->em->persist($transaction);
+
+            return ['status' => 'approved', 'amount' => $netCents];
+        });
+
+        if ($result['status'] !== 'approved') {
+            $message = $result['status'] === 'no_wallet'
+                ? sprintf('Usuário %s não possui carteira criada.', $payment->getUser()->getEmail())
+                : sprintf('Pagamento #%d já não está pendente.', $id);
+            $this->addFlash($result['status'] === 'no_wallet' ? 'danger' : 'warning', $message);
             return $this->redirectToDetail($request, $id);
         }
 
-        $wallet = $payment->getUser()->getWallet();
-
-        if (!$wallet) {
-            $this->addFlash('danger', sprintf(
-                'Usuário %s não possui carteira criada.',
-                $payment->getUser()->getEmail()
-            ));
-            return $this->redirectToDetail($request, $id);
-        }
-
-        // Valor líquido: descontando a taxa do gateway
-        $netCents = $payment->getAmountCents() - $payment->getFeeCents();
-
-        // 1. Aprovar o pagamento
-        $payment->approve(); // seta status = approved + paidAt = now()
-
-        // 2. Creditar na carteira
-        $wallet->credit($netCents);
-
-        // 3. Registrar transação
-        $tx = (new WalletTransaction())
-            ->setWallet($wallet)
-            ->setType(TransactionType::CREDIT)
-            ->setAmountCents($netCents)
-            ->setBalanceAfterCents($wallet->getBalanceCents())
-            ->setDescription(sprintf(
-                'Depósito aprovado manualmente (Payment #%d via %s)',
-                $payment->getId(),
-                $payment->getMethod()
-            ));
-
-        $this->em->persist($tx);
-        $this->em->flush();
+        $netCents = $result['amount'];
 
         $this->addFlash('success', sprintf(
             'Pagamento #%d aprovado. R$ %.2f creditados para %s.',
@@ -95,9 +116,15 @@ class PaymentActionController extends AbstractController
      * Cancela manualmente um pagamento pendente.
      * Não movimenta carteira — pagamento ainda não tinha sido creditado.
      */
-    #[Route('/{id}/cancel', name: 'cancel', methods: ['GET'])]
+    #[Route('/{id}/cancel', name: 'cancel', methods: ['POST'])]
     public function cancel(int $id, Request $request): RedirectResponse
     {
+        $token = $request->request->get('_token');
+        if (!is_string($token) || !$this->isCsrfTokenValid('cancel_payment_'.$id, $token)) {
+            $this->addFlash('danger', 'Token inválido. Recarregue a página.');
+            return $this->redirectToAdminList($request);
+        }
+
         $payment = $this->em->find(Payment::class, $id);
 
         if (!$payment) {

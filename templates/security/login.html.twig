@@ -10,6 +10,7 @@
         <h1>Login</h1>
         <p>Entre na sua conta para acessar o painel administrativo.</p>
         <form method="post" action="/login" class="login-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
             <div class="form-field">
                 <label for="email">E-mail</label>
                 <input id="email" name="email" type="email" autocomplete="email" required>
@@ -22,7 +23,8 @@
                 <button type="submit">Entrar</button>
             </div>
         </form>
-        <p class="login-note"><a href="/">Voltar para a home pública</a></p>
+        <p class="login-note">Ainda não tem uma conta? <a href="{{ path('app_register') }}">Criar conta</a></p>
+        <p class="login-note"><a href="{{ path('app_catalog') }}">Consultar serviços sem entrar</a></p>
     </section>
 </main>
 {% endblock %}

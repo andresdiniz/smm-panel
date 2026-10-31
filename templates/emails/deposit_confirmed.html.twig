@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Recarga confirmada</title>
+<style>
+  body{margin:0;padding:0;background:#f4f4f0;font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a}
+  .wrap{max-width:600px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.07)}
+  .header{background:#01696f;padding:36px 40px;text-align:center}
+  .header h1{color:#fff;margin:0;font-size:26px}
+  .body{padding:40px}
+  .body h2{font-size:20px;margin:0 0 12px}
+  .body p{line-height:1.7;color:#444;margin:0 0 16px}
+  .amount-box{background:#f0f9f8;border:2px solid #01696f;border-radius:14px;padding:24px;text-align:center;margin:24px 0}
+  .amount-box .value{font-size:36px;font-weight:900;color:#01696f;display:block}
+  .amount-box .label{font-size:13px;color:#666;display:block;margin-top:4px}
+  .meta{background:#f9f9f7;border-radius:10px;padding:16px 20px;font-size:13px;color:#555;margin-bottom:24px}
+  .meta div{padding:4px 0;border-bottom:1px solid #eee}
+  .meta div:last-child{border:none}
+  .btn{display:inline-block;background:#01696f;color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-weight:700;font-size:15px}
+  .footer{background:#f4f4f0;padding:24px 40px;text-align:center;font-size:12px;color:#999}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>✅ Recarga Confirmada</h1>
+  </div>
+  <div class="body">
+    <h2>Olá, {{ user.name }}!</h2>
+    <p>Seu depósito foi confirmado e o saldo já está disponível na sua carteira.</p>
+
+    <div class="amount-box">
+      <span class="value">R$ {{ (payment.amountCents / 100)|number_format(2, ',', '.') }}</span>
+      <span class="label">adicionado ao seu saldo</span>
+    </div>
+
+    <div class="meta">
+      <div><strong>Método:</strong>
+        {% if payment.method == 'pix' %} Pix
+        {% elseif payment.method == 'credit_card' %} Cartão de crédito
+        {% else %} Cartão de débito
+        {% endif %}
+      </div>
+      <div><strong>Data:</strong> {{ payment.paidAt ? payment.paidAt|date('d/m/Y H:i') : 'agora' }}</div>
+      <div><strong>ID da transação:</strong> {{ payment.externalId }}</div>
+      {% if payment.feeCents > 0 %}
+      <div><strong>Taxa:</strong> R$ {{ (payment.feeCents / 100)|number_format(2, ',', '.') }}</div>
+      {% endif %}
+    </div>
+
+    <a href="{{ url('app_order_new') }}" class="btn">Fazer um pedido agora</a>
+  </div>
+  <div class="footer">
+    &copy; {{ 'now'|date('Y') }} PulseSMM
+  </div>
+</div>
+</body>
+</html>

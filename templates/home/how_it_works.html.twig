@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Como funciona | PulseSMM{% endblock %}
+{% block description %}Saiba como consultar o catálogo, criar sua conta e acompanhar pedidos no PulseSMM.{% endblock %}
+
+{% block body %}
+<main class="public-page">
+    <section class="page-heading">
+        <p class="eyebrow">Guia rápido</p>
+        <h1>Como funciona</h1>
+        <p>Você pode conhecer os serviços disponíveis antes de se cadastrar. Para enviar e acompanhar pedidos, é necessário ter uma conta.</p>
+    </section>
+
+    <section class="steps-grid">
+        <article class="public-service-card">
+            <span class="step-number">01</span>
+            <h2>Explore o catálogo</h2>
+            <p>Consulte descrições, preços e limites de quantidade na página de serviços.</p>
+        </article>
+        <article class="public-service-card">
+            <span class="step-number">02</span>
+            <h2>Crie sua conta</h2>
+            <p>Cadastre-se para acessar o painel do cliente e iniciar um pedido.</p>
+        </article>
+        <article class="public-service-card">
+            <span class="step-number">03</span>
+            <h2>Acompanhe seus pedidos</h2>
+            <p>Consulte o status e o histórico dos pedidos na área autenticada.</p>
+        </article>
+    </section>
+
+    <section class="public-cta">
+        <h2>Quer conferir as opções?</h2>
+        <p>O catálogo está aberto para consulta, sem necessidade de login.</p>
+        <a class="btn btn-primary" href="{{ path('app_catalog') }}">Ver serviços e preços</a>
+    </section>
+</main>
+{% endblock %}

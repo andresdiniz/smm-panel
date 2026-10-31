@@ -15,7 +15,25 @@
     {% block stylesheets %}{% endblock %}
 </head>
 <body>
+    <header class="site-header">
+        <a class="site-brand" href="{{ path('home') }}">PulseSMM</a>
+        <nav class="site-nav" aria-label="Navegação principal">
+            <a href="{{ path('home') }}">Início</a>
+            <a href="{{ path('app_catalog') }}">Serviços</a>
+            <a href="{{ path('app_how_it_works') }}">Como funciona</a>
+            <a href="{{ path('blog_index') }}">Blog</a>
+        </nav>
+        <div class="site-account">
+            {% if app.user %}
+                <a class="btn btn-primary" href="{{ path('app_dashboard') }}">Meu painel</a>
+            {% else %}
+                <a class="site-login-link" href="{{ path('app_login') }}">Entrar</a>
+                <a class="btn btn-primary" href="{{ path('app_register') }}">Criar conta</a>
+            {% endif %}
+        </div>
+    </header>
     {% block body %}{% endblock %}
+    {% block javascripts %}{% endblock %}
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {

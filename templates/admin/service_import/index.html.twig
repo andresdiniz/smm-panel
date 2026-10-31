@@ -251,6 +251,8 @@
 
 const FETCH_URL = {{ path('admin_service_import_fetch')|json_encode|raw }};
 const SAVE_URL  = {{ path('admin_service_import_save')|json_encode|raw }};
+const FETCH_TOKEN = {{ csrf_token('provider_services_fetch')|json_encode|raw }};
+const SAVE_TOKEN = {{ csrf_token('provider_services_save')|json_encode|raw }};
 const CATS = {{ categories|map(c => {id: c.id, name: c.name})|json_encode|raw }};
 
 let allServices = [], existingIds = [], currentSlug = '', currentMode = 'batch';
@@ -280,6 +282,7 @@ document.getElementById('btn-fetch').addEventListener('click', async () => {
   try {
     const fd = new FormData();
     fd.append('provider_slug', currentSlug);
+    fd.append('_token', FETCH_TOKEN);
     const res = await fetch(FETCH_URL, { method: 'POST', body: fd });
     const ct = res.headers.get('content-type') || '';
     if (!ct.includes('application/json')) {
@@ -540,6 +543,7 @@ document.getElementById('btn-save').addEventListener('click', async () => {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
+        _token: SAVE_TOKEN,
         provider_slug: currentSlug, mode: currentMode,
         category_id:   catId ? parseInt(catId) : null,
         default_markup_percent: markup, services: selected,

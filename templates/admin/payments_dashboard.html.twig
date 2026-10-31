@@ -201,18 +201,24 @@
                 <td>{{ p.feeCents > 0 ? 'R$ ' ~ (p.feeCents / 100)|number_format(2, ',', '.') : '—' }}</td>
                 <td class="val-muted">{{ p.createdAt|date('d/m/Y H:i') }}</td>
                 <td style="white-space:nowrap">
-                  <a href="{{ path('admin_payment_approve', {id: p.id}) }}"
-                     onclick="return confirm('Aprovar pagamento #{{ p.id }} para {{ p.user.name }}?')"
-                     class="pay-btn pay-btn--approve">
+                  <form method="post" action="{{ path('admin_payment_approve', {id: p.id}) }}"
+                        style="display:inline"
+                        onsubmit="return confirm('Aprovar pagamento #{{ p.id }} para {{ p.user.name }}?')">
+                    <input type="hidden" name="_token" value="{{ csrf_token('approve_payment_' ~ p.id) }}">
+                    <button type="submit" class="pay-btn pay-btn--approve" style="border:0;cursor:pointer">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                     Aprovar
-                  </a>
-                  <a href="{{ path('admin_payment_cancel', {id: p.id}) }}"
-                     onclick="return confirm('Cancelar pagamento #{{ p.id }}?')"
-                     class="pay-btn pay-btn--cancel" style="margin-left:6px">
+                    </button>
+                  </form>
+                  <form method="post" action="{{ path('admin_payment_cancel', {id: p.id}) }}"
+                        style="display:inline;margin-left:6px"
+                        onsubmit="return confirm('Cancelar pagamento #{{ p.id }}?')">
+                    <input type="hidden" name="_token" value="{{ csrf_token('cancel_payment_' ~ p.id) }}">
+                    <button type="submit" class="pay-btn pay-btn--cancel" style="border:0;cursor:pointer">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     Cancelar
-                  </a>
+                    </button>
+                  </form>
                 </td>
               </tr>
               {% endfor %}
@@ -225,6 +231,7 @@
     {# TAB 2: Manual #}
     <div id="tab-manual" class="pay-tab-content">
       <form method="POST" action="{{ path('admin_payments_dashboard_create_manual') }}">
+        <input type="hidden" name="_token" value="{{ csrf_token('manual_payment_create') }}">
         <div class="pay-form">
           <div class="pay-field">
             <label for="f_user">Usuário *</label>
@@ -272,6 +279,7 @@
         O estorno débita diretamente o saldo da carteira do usuário. Use apenas quando solicitado via suporte.
       </div>
       <form method="POST" action="{{ path('admin_payments_dashboard_refund_wallet') }}">
+        <input type="hidden" name="_token" value="{{ csrf_token('refund_wallet') }}">
         <div class="pay-form">
           <div class="pay-field">
             <label for="r_user">Usuário *</label>

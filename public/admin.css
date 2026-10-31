@@ -1,0 +1,221 @@
+/* ============================================================
+   SMM Panel — Admin Custom CSS
+   Carregado via EasyAdmin customFields/assets ou layout override
+   ============================================================ */
+
+/* ── Variáveis ──────────────────────────────────────────────── */
+:root {
+  --smm-radius:     0.5rem;
+  --smm-radius-sm:  0.375rem;
+  --smm-shadow:     0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.05);
+  --smm-shadow-hov: 0 2px 8px rgba(0,0,0,.10), 0 8px 24px rgba(0,0,0,.08);
+  --smm-border:     rgba(0,0,0,.08);
+  --smm-primary:    #4f46e5;
+  --smm-success:    #16a34a;
+  --smm-warning:    #d97706;
+  --smm-danger:     #dc2626;
+}
+
+/* ── Cards ───────────────────────────────────────────────── */
+.card {
+  border: 1px solid var(--smm-border) !important;
+  border-radius: var(--smm-radius) !important;
+  box-shadow: var(--smm-shadow) !important;
+}
+.card-header {
+  border-bottom: 1px solid var(--smm-border) !important;
+  background: #fff !important;
+  border-radius: var(--smm-radius) var(--smm-radius) 0 0 !important;
+  font-weight: 600;
+  font-size: .875rem;
+  letter-spacing: .01em;
+}
+.card-footer {
+  border-top: 1px solid var(--smm-border) !important;
+  background: #fafafa !important;
+}
+
+/* ── Tabelas ──────────────────────────────────────────────── */
+.datagrid table,
+#services-table {
+  font-size: .8125rem;
+}
+.datagrid table thead th,
+#services-table thead th {
+  background: #f8f9fa;
+  font-weight: 600;
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #6b7280;
+  border-bottom: 2px solid var(--smm-border) !important;
+  white-space: nowrap;
+  padding: .625rem .75rem;
+}
+.datagrid table tbody tr:hover,
+#services-table tbody tr:hover {
+  background: #f5f5fe;
+}
+.datagrid table tbody td,
+#services-table tbody td {
+  padding: .5rem .75rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+/* ── Badges ───────────────────────────────────────────────── */
+.badge {
+  font-size: .7rem !important;
+  font-weight: 600;
+  letter-spacing: .03em;
+  padding: .3em .6em;
+  border-radius: var(--smm-radius-sm);
+}
+
+/* ── Botões inline de ação da tabela ────────────────────────── */
+.datagrid-row-actions .btn,
+.datagrid-row-actions a {
+  font-size: .75rem !important;
+  padding: .25rem .55rem !important;
+  border-radius: var(--smm-radius-sm) !important;
+  font-weight: 500;
+}
+
+/* ── Formulários / abas ──────────────────────────────────────── */
+.form-tabs-list {
+  border-bottom: 2px solid var(--smm-border);
+  gap: .25rem;
+  flex-wrap: wrap;
+}
+.form-tabs-list .nav-link {
+  border-radius: var(--smm-radius-sm) var(--smm-radius-sm) 0 0 !important;
+  font-weight: 500;
+  font-size: .8125rem;
+  color: #6b7280;
+  border: 1px solid transparent !important;
+  border-bottom: none !important;
+  padding: .5rem 1rem;
+  transition: color .15s, background .15s;
+}
+.form-tabs-list .nav-link:hover {
+  color: var(--smm-primary);
+  background: #f5f5fe;
+}
+.form-tabs-list .nav-link.active {
+  color: var(--smm-primary) !important;
+  background: #fff !important;
+  border-color: var(--smm-border) !important;
+  border-bottom-color: #fff !important;
+  font-weight: 600;
+}
+
+/* ── Inputs & selects ─────────────────────────────────────────── */
+.form-control,
+.form-select {
+  border-color: #e2e8f0 !important;
+  border-radius: var(--smm-radius-sm) !important;
+  font-size: .875rem;
+  transition: border-color .15s, box-shadow .15s;
+}
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--smm-primary) !important;
+  box-shadow: 0 0 0 3px rgba(79,70,229,.12) !important;
+}
+
+/* ── Botão principal (header da listagem) ─────────────────────── */
+.page-actions .btn,
+.datagrid-toolbar .btn,
+.content-top .btn {
+  border-radius: var(--smm-radius-sm) !important;
+  font-weight: 500;
+  font-size: .8125rem;
+}
+.btn-primary {
+  background: var(--smm-primary) !important;
+  border-color: var(--smm-primary) !important;
+}
+.btn-primary:hover {
+  background: #4338ca !important;
+  border-color: #4338ca !important;
+}
+.btn-success {
+  background: var(--smm-success) !important;
+  border-color: var(--smm-success) !important;
+}
+
+/* ── Import: provider cards ──────────────────────────────────────── */
+.provider-btn {
+  border-radius: var(--smm-radius) !important;
+  border: 1.5px solid #e2e8f0 !important;
+  transition: border-color .15s, box-shadow .15s, background .15s !important;
+}
+.provider-btn:hover {
+  border-color: var(--smm-primary) !important;
+  box-shadow: 0 0 0 3px rgba(79,70,229,.10) !important;
+  background: #f5f5fe !important;
+}
+.provider-btn.active,
+.provider-btn.btn-primary {
+  border-color: var(--smm-primary) !important;
+  background: #eef2ff !important;
+  color: var(--smm-primary) !important;
+  box-shadow: 0 0 0 3px rgba(79,70,229,.15) !important;
+}
+
+/* ── Filtros EasyAdmin sidebar ─────────────────────────────────── */
+.sidebar-menu .menu-item.selected > .menu-item-link {
+  background: #eef2ff;
+  color: var(--smm-primary);
+  font-weight: 600;
+  border-left: 3px solid var(--smm-primary);
+}
+
+/* ── Page title ────────────────────────────────────────────────── */
+.content-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .75rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--smm-border);
+}
+.content-top .page-actions {
+  display: flex !important;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+/* garante que o botão "Novo" fique visível mesmo em páginas customizadas */
+.content-top .btn-action.action-new {
+  display: inline-flex !important;
+  visibility: visible !important;
+}
+
+/* ── Paginação ────────────────────────────────────────────────── */
+.pagination .page-item .page-link {
+  border-radius: var(--smm-radius-sm) !important;
+  font-size: .8125rem;
+  color: #374151;
+  border-color: #e2e8f0;
+}
+.pagination .page-item.active .page-link {
+  background: var(--smm-primary);
+  border-color: var(--smm-primary);
+  color: #fff;
+}
+
+/* ── Alerts / flash messages ─────────────────────────────────── */
+.alert {
+  border-radius: var(--smm-radius) !important;
+  font-size: .875rem;
+  border: none;
+  box-shadow: var(--smm-shadow);
+}
+
+/* ── Utilitários ────────────────────────────────────────────────── */
+.text-truncate-200 { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fw-600 { font-weight: 600; }
+code.text-muted { background: #f1f5f9; padding: .1em .4em; border-radius: .25rem; font-size: .8em; }

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relatório Diário PulseSMM</title>
+<style>
+  body{margin:0;padding:0;background:#f4f4f0;font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a}
+  .wrap{max-width:600px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.07)}
+  .header{background:#1c1b19;padding:36px 40px;text-align:center}
+  .header h1{color:#fff;margin:0;font-size:24px}
+  .header p{color:rgba(255,255,255,.6);margin:6px 0 0;font-size:13px}
+  .body{padding:40px}
+  .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0}
+  .kpi{background:#f9f9f7;border-radius:12px;padding:20px;text-align:center}
+  .kpi .label{font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.06em}
+  .kpi .value{font-size:28px;font-weight:900;color:#01696f;margin-top:6px}
+  .kpi.profit .value{color:#437a22}
+  .kpi.expense .value{color:#a13544}
+  .kpi.fee .value{color:#d19900}
+  .footer{background:#f4f4f0;padding:24px 40px;text-align:center;font-size:12px;color:#999}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>📊 Relatório Diário</h1>
+    <p>{{ date|date('d/m/Y') }} — PulseSMM</p>
+  </div>
+  <div class="body">
+    <p>Resumo financeiro do dia anterior:</p>
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="label">Receita bruta</div>
+        <div class="value">R$ {{ (revenue / 100)|number_format(2, ',', '.') }}</div>
+      </div>
+      <div class="kpi expense">
+        <div class="label">Saídas</div>
+        <div class="value">R$ {{ (expenses / 100)|number_format(2, ',', '.') }}</div>
+      </div>
+      <div class="kpi fee">
+        <div class="label">Taxas</div>
+        <div class="value">R$ {{ (fees / 100)|number_format(2, ',', '.') }}</div>
+      </div>
+      <div class="kpi profit">
+        <div class="label">Lucro líquido</div>
+        <div class="value">R$ {{ (netProfit / 100)|number_format(2, ',', '.') }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">&copy; {{ 'now'|date('Y') }} PulseSMM — Relatório automático</div>
+</div>
+</body>
+</html>

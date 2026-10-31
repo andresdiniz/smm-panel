@@ -102,6 +102,12 @@ class CrmController extends AbstractController
     #[Route('/send-marketing', name: 'send_marketing', methods: ['POST'])]
     public function sendMarketing(Request $request, MailerInterface $mailer): Response
     {
+        $token = $request->request->get('_token');
+        if (!is_string($token) || !$this->isCsrfTokenValid('crm_send_marketing', $token)) {
+            $this->addFlash('error', 'Token inválido.');
+            return $this->redirectToRoute('app_admin_crm_dashboard');
+        }
+
         $subject     = trim($request->request->get('subject', ''));
         $body        = trim($request->request->get('body', ''));
         $minSpent    = (int) (((float) $request->request->get('min_spent', 0)) * 100);

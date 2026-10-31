@@ -30,6 +30,7 @@
     <form method="POST" action="{{ credential
       ? path('admin_provider_credential_edit', {id: credential.id})
       : path('admin_provider_credential_new') }}">
+      <input type="hidden" name="_token" value="{{ csrf_token(csrfTokenId) }}">
 
       <div style="display:flex;flex-direction:column;gap:16px">
 
@@ -74,8 +75,9 @@
           <label for="f_key" style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#3e4259">Chave de API *</label>
           <div style="position:relative">
             <input id="f_key" type="password" name="apiKey"
-                   value="{{ credential ? credential.apiKey : '' }}"
-                   placeholder="Cole a chave aqui…" required
+                   value=""
+                   placeholder="{{ credential and apiKeyConfigured ? 'Deixe vazio para manter a chave atual' : 'Cole a chave aqui…' }}"
+                   {{ not credential ? 'required' : '' }}
                    style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
                           padding:9px 40px 9px 13px;border-radius:8px;font-size:.85rem;
                           width:100%;outline:none;font-family:monospace"
@@ -89,17 +91,23 @@
               </svg>
             </button>
           </div>
+          {% if credential and apiKeyConfigured %}
+            <span style="font-size:.7rem;color:#3e4259">Chave configurada. O valor não é exibido; deixe vazio para mantê-la.</span>
+          {% endif %}
         </div>
 
         {# Secret Token (opcional) #}
         <div style="display:flex;flex-direction:column;gap:5px">
           <label for="f_secret" style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#3e4259">Token Secreto <span style="font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
           <input id="f_secret" type="password" name="secretToken"
-                 value="{{ credential ? credential.secretToken : '' }}"
-                 placeholder="Webhook secret, bearer token…"
+                 value=""
+                 placeholder="{{ credential and credential.secretToken ? 'Deixe vazio para manter o token atual' : 'Webhook secret, bearer token…' }}"
                  style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
                         padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none;font-family:monospace"
                  onfocus="this.style.borderColor='#01868d'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
+          {% if credential and credential.secretToken %}
+            <span style="font-size:.7rem;color:#3e4259">Token configurado. O valor não é exibido; deixe vazio para mantê-lo.</span>
+          {% endif %}
         </div>
 
         {# Ativo #}

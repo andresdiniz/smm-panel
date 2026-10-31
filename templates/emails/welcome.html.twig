@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bem-vindo ao PulseSMM</title>
+<style>
+  body{margin:0;padding:0;background:#f4f4f0;font-family:'Helvetica Neue',Arial,sans-serif;color:#1a1a1a}
+  .wrap{max-width:600px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.07)}
+  .header{background:#01696f;padding:36px 40px;text-align:center}
+  .header h1{color:#fff;margin:0;font-size:26px;letter-spacing:-.5px}
+  .header p{color:rgba(255,255,255,.8);margin:8px 0 0;font-size:14px}
+  .body{padding:40px}
+  .body h2{font-size:20px;margin:0 0 12px}
+  .body p{line-height:1.7;color:#444;margin:0 0 16px}
+  .btn{display:inline-block;background:#01696f;color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-weight:700;font-size:15px;margin-top:8px}
+  .footer{background:#f4f4f0;padding:24px 40px;text-align:center;font-size:12px;color:#999}
+  .highlight{background:#f0f9f8;border-left:4px solid #01696f;padding:14px 18px;border-radius:0 8px 8px 0;margin:20px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>🚀 PulseSMM</h1>
+    <p>Sua plataforma de crescimento nas redes sociais</p>
+  </div>
+  <div class="body">
+    <h2>Olá, {{ user.name }}! 👋</h2>
+    <p>Sua conta foi criada com sucesso. Agora você tem acesso a centenas de serviços para Instagram, TikTok, YouTube, Facebook e muito mais.</p>
+
+    <div class="highlight">
+      <strong>Próximos passos:</strong><br>
+      1️⃣ Recarregue sua carteira via Pix ou cartão<br>
+      2️⃣ Escolha um serviço no catálogo<br>
+      3️⃣ Crie seu primeiro pedido em segundos
+    </div>
+
+    <p>Qualquer dúvida, responda este e-mail — estamos aqui para ajudar.</p>
+
+    <a href="{{ url('app_dashboard') }}" class="btn">Acessar meu painel</a>
+  </div>
+  <div class="footer">
+    &copy; {{ 'now'|date('Y') }} PulseSMM — Você está recebendo este e-mail por ter criado uma conta.
+  </div>
+</div>
+</body>
+</html>

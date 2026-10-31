@@ -1,0 +1,65 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Serviços e preços | PulseSMM{% endblock %}
+{% block description %}Consulte os serviços disponíveis, preços por mil unidades e limites de quantidade antes de criar sua conta.{% endblock %}
+
+{% block body %}
+<main class="public-page catalog-page">
+    <section class="page-heading">
+        <p class="eyebrow">Catálogo público</p>
+        <h1>Serviços e preços</h1>
+        <p>Consulte as opções disponíveis antes de criar seu pedido. Para contratar, entre ou crie uma conta.</p>
+        <label class="catalog-search">
+            <span class="visually-hidden">Pesquisar serviços</span>
+            <input type="search" id="catalogSearch" placeholder="Pesquisar serviços..." autocomplete="off">
+        </label>
+    </section>
+
+    <section class="public-service-grid" id="servicesGrid" aria-live="polite">
+        {% for service in services %}
+            <article class="public-service-card" data-name="{{ (service.name ~ ' ' ~ (service.category ?? ''))|lower }}">
+                {% if service.category %}
+                    <p class="service-category">{{ service.category }}</p>
+                {% endif %}
+                <h2>{{ service.name }}</h2>
+                {% if service.description %}
+                    <p>{{ service.description }}</p>
+                {% endif %}
+                <dl class="service-limits">
+                    <div><dt>Mínimo</dt><dd>{{ service.minQty|number_format(0, ',', '.') }}</dd></div>
+                    <div><dt>Máximo</dt><dd>{{ service.maxQty|number_format(0, ',', '.') }}</dd></div>
+                </dl>
+                <p class="service-price">
+                    R$ {{ (service.pricePerThousandCents / 100)|number_format(2, ',', '.') }}
+                    <span>por 1.000 unidades</span>
+                </p>
+                <a class="btn btn-primary" href="{{ path('app_register') }}">Criar conta para pedir</a>
+            </article>
+        {% else %}
+            <p class="empty-state">Ainda não há serviços disponíveis. Volte em breve.</p>
+        {% endfor %}
+    </section>
+    <p id="catalogNoResults" class="empty-state" hidden>Nenhum serviço corresponde à sua pesquisa.</p>
+</main>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    const searchInput = document.getElementById('catalogSearch');
+    const serviceCards = [...document.querySelectorAll('.public-service-card')];
+    const noResults = document.getElementById('catalogNoResults');
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim().toLocaleLowerCase();
+        let visibleCount = 0;
+
+        serviceCards.forEach((card) => {
+            const matches = card.dataset.name.includes(query);
+            card.hidden = !matches;
+            visibleCount += matches ? 1 : 0;
+        });
+
+        noResults.hidden = visibleCount > 0 || serviceCards.length === 0;
+    });
+</script>
+{% endblock %}

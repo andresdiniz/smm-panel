@@ -1,0 +1,4 @@
+controllers:
+    resource: ../../src/Controller/**/*.php
+    type: attribute
+    exclude: ../../src/Controller/Admin/*CrudController.php

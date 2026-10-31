@@ -47,6 +47,7 @@ final class GenericSmmProvider implements SmmProviderInterface
 
     public function addOrder(string $externalServiceId, string $targetUrl, int $quantity): string
     {
+        $endpoint = $this->getApiEndpoint();
         $body = [
             'key'      => $this->credential->getApiKey(),
             'action'   => 'add',
@@ -57,16 +58,17 @@ final class GenericSmmProvider implements SmmProviderInterface
 
         $this->logger->debug('[SMM] → REQUEST', [
             'provider' => $this->slug,
-            'url'      => $this->credential->getBaseUrl(),
-            'body'     => array_merge($body, ['key' => '***']),
+            'action'   => 'add',
         ]);
 
         $startMs = (int) round(microtime(true) * 1000);
 
         try {
-            $response = $this->httpClient->request('POST', $this->credential->getBaseUrl(), [
-                'body'    => $body,
-                'timeout' => 15,
+            $response = $this->httpClient->request('POST', $endpoint, [
+                'body'          => $body,
+                'timeout'       => 15,
+                'max_duration'  => 20,
+                'max_redirects' => 0,
             ]);
 
             $status  = $response->getStatusCode();
@@ -78,10 +80,9 @@ final class GenericSmmProvider implements SmmProviderInterface
                 'action'      => 'add',
                 'http_status' => $status,
                 'elapsed_ms'  => $elapsed,
-                'body_raw'    => $raw,
             ]);
 
-            if ($status >= 400) {
+            if ($status < 200 || $status >= 300) {
                 throw new ProviderTechnicalException(
                     sprintf('[%s] HTTP %d ao criar pedido', $this->slug, $status)
                 );
@@ -94,7 +95,6 @@ final class GenericSmmProvider implements SmmProviderInterface
                     'provider' => $this->slug,
                     'action'   => 'add',
                     'error'    => $errorCode,
-                    'request'  => array_merge($body, ['key' => '***']),
                 ]);
 
                 if ($this->isBusinessError($errorCode)) {
@@ -129,6 +129,7 @@ final class GenericSmmProvider implements SmmProviderInterface
 
     public function getOrderStatus(string $externalOrderId): array
     {
+        $endpoint = $this->getApiEndpoint();
         $body = [
             'key'    => $this->credential->getApiKey(),
             'action' => 'status',
@@ -136,10 +137,18 @@ final class GenericSmmProvider implements SmmProviderInterface
         ];
 
         try {
-            $response = $this->httpClient->request('POST', $this->credential->getBaseUrl(), [
-                'body'    => $body,
-                'timeout' => 10,
+            $response = $this->httpClient->request('POST', $endpoint, [
+                'body'          => $body,
+                'timeout'       => 10,
+                'max_duration'  => 15,
+                'max_redirects' => 0,
             ]);
+
+            if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 300) {
+                throw new ProviderTechnicalException(
+                    sprintf('[%s] HTTP %d ao consultar status', $this->slug, $response->getStatusCode())
+                );
+            }
 
             $raw = $response->toArray(false);
 
@@ -169,16 +178,25 @@ final class GenericSmmProvider implements SmmProviderInterface
 
     public function getBalance(): float
     {
+        $endpoint = $this->getApiEndpoint();
         $body = [
             'key'    => $this->credential->getApiKey(),
             'action' => 'balance',
         ];
 
         try {
-            $response = $this->httpClient->request('POST', $this->credential->getBaseUrl(), [
-                'body'    => $body,
-                'timeout' => 10,
+            $response = $this->httpClient->request('POST', $endpoint, [
+                'body'          => $body,
+                'timeout'       => 10,
+                'max_duration'  => 15,
+                'max_redirects' => 0,
             ]);
+
+            if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 300) {
+                throw new ProviderTechnicalException(
+                    sprintf('[%s] HTTP %d ao consultar saldo', $this->slug, $response->getStatusCode())
+                );
+            }
 
             $raw = $response->toArray(false);
 
@@ -206,16 +224,25 @@ final class GenericSmmProvider implements SmmProviderInterface
      */
     public function getServices(): array
     {
+        $endpoint = $this->getApiEndpoint();
         $body = [
             'key'    => $this->credential->getApiKey(),
             'action' => 'services',
         ];
 
         try {
-            $response = $this->httpClient->request('POST', $this->credential->getBaseUrl(), [
-                'body'    => $body,
-                'timeout' => 30,
+            $response = $this->httpClient->request('POST', $endpoint, [
+                'body'          => $body,
+                'timeout'       => 15,
+                'max_duration'  => 20,
+                'max_redirects' => 0,
             ]);
+
+            if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 300) {
+                throw new ProviderTechnicalException(
+                    sprintf('[%s] HTTP %d ao listar serviços', $this->slug, $response->getStatusCode())
+                );
+            }
 
             $raw = $response->toArray(false);
 
@@ -260,5 +287,41 @@ final class GenericSmmProvider implements SmmProviderInterface
             }
         }
         return false;
+    }
+
+    private function getApiEndpoint(): string
+    {
+        $url = trim($this->credential->getBaseUrl());
+        $parts = parse_url($url);
+        $host = strtolower(rtrim((string) ($parts['host'] ?? ''), '.'));
+        $ip = trim($host, '[]');
+
+        if (
+            $parts === false
+            || strtolower($parts['scheme'] ?? '') !== 'https'
+            || $host === ''
+            || (filter_var($ip, FILTER_VALIDATE_IP) === false && !str_contains($host, '.'))
+            || isset($parts['user'])
+            || isset($parts['pass'])
+            || isset($parts['query'])
+            || isset($parts['fragment'])
+            || (isset($parts['port']) && $parts['port'] !== 443)
+            || in_array($host, ['localhost', 'localhost.localdomain'], true)
+            || preg_match('/\.(local|internal|test|invalid|example)$/i', $host) === 1
+            || (filter_var($ip, FILTER_VALIDATE_IP) !== false
+                && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false)
+        ) {
+            throw new ProviderTechnicalException(
+                sprintf('[%s] O endpoint do provedor deve ser uma URL HTTPS pública válida.', $this->slug)
+            );
+        }
+
+        if ($this->credential->getApiKey() === '') {
+            throw new ProviderTechnicalException(
+                sprintf('[%s] A chave de API do provedor não está configurada.', $this->slug)
+            );
+        }
+
+        return rtrim($url, '/');
     }
 }

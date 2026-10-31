@@ -6,8 +6,12 @@ namespace App\Billing;
 
 use App\Entity\Payment;
 use App\Entity\User;
+use App\Billing\Exception\GatewayException;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Contracts\HttpClient\ResponseInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
@@ -25,8 +29,8 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
      *   Produção : https://api.asaas.com/v3
      *   Sandbox  : https://sandbox.asaas.com/api/v3
      *
-     * Qualquer outra variação (www.asaas.com, asaas.com, etc.) sofre
-     * redirect 301 que converte POST → GET e esvazia o body.
+     * A seleção fixa evita redirects e impede que uma URL salva no banco
+     * altere o destino da chave de API.
      */
     private const URL_PRODUCTION = 'https://api.asaas.com/v3';
     private const URL_SANDBOX    = 'https://sandbox.asaas.com/api/v3';
@@ -58,32 +62,15 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         EntityManagerInterface               $em,
         private readonly HttpClientInterface  $http,
         private readonly string               $apiKey,
-        string                                $baseUrl,
+        string                                $environment,
         private readonly string               $webhookToken,
     ) {
         parent::__construct($em);
-        $this->apiBaseUrl = $this->normalizeBaseUrl($baseUrl);
-    }
-
-    /**
-     * Normaliza qualquer variação de URL cadastrada no banco para a URL
-     * canônica correta, evitando redirects 301 que quebram POST requests.
-     *
-     * Exemplos aceitos:
-     *   https://api.asaas.com/v3          → produção (canônica)
-     *   https://www.asaas.com/api/v3      → produção (normaliza)
-     *   https://asaas.com/api/v3          → produção (normaliza)
-     *   https://sandbox.asaas.com/api/v3  → sandbox (canônica)
-     */
-    private function normalizeBaseUrl(string $url): string
-    {
-        $url = rtrim($url, '/');
-
-        if (str_contains($url, 'sandbox')) {
-            return self::URL_SANDBOX;
-        }
-
-        return self::URL_PRODUCTION;
+        $this->apiBaseUrl = match (strtolower(trim($environment))) {
+            'sandbox' => self::URL_SANDBOX,
+            'production' => self::URL_PRODUCTION,
+            default => throw new \InvalidArgumentException('Ambiente Asaas inválido. Use sandbox ou production.'),
+        };
     }
 
     public function createDeposit(
@@ -93,10 +80,14 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         string $cpf   = '',
         string $phone = '',
     ): Payment {
+        if ($amountCents < 1000) {
+            throw new \InvalidArgumentException('O valor mínimo de depósito é R$ 10,00.');
+        }
+
         $billingType = match ($method) {
             Payment::METHOD_PIX         => 'PIX',
             Payment::METHOD_CREDIT_CARD => 'CREDIT_CARD',
-            Payment::METHOD_DEBIT_CARD  => 'DEBIT',
+            Payment::METHOD_DEBIT_CARD  => 'DEBIT_CARD',
             default                     => throw new \InvalidArgumentException('Método inválido: ' . $method),
         };
 
@@ -110,11 +101,7 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
 
         $customerId = $this->ensureCustomer($user, $cpf, $phone);
 
-        $response = $this->http->request('POST', $this->apiBaseUrl . '/payments', [
-            'headers' => [
-                'access_token' => $this->apiKey,
-                'Content-Type' => 'application/json',
-            ],
+        $data = $this->requestJson('POST', '/payments', [
             'json' => [
                 'customer'    => $customerId,
                 'billingType' => $billingType,
@@ -124,50 +111,59 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             ],
         ]);
 
-        $statusCode = $response->getStatusCode();
-        $data       = $response->toArray(throw: false);
-
-        if ($statusCode !== 200 && $statusCode !== 201) {
-            throw new \RuntimeException(
-                sprintf('Asaas retornou HTTP %d ao criar cobrança: %s', $statusCode, json_encode($data, JSON_UNESCAPED_UNICODE))
-            );
-        }
-
         if (($data['object'] ?? '') === 'list' && !empty($data['data'][0]['id'])) {
             $data = $data['data'][0];
         }
 
-        if (!isset($data['id'])) {
-            throw new \RuntimeException('Asaas não retornou ID da cobrança: ' . json_encode($data));
+        if (!is_string($data['id'] ?? null) || $data['id'] === '') {
+            throw new GatewayException('Asaas não retornou o identificador da cobrança.');
         }
 
         $payment = $this->buildPayment($user, $amountCents, $method, $feeCents);
         $payment->setExternalId($data['id']);
-        $payment->setGatewayResponse(json_encode($data));
+        $payment->setGatewayResponse(json_encode([
+            'id' => $data['id'],
+            'status' => $data['status'] ?? null,
+            'billingType' => $data['billingType'] ?? $billingType,
+            'invoiceUrl' => $data['invoiceUrl'] ?? null,
+        ], JSON_THROW_ON_ERROR));
+        $this->persist($payment);
 
         if ($billingType === 'PIX') {
             $qrData = $this->fetchPixQrWithRetry($data['id']);
             $payment->setPixCode($qrData['payload'] ?? null);
             $payment->setQrCodeBase64($qrData['encodedImage'] ?? null);
+            $this->em->flush();
         }
 
-        $this->persist($payment);
         return $payment;
     }
 
     public function processWebhook(Request $request): Payment
     {
         $token = $request->headers->get('asaas-access-token', '');
-        if (!hash_equals($this->webhookToken, $token)) {
-            throw new \InvalidArgumentException('asaas-access-token inválido.');
+        if ($this->webhookToken === '' || $token === '' || !hash_equals($this->webhookToken, $token)) {
+            throw new \InvalidArgumentException('Token de webhook Asaas inválido ou não configurado.');
         }
 
-        $data     = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
-        $event    = $data['event'] ?? '';
-        $chargeId = $data['payment']['id'] ?? null;
+        if (strlen($request->getContent()) > 65536) {
+            throw new \InvalidArgumentException('Webhook Asaas excede o tamanho permitido.');
+        }
 
-        if (!$chargeId) {
-            throw new \InvalidArgumentException('Webhook sem payment.id — evento ignorado: ' . $event);
+        try {
+            $data = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new \InvalidArgumentException('Payload de webhook Asaas inválido.', 0, $e);
+        }
+
+        $event = is_array($data) && is_string($data['event'] ?? null) ? $data['event'] : '';
+        $chargeId = is_array($data) && is_array($data['payment'] ?? null)
+            && is_string($data['payment']['id'] ?? null)
+            ? $data['payment']['id']
+            : null;
+
+        if ($chargeId === null || $chargeId === '' || strlen($chargeId) > 255) {
+            throw new \InvalidArgumentException('Webhook Asaas sem identificador de cobrança válido.');
         }
 
         $payment = $this->em->getRepository(Payment::class)->findOneBy(['externalId' => $chargeId]);
@@ -176,11 +172,17 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             $ghost = new Payment();
             $ghost->setExternalId($chargeId);
             $ghost->setStatus(Payment::STATUS_PENDING);
-            $ghost->setGatewayResponse(json_encode($data, JSON_UNESCAPED_UNICODE));
+            $ghost->setGatewayResponse(json_encode(['event' => $event], JSON_THROW_ON_ERROR));
             return $ghost;
         }
 
-        $payment->setGatewayResponse(json_encode($data, JSON_UNESCAPED_UNICODE));
+        $payment->setGatewayResponse(json_encode([
+            'event' => $event,
+            'payment' => [
+                'id' => $chargeId,
+                'status' => $data['payment']['status'] ?? null,
+            ],
+        ], JSON_THROW_ON_ERROR));
 
         $currentStatus = $payment->getStatus();
         $finalStatuses = [Payment::STATUS_APPROVED, Payment::STATUS_REFUNDED, Payment::STATUS_CANCELLED];
@@ -209,10 +211,12 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
 
     public function fetchStatus(Payment $payment): string
     {
-        $response = $this->http->request('GET', $this->apiBaseUrl . '/payments/' . $payment->getExternalId(), [
-            'headers' => ['access_token' => $this->apiKey],
-        ]);
-        $data   = $response->toArray(throw: false);
+        $externalId = $payment->getExternalId();
+        if ($externalId === null || $externalId === '') {
+            throw new GatewayException('Pagamento sem identificador externo.');
+        }
+
+        $data = $this->requestJson('GET', '/payments/'.rawurlencode($externalId));
         $remote = $data['status'] ?? 'PENDING';
 
         $map = [
@@ -254,60 +258,95 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             $payload['mobilePhone'] = $mobilePhone;
         }
 
-        $response = $this->http->request('POST', $this->apiBaseUrl . '/customers', [
-            'headers' => [
-                'access_token' => $this->apiKey,
-                'Content-Type' => 'application/json',
-            ],
-            'json' => $payload,
+        $customers = $this->requestJson('GET', '/customers', [
+            'query' => ['externalReference' => (string) $user->getId()],
         ]);
-
-        $statusCode = $response->getStatusCode();
-        $data       = $response->toArray(throw: false);
-
-        if (($data['object'] ?? '') === 'list' && !empty($data['data'][0]['id'])) {
-            return $data['data'][0]['id'];
+        if (is_string($customers['data'][0]['id'] ?? null)) {
+            return $customers['data'][0]['id'];
         }
 
-        if ($statusCode === 400 && isset($data['errors'])) {
-            $existing = $this->http->request('GET', $this->apiBaseUrl . '/customers', [
-                'headers' => ['access_token' => $this->apiKey],
-                'query'   => ['externalReference' => (string) $user->getId()],
-            ]);
-            $list = $existing->toArray(throw: false);
-            if (!empty($list['data'][0]['id'])) {
-                return $list['data'][0]['id'];
-            }
+        $customer = $this->requestJson('POST', '/customers', ['json' => $payload]);
+        if (!is_string($customer['id'] ?? null) || $customer['id'] === '') {
+            throw new GatewayException('Asaas não retornou o identificador do cliente.');
         }
 
-        if (!isset($data['id'])) {
-            throw new \RuntimeException(
-                sprintf('Asaas: falha ao criar cliente (HTTP %d): %s', $statusCode, json_encode($data, JSON_UNESCAPED_UNICODE))
-            );
-        }
-
-        return $data['id'];
+        return $customer['id'];
     }
 
-    private function fetchPixQrWithRetry(string $paymentId, int $maxAttempts = 5): array
+    private function fetchPixQrWithRetry(string $paymentId, int $maxAttempts = 3): array
     {
-        $url  = $this->apiBaseUrl . '/payments/' . $paymentId . '/pixQrCode';
         $data = [];
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-            $response = $this->http->request('GET', $url, [
-                'headers' => ['access_token' => $this->apiKey],
-            ]);
-
-            $data = $response->toArray(throw: false);
+            $data = $this->requestJson(
+                'GET',
+                '/payments/'.rawurlencode($paymentId).'/pixQrCode',
+            );
 
             if (!empty($data['encodedImage']) && !empty($data['payload'])) {
                 return $data;
             }
 
             if ($attempt < $maxAttempts) {
-                sleep($attempt);
+                usleep(200_000 * $attempt);
             }
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
+     */
+    private function requestJson(string $method, string $path, array $options = []): array
+    {
+        if (trim($this->apiKey) === '') {
+            throw new GatewayException('A chave de API do Asaas não está configurada.');
+        }
+
+        try {
+            $response = $this->http->request(
+                $method,
+                $this->apiBaseUrl.$path,
+                array_replace_recursive([
+                    'headers' => ['access_token' => $this->apiKey],
+                    'timeout' => 10,
+                    'max_duration' => 15,
+                    'max_redirects' => 0,
+                ], $options),
+            );
+
+            return $this->decodeResponse($response, $method, $path);
+        } catch (TransportExceptionInterface $e) {
+            throw new GatewayException('Falha de comunicação com o Asaas.', 0, $e);
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function decodeResponse(ResponseInterface $response, string $method, string $path): array
+    {
+        try {
+            $status = $response->getStatusCode();
+        } catch (TransportExceptionInterface|DecodingExceptionInterface $e) {
+            throw new GatewayException('Falha de comunicação com o Asaas.', 0, $e);
+        }
+
+        if ($status < 200 || $status >= 300) {
+            throw new GatewayException(sprintf(
+                'Asaas retornou HTTP %d para %s %s.',
+                $status,
+                strtoupper($method),
+                $path,
+            ));
+        }
+
+        try {
+            $data = $response->toArray(throw: false);
+        } catch (TransportExceptionInterface|DecodingExceptionInterface $e) {
+            throw new GatewayException('Resposta inválida do Asaas.', 0, $e);
         }
 
         return $data;

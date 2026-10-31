@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5.12"
+          extensions: ctype, iconv, pdo, pdo_mysql
+          coverage: none
+
+      - name: Validate Composer files
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+        env:
+          APP_ENV: test
+          DATABASE_URL: mysql://smm:smm@127.0.0.1:3306/smm_test
+
+      - name: Check PHP syntax
+        run: find src bin public -name "*.php" -print0 | xargs -0 -n1 php -l
+
+      - name: Validate Symfony container and templates
+        run: |
+          php bin/console lint:container
+          php bin/console lint:twig templates
+        env:
+          APP_ENV: test
+          DATABASE_URL: mysql://smm:smm@127.0.0.1:3306/smm_test

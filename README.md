@@ -1,6 +1,6 @@
 # SMM Panel
 
-> Plataforma completa de Social Media Marketing construída com **PHP 8.5 + Symfony 7**.
+> Plataforma completa de Social Media Marketing construída com **PHP 8.5.12+ + Symfony 8**.
 > Pedidos SMM, carteira, pagamentos (Pix/Cartão), CRM, afiliados e blog — tudo em uma stack.
 
 ---
@@ -9,8 +9,8 @@
 
 | Camada | Tecnologia |
 |---|---|
-| **Runtime** | PHP 8.5 |
-| **Framework** | Symfony 7 (HttpKernel, Security, Messenger, Scheduler, Mailer) |
+| **Runtime** | PHP 8.5.12 ou superior |
+| **Framework** | Symfony 8 (HttpKernel, Security, Messenger, Scheduler, Mailer) |
 | **ORM** | Doctrine ORM 3 + Migrations |
 | **Banco de dados** | MySQL 8 |
 | **Cache / Filas** | Redis (Symfony Messenger transports) |
@@ -147,24 +147,24 @@ php bin/console doctrine:migrations:migrate
 ## Quick Start (Local)
 
 ```bash
-# 1. Configurar ambiente
-cp .env .env.local       # Ajuste DATABASE_URL, REDIS_URL, MAILER_DSN
+# 1. Configure DATABASE_URL, REDIS_URL e MAILER_DSN em .env.local.
+#    Preserve qualquer configuração local já existente.
 
 # 2. Subir serviços
-make up                  # MySQL 8 + Redis + Mailpit via Docker
+docker compose up -d mysql redis mailpit
 
 # 3. Instalar dependências
-make install             # composer install
+composer install
 
 # 4. Banco de dados
-make migrate             # doctrine:migrations:migrate
-make fixtures            # (opcional) dados de exemplo
+php bin/console doctrine:migrations:migrate
+php bin/console doctrine:fixtures:load --no-interaction  # opcional
 
 # 5. Workers Messenger
-make workers             # symfony messenger:consume async scheduler
+php bin/console messenger:consume async scheduler -vv
 
 # 6. Servidor de desenvolvimento
-php bin/console server:start
+php -S 127.0.0.1:8000 -t public public/index.php
 ```
 
 Acesse o admin em `http://localhost:8000/admin` com um usuário `ROLE_ADMIN`.
@@ -267,9 +267,14 @@ REDIS_URL=redis://127.0.0.1:6379
 
 MAILER_DSN=smtp://user:pass@smtp.host:587
 
-# Asaas
-ASAAS_API_KEY=
-ASAAS_WEBHOOK_TOKEN=
+# Asaas (sandbox por padrão; use production somente após validação)
+ASAAS_ENV=sandbox
+
+# As chaves dos gateways e tokens de webhook são gerenciados em
+# Admin > Provedores / Chaves de API. Não os inclua no repositório.
+
+# Providers SMM compatíveis com o padrão SMM API v2 podem ser cadastrados em
+# Admin > Provedores / Chaves de API, usando uma URL HTTPS pública.
 
 # PagBank
 PAGBANK_TOKEN=

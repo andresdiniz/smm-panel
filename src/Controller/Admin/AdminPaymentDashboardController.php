@@ -9,6 +9,7 @@ use App\Entity\User;
 use App\Entity\Wallet;
 use App\Entity\WalletTransaction;
 use App\Enum\TransactionType;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -32,29 +33,32 @@ class AdminPaymentDashboardController extends AbstractController
     {
         $repo = $this->em->getRepository(Payment::class);
 
-        // --- KPIs -----------------------------------------------------------
-        $totalApproved = (int) $repo->createQueryBuilder('p')
-            ->select('SUM(p.amountCents)')
-            ->where('p.status = :s')->setParameter('s', Payment::STATUS_APPROVED)
-            ->getQuery()->getSingleScalarResult();
-
-        $totalPending = (int) $repo->createQueryBuilder('p')
-            ->select('SUM(p.amountCents)')
-            ->where('p.status = :s')->setParameter('s', Payment::STATUS_PENDING)
-            ->getQuery()->getSingleScalarResult();
-
-        $totalRefunded = (int) $repo->createQueryBuilder('p')
-            ->select('SUM(p.amountCents)')
-            ->where('p.status = :s')->setParameter('s', Payment::STATUS_REFUNDED)
-            ->getQuery()->getSingleScalarResult();
-
-        $countPending = (int) $repo->createQueryBuilder('p')
-            ->select('COUNT(p.id)')
-            ->where('p.status = :s')->setParameter('s', Payment::STATUS_PENDING)
-            ->getQuery()->getSingleScalarResult();
+        // Compute all dashboard KPIs in one database round trip.
+        $summary = $this->em->getConnection()->fetchAssociative(
+            <<<'SQL'
+                SELECT
+                    COALESCE(SUM(CASE WHEN status = :approved THEN amount_cents ELSE 0 END), 0) AS total_approved,
+                    COALESCE(SUM(CASE WHEN status = :pending_total THEN amount_cents ELSE 0 END), 0) AS total_pending,
+                    COALESCE(SUM(CASE WHEN status = :refunded THEN amount_cents ELSE 0 END), 0) AS total_refunded,
+                    COALESCE(SUM(CASE WHEN status = :pending_count THEN 1 ELSE 0 END), 0) AS count_pending
+                FROM payments
+                SQL,
+            [
+                'approved' => Payment::STATUS_APPROVED,
+                'pending_total' => Payment::STATUS_PENDING,
+                'refunded' => Payment::STATUS_REFUNDED,
+                'pending_count' => Payment::STATUS_PENDING,
+            ],
+        );
+        $totalApproved = (int) $summary['total_approved'];
+        $totalPending = (int) $summary['total_pending'];
+        $totalRefunded = (int) $summary['total_refunded'];
+        $countPending = (int) $summary['count_pending'];
 
         // --- Pagamentos pendentes (lista) -----------------------------------
         $pendingPayments = $repo->createQueryBuilder('p')
+            ->addSelect('u')
+            ->join('p.user', 'u')
             ->where('p.status = :s')->setParameter('s', Payment::STATUS_PENDING)
             ->orderBy('p.createdAt', 'DESC')
             ->setMaxResults(50)
@@ -141,17 +145,32 @@ class AdminPaymentDashboardController extends AbstractController
     #[Route('/create-manual', name: 'create_manual', methods: ['POST'])]
     public function createManual(Request $request): Response
     {
-        $userId      = (int) $request->request->get('user_id');
-        $amountStr   = str_replace(',', '.', (string) $request->request->get('amount', '0'));
-        $amount      = (float) $amountStr;
-        $method      = $request->request->get('method', Payment::METHOD_PIX);
-        $note        = $request->request->get('note', 'Depósito manual via admin');
+        $token = $request->request->get('_token');
+        if (!is_string($token) || !$this->isCsrfTokenValid('manual_payment_create', $token)) {
+            $this->addFlash('danger', 'Token inválido. Recarregue a página.');
+            return $this->redirectToRoute('admin_payments_dashboard_index');
+        }
+
+        $userIdValue = $request->request->get('user_id');
+        $userId = is_string($userIdValue) && ctype_digit($userIdValue) ? (int) $userIdValue : 0;
+        $amountCents = $this->parseAmountCents($request->request->get('amount'));
+        $method = $request->request->get('method', Payment::METHOD_PIX);
+        $note = $request->request->get('note', 'Depósito manual via admin');
         $autoApprove = $request->request->getBoolean('auto_approve', false);
 
-        if ($amount <= 0 || $userId <= 0) {
+        if (
+            $amountCents === null
+            || $amountCents <= 0
+            || $userId <= 0
+            || !is_string($method)
+            || !in_array($method, [Payment::METHOD_PIX, Payment::METHOD_CREDIT_CARD, Payment::METHOD_DEBIT_CARD], true)
+            || !is_string($note)
+        ) {
             $this->addFlash('danger', 'Preencha usuário e valor corretamente.');
             return $this->redirectToRoute('admin_payments_dashboard_index');
         }
+        $note = mb_substr($note, 0, 160);
+        $amount = $amountCents / 100;
 
         $user = $this->em->find(User::class, $userId);
         if (!$user) {
@@ -159,40 +178,45 @@ class AdminPaymentDashboardController extends AbstractController
             return $this->redirectToRoute('admin_payments_dashboard_index');
         }
 
-        $amountCents = (int) round($amount * 100);
-
         $payment = (new Payment())
             ->setUser($user)
             ->setAmountCents($amountCents)
             ->setFeeCents(0)
             ->setMethod($method)
-            ->setStatus($autoApprove ? Payment::STATUS_APPROVED : Payment::STATUS_PENDING)
+            ->setStatus(Payment::STATUS_PENDING)
             ->setExternalId('MANUAL-' . strtoupper(bin2hex(random_bytes(4))))
             ->setGatewayResponse($note)
             ->setType(Payment::TYPE_DEPOSIT);
 
-        if ($autoApprove) {
-            $payment->approve();
+        $this->em->wrapInTransaction(function () use ($user, $payment, $amountCents, $autoApprove, $note): void {
+            if ($autoApprove) {
+                $this->em->refresh($user, LockMode::PESSIMISTIC_WRITE);
+                $wallet = $this->em->createQueryBuilder()
+                    ->select('w')
+                    ->from(Wallet::class, 'w')
+                    ->where('w.user = :user')
+                    ->setParameter('user', $user)
+                    ->getQuery()
+                    ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+                    ->getOneOrNullResult();
+                if ($wallet === null) {
+                    $wallet = (new Wallet())->setUser($user);
+                    $this->em->persist($wallet);
+                }
 
-            $wallet = $user->getWallet();
-            if (!$wallet) {
-                $wallet = (new Wallet())->setUser($user)->setBalanceCents(0);
-                $this->em->persist($wallet);
+                $wallet->credit($amountCents);
+                $transaction = (new WalletTransaction())
+                    ->setWallet($wallet)
+                    ->setType(TransactionType::CREDIT)
+                    ->setAmountCents($amountCents)
+                    ->setBalanceAfterCents($wallet->getBalanceCents())
+                    ->setDescription(sprintf('Depósito manual (admin) — %s', $note));
+                $this->em->persist($transaction);
+                $payment->approve();
             }
-            $wallet->credit($amountCents);
 
-            $tx = (new WalletTransaction())
-                ->setWallet($wallet)
-                ->setType(TransactionType::CREDIT)
-                ->setAmountCents($amountCents)
-                ->setBalanceAfterCents($wallet->getBalanceCents())
-                ->setDescription(sprintf('Depósito manual (admin) — %s', $note));
-
-            $this->em->persist($tx);
-        }
-
-        $this->em->persist($payment);
-        $this->em->flush();
+            $this->em->persist($payment);
+        });
 
         $this->addFlash('success', sprintf(
             'Pagamento manual criado para %s — R$ %.2f (%s).',
@@ -210,15 +234,23 @@ class AdminPaymentDashboardController extends AbstractController
     #[Route('/refund-wallet', name: 'refund_wallet', methods: ['POST'])]
     public function refundWallet(Request $request): Response
     {
-        $userId    = (int) $request->request->get('user_id');
-        $amountStr = str_replace(',', '.', (string) $request->request->get('amount', '0'));
-        $amount    = (float) $amountStr;
-        $reason    = $request->request->get('reason', 'Estorno solicitado via suporte');
+        $token = $request->request->get('_token');
+        if (!is_string($token) || !$this->isCsrfTokenValid('refund_wallet', $token)) {
+            $this->addFlash('danger', 'Token inválido. Recarregue a página.');
+            return $this->redirectToRoute('admin_payments_dashboard_index');
+        }
 
-        if ($amount <= 0 || $userId <= 0) {
+        $userIdValue = $request->request->get('user_id');
+        $userId = is_string($userIdValue) && ctype_digit($userIdValue) ? (int) $userIdValue : 0;
+        $amountCents = $this->parseAmountCents($request->request->get('amount'));
+        $reason = $request->request->get('reason', 'Estorno solicitado via suporte');
+
+        if ($amountCents === null || $amountCents <= 0 || $userId <= 0 || !is_string($reason)) {
             $this->addFlash('danger', 'Preencha usuário e valor corretamente.');
             return $this->redirectToRoute('admin_payments_dashboard_index');
         }
+        $reason = mb_substr($reason, 0, 170);
+        $amount = $amountCents / 100;
 
         $user = $this->em->find(User::class, $userId);
         if (!$user) {
@@ -226,42 +258,79 @@ class AdminPaymentDashboardController extends AbstractController
             return $this->redirectToRoute('admin_payments_dashboard_index');
         }
 
-        $wallet = $user->getWallet();
-        if (!$wallet) {
-            $this->addFlash('danger', sprintf('Usuário %s não possui carteira.', $user->getEmail()));
+        $result = $this->em->wrapInTransaction(function () use ($user, $amountCents, $reason): array {
+            $wallet = $this->em->createQueryBuilder()
+                ->select('w')
+                ->from(Wallet::class, 'w')
+                ->where('w.user = :user')
+                ->setParameter('user', $user)
+                ->getQuery()
+                ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+                ->getOneOrNullResult();
+
+            if ($wallet === null) {
+                return ['status' => 'no_wallet'];
+            }
+            if ($wallet->getBalanceCents() < $amountCents) {
+                return ['status' => 'insufficient', 'balance' => $wallet->getBalanceCents()];
+            }
+
+            $wallet->debit($amountCents);
+            $transaction = (new WalletTransaction())
+                ->setWallet($wallet)
+                ->setType(TransactionType::REFUND)
+                ->setAmountCents($amountCents)
+                ->setBalanceAfterCents($wallet->getBalanceCents())
+                ->setDescription(sprintf('Estorno admin — %s', mb_substr($reason, 0, 170)));
+            $this->em->persist($transaction);
+
+            return ['status' => 'refunded', 'balance' => $wallet->getBalanceCents()];
+        });
+
+        if ($result['status'] !== 'refunded') {
+            if ($result['status'] === 'no_wallet') {
+                $this->addFlash('danger', sprintf('Usuário %s não possui carteira.', $user->getEmail()));
+            } else {
+                $this->addFlash('warning', sprintf(
+                    'Saldo insuficiente: R$ %.2f disponível, tentou estornar R$ %.2f.',
+                    $result['balance'] / 100,
+                    $amount
+                ));
+            }
             return $this->redirectToRoute('admin_payments_dashboard_index');
         }
-
-        $amountCents = (int) round($amount * 100);
-
-        if ($wallet->getBalanceCents() < $amountCents) {
-            $this->addFlash('warning', sprintf(
-                'Saldo insuficiente: R$ %.2f disponível, tentou estornar R$ %.2f.',
-                $wallet->getBalanceCents() / 100,
-                $amount
-            ));
-            return $this->redirectToRoute('admin_payments_dashboard_index');
-        }
-
-        $wallet->debit($amountCents);
-
-        $tx = (new WalletTransaction())
-            ->setWallet($wallet)
-            ->setType(TransactionType::REFUND)
-            ->setAmountCents($amountCents)
-            ->setBalanceAfterCents($wallet->getBalanceCents())
-            ->setDescription(sprintf('Estorno admin — %s', $reason));
-
-        $this->em->persist($tx);
-        $this->em->flush();
 
         $this->addFlash('success', sprintf(
             'Estorno de R$ %.2f aplicado na conta de %s. Saldo restante: R$ %.2f.',
             $amount,
             $user->getName(),
-            $wallet->getBalanceCents() / 100
+            $result['balance'] / 100
         ));
 
         return $this->redirectToRoute('admin_payments_dashboard_index');
+    }
+
+    private function parseAmountCents(mixed $value): ?int
+    {
+        if (!is_string($value) || preg_match('/^\d+(?:[.,]\d{1,2})?$/', $value) !== 1) {
+            return null;
+        }
+
+        [$whole, $fraction] = array_pad(explode('.', str_replace(',', '.', $value), 2), 2, '0');
+        $whole = ltrim($whole, '0') ?: '0';
+        $maxWhole = (string) intdiv(PHP_INT_MAX, 100);
+        if (
+            strlen($whole) > strlen($maxWhole)
+            || (strlen($whole) === strlen($maxWhole) && strcmp($whole, $maxWhole) > 0)
+        ) {
+            return null;
+        }
+
+        $wholeCents = (int) $whole * 100;
+        $fractionCents = (int) str_pad($fraction, 2, '0');
+
+        return $wholeCents > PHP_INT_MAX - $fractionCents
+            ? null
+            : $wholeCents + $fractionCents;
     }
 }
