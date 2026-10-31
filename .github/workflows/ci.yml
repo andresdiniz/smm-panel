@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, "feat/**"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: ctype, iconv, pdo_mysql
+          coverage: none
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: PHP syntax check
+        run: find src -name "*.php" -print0 | xargs -0 -n1 php -l
+
+      - name: Run tests
+        run: |
+          if [ -f bin/phpunit ]; then
+            php bin/phpunit --stop-on-failure
+          fi
+        env:
+          APP_ENV: test

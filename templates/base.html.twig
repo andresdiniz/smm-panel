@@ -5,23 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{{ title|default('SMM Panel') }}{% endblock %}</title>
     <meta name="description" content="{% block description %}{{ description|default('Plataforma profissional de SMM Panel com automação, integração e foco em performance.') }}{% endblock %}">
-    <meta name="robots" content="index,follow">
-    <meta name="theme-color" content="#111827">
+    <meta name="robots" content="{% block robots %}index,follow{% endblock %}">
+    <meta name="theme-color" content="#0f172a">
     <meta name="color-scheme" content="light dark">
     <link rel="canonical" href="{{ app.request.uri }}">
-    <link rel="stylesheet" href="/assets/styles/app.css">
-    <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+    <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
     {% block stylesheets %}{% endblock %}
 </head>
-<body>
+<body class="app">
     {% block body %}{% endblock %}
+
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').catch(function() {});
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(() => {});
             });
         }
     </script>
+    {% block javascripts %}{% endblock %}
 </body>
 </html>
