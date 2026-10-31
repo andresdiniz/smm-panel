@@ -1,52 +1,61 @@
-version: '3.9'
-
 services:
-  mysql:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: smm_panel
-      MYSQL_USER: smm_user
-      MYSQL_PASSWORD: smm_pass
-    ports:
-      - '3306:3306'
-    volumes:
-      - mysql_data:/var/lib/mysql
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - '6379:6379'
-    command: redis-server --save 60 1 --loglevel warning
-
-  mailpit:
-    image: axllent/mailpit:latest
-    ports:
-      - '1025:1025'
-      - '8025:8025'
-
-###> doctrine/doctrine-bundle ###
   database:
-    image: postgres:${POSTGRES_VERSION:-16}-alpine
+    image: mysql:8.4
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-app}
-      # You should definitely change the password in production
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-!ChangeMe!}
-      POSTGRES_USER: ${POSTGRES_USER:-app}
+      MYSQL_DATABASE: ${DATABASE_NAME:-smm_panel}
+      MYSQL_USER: ${DATABASE_USER:-smm}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${DATABASE_ROOT_PASSWORD:-rootsecret}
+    ports:
+      - "3306:3306"
+    volumes:
+      - database_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB:-app}", "-U", "${POSTGRES_USER:-app}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 60s
+
+  php:
+    image: php:8.4-fpm-alpine
+    restart: unless-stopped
+    working_dir: /var/www/html
     volumes:
-      - database_data:/var/lib/postgresql/data:rw
-      # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
-      # - ./docker/db/data:/var/lib/postgresql/data:rw
-###< doctrine/doctrine-bundle ###
+      - .:/var/www/html
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-dev}
+      DATABASE_URL: mysql://${DATABASE_USER:-smm}:${DATABASE_PASSWORD:-secret}@database:3306/${DATABASE_NAME:-smm_panel}?serverVersion=8.4&charset=utf8mb4
+      MESSENGER_TRANSPORT_DSN: doctrine://default
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+
+  messenger:
+    image: php:8.4-fpm-alpine
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: php bin/console messenger:consume async -vv --time-limit=3600
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-dev}
+      DATABASE_URL: mysql://${DATABASE_USER:-smm}:${DATABASE_PASSWORD:-secret}@database:3306/${DATABASE_NAME:-smm_panel}?serverVersion=8.4&charset=utf8mb4
+      MESSENGER_TRANSPORT_DSN: doctrine://default
 
 volumes:
-  mysql_data:
-
-###> doctrine/doctrine-bundle ###
   database_data:
-###< doctrine/doctrine-bundle ###
