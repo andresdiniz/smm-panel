@@ -301,3 +301,10 @@ STRIPE_WEBHOOK_SECRET=
 # Afiliados
 AFFILIATE_DEFAULT_RATE=0.05
 ```
+
+Quando uma cobrança Asaas é criada mas o QR Code demora a ficar disponível, a
+cobrança permanece vinculada à carteira e o modal permite tentar buscar o QR
+novamente. Os logs registram a etapa e o status HTTP sem armazenar CPF, telefone
+ou credenciais do gateway. Em produção, esses avisos do canal `payment` são
+enviados diretamente para `stderr` para não serem descartados pelo handler
+`fingers_crossed`.

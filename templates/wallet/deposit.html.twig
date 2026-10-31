@@ -321,6 +321,22 @@ select.dep__control { appearance: none; -webkit-appearance: none; cursor: pointe
 .dep__submit:hover   { background: var(--_acc-hov); box-shadow: 0 6px 20px rgba(1,105,111,.45); }
 .dep__submit:active  { transform: scale(.98); }
 .dep__submit:disabled { opacity: .6; cursor: not-allowed; }
+.dep__submit:focus-visible,
+.dep__preset:focus-visible,
+.dep__control:focus-visible {
+  outline: 3px solid var(--_acc-brd);
+  outline-offset: 2px;
+}
+.dep__alert {
+  padding: 12px 14px;
+  border: 1px solid rgba(224, 82, 82, .35);
+  border-radius: 10px;
+  color: #ffb8b8;
+  background: rgba(224, 82, 82, .1);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.dep__alert + .dep__alert { margin-top: 8px; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin .8s linear infinite; }
@@ -494,6 +510,30 @@ select.dep__control { appearance: none; -webkit-appearance: none; cursor: pointe
   min-height: 44px;
   border-radius: var(--r-sm);
 }
+.pix-modal__refresh {
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 10px;
+  border: 1px solid var(--acc-border);
+  border-radius: var(--r-sm);
+  color: var(--primary);
+  background: var(--acc-soft);
+  font: inherit;
+  font-size: .85rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background .18s, transform .12s, opacity .18s;
+}
+.pix-modal__refresh:hover { background: var(--primary-lo); }
+.pix-modal__refresh:active { transform: translateY(1px); }
+.pix-modal__refresh:disabled,
+.pix-modal__check:disabled { opacity: .6; cursor: wait; }
+.pix-modal__refresh:focus-visible,
+.pix-modal__check:focus-visible,
+.pix-modal__copy button:focus-visible {
+  outline: 3px solid var(--acc-border);
+  outline-offset: 2px;
+}
 .pix-modal__error {
   margin: 10px 0 0;
   color: var(--error);
@@ -533,6 +573,9 @@ select.dep__control { appearance: none; -webkit-appearance: none; cursor: pointe
 
   {# ── INFO ESQUERDA ── #}
   <div class="dep__info">
+    {% for message in app.flashes('error') %}
+      <div class="dep__alert" role="alert">{{ message }}</div>
+    {% endfor %}
     <div class="dep__eyebrow">
       <i data-lucide="wallet" width="11" height="11"></i>
       Carteira
@@ -651,7 +694,7 @@ select.dep__control { appearance: none; -webkit-appearance: none; cursor: pointe
 
 </div>
 {% if pixPayment %}
-  {% include 'wallet/_pix_modal.html.twig' with {payment: pixPayment} only %}
+  {% include 'wallet/_pix_modal.html.twig' with {payment: pixPayment, canRefreshPix: canRefreshPix} only %}
 {% endif %}
 {% endblock %}
 
@@ -700,6 +743,9 @@ const pixStatus = document.getElementById('pix-payment-status');
 const pixStatusError = document.getElementById('pix-status-error');
 const pixDetails = document.getElementById('pix-payment-details');
 const pixCheckButton = document.getElementById('pix-check-status');
+const pixRefreshButton = document.getElementById('pix-refresh-qr');
+const pixQrContainer = document.getElementById('pix-qr-container');
+const pixCopySection = document.getElementById('pix-copy-section');
 const pixStatusLabels = {
   pending: 'Aguardando a confirmação do pagamento.',
   approved: 'Pix confirmado. Seu saldo já foi atualizado.',
@@ -715,6 +761,67 @@ pixModal.addEventListener('click', event => {
     window.location.assign(pixModal.dataset.continueUrl);
   }
 });
+
+if (pixRefreshButton) {
+  pixRefreshButton.addEventListener('click', async () => {
+    pixRefreshButton.disabled = true;
+    pixStatusError.hidden = true;
+    try {
+      const response = await fetch(pixModal.dataset.qrUrl, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'X-CSRF-Token': pixModal.dataset.qrCsrfToken,
+        },
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      let result;
+      try {
+        result = await response.json();
+      } catch {
+        throw new Error('O servidor não retornou uma resposta válida. Tente novamente.');
+      }
+      if (!response.ok) {
+        throw new Error(result.message || 'Não foi possível atualizar o QR Code.');
+      }
+
+      if (result.qrCodeBase64) {
+        const image = document.createElement('img');
+        image.src = `data:image/png;base64,${result.qrCodeBase64}`;
+        image.alt = 'QR Code Pix para pagamento';
+        image.width = 220;
+        image.height = 220;
+        pixQrContainer.replaceChildren(image);
+        pixQrContainer.classList.remove('pix-modal__qr--empty');
+        pixQrContainer.setAttribute('role', 'img');
+        pixQrContainer.setAttribute('aria-label', 'QR Code Pix disponível para pagamento');
+      }
+
+      if (result.pixCode) {
+        const pixCodeInput = document.getElementById('pix-payment-code');
+        pixCodeInput.value = result.pixCode;
+        pixCopySection.hidden = false;
+        document.getElementById('pix-copy-button').hidden = false;
+      }
+
+      if (!result.qrCodeBase64 && !result.pixCode) {
+        throw new Error('O gateway ainda não disponibilizou o QR Code.');
+      }
+
+      pixStatus.textContent = result.qrCodeBase64
+        ? 'QR Code Pix atualizado. Aguardando a confirmação do pagamento.'
+        : 'Código Pix atualizado. Use a opção copia e cola para pagar.';
+    } catch (error) {
+      pixStatusError.textContent = error instanceof Error
+        ? error.message
+        : 'Não foi possível atualizar o QR Code. Tente novamente.';
+      pixStatusError.hidden = false;
+    } finally {
+      pixRefreshButton.disabled = false;
+    }
+  });
+}
 
 const pixCopyButton = document.getElementById('pix-copy-button');
 if (pixCopyButton) {
@@ -760,6 +867,9 @@ if (pixCheckButton) {
       if (status !== 'pending') {
         pixDetails.hidden = true;
         pixCheckButton.hidden = true;
+        if (pixRefreshButton) {
+          pixRefreshButton.hidden = true;
+        }
       }
     } catch (error) {
       pixStatusError.textContent = error instanceof Error

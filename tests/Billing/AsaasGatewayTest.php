@@ -6,6 +6,8 @@ namespace App\Tests\Billing;
 
 use App\Billing\AsaasGateway;
 use App\Entity\Payment;
+use App\Entity\User;
+use App\Billing\Exception\GatewayException;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -81,5 +83,131 @@ final class AsaasGatewayTest extends TestCase
             ['CONTENT_TYPE' => 'application/json'],
             '{"event":"PAYMENT_RECEIVED","payment":{"id":"pay_1"}}',
         ));
+    }
+
+    public function testPixQrRequestRetriesTransientNotFoundResponse(): void
+    {
+        $qrAttempts = 0;
+        $client = new MockHttpClient(static function (string $method, string $url) use (&$qrAttempts): MockResponse {
+            if (str_contains($url, '/customers?')) {
+                return new MockResponse('{"data":[]}');
+            }
+
+            if (str_ends_with($url, '/customers')) {
+                return new MockResponse('{"id":"cus_test"}');
+            }
+
+            if (str_ends_with($url, '/payments')) {
+                return new MockResponse('{"id":"pay_test","status":"PENDING","billingType":"PIX"}');
+            }
+
+            if (str_ends_with($url, '/pixQrCode')) {
+                ++$qrAttempts;
+
+                return $qrAttempts === 1
+                    ? new MockResponse('{"errors":[{"code":"PAYMENT_NOT_FOUND"}]}', ['http_code' => 404])
+                    : new MockResponse('{"payload":"pix-copy-code","encodedImage":"aW1hZ2U="}');
+            }
+
+            self::fail('Unexpected Asaas request: '.$url);
+        });
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::once())->method('persist')
+            ->with(self::callback(static fn (Payment $payment): bool => $payment->getExternalId() === 'pay_test'));
+        $entityManager->expects(self::once())->method('flush');
+
+        $gateway = new AsaasGateway($entityManager, $client, 'api-key', 'production', 'webhook-token');
+        $payment = $gateway->createDeposit($this->createUser(), 5000, Payment::METHOD_PIX, '52998224725');
+
+        self::assertSame(2, $qrAttempts);
+        self::assertSame('pix-copy-code', $payment->getPixCode());
+        self::assertSame('aW1hZ2U=', $payment->getQrCodeBase64());
+        self::assertSame('asaas', json_decode($payment->getGatewayResponse(), true)['gateway']);
+    }
+
+    public function testPixPaymentRemainsAvailableWhenAsaasQrIsTemporarilyUnavailable(): void
+    {
+        $client = new MockHttpClient(static function (string $method, string $url): MockResponse {
+            if (str_contains($url, '/customers?')) {
+                return new MockResponse('{"data":[]}');
+            }
+            if (str_ends_with($url, '/customers')) {
+                return new MockResponse('{"id":"cus_test"}');
+            }
+            if (str_ends_with($url, '/payments')) {
+                return new MockResponse('{"id":"pay_pending_qr","status":"PENDING","billingType":"PIX"}');
+            }
+            if (str_ends_with($url, '/pixQrCode')) {
+                return new MockResponse('{}');
+            }
+
+            self::fail('Unexpected Asaas request: '.$url);
+        });
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::once())->method('persist')
+            ->with(self::callback(static fn (Payment $payment): bool => $payment->getExternalId() === 'pay_pending_qr'));
+        $entityManager->expects(self::once())->method('flush');
+
+        $gateway = new AsaasGateway($entityManager, $client, 'api-key', 'production', 'webhook-token');
+        $payment = $gateway->createDeposit($this->createUser(), 5000, Payment::METHOD_PIX, '52998224725');
+        $response = json_decode($payment->getGatewayResponse(), true);
+
+        self::assertSame(Payment::STATUS_PENDING, $payment->getStatus());
+        self::assertSame('pay_pending_qr', $payment->getExternalId());
+        self::assertTrue($response['pixQrUnavailable']);
+        self::assertSame('qr_data_missing', $response['pixQrFailure']['reason']);
+    }
+
+    public function testInvalidCpfIsRejectedBeforeCallingAsaas(): void
+    {
+        $gateway = new AsaasGateway(
+            $this->createStub(EntityManagerInterface::class),
+            new MockHttpClient(static function (): MockResponse {
+                self::fail('Asaas must not be called with an invalid CPF.');
+            }),
+            'api-key',
+            'production',
+            'webhook-token',
+        );
+
+        try {
+            $gateway->createDeposit($this->createUser(), 5000, Payment::METHOD_PIX, '11111111111');
+            self::fail('Expected CPF validation to reject the request.');
+        } catch (GatewayException $exception) {
+            self::assertSame('cpf_invalid', $exception->getContext()['reason']);
+        }
+    }
+
+    public function testPixQrCanBeRefreshedForAnExistingAsaasPayment(): void
+    {
+        $client = new MockHttpClient(static function (string $method, string $url): MockResponse {
+            self::assertSame('GET', $method);
+            self::assertStringEndsWith('/payments/pay_existing/pixQrCode', $url);
+
+            return new MockResponse('{"payload":"refreshed-code","encodedImage":"cmVmcmVzaGVkLWltYWdl"}');
+        });
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::once())->method('flush');
+        $payment = (new Payment())
+            ->setExternalId('pay_existing')
+            ->setMethod(Payment::METHOD_PIX)
+            ->setGatewayResponse('{"id":"pay_existing","billingType":"PIX","status":"PENDING"}');
+
+        $gateway = new AsaasGateway($entityManager, $client, 'api-key', 'production', 'webhook-token');
+        $gateway->refreshPixData($payment);
+        $response = json_decode($payment->getGatewayResponse(), true);
+
+        self::assertSame('refreshed-code', $payment->getPixCode());
+        self::assertSame('cmVmcmVzaGVkLWltYWdl', $payment->getQrCodeBase64());
+        self::assertSame('asaas', $response['gateway']);
+        self::assertFalse($response['pixQrUnavailable']);
+    }
+
+    private function createUser(): User
+    {
+        return (new User())
+            ->setEmail('customer@example.test')
+            ->setName('Test Customer')
+            ->setPassword('not-used');
     }
 }

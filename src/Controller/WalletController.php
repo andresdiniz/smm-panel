@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Billing\DynamicGatewayLoader;
 use App\Billing\Exception\GatewayException;
+use App\Billing\PixQrCodeRefreshInterface;
 use App\Entity\Payment;
 use App\Entity\ProviderCredential;
 use App\Repository\PaymentRepository;
@@ -15,6 +16,8 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Psr\Log\LoggerInterface;
@@ -28,7 +31,10 @@ class WalletController extends AbstractController
         private readonly PaymentRepository            $paymentRepository,
         private readonly DynamicGatewayLoader         $gatewayLoader,
         private readonly ProviderCredentialRepository $credentialRepository,
-        private readonly LoggerInterface              $logger,
+        #[Autowire(service: 'monolog.logger.payment')]
+        private readonly LoggerInterface $logger,
+        #[Autowire(service: 'limiter.wallet_pix_qr_refresh')]
+        private readonly RateLimiterFactory $pixQrRefreshLimiter,
     ) {}
 
     #[Route('', name: 'index')]
@@ -122,19 +128,35 @@ class WalletController extends AbstractController
             try {
                 $payment = $gateway->createDeposit($user, $amountCents, $method, $cpf, $phone);
             } catch (GatewayException $e) {
+                $context = $e->getContext();
                 $this->logger->warning('Falha ao criar cobrança no gateway.', [
                     'gateway' => $gatewaySlug,
                     'method' => $method,
+                    'operation' => $context['operation'] ?? 'create_deposit',
+                    'reason' => $context['reason'] ?? 'gateway_error',
+                    'http_status' => $context['http_status'] ?? null,
+                    'missing_fields' => $context['missing_fields'] ?? [],
                     'exception' => $e::class,
                 ]);
-                $this->addFlash(
-                    'error',
-                    'Não foi possível confirmar a cobrança. Verifique a carteira antes de tentar novamente para evitar duplicidade.',
-                );
+                $this->addFlash('error', $this->gatewayFailureMessage($context));
                 return $this->redirectToRoute('app_wallet_deposit');
             }
 
             if ($method === 'pix') {
+                if ($payment->getPixCode() === null && $payment->getQrCodeBase64() === null) {
+                    $gatewayResponse = json_decode($payment->getGatewayResponse() ?? '{}', true);
+                    $qrFailure = is_array($gatewayResponse) && is_array($gatewayResponse['pixQrFailure'] ?? null)
+                        ? $gatewayResponse['pixQrFailure']
+                        : [];
+                    $this->logger->warning('Cobrança Pix criada, mas o QR Code ainda não está disponível.', [
+                        'gateway' => $gatewaySlug,
+                        'payment_id' => $payment->getId(),
+                        'operation' => $qrFailure['operation'] ?? 'fetch_pix_qr',
+                        'reason' => $qrFailure['reason'] ?? 'qr_data_missing',
+                        'http_status' => $qrFailure['http_status'] ?? null,
+                    ]);
+                }
+
                 return $this->redirectToRoute('app_wallet_deposit', [
                     'pix' => $payment->getId(),
                 ]);
@@ -144,6 +166,7 @@ class WalletController extends AbstractController
         }
 
         $pixPayment = null;
+        $canRefreshPix = false;
         $rawPaymentId = $request->query->get('pix');
         if ($rawPaymentId !== null) {
             $paymentId = filter_var($rawPaymentId, FILTER_VALIDATE_INT);
@@ -156,12 +179,17 @@ class WalletController extends AbstractController
             ) {
                 throw $this->createNotFoundException('Pagamento não encontrado.');
             }
+
+            $gatewayResponse = json_decode($pixPayment->getGatewayResponse() ?? '{}', true);
+            $canRefreshPix = $pixPayment->getStatus() === Payment::STATUS_PENDING
+                && $this->isAsaasPixPayment($pixPayment, $gatewayResponse);
         }
 
         return $this->render('wallet/deposit.html.twig', [
             'wallet'      => $wallet,
             'lastDeposit' => $this->paymentRepository->findLastDepositByUser($user),
             'pixPayment'  => $pixPayment,
+            'canRefreshPix' => $canRefreshPix,
         ]);
     }
 
@@ -190,6 +218,149 @@ class WalletController extends AbstractController
         $response->headers->set('Cache-Control', 'no-store, private');
 
         return $response;
+    }
+
+    #[Route('/pix/{id}/qr', name: 'pix_qr_refresh', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function refreshPixQr(int $id, Request $request): JsonResponse
+    {
+        $payment = $this->paymentRepository->find($id);
+        if (
+            !$payment
+            || $payment->getUser() !== $this->getUser()
+            || $payment->getMethod() !== Payment::METHOD_PIX
+        ) {
+            throw $this->createNotFoundException('Pagamento não encontrado.');
+        }
+
+        $token = $request->headers->get('X-CSRF-Token', '');
+        if (!$this->isCsrfTokenValid('wallet_pix_qr_'.$id, $token)) {
+            return $this->noStore($this->json(['message' => 'Solicitação inválida.'], Response::HTTP_FORBIDDEN));
+        }
+
+        if ($payment->getStatus() !== Payment::STATUS_PENDING) {
+            return $this->noStore($this->json([
+                'message' => 'Este Pix não está mais pendente.',
+            ], Response::HTTP_CONFLICT));
+        }
+
+        if ($payment->getPixCode() !== null && $payment->getQrCodeBase64() !== null) {
+            return $this->noStore($this->json([
+                'pixCode' => $payment->getPixCode(),
+                'qrCodeBase64' => $payment->getQrCodeBase64(),
+            ]));
+        }
+
+        $refreshLimit = $this->pixQrRefreshLimiter
+            ->create((string) $payment->getUser()->getId())
+            ->consume();
+        if (!$refreshLimit->isAccepted()) {
+            $response = $this->json([
+                'message' => 'Muitas tentativas de atualização. Aguarde um minuto e tente novamente.',
+            ], Response::HTTP_TOO_MANY_REQUESTS);
+            $retryAfter = $refreshLimit->getRetryAfter();
+            if ($retryAfter !== null) {
+                $response->headers->set('Retry-After', (string) max(1, $retryAfter->getTimestamp() - time()));
+            }
+
+            return $this->noStore($response);
+        }
+
+        $gatewayResponse = json_decode($payment->getGatewayResponse() ?? '{}', true);
+        if (!$this->isAsaasPixPayment($payment, $gatewayResponse)) {
+            return $this->noStore($this->json([
+                'message' => 'A atualização do QR Code não está disponível para este pagamento.',
+            ], Response::HTTP_CONFLICT));
+        }
+
+        try {
+            $gateway = $this->gatewayLoader->load('asaas');
+        } catch (\InvalidArgumentException|\RuntimeException) {
+            return $this->noStore($this->json([
+                'message' => 'O gateway Asaas não está disponível no momento.',
+            ], Response::HTTP_SERVICE_UNAVAILABLE));
+        }
+
+        if (!$gateway instanceof PixQrCodeRefreshInterface) {
+            return $this->noStore($this->json([
+                'message' => 'A atualização do QR Code não está disponível no momento.',
+            ], Response::HTTP_SERVICE_UNAVAILABLE));
+        }
+
+        try {
+            $gateway->refreshPixData($payment);
+        } catch (GatewayException $e) {
+            $context = $e->getContext();
+            $this->logger->warning('Falha ao atualizar QR Code Pix.', [
+                'gateway' => 'asaas',
+                'payment_id' => $payment->getId(),
+                'operation' => $context['operation'] ?? 'refresh_pix_qr',
+                'reason' => $context['reason'] ?? 'gateway_error',
+                'http_status' => $context['http_status'] ?? null,
+                'exception' => $e::class,
+            ]);
+
+            return $this->noStore($this->json([
+                'message' => $this->qrRefreshFailureMessage($context),
+            ], Response::HTTP_SERVICE_UNAVAILABLE));
+        }
+
+        return $this->noStore($this->json([
+            'pixCode' => $payment->getPixCode(),
+            'qrCodeBase64' => $payment->getQrCodeBase64(),
+        ]));
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function gatewayFailureMessage(array $context): string
+    {
+        return match ($context['reason'] ?? null) {
+            'cpf_required', 'cpf_invalid' => 'Informe um CPF válido para gerar a cobrança.',
+            'missing_credentials' => 'O gateway de pagamento está sem credenciais configuradas. Avise o suporte.',
+            default => match ($context['http_status'] ?? null) {
+                401, 403 => 'O gateway recusou as credenciais. Verifique a chave de API e o ambiente configurado.',
+                429 => 'O gateway está processando muitas solicitações. Aguarde alguns instantes antes de tentar novamente.',
+                default => 'Não foi possível gerar a cobrança. Verifique sua carteira antes de tentar novamente para evitar duplicidade.',
+            },
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function qrRefreshFailureMessage(array $context): string
+    {
+        return match ($context['http_status'] ?? null) {
+            401, 403 => 'O QR Code não pôde ser carregado. Verifique as credenciais do Asaas.',
+            429 => 'O gateway está ocupado. Aguarde alguns instantes e tente novamente.',
+            default => 'O QR Code ainda não está disponível. Aguarde alguns instantes e tente novamente.',
+        };
+    }
+
+    private function noStore(JsonResponse $response): JsonResponse
+    {
+        $response->headers->set('Cache-Control', 'no-store, private');
+
+        return $response;
+    }
+
+    /**
+     * Recognize older Asaas charges created before gateway metadata was persisted.
+     *
+     * @param mixed $gatewayResponse
+     */
+    private function isAsaasPixPayment(Payment $payment, mixed $gatewayResponse): bool
+    {
+        if (!is_array($gatewayResponse)) {
+            return false;
+        }
+
+        return ($gatewayResponse['gateway'] ?? null) === 'asaas'
+            || (
+                ($gatewayResponse['billingType'] ?? null) === 'PIX'
+                && ($gatewayResponse['id'] ?? null) === $payment->getExternalId()
+            );
     }
 
     /**

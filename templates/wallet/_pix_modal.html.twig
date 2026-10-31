@@ -7,6 +7,10 @@
     aria-labelledby="pix-modal-title"
     data-status-url="{{ path('app_wallet_pix_status', {id: payment.id}) }}"
     data-continue-url="{{ path('app_wallet_deposit') }}"
+    {% if canRefreshPix %}
+        data-qr-url="{{ path('app_wallet_pix_qr_refresh', {id: payment.id}) }}"
+        data-qr-csrf-token="{{ csrf_token('wallet_pix_qr_' ~ payment.id) }}"
+    {% endif %}
 >
     <section class="pix-modal__panel">
         <header class="pix-modal__header">
@@ -21,7 +25,11 @@
             {% if isApproved %}
                 Pix confirmado. Seu saldo já foi atualizado.
             {% elseif isPending %}
-                Aguardando a confirmação do pagamento.
+                {% if not payment.pixCode and not payment.qrCodeBase64 and canRefreshPix %}
+                    Cobrança criada. O QR Code ainda está sendo preparado; tente atualizá-lo abaixo.
+                {% else %}
+                    Aguardando a confirmação do pagamento.
+                {% endif %}
             {% else %}
                 Este Pix não está mais disponível para pagamento.
             {% endif %}
@@ -29,25 +37,25 @@
 
         <div class="pix-modal__details" id="pix-payment-details" {% if not isPending %}hidden{% endif %}>
             {% if payment.qrCodeBase64 %}
-                <div class="pix-modal__qr">
+                <div class="pix-modal__qr" id="pix-qr-container">
                     <img src="data:image/png;base64,{{ payment.qrCodeBase64 }}" alt="QR Code Pix para pagar R$ {{ (payment.amountCents / 100)|number_format(2, ',', '.') }}" width="220" height="220">
                 </div>
             {% else %}
-                <div class="pix-modal__qr pix-modal__qr--empty" role="img" aria-label="QR Code Pix indisponível">
+                <div class="pix-modal__qr pix-modal__qr--empty" id="pix-qr-container" role="img" aria-label="QR Code Pix indisponível">
                     QR Code indisponível
                 </div>
             {% endif %}
 
             <p class="pix-modal__hint">Escaneie o QR Code com o app do seu banco ou use o Pix copia e cola.</p>
 
-            {% if payment.pixCode %}
+            <div id="pix-copy-section" {% if not payment.pixCode %}hidden{% endif %}>
                 <label class="pix-modal__label" for="pix-payment-code">Pix copia e cola</label>
                 <div class="pix-modal__copy">
                     <textarea id="pix-payment-code" readonly rows="3" spellcheck="false">{{ payment.pixCode }}</textarea>
                     <button type="button" id="pix-copy-button">Copiar código</button>
                 </div>
                 <p class="pix-modal__copy-feedback" id="pix-copy-feedback" aria-live="polite"></p>
-            {% endif %}
+            </div>
         </div>
 
         <div class="pix-modal__summary">
@@ -56,6 +64,11 @@
         </div>
 
         {% if isPending %}
+            {% if canRefreshPix and (not payment.pixCode or not payment.qrCodeBase64) %}
+                <button type="button" class="pix-modal__refresh" id="pix-refresh-qr">
+                    Tentar gerar/atualizar QR Code
+                </button>
+            {% endif %}
             <button type="button" class="pix-modal__check" id="pix-check-status">Verificar pagamento</button>
         {% endif %}
 

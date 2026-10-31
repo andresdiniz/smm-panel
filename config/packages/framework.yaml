@@ -29,6 +29,11 @@ framework:
             limit: 10
             interval: '1 hour'
             cache_pool: cache.app
+        wallet_pix_qr_refresh:
+            policy: fixed_window
+            limit: 6
+            interval: '1 minute'
+            cache_pool: cache.app
 
     #esi: true
     #fragments: true

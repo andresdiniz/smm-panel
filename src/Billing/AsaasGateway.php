@@ -19,7 +19,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  *
  * Docs: https://docs.asaas.com/reference
  */
-final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterface
+final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterface, PixQrCodeRefreshInterface
 {
     /** CPF genérico válido para o sandbox Asaas (somente quando nenhum CPF real é fornecido). */
     private const SANDBOX_CPF = '00000000191';
@@ -116,27 +116,73 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         }
 
         if (!is_string($data['id'] ?? null) || $data['id'] === '') {
-            throw new GatewayException('Asaas não retornou o identificador da cobrança.');
+            throw new GatewayException(
+                'Asaas não retornou o identificador da cobrança.',
+                context: ['operation' => 'create_payment', 'reason' => 'missing_payment_id'],
+            );
         }
 
         $payment = $this->buildPayment($user, $amountCents, $method, $feeCents);
         $payment->setExternalId($data['id']);
-        $payment->setGatewayResponse(json_encode([
+        $gatewayResponse = [
+            'gateway' => 'asaas',
             'id' => $data['id'],
             'status' => $data['status'] ?? null,
             'billingType' => $data['billingType'] ?? $billingType,
             'invoiceUrl' => $data['invoiceUrl'] ?? null,
-        ], JSON_THROW_ON_ERROR));
-        $this->persist($payment);
+        ];
 
         if ($billingType === 'PIX') {
-            $qrData = $this->fetchPixQrWithRetry($data['id']);
-            $payment->setPixCode($qrData['payload'] ?? null);
-            $payment->setQrCodeBase64($qrData['encodedImage'] ?? null);
-            $this->em->flush();
+            try {
+                $qrData = $this->fetchPixQrWithRetry($data['id']);
+                $payment->setPixCode($qrData['payload'] ?? null);
+                $payment->setQrCodeBase64($qrData['encodedImage'] ?? null);
+            } catch (GatewayException $e) {
+                $gatewayResponse['pixQrUnavailable'] = true;
+                $gatewayResponse['pixQrFailure'] = $this->safeQrFailureContext($e);
+            }
         }
 
+        $payment->setGatewayResponse(json_encode($gatewayResponse, JSON_THROW_ON_ERROR));
+        $this->persist($payment);
+
         return $payment;
+    }
+
+    public function refreshPixData(Payment $payment): void
+    {
+        if (
+            $payment->getMethod() !== Payment::METHOD_PIX
+            || $payment->getStatus() !== Payment::STATUS_PENDING
+        ) {
+            throw new GatewayException(
+                'O QR Code só pode ser atualizado para um Pix pendente.',
+                context: ['operation' => 'refresh_pix_qr', 'reason' => 'payment_not_pending'],
+            );
+        }
+
+        $externalId = $payment->getExternalId();
+        if ($externalId === null || $externalId === '') {
+            throw new GatewayException(
+                'Pagamento sem identificador externo.',
+                context: ['operation' => 'refresh_pix_qr', 'reason' => 'missing_payment_id'],
+            );
+        }
+
+        $qrData = $this->fetchPixQrWithRetry($externalId);
+        $payment->setPixCode($qrData['payload'] ?? null);
+        $payment->setQrCodeBase64($qrData['encodedImage'] ?? null);
+
+        $gatewayResponse = json_decode($payment->getGatewayResponse() ?? '{}', true);
+        if (!is_array($gatewayResponse)) {
+            $gatewayResponse = [];
+        }
+        $gatewayResponse['gateway'] = 'asaas';
+        $gatewayResponse['pixQrUnavailable'] = false;
+        unset($gatewayResponse['pixQrFailure']);
+        $payment->setGatewayResponse(json_encode($gatewayResponse, JSON_THROW_ON_ERROR));
+
+        $this->em->flush();
     }
 
     public function processWebhook(Request $request): Payment
@@ -177,6 +223,7 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         }
 
         $payment->setGatewayResponse(json_encode([
+            'gateway' => 'asaas',
             'event' => $event,
             'payment' => [
                 'id' => $chargeId,
@@ -238,8 +285,18 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
             if ($isSandbox) {
                 $cpf = self::SANDBOX_CPF;
             } else {
-                throw new \RuntimeException('CPF obrigatório para criar cobrança em produção.');
+                throw new GatewayException(
+                    'CPF obrigatório para criar cobrança em produção.',
+                    context: ['operation' => 'validate_customer', 'reason' => 'cpf_required'],
+                );
             }
+        }
+
+        if (!$this->isValidCpf($cpf)) {
+            throw new GatewayException(
+                'Informe um CPF válido para criar a cobrança.',
+                context: ['operation' => 'validate_customer', 'reason' => 'cpf_invalid'],
+            );
         }
 
         $mobilePhone = preg_replace('/\D/', '', $phone);
@@ -267,7 +324,10 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
 
         $customer = $this->requestJson('POST', '/customers', ['json' => $payload]);
         if (!is_string($customer['id'] ?? null) || $customer['id'] === '') {
-            throw new GatewayException('Asaas não retornou o identificador do cliente.');
+            throw new GatewayException(
+                'Asaas não retornou o identificador do cliente.',
+                context: ['operation' => 'create_customer', 'reason' => 'missing_customer_id'],
+            );
         }
 
         return $customer['id'];
@@ -275,24 +335,51 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
 
     private function fetchPixQrWithRetry(string $paymentId, int $maxAttempts = 3): array
     {
-        $data = [];
+        $path = '/payments/'.rawurlencode($paymentId).'/pixQrCode';
+        $lastFailure = null;
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-            $data = $this->requestJson(
-                'GET',
-                '/payments/'.rawurlencode($paymentId).'/pixQrCode',
-            );
+            try {
+                $data = $this->requestJson('GET', $path);
+                $lastFailure = null;
+            } catch (GatewayException $e) {
+                $lastFailure = $e;
+                $status = $e->getContext()['http_status'] ?? null;
+                $retryable = in_array($status, [404, 429, 500, 502, 503, 504], true)
+                    || ($e->getContext()['reason'] ?? null) === 'transport_error';
 
-            if (!empty($data['encodedImage']) && !empty($data['payload'])) {
-                return $data;
+                if (!$retryable || $attempt === $maxAttempts) {
+                    throw $e;
+                }
+            }
+
+            $payload = $data['payload'] ?? null;
+            $encodedImage = $data['encodedImage'] ?? null;
+            $hasPayload = is_string($payload) && trim($payload) !== '';
+            $hasImage = is_string($encodedImage) && trim($encodedImage) !== '';
+            if ($hasImage || $hasPayload) {
+                return [
+                    'payload' => $hasPayload ? $payload : null,
+                    'encodedImage' => $hasImage ? $encodedImage : null,
+                ];
             }
 
             if ($attempt < $maxAttempts) {
                 usleep(200_000 * $attempt);
             }
+            unset($data);
         }
 
-        return $data;
+        $context = [
+            'operation' => 'fetch_pix_qr',
+            'reason' => 'qr_data_missing',
+            'missing_fields' => ['encodedImage', 'payload'],
+        ];
+        if ($lastFailure instanceof GatewayException) {
+            $context = array_merge($context, $this->safeQrFailureContext($lastFailure));
+        }
+
+        throw new GatewayException('Asaas não disponibilizou os dados do QR Code Pix.', context: $context);
     }
 
     /**
@@ -302,7 +389,10 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
     private function requestJson(string $method, string $path, array $options = []): array
     {
         if (trim($this->apiKey) === '') {
-            throw new GatewayException('A chave de API do Asaas não está configurada.');
+            throw new GatewayException(
+                'A chave de API do Asaas não está configurada.',
+                context: ['operation' => $method.' '.$path, 'reason' => 'missing_credentials'],
+            );
         }
 
         try {
@@ -319,7 +409,12 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
 
             return $this->decodeResponse($response, $method, $path);
         } catch (TransportExceptionInterface $e) {
-            throw new GatewayException('Falha de comunicação com o Asaas.', 0, $e);
+            throw new GatewayException(
+                'Falha de comunicação com o Asaas.',
+                0,
+                $e,
+                ['operation' => $method.' '.$path, 'reason' => 'transport_error'],
+            );
         }
     }
 
@@ -331,7 +426,12 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         try {
             $status = $response->getStatusCode();
         } catch (TransportExceptionInterface|DecodingExceptionInterface $e) {
-            throw new GatewayException('Falha de comunicação com o Asaas.', 0, $e);
+            throw new GatewayException(
+                'Falha de comunicação com o Asaas.',
+                0,
+                $e,
+                ['operation' => $method.' '.$path, 'reason' => 'transport_error'],
+            );
         }
 
         if ($status < 200 || $status >= 300) {
@@ -340,15 +440,60 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
                 $status,
                 strtoupper($method),
                 $path,
-            ));
+            ), context: [
+                'operation' => strtoupper($method).' '.$path,
+                'reason' => 'http_error',
+                'http_status' => $status,
+            ]);
         }
 
         try {
             $data = $response->toArray(throw: false);
         } catch (TransportExceptionInterface|DecodingExceptionInterface $e) {
-            throw new GatewayException('Resposta inválida do Asaas.', 0, $e);
+            throw new GatewayException(
+                'Resposta inválida do Asaas.',
+                0,
+                $e,
+                ['operation' => strtoupper($method).' '.$path, 'reason' => 'invalid_response'],
+            );
         }
 
         return $data;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function safeQrFailureContext(GatewayException $exception): array
+    {
+        $context = $exception->getContext();
+
+        return array_intersect_key($context, array_flip([
+            'operation',
+            'reason',
+            'http_status',
+            'missing_fields',
+        ]));
+    }
+
+    private function isValidCpf(string $cpf): bool
+    {
+        if (preg_match('/^\d{11}$/', $cpf) !== 1 || preg_match('/^(\d)\1{10}$/', $cpf) === 1) {
+            return false;
+        }
+
+        for ($digit = 9; $digit <= 10; $digit++) {
+            $sum = 0;
+            for ($index = 0; $index < $digit; $index++) {
+                $sum += (int) $cpf[$index] * (($digit + 1) - $index);
+            }
+            $checkDigit = (10 * $sum) % 11;
+            $checkDigit = $checkDigit === 10 ? 0 : $checkDigit;
+            if ($checkDigit !== (int) $cpf[$digit]) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
