@@ -13,6 +13,23 @@ framework:
     # Note that the session will be started ONLY if you read or write from it.
     session: true
 
+    rate_limiter:
+        password_reset_request_ip:
+            policy: fixed_window
+            limit: 5
+            interval: '1 hour'
+            cache_pool: cache.app
+        password_reset_request_email:
+            policy: fixed_window
+            limit: 3
+            interval: '1 hour'
+            cache_pool: cache.app
+        password_reset_submit_ip:
+            policy: fixed_window
+            limit: 10
+            interval: '1 hour'
+            cache_pool: cache.app
+
     #esi: true
     #fragments: true
 

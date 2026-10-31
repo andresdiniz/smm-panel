@@ -18,15 +18,25 @@ class BlogCategoryRepository extends ServiceEntityRepository
         return $this->findOneBy(['slug' => $slug]);
     }
 
-    /** @return BlogCategory[] */
+    /** @return list<BlogCategory> */
     public function findAllWithPostCount(): array
     {
-        return $this->createQueryBuilder('c')
+        $rows = $this->createQueryBuilder('c')
             ->leftJoin('c.posts', 'p')
-            ->addSelect('COUNT(p.id) AS HIDDEN postCount')
+            ->addSelect('COUNT(p.id) AS postCount')
             ->groupBy('c.id')
             ->orderBy('c.name', 'ASC')
             ->getQuery()
             ->getResult();
+
+        $categories = [];
+        foreach ($rows as $row) {
+            /** @var BlogCategory $category */
+            $category = $row[0];
+            $category->setPostCount((int) $row['postCount']);
+            $categories[] = $category;
+        }
+
+        return $categories;
     }
 }

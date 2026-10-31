@@ -145,7 +145,7 @@
                     {% for cat in categories %}
                         <div class="b-cat-item">
                             <a href="{{ path('blog_category', {slug: cat.slug}) }}">{{ cat.name }}</a>
-                            <span class="b-cat-count">{{ cat.postCount ?? cat.blogPosts|length }}</span>
+                            <span class="b-cat-count">{{ cat.postCount }}</span>
                         </div>
                     {% endfor %}
                 </div>

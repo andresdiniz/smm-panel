@@ -28,6 +28,15 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $this->getEntityManager()->flush();
     }
 
+    public function findOneByNormalizedEmail(string $email): ?User
+    {
+        return $this->createQueryBuilder('u')
+            ->andWhere('LOWER(u.email) = :email')
+            ->setParameter('email', mb_strtolower(trim($email), 'UTF-8'))
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     public function findRecent(int $limit = 10): array
     {
         return $this->createQueryBuilder('u')

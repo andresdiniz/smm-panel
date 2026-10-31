@@ -35,6 +35,8 @@ class BlogCategory
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $color = null;
 
+    private int $postCount = 0;
+
     #[ORM\OneToMany(mappedBy: 'category', targetEntity: BlogPost::class)]
     private Collection $posts;
 
@@ -59,6 +61,8 @@ class BlogCategory
     public function getColor(): ?string { return $this->color; }
     public function setColor(?string $color): static { $this->color = $color; return $this; }
     public function getPosts(): Collection { return $this->posts; }
+    public function getPostCount(): int { return $this->postCount; }
+    public function setPostCount(int $postCount): static { $this->postCount = $postCount; return $this; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
     public function setCreatedAt(\DateTimeImmutable $createdAt): static { $this->createdAt = $createdAt; return $this; }
 }

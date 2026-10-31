@@ -55,7 +55,7 @@
             {% for cat in categories %}
             <div class="sidebar-cat-item">
                 <a href="{{ path('blog_category', {slug: cat.slug}) }}">{{ cat.name }}</a>
-                <span style="font-size:0.75rem;color:var(--color-text-muted);">{{ cat.posts|length }}</span>
+                <span style="font-size:0.75rem;color:var(--color-text-muted);">{{ cat.postCount }}</span>
             </div>
             {% endfor %}
         </div>

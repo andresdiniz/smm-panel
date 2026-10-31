@@ -43,6 +43,7 @@ return array(
     'Symfony\\Component\\Scheduler\\' => array($vendorDir . '/symfony/scheduler'),
     'Symfony\\Component\\Runtime\\' => array($vendorDir . '/symfony/runtime'),
     'Symfony\\Component\\Routing\\' => array($vendorDir . '/symfony/routing'),
+    'Symfony\\Component\\RateLimiter\\' => array($vendorDir . '/symfony/rate-limiter'),
     'Symfony\\Component\\PropertyInfo\\' => array($vendorDir . '/symfony/property-info'),
     'Symfony\\Component\\PropertyAccess\\' => array($vendorDir . '/symfony/property-access'),
     'Symfony\\Component\\Process\\' => array($vendorDir . '/symfony/process'),

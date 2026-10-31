@@ -169,6 +169,19 @@ php -S 127.0.0.1:8000 -t public public/index.php
 
 Acesse o admin em `http://localhost:8000/admin` com um usuário `ROLE_ADMIN`.
 
+### Login e recuperação de senha
+
+O login limita tentativas a 5 por usuário/IP a cada 15 minutos. A solicitação
+de recuperação limita 5 tentativas por IP e 3 por e-mail por hora; o envio de
+nova senha limita 10 tentativas por IP por hora. Os links são de uso único e
+expiram após 1 hora. Configure `MAILER_DSN` para entregar os e-mails e aplique
+as migrations pendentes para criar a tabela de tokens de recuperação.
+No ambiente local, o `.env` usa Mailpit em `127.0.0.1:1025`. Para envio real,
+configure a credencial SMTP em `.env.local` com uma senha de app:
+`MAILER_DSN=smtps://USUARIO:SENHA_URL_ENCODED@smtp.hostinger.com:465`.
+A porta 465 exige TLS implícito (`smtps://`); não coloque credenciais no `.env`
+rastreado pelo Git.
+
 ---
 
 ## Deploy em Produção (Shared Hosting / VPS)

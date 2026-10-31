@@ -9,11 +9,17 @@
         <p class="eyebrow">Área restrita</p>
         <h1>Login</h1>
         <p>Entre na sua conta para acessar o painel administrativo.</p>
+        {% for message in app.flashes('success') %}
+            <p class="form-message form-message--success" role="status">{{ message }}</p>
+        {% endfor %}
+        {% if loginError %}
+            <p class="form-message form-message--error" role="alert">{{ loginError }}</p>
+        {% endif %}
         <form method="post" action="/login" class="login-form">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
             <div class="form-field">
                 <label for="email">E-mail</label>
-                <input id="email" name="email" type="email" autocomplete="email" required>
+                <input id="email" name="email" type="email" autocomplete="username" value="{{ lastUsername }}" required>
             </div>
             <div class="form-field">
                 <label for="password">Senha</label>
@@ -23,6 +29,7 @@
                 <button type="submit">Entrar</button>
             </div>
         </form>
+        <p class="login-note"><a href="{{ path('app_forgot_password') }}">Esqueci minha senha</a></p>
         <p class="login-note">Ainda não tem uma conta? <a href="{{ path('app_register') }}">Criar conta</a></p>
         <p class="login-note"><a href="{{ path('app_catalog') }}">Consultar serviços sem entrar</a></p>
     </section>

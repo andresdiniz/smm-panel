@@ -18,6 +18,9 @@ security:
         api:
             pattern: ^/api
             stateless: true
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
             json_login:
                 check_path: /api/auth/login
                 username_path: email
@@ -31,8 +34,13 @@ security:
             form_login:
                 login_path: app_login
                 check_path: app_login
+                username_parameter: email
+                password_parameter: password
                 default_target_path: app_dashboard
                 enable_csrf: true
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
             logout:
                 path: app_logout
                 target: app_login
