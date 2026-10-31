@@ -110,6 +110,16 @@
           {% endif %}
         </div>
 
+        <div id="asaas-webhook-help" hidden style="padding:13px 15px;border:1px solid rgba(1,134,141,.3);border-radius:8px;background:rgba(1,134,141,.08);color:#cbd5e1;font-size:.78rem;line-height:1.6">
+            <strong style="color:#67e8f9">Configuração do webhook Asaas</strong><br>
+            Cadastre no Asaas a URL
+            <code>{{ absolute_url(path('app_webhook_receive', {gateway: 'asaas'})) }}</code>,
+            API versão 3, ativo e envio sequencial. O token cadastrado no webhook deve ser o mesmo campo
+            <strong>Token Secreto</strong> acima (32–255 caracteres, sem espaços), nunca a chave de API.
+            Eventos recomendados: <code>PAYMENT_RECEIVED</code>, <code>PAYMENT_DELETED</code>,
+            <code>PAYMENT_CREDIT_CARD_CAPTURE_REFUSED</code> e <code>PAYMENT_REPROVED_BY_RISK_ANALYSIS</code>.
+        </div>
+
         {# Ativo #}
         <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.84rem;color:#dde1f0;margin-top:2px">
           <input type="checkbox" name="active" value="1"
@@ -141,4 +151,17 @@
   </div>
 
 </div>
+<script>
+  (() => {
+    const type = document.getElementById('f_type');
+    const slug = document.getElementById('f_slug');
+    const help = document.getElementById('asaas-webhook-help');
+    const updateHelp = () => {
+      help.hidden = type.value !== 'payment_gateway' || slug.value.trim().toLowerCase() !== 'asaas';
+    };
+    type.addEventListener('change', updateHelp);
+    slug.addEventListener('input', updateHelp);
+    updateHelp();
+  })();
+</script>
 {% endblock %}

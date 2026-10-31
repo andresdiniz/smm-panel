@@ -63,6 +63,23 @@ final class AsaasGatewayTest extends TestCase
         );
     }
 
+    public function testConfirmedPaymentIsNotApprovedUntilAsaasReceivesFunds(): void
+    {
+        $client = new MockHttpClient(static fn (): MockResponse => new MockResponse('{"status":"CONFIRMED"}'));
+        $gateway = new AsaasGateway(
+            $this->createStub(EntityManagerInterface::class),
+            $client,
+            'production-api-key',
+            'production',
+            'webhook-token',
+        );
+
+        self::assertSame(
+            Payment::STATUS_PENDING,
+            $gateway->fetchStatus((new Payment())->setExternalId('pay_confirmed')),
+        );
+    }
+
     public function testEmptyWebhookTokenNeverAuthenticates(): void
     {
         $gateway = new AsaasGateway(

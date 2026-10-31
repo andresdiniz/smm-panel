@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Billing\Exception\WebhookAuthenticationException;
 use App\Billing\GatewayRegistry;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -46,6 +47,9 @@ class WebhookController extends AbstractController
             ]);
 
             return $this->json(['ok' => true, 'status' => $payment->getStatus()]);
+        } catch (WebhookAuthenticationException $e) {
+            $this->logger->warning('Autenticação do webhook recusada.', ['gateway' => $gateway]);
+            return $this->json(['error' => 'Token de webhook inválido.'], Response::HTTP_UNAUTHORIZED);
         } catch (\InvalidArgumentException $e) {
             $this->logger->error('Webhook inválido.', ['gateway' => $gateway, 'error' => $e->getMessage()]);
             return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);

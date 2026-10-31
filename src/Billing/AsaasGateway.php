@@ -7,7 +7,9 @@ namespace App\Billing;
 use App\Entity\Payment;
 use App\Entity\User;
 use App\Billing\Exception\GatewayException;
+use App\Billing\Exception\WebhookAuthenticationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -40,11 +42,9 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
 
     private const EVENTS_APPROVE = [
         'PAYMENT_RECEIVED',
-        'PAYMENT_CONFIRMED',
     ];
 
     private const EVENTS_CANCEL = [
-        'PAYMENT_OVERDUE',
         'PAYMENT_DELETED',
         'PAYMENT_CREDIT_CARD_CAPTURE_REFUSED',
         'PAYMENT_REPROVED_BY_RISK_ANALYSIS',
@@ -189,71 +189,83 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
     {
         $token = $request->headers->get('asaas-access-token', '');
         if ($this->webhookToken === '' || $token === '' || !hash_equals($this->webhookToken, $token)) {
-            throw new \InvalidArgumentException('Token de webhook Asaas inválido ou não configurado.');
+            throw new WebhookAuthenticationException('Token de webhook Asaas inválido ou não configurado.');
         }
 
-        if (strlen($request->getContent()) > 65536) {
+        $content = $request->getContent();
+        if (strlen($content) > 65536) {
             throw new \InvalidArgumentException('Webhook Asaas excede o tamanho permitido.');
         }
 
         try {
-            $data = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+            $data = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
             throw new \InvalidArgumentException('Payload de webhook Asaas inválido.', 0, $e);
         }
 
+        $eventId = is_array($data) && is_string($data['id'] ?? null) ? $data['id'] : '';
         $event = is_array($data) && is_string($data['event'] ?? null) ? $data['event'] : '';
         $chargeId = is_array($data) && is_array($data['payment'] ?? null)
-            && is_string($data['payment']['id'] ?? null)
-            ? $data['payment']['id']
-            : null;
+            && is_string($data['payment']['id'] ?? null) ? $data['payment']['id'] : '';
 
-        if ($chargeId === null || $chargeId === '' || strlen($chargeId) > 255) {
+        if ($eventId === '' || strlen($eventId) > 255 || $event === '' || strlen($event) > 100) {
+            throw new \InvalidArgumentException('Webhook Asaas sem identificador ou tipo de evento válido.');
+        }
+        if ($chargeId === '' || strlen($chargeId) > 255) {
             throw new \InvalidArgumentException('Webhook Asaas sem identificador de cobrança válido.');
         }
 
-        $payment = $this->em->getRepository(Payment::class)->findOneBy(['externalId' => $chargeId]);
+        return $this->em->wrapInTransaction(function () use ($eventId, $event, $chargeId, $data): Payment {
+            try {
+                $this->em->getConnection()->insert('asaas_webhook_events', [
+                    'event_id' => $eventId,
+                    'event_type' => $event,
+                    'payment_id' => $chargeId,
+                    'received_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+                ]);
+            } catch (UniqueConstraintViolationException) {
+                return $this->findWebhookPaymentOrGhost($chargeId, $event);
+            }
 
-        if ($payment === null) {
-            $ghost = new Payment();
-            $ghost->setExternalId($chargeId);
-            $ghost->setStatus(Payment::STATUS_PENDING);
-            $ghost->setGatewayResponse(json_encode(['event' => $event], JSON_THROW_ON_ERROR));
-            return $ghost;
-        }
+            $payment = $this->em->getRepository(Payment::class)->findOneBy(['externalId' => $chargeId]);
 
-        $payment->setGatewayResponse(json_encode([
-            'gateway' => 'asaas',
-            'event' => $event,
-            'payment' => [
-                'id' => $chargeId,
-                'status' => $data['payment']['status'] ?? null,
-            ],
-        ], JSON_THROW_ON_ERROR));
+            if ($payment === null) {
+                return $this->createWebhookGhost($chargeId, $event);
+            }
 
-        $currentStatus = $payment->getStatus();
-        $finalStatuses = [Payment::STATUS_APPROVED, Payment::STATUS_REFUNDED, Payment::STATUS_CANCELLED];
+            $payment->setGatewayResponse(json_encode([
+                'gateway' => 'asaas',
+                'event' => $event,
+                'payment' => [
+                    'id' => $chargeId,
+                    'status' => $data['payment']['status'] ?? null,
+                ],
+            ], JSON_THROW_ON_ERROR));
 
-        if (in_array($currentStatus, $finalStatuses, true)
-            && !in_array($event, ['PAYMENT_REFUNDED', 'PAYMENT_PARTIALLY_REFUNDED'], true)
-        ) {
-            $this->em->flush();
+            $currentStatus = $payment->getStatus();
+            $finalStatuses = [Payment::STATUS_APPROVED, Payment::STATUS_REFUNDED, Payment::STATUS_CANCELLED];
+
+            if (in_array($currentStatus, $finalStatuses, true)
+                && !in_array($event, ['PAYMENT_REFUNDED', 'PAYMENT_PARTIALLY_REFUNDED'], true)
+            ) {
+                $this->em->flush();
+                return $payment;
+            }
+
+            if (in_array($event, self::EVENTS_APPROVE, true)) {
+                $this->approveAndCredit($payment);
+            } elseif (in_array($event, self::EVENTS_CANCEL, true)) {
+                $payment->setStatus(Payment::STATUS_CANCELLED);
+                $this->em->flush();
+            } elseif (in_array($event, self::EVENTS_REFUND, true)) {
+                $payment->setStatus(Payment::STATUS_REFUNDED);
+                $this->em->flush();
+            } else {
+                $this->em->flush();
+            }
+
             return $payment;
-        }
-
-        if (in_array($event, self::EVENTS_APPROVE, true)) {
-            $this->approveAndCredit($payment);
-        } elseif (in_array($event, self::EVENTS_CANCEL, true)) {
-            $payment->setStatus(Payment::STATUS_CANCELLED);
-            $this->em->flush();
-        } elseif (in_array($event, self::EVENTS_REFUND, true)) {
-            $payment->setStatus(Payment::STATUS_REFUNDED);
-            $this->em->flush();
-        } else {
-            $this->em->flush();
-        }
-
-        return $payment;
+        });
     }
 
     public function fetchStatus(Payment $payment): string
@@ -268,13 +280,28 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
 
         $map = [
             'RECEIVED'  => Payment::STATUS_APPROVED,
-            'CONFIRMED' => Payment::STATUS_APPROVED,
             'OVERDUE'   => Payment::STATUS_FAILED,
             'CANCELLED' => Payment::STATUS_CANCELLED,
             'REFUNDED'  => Payment::STATUS_REFUNDED,
         ];
 
         return $map[$remote] ?? Payment::STATUS_PENDING;
+    }
+
+    private function findWebhookPaymentOrGhost(string $chargeId, string $event): Payment
+    {
+        return $this->em->getRepository(Payment::class)->findOneBy(['externalId' => $chargeId])
+            ?? $this->createWebhookGhost($chargeId, $event);
+    }
+
+    private function createWebhookGhost(string $chargeId, string $event): Payment
+    {
+        $ghost = new Payment();
+        $ghost->setExternalId($chargeId);
+        $ghost->setStatus(Payment::STATUS_PENDING);
+        $ghost->setGatewayResponse(json_encode(['gateway' => 'asaas', 'event' => $event], JSON_THROW_ON_ERROR));
+
+        return $ghost;
     }
 
     private function ensureCustomer(User $user, string $cpf = '', string $phone = ''): string

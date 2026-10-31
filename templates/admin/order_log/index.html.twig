@@ -1,0 +1,59 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block page_title %}Logs de pedidos{% endblock %}
+
+{% block admin_content %}
+<div style="padding:24px;display:flex;flex-direction:column;gap:18px">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <h1 style="font-size:1.1rem;font-weight:800;color:#f0f3ff;margin:0">Logs de pedidos</h1>
+    <a href="{{ path('admin_order_logs_errors') }}" style="color:#f87171;font-size:.82rem;text-decoration:none">Ver erros recentes</a>
+  </div>
+
+  <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:auto">
+    {% if pagination.items is empty %}
+      <p style="padding:24px;color:#9196b0;margin:0">Nenhum log de pedido encontrado.</p>
+    {% else %}
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <thead>
+          <tr>
+            {% for label in ['Data','Pedido','Provider','Ação','HTTP','Duração','Resultado'] %}
+              <th style="padding:10px 13px;background:#0d1016;color:#9196b0;text-align:left;white-space:nowrap">{{ label }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in pagination %}
+            <tr style="border-top:1px solid rgba(255,255,255,.05)">
+              <td style="padding:10px 13px;color:#9196b0;white-space:nowrap">{{ log.createdAt|date('d/m/Y H:i:s') }}</td>
+              <td style="padding:10px 13px">
+                {% if log.order %}
+                  <a href="{{ path('admin_order_detail', {id: log.order.id}) }}" style="color:#67e8f9">#{{ log.order.id }}</a>
+                {% else %}-{% endif %}
+              </td>
+              <td style="padding:10px 13px;color:#dde1f0">{{ log.provider }}</td>
+              <td style="padding:10px 13px;color:#9196b0">{{ log.action }}</td>
+              <td style="padding:10px 13px;color:#9196b0">{{ log.httpStatus ?? '-' }}</td>
+              <td style="padding:10px 13px;color:#9196b0">{{ log.elapsedMs is not null ? log.elapsedMs ~ ' ms' : '-' }}</td>
+              <td style="padding:10px 13px;color:{{ log.hasError ? '#f87171' : '#4ade80' }}">
+                {{ log.errorMessage ?? 'OK' }}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+
+  {% if pagination.pageCount > 1 %}
+    <nav style="display:flex;gap:8px;align-items:center">
+      {% if pagination.currentPageNumber > 1 %}
+        <a href="{{ path('admin_order_log_index', {page: pagination.currentPageNumber - 1}) }}" style="color:#67e8f9">Anterior</a>
+      {% endif %}
+      <span style="color:#9196b0">Página {{ pagination.currentPageNumber }} de {{ pagination.pageCount }}</span>
+      {% if pagination.currentPageNumber < pagination.pageCount %}
+        <a href="{{ path('admin_order_log_index', {page: pagination.currentPageNumber + 1}) }}" style="color:#67e8f9">Próxima</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+</div>
+{% endblock %}

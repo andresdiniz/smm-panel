@@ -302,6 +302,47 @@ STRIPE_WEBHOOK_SECRET=
 AFFILIATE_DEFAULT_RATE=0.05
 ```
 
+### Webhook de pagamentos Asaas
+
+1. Aplique as migrations antes de ativar o webhook:
+
+   ```bash
+   php bin/console doctrine:migrations:sync-metadata-storage --no-interaction
+   php bin/console doctrine:migrations:migrate --no-interaction
+   ```
+
+   Sincronizar o armazenamento de metadados também é necessário quando o
+   Doctrine informar que ele está desatualizado. A migration cria `cron_logs`,
+   tabela usada pela página de histórico de tarefas.
+
+2. Em **Admin > Provedores / Chaves de API**, edite o gateway `asaas`. Mantenha a
+   chave de API do ambiente correto e defina em **Token Secreto** um token
+   aleatório ASCII de 32 a 255 caracteres, sem espaços. Esse token é diferente
+   da chave de API e fica armazenado no banco; não o publique em logs ou no Git.
+3. Na conta Asaas do mesmo ambiente, cadastre o webhook com:
+
+   | Campo | Valor |
+   |---|---|
+   | URL | `https://acheireviews.com.br/webhook/asaas` |
+   | Versão da API | `3` |
+   | Token de autenticação | O mesmo valor salvo em **Token Secreto** |
+   | Ativo / interrompido | Ativo / Não interrompido |
+   | Tipo de envio | Sequencial (`SEQUENTIALLY`) |
+
+   Selecione `PAYMENT_RECEIVED`, `PAYMENT_DELETED`,
+   `PAYMENT_CREDIT_CARD_CAPTURE_REFUSED` e
+   `PAYMENT_REPROVED_BY_RISK_ANALYSIS`. A carteira só recebe crédito em
+   `PAYMENT_RECEIVED`; `PAYMENT_CONFIRMED` ainda não significa saldo disponível
+   no Asaas. Eventos são gravados por ID único e duplicatas não são processadas
+   novamente.
+
+O endpoint autentica o header `asaas-access-token`. A falha HTTP 401 de `GET
+/customers` é separada do webhook: indica que a **chave de API** usada pela
+aplicação foi recusada pelo Asaas. Confira a chave e se `ASAAS_ENV` corresponde
+ao ambiente de origem dela. Documentação oficial: [receber eventos](https://docs.asaas.com/docs/receba-eventos-do-asaas-no-seu-endpoint-de-webhook.md),
+[criar webhook pela API](https://docs.asaas.com/docs/criar-novo-webhook-pela-api.md)
+e [tipos de envio](https://docs.asaas.com/docs/tipos-de-envio.md).
+
 Quando uma cobrança Asaas é criada mas o QR Code demora a ficar disponível, a
 cobrança permanece vinculada à carteira e o modal permite tentar buscar o QR
 novamente. Os logs registram a etapa e o status HTTP sem armazenar CPF, telefone

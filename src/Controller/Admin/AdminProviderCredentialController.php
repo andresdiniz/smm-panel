@@ -86,6 +86,17 @@ class AdminProviderCredentialController extends AbstractController
         $baseUrl = $this->stringField($request, 'baseUrl');
         $apiKey = $this->stringField($request, 'apiKey');
         $secretToken = $this->stringField($request, 'secretToken');
+        $isAsaas = $type === ProviderCredential::TYPE_PAYMENT && strtolower((string) $slug) === 'asaas';
+        $effectiveApiKey = $apiKey !== null && $apiKey !== '' ? $apiKey : $credential?->getApiKey();
+        $effectiveWebhookToken = $secretToken !== null && $secretToken !== ''
+            ? $secretToken
+            : $credential?->getSecretToken();
+        $invalidAsaasWebhookToken = $isAsaas && (
+            !is_string($effectiveWebhookToken)
+            || preg_match('/\A[\x21-\x7E]{32,255}\z/', $effectiveWebhookToken) !== 1
+            || (is_string($effectiveApiKey) && $effectiveApiKey !== ''
+                && hash_equals($effectiveApiKey, $effectiveWebhookToken))
+        );
 
         if (
             !in_array($type, [ProviderCredential::TYPE_SMM, ProviderCredential::TYPE_PAYMENT], true)
@@ -98,8 +109,14 @@ class AdminProviderCredentialController extends AbstractController
             || strlen($apiKey) > 512
             || ($credential === null && $apiKey === '')
             || ($secretToken !== null && strlen($secretToken) > 512)
+            || $invalidAsaasWebhookToken
         ) {
-            $this->addFlash('error', 'Dados inválidos. Informe tipo, slug, URL HTTPS pública e credenciais válidas.');
+            $this->addFlash(
+                'error',
+                $invalidAsaasWebhookToken
+                    ? 'Para o Asaas, informe um token de webhook distinto da chave de API, com 32 a 255 caracteres ASCII e sem espaços.'
+                    : 'Dados inválidos. Informe tipo, slug, URL HTTPS pública e credenciais válidas.',
+            );
             return $this->redirectToRoute(
                 $credential === null ? 'admin_provider_credential_new' : 'admin_provider_credential_edit',
                 $credential === null ? [] : ['id' => $credential->getId()],

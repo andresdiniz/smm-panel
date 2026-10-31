@@ -9,6 +9,7 @@ use App\Billing\Exception\GatewayException;
 use App\Billing\PixQrCodeRefreshInterface;
 use App\Entity\Payment;
 use App\Entity\ProviderCredential;
+use App\Entity\Wallet;
 use App\Repository\PaymentRepository;
 use App\Repository\ProviderCredentialRepository;
 use App\Repository\WalletRepository;
@@ -40,8 +41,10 @@ class WalletController extends AbstractController
     #[Route('', name: 'index')]
     public function index(): Response
     {
-        $wallet       = $this->walletRepository->findOneByUser($this->getUser());
-        $transactions = $this->paymentRepository->findRecentByUser($this->getUser(), 20);
+        $user = $this->getUser();
+        $wallet = $this->walletRepository->findOneByUser($user)
+            ?? (new Wallet())->setUser($user);
+        $transactions = $this->paymentRepository->findRecentByUser($user, 20);
 
         return $this->render('wallet/index.html.twig', [
             'wallet'       => $wallet,
@@ -52,8 +55,9 @@ class WalletController extends AbstractController
     #[Route('/deposit', name: 'deposit', methods: ['GET', 'POST'])]
     public function deposit(Request $request): Response
     {
-        $user        = $this->getUser();
-        $wallet      = $this->walletRepository->findOneByUser($user);
+        $user = $this->getUser();
+        $wallet = $this->walletRepository->findOneByUser($user)
+            ?? (new Wallet())->setUser($user);
 
         if ($request->isMethod('POST')) {
             $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');

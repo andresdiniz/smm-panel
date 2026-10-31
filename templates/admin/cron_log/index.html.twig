@@ -1,0 +1,49 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block page_title %}Logs de tarefas agendadas{% endblock %}
+
+{% block admin_content %}
+<div style="padding:24px;display:flex;flex-direction:column;gap:18px">
+  <h1 style="font-size:1.1rem;font-weight:800;color:#f0f3ff;margin:0">Logs de tarefas agendadas</h1>
+
+  <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:auto">
+    {% if pagination.items is empty %}
+      <p style="padding:24px;color:#9196b0;margin:0">Nenhuma execução registrada.</p>
+    {% else %}
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <thead>
+          <tr>
+            {% for label in ['Início','Comando','Resultado','Duração','Itens','Erro'] %}
+              <th style="padding:10px 13px;background:#0d1016;color:#9196b0;text-align:left;white-space:nowrap">{{ label }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in pagination %}
+            <tr style="border-top:1px solid rgba(255,255,255,.05)">
+              <td style="padding:10px 13px;color:#9196b0;white-space:nowrap">{{ log.startedAt|date('d/m/Y H:i:s') }}</td>
+              <td style="padding:10px 13px;color:#dde1f0">{{ log.command }}</td>
+              <td style="padding:10px 13px;color:{{ log.success ? '#4ade80' : '#f87171' }}">{{ log.success ? 'Sucesso' : 'Falha' }}</td>
+              <td style="padding:10px 13px;color:#9196b0">{{ log.durationMs is not null ? log.durationMs ~ ' ms' : '-' }}</td>
+              <td style="padding:10px 13px;color:#9196b0">{{ log.itemsProcessed ?? '-' }}</td>
+              <td style="padding:10px 13px;color:#f87171">{{ log.errorMessage ?? '-' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+
+  {% if pagination.pageCount > 1 %}
+    <nav style="display:flex;gap:8px;align-items:center">
+      {% if pagination.currentPageNumber > 1 %}
+        <a href="{{ path('admin_cron_log_index', {page: pagination.currentPageNumber - 1}) }}" style="color:#67e8f9">Anterior</a>
+      {% endif %}
+      <span style="color:#9196b0">Página {{ pagination.currentPageNumber }} de {{ pagination.pageCount }}</span>
+      {% if pagination.currentPageNumber < pagination.pageCount %}
+        <a href="{{ path('admin_cron_log_index', {page: pagination.currentPageNumber + 1}) }}" style="color:#67e8f9">Próxima</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+</div>
+{% endblock %}

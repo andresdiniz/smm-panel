@@ -129,13 +129,14 @@
           </tr>
         </thead>
         <tbody>
-          {% for user in crmUsers %}
+          {% for row in crmUsers %}
+          {% set user = row.user %}
           <tr style="border-bottom:1px solid rgba(255,255,255,.03)">
             <td style="padding:9px 13px;color:#3e4259">{{ user.id }}</td>
             <td style="padding:9px 13px;color:#dde1f0">{{ user.email }}</td>
-            <td style="padding:9px 13px;color:#22c55e;font-variant-numeric:tabular-nums">R$ {{ (user.balance ?? 0)|number_format(2,',','.') }}</td>
-            <td style="padding:9px 13px;color:#9196b0">{{ user.orderCount ?? 0 }}</td>
-            <td style="padding:9px 13px;color:#3e4259;font-size:.75rem">{{ user.createdAt is defined ? user.createdAt|date('d/m/Y') : '-' }}</td>
+            <td style="padding:9px 13px;color:#22c55e;font-variant-numeric:tabular-nums">R$ {{ ((user.wallet ? user.wallet.balanceCents : 0) / 100)|number_format(2,',','.') }}</td>
+            <td style="padding:9px 13px;color:#9196b0">{{ row.orderCount }}</td>
+            <td style="padding:9px 13px;color:#3e4259;font-size:.75rem">{{ user.createdAt|date('d/m/Y') }}</td>
           </tr>
           {% endfor %}
         </tbody>
