@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\ServiceCategoryRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -31,14 +29,6 @@ class ServiceCategory
     #[ORM\Column(type: Types::INTEGER, options: ['default' => 0])]
     private int $sortOrder = 0;
 
-    #[ORM\OneToMany(targetEntity: Service::class, mappedBy: 'category')]
-    private Collection $services;
-
-    public function __construct()
-    {
-        $this->services = new ArrayCollection();
-    }
-
     public function getId(): int { return $this->id; }
     public function getName(): string { return $this->name; }
     public function setName(string $n): self { $this->name = $n; return $this; }
@@ -48,6 +38,5 @@ class ServiceCategory
     public function setIsActive(bool $v): self { $this->isActive = $v; return $this; }
     public function getSortOrder(): int { return $this->sortOrder; }
     public function setSortOrder(int $v): self { $this->sortOrder = $v; return $this; }
-    public function getServices(): Collection { return $this->services; }
     public function __toString(): string { return $this->name; }
 }

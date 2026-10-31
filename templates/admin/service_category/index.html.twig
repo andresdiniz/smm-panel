@@ -93,7 +93,7 @@
       </thead>
       <tbody>
         {% for item in categories %}
-        {% set svcCount = item.getServices()|length %}
+        {% set svcCount = categoryServiceCounts[item.id] ?? 0 %}
         {% set active   = item.isActive() %}
         <tr>
           <td class="td-mono" style="color:#3e4259;">#{{ item.getId() }}</td>
