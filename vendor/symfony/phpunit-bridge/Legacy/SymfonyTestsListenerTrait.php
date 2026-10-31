@@ -11,7 +11,6 @@
 
 namespace Symfony\Bridge\PhpUnit\Legacy;
 
-use Doctrine\Common\Annotations\AnnotationRegistry;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\DataProviderTestSuite;
 use PHPUnit\Framework\RiskyTestError;
@@ -131,16 +130,8 @@ class SymfonyTestsListenerTrait
         }
 
         if (-1 === $this->state) {
-            echo "Testing $suiteName\n";
+            $this->write("Testing $suiteName\n");
             $this->state = 0;
-
-            if (!class_exists(AnnotationRegistry::class, false) && class_exists(AnnotationRegistry::class)) {
-                if (method_exists(AnnotationRegistry::class, 'registerUniqueLoader')) {
-                    AnnotationRegistry::registerUniqueLoader('class_exists');
-                } elseif (method_exists(AnnotationRegistry::class, 'registerLoader')) {
-                    AnnotationRegistry::registerLoader('class_exists');
-                }
-            }
 
             if ($this->skippedFile = getenv('SYMFONY_PHPUNIT_SKIPPED_TESTS')) {
                 $this->state = 1;
@@ -149,7 +140,7 @@ class SymfonyTestsListenerTrait
                     $this->state = 2;
 
                     if (!$this->wasSkipped = require $this->skippedFile) {
-                        echo "All tests already ran successfully.\n";
+                        $this->write("All tests already ran successfully.\n");
                         $suite->setTests([]);
                     }
                 }
@@ -264,7 +255,7 @@ class SymfonyTestsListenerTrait
             putenv('SYMFONY_EXPECTED_DEPRECATIONS_SERIALIZE');
             $expectedDeprecations = file_get_contents($file);
             if ($expectedDeprecations) {
-                self::$expectedDeprecations = array_merge(self::$expectedDeprecations, unserialize($expectedDeprecations));
+                self::$expectedDeprecations = array_merge(self::$expectedDeprecations, unserialize($expectedDeprecations, ['allowed_classes' => false]));
                 if (!self::$previousErrorHandler) {
                     self::$previousErrorHandler = set_error_handler([self::class, 'handleError']);
                 }
@@ -293,7 +284,7 @@ class SymfonyTestsListenerTrait
             $deprecations = file_get_contents($this->runsInSeparateProcess);
             unlink($this->runsInSeparateProcess);
             putenv('SYMFONY_DEPRECATIONS_SERIALIZE');
-            foreach ($deprecations ? unserialize($deprecations) : [] as $deprecation) {
+            foreach ($deprecations ? unserialize($deprecations, ['allowed_classes' => false]) : [] as $deprecation) {
                 $error = serialize(['deprecation' => $deprecation[1], 'class' => $className, 'method' => $test->getName(false), 'triggering_file' => $deprecation[2] ?? null, 'files_stack' => $deprecation[3] ?? []]);
                 if ($deprecation[0]) {
                     // unsilenced on purpose
@@ -345,7 +336,7 @@ class SymfonyTestsListenerTrait
         }
         // If the message is serialized we need to extract the message. This occurs when the error is triggered
         // by the isolated test path in \Symfony\Bridge\PhpUnit\Legacy\SymfonyTestsListenerTrait::endTest().
-        $parsedMsg = @unserialize($msg);
+        $parsedMsg = @unserialize($msg, ['allowed_classes' => false]);
         if (\is_array($parsedMsg)) {
             $msg = $parsedMsg['deprecation'];
         }
@@ -355,6 +346,15 @@ class SymfonyTestsListenerTrait
         self::$gatheredDeprecations[] = $msg;
 
         return true;
+    }
+
+    private function write(string $message): void
+    {
+        if (\in_array('--stderr', $_SERVER['argv'] ?? [], true)) {
+            file_put_contents('php://stderr', $message);
+        } else {
+            echo $message;
+        }
     }
 
     private function willBeIsolated(TestCase $test): bool

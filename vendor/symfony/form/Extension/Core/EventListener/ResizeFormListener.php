@@ -13,6 +13,7 @@ namespace Symfony\Component\Form\Extension\Core\EventListener;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Form\Event\PostSetDataEvent;
+use Symfony\Component\Form\Event\PreSetDataEvent;
 use Symfony\Component\Form\Exception\UnexpectedTypeException;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
@@ -28,10 +29,9 @@ class ResizeFormListener implements EventSubscriberInterface
     protected array $prototypeOptions;
 
     private \Closure|bool $deleteEmpty;
-    // BC, to be removed in 8.0
-    private bool $overridden = true;
-    private bool $usePreSetData = false;
     private array $preSetDataChildrenStack = [];
+    /** @var \WeakMap<FormInterface, array<int|string, bool>> */
+    private \WeakMap $initialKeys;
 
     public function __construct(
         private string $type,
@@ -44,12 +44,13 @@ class ResizeFormListener implements EventSubscriberInterface
     ) {
         $this->deleteEmpty = \is_bool($deleteEmpty) ? $deleteEmpty : $deleteEmpty(...);
         $this->prototypeOptions = $prototypeOptions ?? $options;
+        $this->initialKeys = new \WeakMap();
     }
 
     public static function getSubscribedEvents(): array
     {
         return [
-            FormEvents::PRE_SET_DATA => 'preSetData', // deprecated
+            FormEvents::PRE_SET_DATA => 'preSetData',
             FormEvents::POST_SET_DATA => ['postSetData', 255], // as early as possible
             FormEvents::PRE_SUBMIT => 'preSubmit',
             // (MergeCollectionListener, MergeDoctrineCollectionListener)
@@ -57,51 +58,13 @@ class ResizeFormListener implements EventSubscriberInterface
         ];
     }
 
-    /**
-     * @deprecated Since Symfony 7.2, use {@see postSetData()} instead.
-     */
-    public function preSetData(FormEvent $event): void
+    final public function preSetData(PreSetDataEvent $event): void
     {
-        if (__CLASS__ === static::class
-            || __CLASS__ === (new \ReflectionClass($this))->getMethod('preSetData')->getDeclaringClass()->name
-        ) {
-            // not a child class, or child class does not overload PRE_SET_DATA
-            $this->preSetDataChildrenStack[] = iterator_to_array($event->getForm());
-
-            return;
-        }
-
-        trigger_deprecation('symfony/form', '7.2', 'Calling "%s()" is deprecated, use "%s::postSetData()" instead.', __METHOD__, __CLASS__);
-        // parent::preSetData() has been called
-        $this->overridden = false;
-        try {
-            $this->postSetData($event);
-        } finally {
-            $this->usePreSetData = true;
-        }
+        $this->preSetDataChildrenStack[] = iterator_to_array($event->getForm());
     }
 
-    /**
-     * Remove FormEvent type hint in 8.0.
-     *
-     * @final since Symfony 7.2
-     */
-    public function postSetData(FormEvent|PostSetDataEvent $event): void
+    final public function postSetData(PostSetDataEvent $event): void
     {
-        if (__CLASS__ !== static::class) {
-            if ($this->overridden) {
-                trigger_deprecation('symfony/form', '7.2', 'Calling "%s::preSetData()" is deprecated, use "%s::postSetData()" instead.', static::class, __CLASS__);
-                // parent::preSetData() has not been called, noop
-
-                return;
-            }
-
-            if ($this->usePreSetData) {
-                // nothing else to do
-                return;
-            }
-        }
-
         $form = $event->getForm();
         $data = $event->getData() ?? [];
         $childrenToRemove = array_pop($this->preSetDataChildrenStack);
@@ -140,6 +103,15 @@ class ResizeFormListener implements EventSubscriberInterface
     {
         $form = $event->getForm();
         $data = $event->getData();
+
+        if ($this->deleteEmpty) {
+            $previousData = $form->getData() ?? [];
+            $keys = [];
+            foreach ($previousData as $key => $value) {
+                $keys[$key] = isset($previousData[$key]);
+            }
+            $this->initialKeys[$form] = $keys;
+        }
 
         if (!\is_array($data)) {
             $data = [];
@@ -180,18 +152,16 @@ class ResizeFormListener implements EventSubscriberInterface
         }
 
         if ($this->deleteEmpty) {
-            $previousData = $form->getData();
+            $initialKeys = $this->initialKeys[$form] ?? [];
             /** @var FormInterface $child */
             foreach ($form as $name => $child) {
                 if (!$child->isValid() || !$child->isSynchronized()) {
                     continue;
                 }
 
-                $isNew = !isset($previousData[$name]);
+                $isNew = !($initialKeys[$name] ?? false);
                 $isEmpty = \is_callable($this->deleteEmpty) ? ($this->deleteEmpty)($child->getData()) : $child->isEmpty();
 
-                // $isNew can only be true if allowAdd is true, so we don't
-                // need to check allowAdd again
                 if ($isEmpty && ($isNew || $this->allowDelete)) {
                     unset($data[$name]);
                     $form->remove($name);

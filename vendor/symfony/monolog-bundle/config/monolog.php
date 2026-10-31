@@ -13,6 +13,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Monolog\Formatter\ChromePHPFormatter;
 use Monolog\Formatter\GelfMessageFormatter;
+use Monolog\Formatter\GoogleCloudLoggingFormatter;
 use Monolog\Formatter\HtmlFormatter;
 use Monolog\Formatter\JsonFormatter;
 use Monolog\Formatter\LineFormatter;
@@ -22,10 +23,9 @@ use Monolog\Formatter\NormalizerFormatter;
 use Monolog\Formatter\ScalarFormatter;
 use Monolog\Formatter\SyslogFormatter;
 use Monolog\Formatter\WildfireFormatter;
-use Monolog\Handler\FingersCrossed\ErrorLevelActivationStrategy;
 use Monolog\Logger;
 use Psr\Log\LoggerInterface;
-use Symfony\Bridge\Monolog\Handler\FingersCrossed\NotFoundActivationStrategy;
+use Symfony\Bundle\MonologBundle\HandlerLifecycleManager;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -45,14 +45,10 @@ return static function (ContainerConfigurator $container) {
             ->args([abstract_arg('channel')])
             ->abstract()
 
-        ->set('monolog.activation_strategy.not_found', NotFoundActivationStrategy::class)->abstract()
-            ->deprecate('symfony/monolog-bundle', '3.11', 'The "%service_id%" service is deprecated.')
-        ->set('monolog.handler.fingers_crossed.error_level_activation_strategy', ErrorLevelActivationStrategy::class)->abstract()
-            ->deprecate('symfony/monolog-bundle', '3.11', 'The "%service_id%" service is deprecated.')
-
         // Formatters
         ->set('monolog.formatter.chrome_php', ChromePHPFormatter::class)
         ->set('monolog.formatter.gelf_message', GelfMessageFormatter::class)
+        ->set('monolog.formatter.google', GoogleCloudLoggingFormatter::class)
         ->set('monolog.formatter.html', HtmlFormatter::class)
         ->set('monolog.formatter.json', JsonFormatter::class)
         ->set('monolog.formatter.line', LineFormatter::class)
@@ -67,5 +63,9 @@ return static function (ContainerConfigurator $container) {
 
         ->set('monolog.http_client', HttpClientInterface::class)
             ->factory([HttpClient::class, 'create'])
+
+        ->set('monolog.handler_lifecycle_manager', HandlerLifecycleManager::class)
+            ->public()
+            ->args([abstract_arg('Iterator of handler services, populated by AddHandlersToManagerPass')])
     ;
 };

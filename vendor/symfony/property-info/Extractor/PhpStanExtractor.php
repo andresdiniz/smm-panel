@@ -12,7 +12,6 @@
 namespace Symfony\Component\PropertyInfo\Extractor;
 
 use phpDocumentor\Reflection\Types\ContextFactory;
-use PHPStan\PhpDocParser\Ast\PhpDoc\InvalidTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocChildNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
@@ -28,8 +27,6 @@ use PHPStan\PhpDocParser\Parser\TypeParser;
 use PHPStan\PhpDocParser\ParserConfig;
 use Symfony\Component\PropertyInfo\PropertyDescriptionExtractorInterface;
 use Symfony\Component\PropertyInfo\PropertyTypeExtractorInterface;
-use Symfony\Component\PropertyInfo\Type as LegacyType;
-use Symfony\Component\PropertyInfo\Util\PhpStanTypeHelper;
 use Symfony\Component\TypeInfo\Exception\UnsupportedException;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\TypeContext\TypeContext;
@@ -53,9 +50,8 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
     private StringTypeResolver $stringTypeResolver;
     private TypeContextFactory $typeContextFactory;
 
-    /** @var array<string, array{PhpDocNode|null, int|null, string|null, string|null}> */
+    /** @var array<string, array{PhpDocNode|null, int|null, string|null, string|null, string|null}> */
     private array $docBlocks = [];
-    private PhpStanTypeHelper $phpStanTypeHelper;
     private array $mutatorPrefixes;
     private array $accessorPrefixes;
     private array $arrayMutatorPrefixes;
@@ -78,7 +74,6 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
             throw new \LogicException(\sprintf('Unable to use the "%s" class as the "phpstan/phpdoc-parser" package is not installed. Try running composer require "phpstan/phpdoc-parser".', __CLASS__));
         }
 
-        $this->phpStanTypeHelper = new PhpStanTypeHelper();
         $this->mutatorPrefixes = $mutatorPrefixes ?? ReflectionExtractor::$defaultMutatorPrefixes;
         $this->accessorPrefixes = $accessorPrefixes ?? ReflectionExtractor::$defaultAccessorPrefixes;
         $this->arrayMutatorPrefixes = $arrayMutatorPrefixes ?? ReflectionExtractor::$defaultArrayMutatorPrefixes;
@@ -88,113 +83,11 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
             $this->phpDocParser = new PhpDocParser($parserConfig, new TypeParser($parserConfig, new ConstExprParser($parserConfig)), new ConstExprParser($parserConfig));
             $this->lexer = new Lexer($parserConfig);
         } else {
-            $this->phpDocParser = new PhpDocParser(new TypeParser(new ConstExprParser()), new ConstExprParser());
+            $this->phpDocParser = new PhpDocParser(new TypeParser($constExprParser = new ConstExprParser(true, true), true), $constExprParser);
             $this->lexer = new Lexer();
         }
         $this->stringTypeResolver = new StringTypeResolver();
         $this->typeContextFactory = new TypeContextFactory($this->stringTypeResolver);
-    }
-
-    /**
-     * @deprecated since Symfony 7.3, use "getType" instead
-     */
-    public function getTypes(string $class, string $property, array $context = []): ?array
-    {
-        trigger_deprecation('symfony/property-info', '7.3', 'The "%s()" method is deprecated, use "%s::getType()" instead.', __METHOD__, self::class);
-
-        /** @var PhpDocNode|null $docNode */
-        [$docNode, $source, $prefix, $declaringClass] = $this->getDocBlock($class, $property);
-        if (null === $docNode) {
-            return null;
-        }
-
-        switch ($source) {
-            case self::PROPERTY:
-                $tag = '@var';
-                break;
-
-            case self::ACCESSOR:
-                $tag = '@return';
-                break;
-
-            case self::MUTATOR:
-                $tag = '@param';
-                break;
-        }
-
-        $parentClass = null;
-        $types = [];
-        foreach ($docNode->getTagsByName($tag) as $tagDocNode) {
-            if ($tagDocNode->value instanceof InvalidTagValueNode) {
-                continue;
-            }
-
-            if (
-                $tagDocNode->value instanceof ParamTagValueNode
-                && null === $prefix
-                && $tagDocNode->value->parameterName !== '$'.$property
-            ) {
-                continue;
-            }
-
-            $typeContext = $this->contexts[$class.'/'.$declaringClass] ??= $this->typeContextFactory->createFromClassName($class, $declaringClass);
-
-            foreach ($this->phpStanTypeHelper->getTypes($tagDocNode->value, $typeContext) as $type) {
-                switch ($type->getClassName()) {
-                    case 'self':
-                    case 'static':
-                        $resolvedClass = $class;
-                        break;
-
-                    case 'parent':
-                        if (false !== $resolvedClass = $parentClass ??= get_parent_class($class)) {
-                            break;
-                        }
-                        // no break
-
-                    default:
-                        $types[] = $type;
-                        continue 2;
-                }
-
-                $types[] = new LegacyType(LegacyType::BUILTIN_TYPE_OBJECT, $type->isNullable(), $resolvedClass, $type->isCollection(), $type->getCollectionKeyTypes(), $type->getCollectionValueTypes());
-            }
-        }
-
-        if (!isset($types[0])) {
-            return null;
-        }
-
-        if (!\in_array($prefix, $this->arrayMutatorPrefixes, true)) {
-            return $types;
-        }
-
-        return [new LegacyType(LegacyType::BUILTIN_TYPE_ARRAY, false, null, true, new LegacyType(LegacyType::BUILTIN_TYPE_INT), $types[0])];
-    }
-
-    /**
-     * @deprecated since Symfony 7.3, use "getTypeFromConstructor" instead
-     *
-     * @return LegacyType[]|null
-     */
-    public function getTypesFromConstructor(string $class, string $property): ?array
-    {
-        trigger_deprecation('symfony/property-info', '7.3', 'The "%s()" method is deprecated, use "%s::getTypeFromConstructor()" instead.', __METHOD__, self::class);
-
-        if (null === $tagDocNode = $this->getDocBlockFromConstructor($class, $property)) {
-            return $this->getTypes($class, $property);
-        }
-
-        $types = [];
-        foreach ($this->phpStanTypeHelper->getTypes($tagDocNode, $this->typeContextFactory->createFromClassName($class)) as $type) {
-            $types[] = $type;
-        }
-
-        if (!isset($types[0])) {
-            return null;
-        }
-
-        return $types;
     }
 
     public function getType(string $class, string $property, array $context = []): ?Type
@@ -247,7 +140,8 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
     {
         $declaringClass = $class;
         if (!$tagDocNode = $this->getDocBlockFromConstructor($declaringClass, $property)) {
-            return $this->getType($class, $property);
+            // the doc block of a promoted property describes the constructor argument, the one of a plain property does not
+            return $this->isPromotedProperty($class, $property) ? $this->getType($class, $property) : null;
         }
 
         $typeContext = $this->typeContextFactory->createFromClassName($class, $declaringClass);
@@ -436,7 +330,7 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
 
     private function filterDocBlockParams(PhpDocNode $docNode, string $allowedParam): ?ParamTagValueNode
     {
-        $tags = array_values(array_filter($docNode->getTagsByName('@param'), fn ($tagNode) => $tagNode instanceof PhpDocTagNode && ('$'.$allowedParam) === $tagNode->value->parameterName));
+        $tags = array_values(array_filter($docNode->getTagsByName('@param'), static fn ($tagNode) => $tagNode instanceof PhpDocTagNode && ('$'.$allowedParam) === $tagNode->value->parameterName));
 
         if (!$tags) {
             return null;
@@ -446,7 +340,7 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
     }
 
     /**
-     * @return array{PhpDocNode|null, int|null, string|null, string|null}
+     * @return array{PhpDocNode|null, int|null, string|null, string|null, string|null}
      */
     private function getDocBlock(string $class, string $property): array
     {
@@ -458,27 +352,27 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
 
         $ucFirstProperty = ucfirst($property);
 
-        if ([$docBlock, $constructorDocBlock, $source, $declaringClass] = $this->getDocBlockFromProperty($class, $property)) {
+        if ([$docBlock, $constructorDocBlock, $source, $declaringClass, $selfClass] = $this->getDocBlockFromProperty($class, $property)) {
             if (!$docBlock?->getTagsByName('@var') && $constructorDocBlock) {
                 $docBlock = $constructorDocBlock;
             }
 
-            $data = [$docBlock, $source, null, $declaringClass];
+            $data = [$docBlock, $source, null, $declaringClass, $selfClass];
         } elseif ([$docBlock, $_, $declaringClass] = $this->getDocBlockFromMethod($class, $ucFirstProperty, self::ACCESSOR)) {
-            $data = [$docBlock, self::ACCESSOR, null, $declaringClass];
+            $data = [$docBlock, self::ACCESSOR, null, $declaringClass, $declaringClass];
         } elseif ([$docBlock, $prefix, $declaringClass] = $this->getDocBlockFromMethod($class, $ucFirstProperty, self::MUTATOR)) {
-            $data = [$docBlock, self::MUTATOR, $prefix, $declaringClass];
+            $data = [$docBlock, self::MUTATOR, $prefix, $declaringClass, $declaringClass];
         } else {
-            $data = [null, null, null, null];
+            $data = [null, null, null, null, null];
         }
 
         return $this->docBlocks[$propertyHash] = $data;
     }
 
     /**
-     * @return array{?PhpDocNode, ?PhpDocNode, int, string}|null
+     * @return array{?PhpDocNode, ?PhpDocNode, int, string, string}|null
      */
-    private function getDocBlockFromProperty(string $class, string $property): ?array
+    private function getDocBlockFromProperty(string $class, string $property, ?string $selfClass = null): ?array
     {
         // Use a ReflectionProperty instead of $class to get the parent class if applicable
         try {
@@ -495,7 +389,7 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
 
         foreach ($reflector->getTraits() as $trait) {
             if ($trait->hasProperty($property)) {
-                return $this->getDocBlockFromProperty($trait->getName(), $property);
+                return $this->getDocBlockFromProperty($trait->getName(), $property, $reflector->isTrait() ? $selfClass : $reflector->getName());
             }
         }
 
@@ -517,7 +411,7 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
             return null;
         }
 
-        return [$phpDocNode, $constructorPhpDocNode, $source, $reflectionProperty->class];
+        return [$phpDocNode, $constructorPhpDocNode, $source, $reflectionProperty->class, $reflector->isTrait() ? $selfClass ?? $class : $reflectionProperty->class];
     }
 
     /**
@@ -535,22 +429,28 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
             try {
                 $method = new \ReflectionMethod($class, $methodName);
                 if ($method->isStatic()) {
+                    $method = null;
+
                     continue;
                 }
 
                 if (self::ACCESSOR === $type && \in_array((string) $method->getReturnType(), ['void', 'never'], true)) {
+                    $method = null;
+
                     continue;
                 }
 
                 if (
                     (
                         (self::ACCESSOR === $type && !$method->getNumberOfRequiredParameters())
-                        || (self::MUTATOR === $type && $method->getNumberOfParameters() >= 1)
+                        || (self::MUTATOR === $type && $method->getNumberOfParameters() >= 1 && $method->getNumberOfRequiredParameters() <= 1)
                     )
                     && $this->canAccessMemberBasedOnItsVisibility($method)
                 ) {
                     break;
                 }
+
+                $method = null;
             } catch (\ReflectionException) {
                 // Try the next prefix if the method doesn't exist
             }
@@ -581,5 +481,28 @@ final class PhpStanExtractor implements PropertyDescriptionExtractorInterface, P
     private function canAccessMemberBasedOnItsVisibility(\ReflectionProperty|\ReflectionMethod $member): bool
     {
         return $this->allowPrivateAccess || $member->isPublic();
+    }
+
+    private function isPromotedProperty(string $class, string $property): bool
+    {
+        try {
+            return (new \ReflectionProperty($class, $property))->isPromoted();
+        } catch (\ReflectionException) {
+            return false;
+        }
+    }
+
+    /**
+     * Creates a type context that reads class names where the docblock is written, and that resolves "self" to the class using a trait.
+     */
+    private function createTypeContext(string $class, ?string $declaringClass, ?string $selfClass): TypeContext
+    {
+        $typeContext = $this->typeContextFactory->createFromClassName($class, $declaringClass);
+
+        if (null === $selfClass || $selfClass === $typeContext->declaringClassName) {
+            return $typeContext;
+        }
+
+        return new TypeContext($typeContext->calledClassName, $selfClass, $typeContext->namespace, $typeContext->uses, $typeContext->templates, $typeContext->typeAliases);
     }
 }

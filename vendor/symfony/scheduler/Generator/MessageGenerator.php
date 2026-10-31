@@ -13,6 +13,7 @@ namespace Symfony\Component\Scheduler\Generator;
 
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Clock\Clock;
+use Symfony\Component\Scheduler\Exception\LogicException;
 use Symfony\Component\Scheduler\RecurringMessage;
 use Symfony\Component\Scheduler\Schedule;
 use Symfony\Component\Scheduler\ScheduleProviderInterface;
@@ -75,16 +76,16 @@ final class MessageGenerator implements MessageGeneratorInterface
                 $yield = false;
             }
 
-            $nextTime = $trigger->getNextRunDate($time);
-
-            if ($this->schedule->shouldProcessOnlyLastMissedRun()) {
-                while ($nextTime && $nextTime < $this->clock->now()) {
-                    $nextTime = $trigger->getNextRunDate($nextTime);
+            if ($nextTime = $trigger->getNextRunDate($time)) {
+                if ($nextTime <= $time) {
+                    throw new LogicException(\sprintf('The "%s" trigger does not move the run date forward. Its "getNextRunDate()" method must return a date strictly after the given one.', $trigger));
                 }
-            }
 
-            if ($nextTime) {
                 $heap->insert([$nextTime, $index, $recurringMessage]);
+
+                if ($nextTime <= $now && $this->schedule->shouldProcessOnlyLastMissedRun()) {
+                    $yield = false;
+                }
             }
 
             if ($yield) {

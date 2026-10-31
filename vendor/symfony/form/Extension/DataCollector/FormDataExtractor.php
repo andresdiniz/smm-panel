@@ -88,7 +88,7 @@ class FormDataExtractor implements FormDataExtractorInterface
             $errorData = [
                 'message' => $error->getMessage(),
                 'origin' => \is_object($error->getOrigin())
-                    ? spl_object_hash($error->getOrigin())
+                    ? spl_object_id($error->getOrigin())
                     : null,
                 'trace' => [],
             ];
@@ -98,7 +98,7 @@ class FormDataExtractor implements FormDataExtractorInterface
             while (null !== $cause) {
                 if ($cause instanceof ConstraintViolationInterface) {
                     $errorData['trace'][] = $cause;
-                    $cause = method_exists($cause, 'getCause') ? $cause->getCause() : null;
+                    $cause = $cause->getCause();
 
                     continue;
                 }

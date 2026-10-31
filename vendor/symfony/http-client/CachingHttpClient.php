@@ -11,17 +11,16 @@
 
 namespace Symfony\Component\HttpClient;
 
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpClient\Caching\Freshness;
 use Symfony\Component\HttpClient\Chunk\ErrorChunk;
 use Symfony\Component\HttpClient\Exception\ChunkCacheItemNotFoundException;
+use Symfony\Component\HttpClient\Internal\OutgoingRequest;
 use Symfony\Component\HttpClient\Response\AsyncContext;
 use Symfony\Component\HttpClient\Response\AsyncResponse;
 use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\HttpClient\Response\ResponseStream;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\HttpCache\HttpCache;
-use Symfony\Component\HttpKernel\HttpCache\StoreInterface;
-use Symfony\Component\HttpKernel\HttpClientKernel;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 use Symfony\Contracts\HttpClient\ChunkInterface;
@@ -44,7 +43,7 @@ use Symfony\Contracts\Service\ResetInterface;
  *
  * @see https://www.rfc-editor.org/rfc/rfc9111
  */
-class CachingHttpClient implements HttpClientInterface, ResetInterface
+class CachingHttpClient implements HttpClientInterface, LoggerAwareInterface, ResetInterface
 {
     use AsyncDecoratorTrait {
         stream as asyncStream;
@@ -101,47 +100,27 @@ class CachingHttpClient implements HttpClientInterface, ResetInterface
      */
     private const HEURISTIC_FRESHNESS_FRACTION = 0.1;
 
-    private TagAwareCacheInterface|HttpCache $cache;
     private array $defaultOptions = self::OPTIONS_DEFAULTS;
     private bool $isInnerRequest = false;
+    private ?LoggerInterface $logger = null;
 
     /**
-     * @param bool     $sharedCache Indicates whether this cache is shared or private. When true, responses
-     *                              may be skipped from caching in presence of certain headers
-     *                              (e.g. Authorization) unless explicitly marked as public.
-     * @param int|null $maxTtl      The maximum time-to-live (in seconds) for cached responses.
-     *                              If a server-provided TTL exceeds this value, it will be capped
-     *                              to this maximum.
+     * @param bool         $sharedCache Indicates whether this cache is shared or private. When true, responses
+     *                                  may be skipped from caching in presence of certain headers
+     *                                  (e.g. Authorization) unless explicitly marked as public.
+     * @param positive-int $maxTtl      The maximum time-to-live (in seconds) for cached responses.
+     *                                  If a server-provided TTL exceeds this value, it will be capped
+     *                                  to this maximum.
      */
     public function __construct(
         private HttpClientInterface $client,
-        TagAwareCacheInterface|StoreInterface $cache,
+        private readonly TagAwareCacheInterface $cache,
         array $defaultOptions = [],
         private readonly bool $sharedCache = true,
-        private readonly ?int $maxTtl = null,
+        private readonly ?int $maxTtl = 86400,
     ) {
-        if ($cache instanceof StoreInterface) {
-            trigger_deprecation('symfony/http-client', '7.4', 'Passing a "%s" as constructor\'s 2nd argument of "%s" is deprecated, "%s" expected.', StoreInterface::class, __CLASS__, TagAwareCacheInterface::class);
-
-            if (!class_exists(HttpClientKernel::class)) {
-                throw new \LogicException(\sprintf('Using "%s" requires the HttpKernel component, try running "composer require symfony/http-kernel".', __CLASS__));
-            }
-
-            $kernel = new HttpClientKernel($client);
-            $this->cache = new HttpCache($kernel, $cache, null, $defaultOptions);
-
-            unset($defaultOptions['debug']);
-            unset($defaultOptions['default_ttl']);
-            unset($defaultOptions['private_headers']);
-            unset($defaultOptions['skip_response_headers']);
-            unset($defaultOptions['allow_reload']);
-            unset($defaultOptions['allow_revalidate']);
-            unset($defaultOptions['stale_while_revalidate']);
-            unset($defaultOptions['stale_if_error']);
-            unset($defaultOptions['trace_level']);
-            unset($defaultOptions['trace_header']);
-        } else {
-            $this->cache = $cache;
+        if (null === $maxTtl) {
+            trigger_deprecation('symfony/http-client', '8.1', 'Passing null as "$maxTtl" to "%s()" is deprecated, pass a positive integer instead.', __METHOD__);
         }
 
         if ($defaultOptions) {
@@ -149,14 +128,15 @@ class CachingHttpClient implements HttpClientInterface, ResetInterface
         }
     }
 
+    public function setLogger(LoggerInterface $logger): void
+    {
+        $this->logger = $logger;
+    }
+
     public function request(string $method, string $url, array $options = []): ResponseInterface
     {
         if ($this->isInnerRequest) {
             return $this->client->request($method, $url, $options);
-        }
-
-        if ($this->cache instanceof HttpCache) {
-            return $this->legacyRequest($method, $url, $options);
         }
 
         [$fullUrl, $options] = self::prepareRequest($method, $url, $options, $this->defaultOptions);
@@ -245,8 +225,10 @@ class CachingHttpClient implements HttpClientInterface, ResetInterface
             return self::createGatewayTimeoutResponse($method, $url, $options);
         }
 
+        $requestTime = time();
+
         // consistent expiration time for all items
-        $expiresAt = null === $this->maxTtl ? null : \DateTimeImmutable::createFromFormat('U', time() + $this->maxTtl);
+        $expiresAt = \DateTimeImmutable::createFromFormat('U', time() + ($this->maxTtl ?? 86400));
 
         $passthru = function (ChunkInterface $chunk, AsyncContext $context) use (
             $expiresAt,
@@ -263,6 +245,7 @@ class CachingHttpClient implements HttpClientInterface, ResetInterface
             $hasClientConditionalValidator,
             $sentCacheValidator,
             $allowStaleFallback,
+            $requestTime,
         ): \Generator {
             static $attemptTag = null;
             static $firstChunkKey = null;
@@ -272,6 +255,11 @@ class CachingHttpClient implements HttpClientInterface, ResetInterface
                 null !== $attemptTag && $this->cache->invalidateTags([$attemptTag]);
 
                 if ($allowStaleFallback && Freshness::StaleButUsable === $freshness) {
+                    $this->logger?->info('Serving stale cached response for "{method} {url}" because the upstream call failed: {error}.', [
+                        'method' => $method,
+                        'url' => $url,
+                        'error' => $chunk instanceof ErrorChunk ? $chunk->getError() : 'timeout',
+                    ]);
                     // avoid throwing exception in ErrorChunk#__destruct()
                     $chunk instanceof ErrorChunk && $chunk->didThrow(true);
                     $context->passthru();
@@ -313,10 +301,6 @@ class CachingHttpClient implements HttpClientInterface, ResetInterface
                     }
 
                     $responseTime = time();
-                    $requestTime = (int) ($context->getInfo('start_time') ?? $responseTime);
-                    if ($requestTime <= $cachedData['stored_at']) {
-                        $requestTime = $responseTime;
-                    }
                     $correctedInitialAge = self::getCorrectedInitialAge($headers, $requestTime, $responseTime);
                     $updatedHeaders = self::filterStorableHeaders(array_merge($cachedData['headers'], $headers), self::getExcludedHeaders($headers));
                     $updatedCachedData = array_replace($cachedData, [
@@ -362,6 +346,11 @@ class CachingHttpClient implements HttpClientInterface, ResetInterface
 
                 if ($statusCode >= 500 && $statusCode < 600) {
                     if ($allowStaleFallback && Freshness::StaleButUsable === $freshness) {
+                        $this->logger?->info('Serving stale cached response for "{method} {url}" because the upstream returned a server error (HTTP {status}).', [
+                            'method' => $method,
+                            'url' => $url,
+                            'status' => $statusCode,
+                        ]);
                         $context->passthru();
                         $context->replaceResponse($this->createResponseFromCache($cachedData, $method, $url, $options, $metadataKey));
 
@@ -435,7 +424,6 @@ class CachingHttpClient implements HttpClientInterface, ResetInterface
                     ];
                 }, \INF);
 
-                $requestTime = (int) ($context->getInfo('start_time') ?? time());
                 $responseTime = time();
                 $correctedInitialAge = self::getCorrectedInitialAge($headers, $requestTime, $responseTime);
                 $maxAge = $this->determineMaxAge($headers, self::parseCacheControlHeader($headers['cache-control'] ?? []), $correctedInitialAge, $requestTime, $responseTime);
@@ -523,50 +511,6 @@ class CachingHttpClient implements HttpClientInterface, ResetInterface
                 yield from $this->asyncStream($asyncResponses, $timeout);
             }
         })());
-    }
-
-    private function legacyRequest(string $method, string $url, array $options = []): ResponseInterface
-    {
-        [$url, $options] = self::prepareRequest($method, $url, $options, $this->defaultOptions, true);
-        $url = implode('', $url);
-
-        if (!empty($options['body']) || !empty($options['extra']['no_cache']) || !\in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)) {
-            return new AsyncResponse($this->client, $method, $url, $options);
-        }
-
-        $request = Request::create($url, $method);
-        $request->attributes->set('http_client_options', $options);
-
-        foreach ($options['normalized_headers'] as $name => $values) {
-            if ('cookie' !== $name) {
-                $headerValues = [];
-
-                foreach ($values as $value) {
-                    $headerValues[] = substr($value, 2 + \strlen($name));
-                }
-
-                $request->headers->set($name, $headerValues);
-
-                continue;
-            }
-
-            foreach ($values as $cookies) {
-                foreach (explode('; ', substr($cookies, \strlen('Cookie: '))) as $cookie) {
-                    if ('' !== $cookie) {
-                        $cookie = explode('=', $cookie, 2);
-                        $request->cookies->set($cookie[0], $cookie[1] ?? '');
-                    }
-                }
-            }
-        }
-
-        $response = $this->cache->handle($request);
-        $response = new MockResponse($response->getContent(), [
-            'http_code' => $response->getStatusCode(),
-            'response_headers' => $response->headers->allPreserveCase(),
-        ]);
-
-        return MockResponse::fromRequest($method, $url, $options, $response);
     }
 
     private static function hash(string $toHash): string

@@ -22,12 +22,20 @@ interface SerializerInterface
     /**
      * Decodes an envelope and its message from an encoded-form.
      *
+     * Stamps that implement NonSendableStampInterface should not be decoded.
+     *
      * The `$encodedEnvelope` parameter is a key-value array that
      * describes the envelope and its content, that will be used by the different transports.
      *
      * The most common keys are:
      * - `body` (string) - the message body
      * - `headers` (string<string>) - a key/value pair of headers
+     *
+     * On failure, implementations SHOULD return an Envelope wrapping a
+     * MessageDecodingFailedException instead of throwing, so that the worker
+     * can route the failure through the normal retry/DLQ path. Throwing a
+     * MessageDecodingFailedException is still supported for BC with custom
+     * serializers; transports will wrap the exception as a fallback.
      *
      * @param array{body: string, headers?: array<string, string>} $encodedEnvelope
      *

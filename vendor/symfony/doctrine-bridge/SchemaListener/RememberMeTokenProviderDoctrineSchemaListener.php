@@ -40,11 +40,11 @@ class RememberMeTokenProviderDoctrineSchemaListener extends AbstractSchemaListen
                 && ($tokenProvider = $rememberMeHandler->getTokenProvider()) instanceof DoctrineTokenProvider
             ) {
                 $isSameDatabaseChecker = $this->getIsSameDatabaseChecker($connection);
-                $schema = $this->filterSchemaChanges($schema, $connection, static fn () => $tokenProvider->configureSchema($schema, $connection, $isSameDatabaseChecker)) ?? $schema;
+                $schema = $this->filterSchemaChanges($schema, $connection, static fn () => $tokenProvider->configureSchema($schema, $connection, $isSameDatabaseChecker));
             }
         }
 
-        if (method_exists($event, 'setSchema')) {
+        if (method_exists($schema, 'edit') && method_exists($event, 'setSchema')) {
             $event->setSchema($schema);
         }
     }

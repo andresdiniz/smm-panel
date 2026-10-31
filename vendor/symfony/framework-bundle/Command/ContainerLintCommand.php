@@ -12,7 +12,6 @@
 namespace Symfony\Bundle\FrameworkBundle\Command;
 
 use Symfony\Component\Config\ConfigCache;
-use Symfony\Component\Config\FileLocator;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Exception\RuntimeException;
@@ -25,10 +24,9 @@ use Symfony\Component\DependencyInjection\Compiler\CheckTypeDeclarationsPass;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\Compiler\ResolveFactoryClassPass;
 use Symfony\Component\DependencyInjection\Compiler\ResolveParameterPlaceHoldersPass;
+use Symfony\Component\DependencyInjection\Compiler\ResolveTaggedIteratorArgumentPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
-use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
-use Symfony\Component\DependencyInjection\ParameterBag\EnvPlaceholderParameterBag;
 use Symfony\Component\HttpKernel\Kernel;
 
 #[AsCommand(name: 'lint:container', description: 'Ensure that arguments injected into services match type declarations')]
@@ -96,24 +94,22 @@ final class ContainerLintCommand extends Command
             }, $kernel, $kernel::class);
             $container = $buildContainer();
         } else {
-            if (str_ends_with($file, '.xml') && is_file(substr_replace($file, '.ser', -4))) {
-                $container = unserialize(file_get_contents(substr_replace($file, '.ser', -4)), ['allowed_classes' => true]);
-            } else {
-                (new XmlFileLoader($container = new ContainerBuilder(new EnvPlaceholderParameterBag()), new FileLocator()))->load($file);
-            }
+            $container = unserialize(file_get_contents(substr_replace($file, '.ser', -4)), ['allowed_classes' => true]);
 
             if (!$container instanceof ContainerBuilder) {
                 throw new RuntimeException(\sprintf('This command does not support the application container: "%s" is not a "%s".', get_debug_type($container), ContainerBuilder::class));
             }
 
+            // the XML dump doesn't keep the services matched by tagged iterators,
+            // resolving them again keeps the removing passes from dropping them
             if ($resolveEnvVars) {
-                $container->getCompilerPassConfig()->setOptimizationPasses([new ResolveParameterPlaceHoldersPass(), new ResolveFactoryClassPass()]);
+                $container->getCompilerPassConfig()->setOptimizationPasses([new ResolveParameterPlaceHoldersPass(), new ResolveFactoryClassPass(), new ResolveTaggedIteratorArgumentPass()]);
             } else {
                 $parameterBag = $container->getParameterBag();
                 $refl = new \ReflectionProperty($parameterBag, 'resolved');
                 $refl->setValue($parameterBag, true);
 
-                $container->getCompilerPassConfig()->setOptimizationPasses([new ResolveFactoryClassPass()]);
+                $container->getCompilerPassConfig()->setOptimizationPasses([new ResolveFactoryClassPass(), new ResolveTaggedIteratorArgumentPass()]);
             }
 
             $container->getCompilerPassConfig()->setBeforeOptimizationPasses([]);

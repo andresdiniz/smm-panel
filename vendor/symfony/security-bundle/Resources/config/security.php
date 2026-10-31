@@ -164,12 +164,16 @@ return static function (ContainerConfigurator $container) {
                 service('security.authentication.trust_resolver'),
                 service('security.authorization_checker'),
                 service('security.role_hierarchy')->nullOnInvalid(),
+                service('security.access.decision_manager'),
+                service('security.token_storage'),
             ])
             ->tag('security.voter', ['priority' => 245])
 
         ->set('security.access.closure_voter', ClosureVoter::class)
             ->args([
                 service('security.authorization_checker'),
+                service('security.access.decision_manager'),
+                service('security.token_storage'),
             ])
             ->tag('security.voter', ['priority' => 245])
 
@@ -313,17 +317,21 @@ return static function (ContainerConfigurator $container) {
             ->tag('kernel.event_subscriber')
 
         ->set('security.is_granted_attribute_expression_language', BaseExpressionLanguage::class)
+            ->lazy()
             ->args([service('cache.security_is_granted_attribute_expression_language')->nullOnInvalid()])
 
         ->set('cache.security_is_granted_attribute_expression_language')
             ->parent('cache.system')
+            ->private()
             ->tag('cache.pool')
 
         ->set('security.is_csrf_token_valid_attribute_expression_language', BaseExpressionLanguage::class)
+            ->lazy()
             ->args([service('cache.security_is_csrf_token_valid_attribute_expression_language')->nullOnInvalid()])
 
         ->set('cache.security_is_csrf_token_valid_attribute_expression_language')
             ->parent('cache.system')
+            ->private()
             ->tag('cache.pool')
     ;
 };

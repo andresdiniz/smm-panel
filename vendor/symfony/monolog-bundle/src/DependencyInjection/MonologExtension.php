@@ -15,22 +15,19 @@ use Monolog\Attribute\AsMonologProcessor;
 use Monolog\Attribute\WithMonologChannel;
 use Monolog\Handler\FingersCrossed\ErrorLevelActivationStrategy;
 use Monolog\Handler\HandlerInterface;
-use Monolog\Logger;
 use Monolog\Processor\ProcessorInterface;
 use Monolog\Processor\PsrLogMessageProcessor;
 use Monolog\ResettableInterface;
 use Symfony\Bridge\Monolog\Handler\FingersCrossed\HttpCodeActivationStrategy;
-use Symfony\Bridge\Monolog\Processor\SwitchUserTokenProcessor;
 use Symfony\Bridge\Monolog\Processor\TokenProcessor;
-use Symfony\Bridge\Monolog\Processor\WebProcessor;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\Argument\BoundArgument;
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
-use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
@@ -38,14 +35,14 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  *
  * @author Jordi Boggiano <j.boggiano@seld.be>
  * @author Christophe Coevoet <stof@notk.org>
- *
- * @final since 3.9.0
  */
-class MonologExtension extends Extension
+final class MonologExtension extends Extension
 {
-    private $nestedHandlers = [];
+    /** @var list<string> */
+    private array $nestedHandlers = [];
 
-    private $swiftMailerHandlers = [];
+    /** @var array<string, true> */
+    private array $disabledHandlers = [];
 
     /**
      * Loads the Monolog configuration.
@@ -53,7 +50,7 @@ class MonologExtension extends Extension
      * @param array            $configs   An array of configuration settings
      * @param ContainerBuilder $container A ContainerBuilder instance
      */
-    public function load(array $configs, ContainerBuilder $container)
+    public function load(array $configs, ContainerBuilder $container): void
     {
         $configuration = $this->getConfiguration($configs, $container);
         $config = $this->processConfiguration($configuration, $configs);
@@ -64,7 +61,22 @@ class MonologExtension extends Extension
 
             $container->setParameter('monolog.use_microseconds', $config['use_microseconds']);
 
+            if (null !== $config['timezone']) {
+                $prototype = $container->getDefinition('monolog.logger_prototype');
+                $prototype->setArgument(1, []);
+                $prototype->setArgument(2, []);
+                $prototype->setArgument(3, new Definition(\DateTimeZone::class, [$config['timezone']]));
+            }
+
             $handlers = [];
+
+            // Collect disabled handlers first so that group members referencing
+            // them can be skipped, regardless of the order they are declared in.
+            foreach ($config['handlers'] as $name => $handler) {
+                if (!$handler['enabled']) {
+                    $this->disabledHandlers[$name] = true;
+                }
+            }
 
             foreach ($config['handlers'] as $name => $handler) {
                 if (!$handler['enabled']) {
@@ -75,11 +87,6 @@ class MonologExtension extends Extension
                     'channels' => empty($handler['channels']) ? null : $handler['channels'],
                 ];
             }
-
-            $container->setParameter(
-                'monolog.swift_mailer.handlers',
-                $this->swiftMailerHandlers
-            );
 
             ksort($handlers);
             $sortedHandlers = [];
@@ -100,17 +107,10 @@ class MonologExtension extends Extension
 
         $container->setParameter('monolog.additional_channels', $config['channels'] ?? []);
 
-        if (interface_exists(ProcessorInterface::class)) {
-            $container->registerForAutoconfiguration(ProcessorInterface::class)
-                ->addTag('monolog.processor');
-        } else {
-            $container->registerForAutoconfiguration(WebProcessor::class)
-                ->addTag('monolog.processor');
-        }
-        if (interface_exists(ResettableInterface::class)) {
-            $container->registerForAutoconfiguration(ResettableInterface::class)
-                ->addTag('kernel.reset', ['method' => 'reset']);
-        }
+        $container->registerForAutoconfiguration(ProcessorInterface::class)
+            ->addTag('monolog.processor');
+        $container->registerForAutoconfiguration(ResettableInterface::class)
+            ->addTag('kernel.reset', ['method' => 'reset']);
         $container->registerForAutoconfiguration(TokenProcessor::class)
             ->addTag('monolog.processor');
 
@@ -136,24 +136,22 @@ class MonologExtension extends Extension
         $container->registerAttributeForAutoconfiguration(WithMonologChannel::class, static function (ChildDefinition $definition, WithMonologChannel $attribute): void {
             $definition->addTag('monolog.logger', ['channel' => $attribute->channel]);
         });
+        $container->registerAttributeForAutoconfiguration(WithMonologChannel::class, static function (ChildDefinition $definition, WithMonologChannel $attribute, \ReflectionParameter $reflector): void {
+            $definition->addTag('monolog.logger', ['channel' => $attribute->channel, 'argument' => $reflector->getName()]);
+        });
     }
 
-    /**
-     * Returns the base path for the XSD files.
-     *
-     * @return string The XSD base path
-     */
-    public function getXsdValidationBasePath()
+    public function getXsdValidationBasePath(): string
     {
         return __DIR__.'/../../config/schema';
     }
 
-    public function getNamespace()
+    public function getNamespace(): string
     {
         return 'http://symfony.com/schema/dic/monolog';
     }
 
-    private function buildHandler(ContainerBuilder $container, $name, array $handler)
+    private function buildHandler(ContainerBuilder $container, string $name, array $handler): string
     {
         $handlerId = $this->getHandlerId($name);
         if ('service' === $handler['type']) {
@@ -169,8 +167,12 @@ class MonologExtension extends Extension
         $handlerClass = $this->getHandlerClassByType($handler['type']);
         $definition = new Definition($handlerClass);
 
-        if ($handler['include_stacktraces']) {
-            $definition->setConfigurator(['Symfony\\Bundle\\MonologBundle\\MonologBundle', 'includeStacktraces']);
+        if ($handler['include_stacktraces'] || null !== $handler['base_path']) {
+            $configurator = new Definition(FormatterConfigurator::class, [
+                $handler['include_stacktraces'],
+                $handler['base_path'],
+            ]);
+            $definition->setConfigurator([$configurator, '__invoke']);
         }
 
         if (null === $handler['process_psr_3_messages']['enabled']) {
@@ -216,8 +218,8 @@ class MonologExtension extends Extension
             case 'gelf':
                 if (isset($handler['publisher']['id'])) {
                     $publisher = new Reference($handler['publisher']['id']);
-                } elseif (class_exists('Gelf\Transport\UdpTransport')) {
-                    $transport = new Definition("Gelf\Transport\UdpTransport", [
+                } elseif (class_exists(\Gelf\Transport\UdpTransport::class)) {
+                    $transport = new Definition(\Gelf\Transport\UdpTransport::class, [
                         $handler['publisher']['hostname'],
                         $handler['publisher']['port'],
                         $handler['publisher']['chunk_size'],
@@ -226,9 +228,9 @@ class MonologExtension extends Extension
 
                     if (isset($handler['publisher']['encoder'])) {
                         if ('compressed_json' === $handler['publisher']['encoder']) {
-                            $encoderClass = 'Gelf\Encoder\CompressedJsonEncoder';
+                            $encoderClass = \Gelf\Encoder\CompressedJsonEncoder::class;
                         } elseif ('json' === $handler['publisher']['encoder']) {
-                            $encoderClass = 'Gelf\Encoder\JsonEncoder';
+                            $encoderClass = \Gelf\Encoder\JsonEncoder::class;
                         } else {
                             throw new \RuntimeException('The gelf message encoder must be either "compressed_json" or "json".');
                         }
@@ -239,19 +241,8 @@ class MonologExtension extends Extension
                         $transport->addMethodCall('setMessageEncoder', [$encoder]);
                     }
 
-                    $publisher = new Definition('Gelf\Publisher', []);
+                    $publisher = new Definition(\Gelf\Publisher::class, []);
                     $publisher->addMethodCall('addTransport', [$transport]);
-                    $publisher->setPublic(false);
-                } elseif (class_exists('Gelf\MessagePublisher')) {
-                    if (isset($handler['publisher']['encoder']) && 'compressed_json' !== $handler['publisher']['encoder']) {
-                        throw new \RuntimeException('The Gelf\MessagePublisher publisher supports only the compressed json encoding. Omit the option to use the default encoding or use "compressed_json" as the encoder option.');
-                    }
-                    $publisher = new Definition('Gelf\MessagePublisher', [
-                        $handler['publisher']['hostname'],
-                        $handler['publisher']['port'],
-                        $handler['publisher']['chunk_size'],
-                    ]);
-
                     $publisher->setPublic(false);
                 } else {
                     throw new \RuntimeException('The gelf handler requires the graylog2/gelf-php package to be installed.');
@@ -264,41 +255,8 @@ class MonologExtension extends Extension
                 ]);
                 break;
 
-            case 'mongo':
-                trigger_deprecation('symfony/monolog-bundle', '3.11', 'The "mongo" handler type is deprecated in MonologBundle since version 3.11.0, use the "mongodb" type instead.');
-
-                if (!class_exists('MongoDB\Client')) {
-                    throw new \RuntimeException('The "mongo" handler requires the mongodb/mongodb package to be installed.');
-                }
-
-                if (isset($handler['mongo']['id'])) {
-                    $client = new Reference($handler['mongo']['id']);
-                } else {
-                    $server = 'mongodb://';
-
-                    if (isset($handler['mongo']['user'])) {
-                        $server .= $handler['mongo']['user'].':'.$handler['mongo']['pass'].'@';
-                    }
-
-                    $server .= $handler['mongo']['host'].':'.$handler['mongo']['port'];
-
-                    $client = new Definition('MongoDB\Client', [
-                        $server,
-                        ['appname' => 'monolog-bundle'],
-                    ]);
-                }
-
-                $definition->setArguments([
-                    $client,
-                    $handler['mongo']['database'],
-                    $handler['mongo']['collection'],
-                    $handler['level'],
-                    $handler['bubble'],
-                ]);
-                break;
-
             case 'mongodb':
-                if (!class_exists('MongoDB\Client')) {
+                if (!class_exists(\MongoDB\Client::class)) {
                     throw new \RuntimeException('The "mongodb" handler requires the mongodb/mongodb package to be installed.');
                 }
 
@@ -315,7 +273,7 @@ class MonologExtension extends Extension
                         $uriOptions['password'] = $handler['mongodb']['password'];
                     }
 
-                    $client = new Definition('MongoDB\Client', [
+                    $client = new Definition(\MongoDB\Client::class, [
                         $handler['mongodb']['uri'],
                         $uriOptions,
                     ]);
@@ -330,14 +288,10 @@ class MonologExtension extends Extension
                 ]);
 
                 if (empty($handler['formatter'])) {
-                    $formatter = new Definition('Monolog\Formatter\MongoDBFormatter');
+                    $formatter = new Definition(\Monolog\Formatter\MongoDBFormatter::class);
                     $definition->addMethodCall('setFormatter', [$formatter]);
                 }
                 break;
-
-            case 'elasticsearch':
-                trigger_deprecation('symfony/monolog-bundle', '3.8', 'The "elasticsearch" handler type is deprecated in MonologBundle since version 3.8.0, use the "elastica" type instead, or switch to the official Elastic client using the "elastic_search" type.');
-                // no break
 
             case 'elastica':
             case 'elastic_search':
@@ -346,8 +300,8 @@ class MonologExtension extends Extension
                 } else {
                     if ('elastic_search' === $handler['type']) {
                         // v8 has a new Elastic\ prefix
-                        $client = new Definition(class_exists('Elastic\Elasticsearch\Client') ? 'Elastic\Elasticsearch\Client' : 'Elasticsearch\Client');
-                        $factory = class_exists('Elastic\Elasticsearch\ClientBuilder') ? 'Elastic\Elasticsearch\ClientBuilder' : 'Elasticsearch\ClientBuilder';
+                        $client = new Definition(class_exists(\Elastic\Elasticsearch\Client::class) ? \Elastic\Elasticsearch\Client::class : \Elasticsearch\Client::class);
+                        $factory = class_exists(\Elastic\Elasticsearch\ClientBuilder::class) ? \Elastic\Elasticsearch\ClientBuilder::class : \Elasticsearch\ClientBuilder::class;
                         $client->setFactory([$factory, 'fromConfig']);
                         $clientArguments = [
                             'hosts' => $handler['elasticsearch']['hosts'] ?? [$handler['elasticsearch']['host']],
@@ -357,7 +311,7 @@ class MonologExtension extends Extension
                             $clientArguments['basicAuthentication'] = [$handler['elasticsearch']['user'], $handler['elasticsearch']['password']];
                         }
                     } else {
-                        $client = new Definition('Elastica\Client');
+                        $client = new Definition(\Elastica\Client::class);
 
                         if (isset($handler['elasticsearch']['hosts'])) {
                             $clientArguments = [
@@ -400,10 +354,6 @@ class MonologExtension extends Extension
                 break;
 
             case 'telegram':
-                if (!class_exists('Monolog\Handler\TelegramBotHandler')) {
-                    throw new \RuntimeException('The TelegramBotHandler is not available. Please update "monolog/monolog" to 2.2.0.');
-                }
-
                 $definition->setArguments([
                     $handler['token'],
                     $handler['channel'],
@@ -475,26 +425,12 @@ class MonologExtension extends Extension
                 $nestedHandlerId = $this->getHandlerId($handler['handler']);
                 $this->markNestedHandler($nestedHandlerId);
 
-                $activation = $handler['action_level'];
-                if (class_exists(SwitchUserTokenProcessor::class)) {
-                    $activation = new Definition(ErrorLevelActivationStrategy::class, [$activation]);
-                }
+                $activation = new Definition(ErrorLevelActivationStrategy::class, [$handler['action_level']]);
 
                 if (isset($handler['activation_strategy'])) {
                     $activation = new Reference($handler['activation_strategy']);
-                } elseif (!empty($handler['excluded_404s'])) {
-                    if (class_exists(HttpCodeActivationStrategy::class)) {
-                        trigger_deprecation('symfony/monolog-bundle', '3.4', 'The "excluded_404s" option is deprecated, you should rely on the "excluded_http_codes" option instead.');
-                    }
-                    $activationDef = new Definition('Symfony\Bridge\Monolog\Handler\FingersCrossed\NotFoundActivationStrategy', [
-                        new Reference('request_stack'),
-                        $handler['excluded_404s'],
-                        $activation,
-                    ]);
-                    $container->setDefinition($handlerId.'.not_found_strategy', $activationDef);
-                    $activation = new Reference($handlerId.'.not_found_strategy');
                 } elseif (!empty($handler['excluded_http_codes'])) {
-                    $activationDef = new Definition('Symfony\Bridge\Monolog\Handler\FingersCrossed\HttpCodeActivationStrategy', [
+                    $activationDef = new Definition(HttpCodeActivationStrategy::class, [
                         new Reference('request_stack'),
                         $handler['excluded_http_codes'],
                         $activation,
@@ -558,6 +494,10 @@ class MonologExtension extends Extension
             case 'fallbackgroup':
                 $references = [];
                 foreach ($handler['members'] as $nestedHandler) {
+                    if (isset($this->disabledHandlers[$nestedHandler])) {
+                        // a disabled handler is not registered as a service, skip it
+                        continue;
+                    }
                     $nestedHandlerId = $this->getHandlerId($nestedHandler);
                     $this->markNestedHandler($nestedHandlerId);
                     $references[] = new Reference($nestedHandlerId);
@@ -586,47 +526,9 @@ class MonologExtension extends Extension
                     $handler['facility'],
                     $handler['level'],
                     $handler['bubble'],
+                    $handler['ident'] ?: 'php',
+                    $handler['rfc'],
                 ]);
-                if ($handler['ident']) {
-                    $definition->addArgument($handler['ident']);
-                }
-                break;
-
-            case 'swift_mailer':
-                $mailer = $handler['mailer'] ?: 'mailer';
-                if (isset($handler['email_prototype'])) {
-                    if (!empty($handler['email_prototype']['method'])) {
-                        $prototype = [new Reference($handler['email_prototype']['id']), $handler['email_prototype']['method']];
-                    } else {
-                        $prototype = new Reference($handler['email_prototype']['id']);
-                    }
-                } else {
-                    $messageFactory = new Definition('Symfony\Bundle\MonologBundle\SwiftMailer\MessageFactory');
-                    $messageFactory->setLazy(true);
-                    $messageFactory->setPublic(false);
-                    $messageFactory->setArguments([
-                        new Reference($mailer),
-                        $handler['from_email'],
-                        $handler['to_email'],
-                        $handler['subject'],
-                        $handler['content_type'],
-                    ]);
-
-                    $messageFactoryId = \sprintf('%s.mail_message_factory', $handlerId);
-                    $container->setDefinition($messageFactoryId, $messageFactory);
-                    // set the prototype as a callable
-                    $prototype = [new Reference($messageFactoryId), 'createMessage'];
-                }
-                $definition->setArguments([
-                    new Reference($mailer),
-                    $prototype,
-                    $handler['level'],
-                    $handler['bubble'],
-                ]);
-
-                $this->swiftMailerHandlers[] = $handlerId;
-                $definition->addTag('kernel.event_listener', ['event' => 'kernel.terminate', 'method' => 'onKernelTerminate']);
-                $definition->addTag('kernel.event_listener', ['event' => 'console.terminate', 'method' => 'onCliTerminate']);
                 break;
 
             case 'native_mailer':
@@ -640,6 +542,9 @@ class MonologExtension extends Extension
                 if (!empty($handler['headers'])) {
                     $definition->addMethodCall('addHeader', [$handler['headers']]);
                 }
+                if (!empty($handler['parameters'])) {
+                    $definition->addMethodCall('addParameter', [$handler['parameters']]);
+                }
                 break;
 
             case 'symfony_mailer':
@@ -651,7 +556,7 @@ class MonologExtension extends Extension
                         $prototype = new Reference($handler['email_prototype']['id']);
                     }
                 } else {
-                    $prototype = (new Definition('Symfony\Component\Mime\Email'))
+                    $prototype = (new Definition(\Symfony\Component\Mime\Email::class))
                         ->setPublic(false)
                         ->addMethodCall('from', [$handler['from_email']])
                         ->addMethodCall('to', $handler['to_email'])
@@ -698,27 +603,6 @@ class MonologExtension extends Extension
                 }
                 break;
 
-            case 'hipchat':
-                $definition->setArguments([
-                    $handler['token'],
-                    $handler['room'],
-                    $handler['nickname'],
-                    $handler['notify'],
-                    $handler['level'],
-                    $handler['bubble'],
-                    $handler['use_ssl'],
-                    $handler['message_format'],
-                    !empty($handler['host']) ? $handler['host'] : 'api.hipchat.com',
-                    !empty($handler['api_version']) ? $handler['api_version'] : 'v1',
-                ]);
-                if (isset($handler['timeout'])) {
-                    $definition->addMethodCall('setTimeout', [$handler['timeout']]);
-                }
-                if (isset($handler['connection_timeout'])) {
-                    $definition->addMethodCall('setConnectionTimeout', [$handler['connection_timeout']]);
-                }
-                break;
-
             case 'slack':
                 $definition->setArguments([
                     $handler['token'],
@@ -755,16 +639,6 @@ class MonologExtension extends Extension
                 ]);
                 break;
 
-            case 'slackbot':
-                $definition->setArguments([
-                    $handler['team'],
-                    $handler['token'],
-                    urlencode($handler['channel']),
-                    $handler['level'],
-                    $handler['bubble'],
-                ]);
-                break;
-
             case 'cube':
                 $definition->setArguments([
                     $handler['url'],
@@ -787,85 +661,8 @@ class MonologExtension extends Extension
                     $handler['message_type'],
                     $handler['level'],
                     $handler['bubble'],
+                    $handler['expand_newlines'],
                 ]);
-                break;
-
-            case 'sentry':
-                trigger_deprecation('symfony/monolog-bundle', '3.11', 'The "sentry" handler type is deprecated, use the "sentry/sentry-symfony" and a "service" handler instead.');
-                if (null !== $handler['hub_id']) {
-                    $hubId = $handler['hub_id'];
-                } else {
-                    if (null !== $handler['client_id']) {
-                        $clientId = $handler['client_id'];
-                    } else {
-                        $options = new Definition(
-                            'Sentry\\Options',
-                            [['dsn' => $handler['dsn']]]
-                        );
-
-                        if (!empty($handler['environment'])) {
-                            $options->addMethodCall('setEnvironment', [$handler['environment']]);
-                        }
-
-                        if (!empty($handler['release'])) {
-                            $options->addMethodCall('setRelease', [$handler['release']]);
-                        }
-
-                        $builder = new Definition('Sentry\\ClientBuilder', [$options]);
-
-                        $client = new Definition('Sentry\\Client');
-                        $client->setFactory([$builder, 'getClient']);
-
-                        $clientId = 'monolog.sentry.client.'.sha1($handler['dsn']);
-                        $container->setDefinition($clientId, $client);
-
-                        if (!$container->hasAlias('Sentry\\ClientInterface')) {
-                            $container->setAlias('Sentry\\ClientInterface', $clientId);
-                        }
-                    }
-
-                    $hubId = \sprintf('monolog.handler.%s.hub', $name);
-                    $hub = $container->setDefinition($hubId, new Definition(
-                        'Sentry\\State\\Hub',
-                        [new Reference($clientId)]
-                    ));
-
-                    // can't set the hub to the current hub, getting into a recursion otherwise...
-                    // $hub->addMethodCall('setCurrent', array($hub));
-                }
-
-                $definition->setArguments([
-                    new Reference($hubId),
-                    $handler['level'],
-                    $handler['bubble'],
-                    $handler['fill_extra_context'],
-                ]);
-                break;
-
-            case 'raven':
-                trigger_deprecation('symfony/monolog-bundle', '3.11', 'The "raven" handler type is deprecated, use the "sentry/sentry-symfony" and a "service" handler instead.');
-                if (null !== $handler['client_id']) {
-                    $clientId = $handler['client_id'];
-                } else {
-                    $client = new Definition('Raven_Client', [
-                        $handler['dsn'],
-                        [
-                            'auto_log_stacks' => $handler['auto_log_stacks'],
-                            'environment' => $handler['environment'],
-                        ],
-                    ]);
-                    $client->setPublic(false);
-                    $clientId = 'monolog.raven.client.'.sha1($handler['dsn']);
-                    $container->setDefinition($clientId, $client);
-                }
-                $definition->setArguments([
-                    new Reference($clientId),
-                    $handler['level'],
-                    $handler['bubble'],
-                ]);
-                if (!empty($handler['release'])) {
-                    $definition->addMethodCall('setRelease', [$handler['release']]);
-                }
                 break;
 
             case 'loggly':
@@ -912,7 +709,7 @@ class MonologExtension extends Extension
                 ]);
 
                 if (empty($handler['formatter'])) {
-                    $formatter = new Definition("Monolog\Formatter\FlowdockFormatter", [
+                    $formatter = new Definition(\Monolog\Formatter\FlowdockFormatter::class, [
                         $handler['source'],
                         $handler['from_email'],
                     ]);
@@ -930,7 +727,7 @@ class MonologExtension extends Extension
                 } else {
                     $config = $handler['config'] ?: [];
                     $config['access_token'] = $handler['token'];
-                    $rollbar = new Definition(Logger::API === 1 ? 'RollbarNotifier' : 'Rollbar\RollbarLogger', [
+                    $rollbar = new Definition(\Rollbar\RollbarLogger::class, [
                         $config,
                     ]);
                     $rollbarId = 'monolog.rollbar.notifier.'.sha1(json_encode($config));
@@ -976,7 +773,6 @@ class MonologExtension extends Extension
             case 'test':
             case 'null':
             case 'noop':
-            case 'debug':
                 $definition->setArguments([
                     $handler['level'],
                     $handler['bubble'],
@@ -1004,145 +800,86 @@ class MonologExtension extends Extension
             $definition->addTag('kernel.reset', ['method' => 'reset']);
         }
 
+        // All handlers (including nested ones) are tagged so the handler manager can close them
+        // on kernel shutdown. Unlike "kernel.reset", nested handlers must be closed too, as they
+        // hold resources that are not released when their wrapper handler is reset.
+        $definition->addTag('monolog.handler');
+
         $container->setDefinition($handlerId, $definition);
 
         return $handlerId;
     }
 
-    private function markNestedHandler($nestedHandlerId)
+    private function markNestedHandler(string $nestedHandlerId): void
     {
-        if (\in_array($nestedHandlerId, $this->nestedHandlers)) {
+        if (\in_array($nestedHandlerId, $this->nestedHandlers, true)) {
             return;
         }
 
         $this->nestedHandlers[] = $nestedHandlerId;
     }
 
-    private function getHandlerId($name)
+    private function getHandlerId(string $name): string
     {
         return \sprintf('monolog.handler.%s', $name);
     }
 
-    private function getHandlerClassByType($handlerType)
+    private function getHandlerClassByType(string $handlerType): string
     {
-        $typeToClassMapping = [
-            'stream' => 'Monolog\Handler\StreamHandler',
-            'console' => 'Symfony\Bridge\Monolog\Handler\ConsoleHandler',
-            'group' => 'Monolog\Handler\GroupHandler',
-            'buffer' => 'Monolog\Handler\BufferHandler',
-            'deduplication' => 'Monolog\Handler\DeduplicationHandler',
-            'rotating_file' => 'Monolog\Handler\RotatingFileHandler',
-            'syslog' => 'Monolog\Handler\SyslogHandler',
-            'syslogudp' => 'Monolog\Handler\SyslogUdpHandler',
-            'null' => 'Monolog\Handler\NullHandler',
-            'test' => 'Monolog\Handler\TestHandler',
-            'gelf' => 'Monolog\Handler\GelfHandler',
-            'rollbar' => 'Monolog\Handler\RollbarHandler',
-            'flowdock' => 'Monolog\Handler\FlowdockHandler',
-            'browser_console' => 'Monolog\Handler\BrowserConsoleHandler',
-            'firephp' => 'Symfony\Bridge\Monolog\Handler\FirePHPHandler',
-            'chromephp' => 'Symfony\Bridge\Monolog\Handler\ChromePhpHandler',
-            'debug' => 'Symfony\Bridge\Monolog\Handler\DebugHandler',
-            'swift_mailer' => 'Symfony\Bridge\Monolog\Handler\SwiftMailerHandler',
-            'native_mailer' => 'Monolog\Handler\NativeMailerHandler',
-            'symfony_mailer' => 'Symfony\Bridge\Monolog\Handler\MailerHandler',
-            'socket' => 'Monolog\Handler\SocketHandler',
-            'pushover' => 'Monolog\Handler\PushoverHandler',
-            'raven' => 'Monolog\Handler\RavenHandler',
-            'sentry' => 'Sentry\Monolog\Handler',
-            'newrelic' => 'Monolog\Handler\NewRelicHandler',
-            'hipchat' => 'Monolog\Handler\HipChatHandler',
-            'slack' => 'Monolog\Handler\SlackHandler',
-            'slackwebhook' => 'Monolog\Handler\SlackWebhookHandler',
-            'slackbot' => 'Monolog\Handler\SlackbotHandler',
-            'cube' => 'Monolog\Handler\CubeHandler',
-            'amqp' => 'Monolog\Handler\AmqpHandler',
-            'error_log' => 'Monolog\Handler\ErrorLogHandler',
-            'loggly' => 'Monolog\Handler\LogglyHandler',
-            'logentries' => 'Monolog\Handler\LogEntriesHandler',
-            'whatfailuregroup' => 'Monolog\Handler\WhatFailureGroupHandler',
-            'fingers_crossed' => 'Monolog\Handler\FingersCrossedHandler',
-            'filter' => 'Monolog\Handler\FilterHandler',
-            'mongo' => 'Monolog\Handler\MongoDBHandler',
-            'mongodb' => 'Monolog\Handler\MongoDBHandler',
-            'elasticsearch' => 'Monolog\Handler\ElasticSearchHandler',
-            'telegram' => 'Monolog\Handler\TelegramBotHandler',
-            'server_log' => 'Symfony\Bridge\Monolog\Handler\ServerLogHandler',
-            'redis' => 'Monolog\Handler\RedisHandler',
-            'predis' => 'Monolog\Handler\RedisHandler',
-            'insightops' => 'Monolog\Handler\InsightOpsHandler',
-            'sampling' => 'Monolog\Handler\SamplingHandler',
-        ];
-
-        $v2HandlerTypesAdded = [
-            'elastica' => 'Monolog\Handler\ElasticaHandler',
-            'elasticsearch' => 'Monolog\Handler\ElasticaHandler',
-            'elastic_search' => 'Monolog\Handler\ElasticsearchHandler',
-            'fallbackgroup' => 'Monolog\Handler\FallbackGroupHandler',
-            'noop' => 'Monolog\Handler\NoopHandler',
-        ];
-
-        $v2HandlerTypesRemoved = [
-            'hipchat',
-            'raven',
-            'slackbot',
-        ];
-
-        $v3HandlerTypesRemoved = [
-            'swift_mailer',
-        ];
-
-        if (Logger::API >= 2) {
-            $typeToClassMapping = array_merge($typeToClassMapping, $v2HandlerTypesAdded);
-            foreach ($v2HandlerTypesRemoved as $v2HandlerTypeRemoved) {
-                unset($typeToClassMapping[$v2HandlerTypeRemoved]);
-            }
-        }
-
-        if (Logger::API >= 3) {
-            foreach ($v3HandlerTypesRemoved as $v3HandlerTypeRemoved) {
-                unset($typeToClassMapping[$v3HandlerTypeRemoved]);
-            }
-        }
-
-        if (!isset($typeToClassMapping[$handlerType])) {
-            if (Logger::API === 1 && \array_key_exists($handlerType, $v2HandlerTypesAdded)) {
-                throw new \InvalidArgumentException(\sprintf('"%s" was added in Monolog v2, please upgrade if you wish to use it.', $handlerType));
-            }
-
-            if (Logger::API >= 2 && \array_key_exists($handlerType, $v2HandlerTypesRemoved)) {
-                throw new \InvalidArgumentException(\sprintf('"%s" was removed in Monolog v2.', $handlerType));
-            }
-
-            if (Logger::API >= 3 && \array_key_exists($handlerType, $v3HandlerTypesRemoved)) {
-                throw new \InvalidArgumentException(\sprintf('"%s" was removed in Monolog v3.', $handlerType));
-            }
-
-            throw new \InvalidArgumentException(\sprintf('There is no handler class defined for handler "%s".', $handlerType));
-        }
-
-        return $typeToClassMapping[$handlerType];
+        return match ($handlerType) {
+            'stream' => \Monolog\Handler\StreamHandler::class,
+            'console' => \Symfony\Bridge\Monolog\Handler\ConsoleHandler::class,
+            'group' => \Monolog\Handler\GroupHandler::class,
+            'buffer' => \Monolog\Handler\BufferHandler::class,
+            'deduplication' => \Monolog\Handler\DeduplicationHandler::class,
+            'rotating_file' => \Monolog\Handler\RotatingFileHandler::class,
+            'syslog' => \Monolog\Handler\SyslogHandler::class,
+            'syslogudp' => \Monolog\Handler\SyslogUdpHandler::class,
+            'null' => \Monolog\Handler\NullHandler::class,
+            'test' => \Monolog\Handler\TestHandler::class,
+            'gelf' => \Monolog\Handler\GelfHandler::class,
+            'rollbar' => \Monolog\Handler\RollbarHandler::class,
+            'flowdock' => \Monolog\Handler\FlowdockHandler::class,
+            'browser_console' => \Monolog\Handler\BrowserConsoleHandler::class,
+            'firephp' => \Symfony\Bridge\Monolog\Handler\FirePHPHandler::class,
+            'chromephp' => \Symfony\Bridge\Monolog\Handler\ChromePhpHandler::class,
+            'native_mailer' => \Monolog\Handler\NativeMailerHandler::class,
+            'symfony_mailer' => \Symfony\Bridge\Monolog\Handler\MailerHandler::class,
+            'socket' => \Monolog\Handler\SocketHandler::class,
+            'pushover' => \Monolog\Handler\PushoverHandler::class,
+            'newrelic' => \Monolog\Handler\NewRelicHandler::class,
+            'slack' => \Monolog\Handler\SlackHandler::class,
+            'slackwebhook' => \Monolog\Handler\SlackWebhookHandler::class,
+            'cube' => \Monolog\Handler\CubeHandler::class,
+            'amqp' => \Monolog\Handler\AmqpHandler::class,
+            'error_log' => \Monolog\Handler\ErrorLogHandler::class,
+            'loggly' => \Monolog\Handler\LogglyHandler::class,
+            'logentries' => \Monolog\Handler\LogEntriesHandler::class,
+            'whatfailuregroup' => \Monolog\Handler\WhatFailureGroupHandler::class,
+            'fingers_crossed' => \Monolog\Handler\FingersCrossedHandler::class,
+            'filter' => \Monolog\Handler\FilterHandler::class,
+            'mongodb' => \Monolog\Handler\MongoDBHandler::class,
+            'telegram' => \Monolog\Handler\TelegramBotHandler::class,
+            'server_log' => \Symfony\Bridge\Monolog\Handler\ServerLogHandler::class,
+            'redis', 'predis' => \Monolog\Handler\RedisHandler::class,
+            'insightops' => \Monolog\Handler\InsightOpsHandler::class,
+            'sampling' => \Monolog\Handler\SamplingHandler::class,
+            'elastica' => \Monolog\Handler\ElasticaHandler::class,
+            'elastic_search' => \Monolog\Handler\ElasticsearchHandler::class,
+            'fallbackgroup' => \Monolog\Handler\FallbackGroupHandler::class,
+            'noop' => \Monolog\Handler\NoopHandler::class,
+            default => throw new \InvalidArgumentException(\sprintf('There is no handler class defined for handler "%s".', $handlerType)),
+        };
     }
 
     private function buildPsrLogMessageProcessor(ContainerBuilder $container, array $processorOptions): string
     {
-        static $hasConstructorArguments;
-
-        if (!isset($hasConstructorArguments)) {
-            $reflectionConstructor = (new \ReflectionClass(PsrLogMessageProcessor::class))->getConstructor();
-            $hasConstructorArguments = null !== $reflectionConstructor && $reflectionConstructor->getNumberOfParameters() > 0;
-            unset($reflectionConstructor);
-        }
-
         $processorId = 'monolog.processor.psr_log_message';
         $processorArguments = [];
 
         unset($processorOptions['enabled']);
 
-        if (!empty($processorOptions)) {
-            if (!$hasConstructorArguments) {
-                throw new \RuntimeException('Monolog 1.26 or higher is required for the "date_format" and "remove_used_context_fields" options to be used.');
-            }
+        if ($processorOptions) {
             $processorArguments = [
                 $processorOptions['date_format'] ?? null,
                 $processorOptions['remove_used_context_fields'] ?? false,

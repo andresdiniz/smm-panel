@@ -22,6 +22,8 @@ use Symfony\Component\Config\Resource\GlobResource;
 use Symfony\Component\Config\Resource\ReflectionClassResource;
 use Symfony\Component\Config\Resource\ResourceInterface;
 use Symfony\Component\DependencyInjection\Argument\AbstractArgument;
+use Symfony\Component\DependencyInjection\Argument\EnvClosure;
+use Symfony\Component\DependencyInjection\Argument\EnvClosureArgument;
 use Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use Symfony\Component\DependencyInjection\Argument\LazyClosure;
 use Symfony\Component\DependencyInjection\Argument\RewindableGenerator;
@@ -205,10 +207,6 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
     public function registerExtension(ExtensionInterface $extension): void
     {
         $this->extensions[$extension->getAlias()] = $extension;
-
-        if (false !== $extension->getNamespace()) {
-            $this->extensionsByNs[$extension->getNamespace() ?? ''] = $extension;
-        }
     }
 
     /**
@@ -1092,7 +1090,7 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
      */
     private function createService(Definition $definition, array &$inlineServices, bool $isConstructorArgument = false, ?string $id = null, bool|object $tryProxy = true): mixed
     {
-        if (null === $id && isset($inlineServices[$h = spl_object_hash($definition)])) {
+        if (null === $id && isset($inlineServices[$h = "\0".spl_object_id($definition)])) {
             return $inlineServices[$h];
         }
 
@@ -1122,7 +1120,7 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
             if (\is_array($callable) && (
                 'Closure' !== $class
                 || $callable[0] instanceof Reference
-                || $callable[0] instanceof Definition && !isset($inlineServices[spl_object_hash($callable[0])])
+                || $callable[0] instanceof Definition && !isset($inlineServices["\0".spl_object_id($callable[0])])
             )) {
                 $initializer = function () use ($callable, &$inlineServices) {
                     return $this->doResolveServices($callable[0], $inlineServices);
@@ -1143,7 +1141,7 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
                 (clone $definition)
                     ->setClass($class)
                     ->setTags(($definition->hasTag('proxy') ? ['proxy' => $parameterBag->resolveValue($definition->getTag('proxy'))] : []) + $definition->getTags()),
-                $id, function ($proxy = false) use ($definition, &$inlineServices, $id) {
+                $id ?? $class, function ($proxy = false) use ($definition, &$inlineServices, $id) {
                     return $this->createService($definition, $inlineServices, true, $id, $proxy);
                 }
             );
@@ -1153,7 +1151,7 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
         }
 
         if (null !== $definition->getFile()) {
-            require_once $parameterBag->resolveValue($definition->getFile());
+            require_once $parameterBag->unescapeValue($parameterBag->resolveValue($definition->getFile()));
         }
 
         $arguments = $definition->getArguments();
@@ -1214,41 +1212,59 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
             }
         }
 
-        if (null === $lastWitherIndex && (true === $tryProxy || !$definition->isLazy())) {
-            // share only if proxying failed, or if not a proxy, and if no withers are found
-            $this->shareService($definition, $service, $id, $inlineServices);
-        }
-
-        $properties = $this->doResolveServices($parameterBag->unescapeValue($parameterBag->resolveValue($definition->getProperties())), $inlineServices);
-        foreach ($properties as $name => $value) {
-            $service->$name = $value;
-        }
-
-        foreach ($definition->getMethodCalls() as $k => $call) {
-            $service = $this->callMethod($service, $call, $inlineServices);
-
-            if ($lastWitherIndex === $k && (true === $tryProxy || !$definition->isLazy())) {
-                // share only if proxying failed, or if not a proxy, and this is the last wither
+        try {
+            if (null === $lastWitherIndex && (true === $tryProxy || !$definition->isLazy())) {
+                // share only if proxying failed, or if not a proxy, and if no withers are found
                 $this->shareService($definition, $service, $id, $inlineServices);
             }
-        }
 
-        if ($callable = $definition->getConfigurator()) {
-            if (\is_array($callable)) {
-                $callable[0] = $parameterBag->resolveValue($callable[0]);
+            $properties = $this->doResolveServices($parameterBag->unescapeValue($parameterBag->resolveValue($definition->getProperties())), $inlineServices);
+            foreach ($properties as $name => $value) {
+                $service->$name = $value;
+            }
 
-                if ($callable[0] instanceof Reference) {
-                    $callable[0] = $this->doGet((string) $callable[0], $callable[0]->getInvalidBehavior(), $inlineServices);
-                } elseif ($callable[0] instanceof Definition) {
-                    $callable[0] = $this->createService($callable[0], $inlineServices);
+            foreach ($definition->getMethodCalls() as $k => $call) {
+                $service = $this->callMethod($service, $call, $inlineServices);
+
+                if ($lastWitherIndex === $k && (true === $tryProxy || !$definition->isLazy())) {
+                    // share only if proxying failed, or if not a proxy, and this is the last wither
+                    $this->shareService($definition, $service, $id, $inlineServices);
                 }
             }
 
-            if (!\is_callable($callable)) {
-                throw new InvalidArgumentException(\sprintf('The configure callable for class "%s" is not a callable.', get_debug_type($service)));
+            if ($callable = $definition->getConfigurator()) {
+                if (\is_array($callable)) {
+                    $callable[0] = $parameterBag->resolveValue($callable[0]);
+
+                    if ($callable[0] instanceof Reference) {
+                        $callable[0] = $this->doGet((string) $callable[0], $callable[0]->getInvalidBehavior(), $inlineServices);
+                    } elseif ($callable[0] instanceof Definition) {
+                        $callable[0] = $this->createService($callable[0], $inlineServices);
+                    }
+                }
+
+                if (!\is_callable($callable)) {
+                    throw new InvalidArgumentException(\sprintf('The configure callable for class "%s" is not a callable.', get_debug_type($service)));
+                }
+
+                $callable($service);
+            }
+        } catch (\Throwable $e) {
+            // evict the partially-configured instance, but only if this frame shared it; in the
+            // proxy-initializer frame, the cached proxy must stay so a retry re-runs the initializer
+            if (true === $tryProxy || !$definition->isLazy()) {
+                unset($inlineServices[$id ?? "\0".spl_object_id($definition)]);
+
+                if (null !== $id) {
+                    unset($this->services[$id], $this->privates[$id]);
+                }
             }
 
-            $callable($service);
+            throw $e;
+        }
+
+        if ($resetTags = $definition->getTag('container.tracked_for_reset')) {
+            $this->trackForReset($service, array_column($resetTags, 'method'));
         }
 
         return $service;
@@ -1274,6 +1290,10 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
         } elseif ($value instanceof ServiceClosureArgument) {
             $reference = $value->getValues()[0];
             $value = fn () => $this->resolveServices($reference);
+        } elseif ($value instanceof EnvClosureArgument) {
+            $expr = $value->getValue();
+            $envClosure = new EnvClosure(fn () => $this->resolveEnvPlaceholders($expr, true), $value->getDefault());
+            $value = $value->isStringable() ? $envClosure : $envClosure->__invoke(...);
         } elseif ($value instanceof IteratorArgument) {
             $value = new RewindableGenerator(function () use ($value, &$inlineServices) {
                 foreach ($value->getValues() as $k => $v) {
@@ -1377,13 +1397,10 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
      *          }
      *      }
      *
-     * @param bool $throwOnAbstract
-     *
      * @return array<string, array> An array of tags with the tagged service as key, holding a list of attribute arrays
      */
-    public function findTaggedResourceIds(string $tagName/* , bool $throwOnAbstract = true */): array
+    public function findTaggedResourceIds(string $tagName, bool $throwOnAbstract = true): array
     {
-        $throwOnAbstract = \func_num_args() > 1 ? func_get_arg(1) : true;
         $this->usedTags[] = $tagName;
         $tags = [];
         foreach ($this->getDefinitions() as $id => $definition) {
@@ -1391,9 +1408,14 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
                 continue;
             }
             if (!$definition->hasTag('container.excluded')) {
-                throw new InvalidArgumentException(\sprintf('The resource "%s" tagged "%s" is missing the "container.excluded" tag.', $id, $tagName));
+                throw new InvalidArgumentException(\sprintf('The resource "%s" tagged "%s" is missing the "container.excluded" tag; did you mean to use "resource_tags" instead of "tags"?', $id, $tagName));
             }
             $class = $this->parameterBag->resolveValue($definition->getClass());
+            if ($class && $throwOnAbstract && $definition->isAbstract() && ($r = $this->getReflectionClass($class, false)) && ($r->isAbstract() || $r->isInterface())) {
+                // an abstract class or interface matches autoconfiguration rules on behalf
+                // of its subtypes but is not a resource itself: skip it, don't throw
+                continue;
+            }
             if (!$class || $throwOnAbstract && $definition->isAbstract()) {
                 throw new InvalidArgumentException(\sprintf('The resource "%s" tagged "%s" must have a class and not be abstract.', $id, $tagName));
             }
@@ -1481,13 +1503,11 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
      * using camel case: "foo.bar" or "foo_bar" creates an alias bound to
      * "$fooBar"-named arguments with $type as type-hint. Such arguments will
      * receive the service $id when autowiring is used.
-     *
-     * @param ?string $target
      */
-    public function registerAliasForArgument(string $id, string $type, ?string $name = null/* , ?string $target = null */): Alias
+    public function registerAliasForArgument(string $id, string $type, ?string $name = null, ?string $target = null): Alias
     {
         $parsedName = (new Target($name ??= $id))->getParsedName();
-        $target = (\func_num_args() > 3 ? func_get_arg(3) : null) ?? $name;
+        $target ??= $name;
 
         if (!preg_match('/^[a-zA-Z_\x7f-\xff]/', $parsedName)) {
             if ($id !== $name) {
@@ -1512,27 +1532,6 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
     public function getAutoconfiguredInstanceof(): array
     {
         return $this->autoconfiguredInstanceof;
-    }
-
-    /**
-     * @return array<class-string, callable>
-     *
-     * @deprecated Use {@see getAttributeAutoconfigurators()} instead
-     */
-    public function getAutoconfiguredAttributes(): array
-    {
-        trigger_deprecation('symfony/dependency-injection', '7.3', 'The "%s()" method is deprecated, use "getAttributeAutoconfigurators()" instead.', __METHOD__);
-
-        $autoconfiguredAttributes = [];
-        foreach ($this->autoconfiguredAttributes as $attribute => $configurators) {
-            if (\count($configurators) > 1) {
-                throw new LogicException(\sprintf('The "%s" attribute has %d configurators. Use "getAttributeAutoconfigurators()" to get all of them.', $attribute, \count($configurators)));
-            }
-
-            $autoconfiguredAttributes[$attribute] = $configurators[0];
-        }
-
-        return $autoconfiguredAttributes;
     }
 
     /**
@@ -1756,7 +1755,17 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
 
     protected function getEnv(string $name): mixed
     {
-        $value = parent::getEnv($name);
+        // the empty locator that the parent sets when none is defined would hide the env var processors registered later
+        $removeFallbackLocator = !$this->has($id = 'container.env_var_processors_locator');
+
+        try {
+            $value = parent::getEnv($name);
+        } finally {
+            if ($removeFallbackLocator) {
+                unset($this->services[$id]);
+            }
+        }
+
         $bag = $this->getParameterBag();
 
         if (!\is_string($value) || !$bag instanceof EnvPlaceholderParameterBag) {
@@ -1803,7 +1812,7 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
 
     private function shareService(Definition $definition, mixed $service, ?string $id, array &$inlineServices): void
     {
-        $inlineServices[$id ?? spl_object_hash($definition)] = $service;
+        $inlineServices[$id ?? "\0".spl_object_id($definition)] = $service;
 
         if (null !== $id && $definition->isShared()) {
             if ($definition->isPrivate() && $this->isCompiled()) {

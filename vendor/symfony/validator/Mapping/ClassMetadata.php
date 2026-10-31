@@ -86,59 +86,19 @@ class ClassMetadata extends GenericMetadata implements ClassMetadataInterface
 
     public function __serialize(): array
     {
-        if (self::class === (new \ReflectionMethod($this, '__sleep'))->class || self::class !== (new \ReflectionMethod($this, '__serialize'))->class) {
-            return array_filter([
-                'cascadingStrategy' => CascadingStrategy::NONE !== $this->cascadingStrategy ? $this->cascadingStrategy : null,
-                'traversalStrategy' => TraversalStrategy::IMPLICIT !== $this->traversalStrategy ? $this->traversalStrategy : null,
-            ] + parent::__serialize() + [
-                'getters' => $this->getters,
-                'groupSequence' => $this->groupSequence,
-                'groupSequenceProvider' => $this->groupSequenceProvider,
-                'groupProvider' => $this->groupProvider,
-                'members' => $this->members,
-                'name' => $this->name,
-                'properties' => $this->properties,
-                'defaultGroup' => $this->defaultGroup,
-            ]);
-        }
-
-        trigger_deprecation('symfony/validator', '7.4', 'Implementing "%s::__sleep()" is deprecated, use "__serialize()" instead.', get_debug_type($this));
-
-        $data = [];
-        foreach ($this->__sleep() as $key) {
-            try {
-                if (($r = new \ReflectionProperty($this, $key))->isInitialized($this)) {
-                    $data[$key] = $r->getValue($this);
-                }
-            } catch (\ReflectionException) {
-                $data[$key] = $this->$key;
-            }
-        }
-
-        return $data;
-    }
-
-    /**
-     * @deprecated since Symfony 7.4, will be removed in 8.0
-     */
-    public function __sleep(): array
-    {
-        trigger_deprecation('symfony/validator', '7.4', 'Calling "%s::__sleep()" is deprecated, use "__serialize()" instead.', get_debug_type($this));
-
-        return [
-            'constraints',
-            'constraintsByGroup',
-            'traversalStrategy',
-            'autoMappingStrategy',
-            'getters',
-            'groupSequence',
-            'groupSequenceProvider',
-            'groupProvider',
-            'members',
-            'name',
-            'properties',
-            'defaultGroup',
-        ];
+        return array_filter([
+            'cascadingStrategy' => CascadingStrategy::NONE !== $this->cascadingStrategy ? $this->cascadingStrategy : null,
+            'traversalStrategy' => TraversalStrategy::IMPLICIT !== $this->traversalStrategy ? $this->traversalStrategy : null,
+        ] + parent::__serialize() + [
+            'getters' => $this->getters,
+            'groupSequence' => $this->groupSequence,
+            'groupSequenceProvider' => $this->groupSequenceProvider,
+            'groupProvider' => $this->groupProvider,
+            'members' => $this->members,
+            'name' => $this->name,
+            'properties' => $this->properties,
+            'defaultGroup' => $this->defaultGroup,
+        ]);
     }
 
     public function getClassName(): string
@@ -334,6 +294,10 @@ class ClassMetadata extends GenericMetadata implements ClassMetadataInterface
             $this->setGroupSequenceProvider(true);
         }
 
+        if (TraversalStrategy::IMPLICIT === $this->traversalStrategy) {
+            $this->traversalStrategy = $source->getTraversalStrategy();
+        }
+
         foreach ($source->getConstraints() as $constraint) {
             $this->addConstraint(clone $constraint);
         }
@@ -359,6 +323,34 @@ class ClassMetadata extends GenericMetadata implements ClassMetadataInterface
                 } else {
                     $this->addPropertyMetadata($member);
                 }
+            }
+        }
+    }
+
+    /**
+     * Drops the auto-mapping placeholders the loaders left untouched, and moves
+     * the remaining ones last, where merging the parent's metadata would have put them.
+     *
+     * @param array<string, array{PropertyMetadata, int}> $placeholders
+     *
+     * @internal
+     */
+    public function removeUnusedAutoMappingPlaceholders(array $placeholders): void
+    {
+        foreach ($placeholders as $property => [$placeholder, $strategy]) {
+            if (!$placeholder->getConstraints() && $strategy === $placeholder->getAutoMappingStrategy() && CascadingStrategy::NONE === $placeholder->getCascadingStrategy()) {
+                $this->members[$property] = array_values(array_filter($this->members[$property], static fn (MemberMetadata $member) => $member !== $placeholder));
+
+                if ($placeholder === ($this->properties[$property] ?? null)) {
+                    unset($this->properties[$property]);
+                }
+            }
+
+            $members = $this->members[$property];
+            unset($this->members[$property]);
+
+            if ($members) {
+                $this->members[$property] = $members;
             }
         }
     }
@@ -412,7 +404,7 @@ class ClassMetadata extends GenericMetadata implements ClassMetadataInterface
 
     public function hasGroupSequence(): bool
     {
-        return isset($this->groupSequence) && \count($this->groupSequence->groups) > 0;
+        return isset($this->groupSequence) && $this->groupSequence->groups;
     }
 
     public function getGroupSequence(): ?GroupSequence

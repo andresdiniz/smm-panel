@@ -16,6 +16,7 @@ use Symfony\Component\DependencyInjection\Argument\BoundArgument;
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Reference;
 
@@ -24,17 +25,18 @@ use Symfony\Component\DependencyInjection\Reference;
  *
  * @author Christophe Coevoet <stof@notk.org>
  *
- * @internal since 3.9.0
+ * @internal
  */
 class LoggerChannelPass implements CompilerPassInterface
 {
-    protected $channels = ['app'];
-
-    public function process(ContainerBuilder $container)
+    public function process(ContainerBuilder $container): void
     {
         if (!$container->hasDefinition('monolog.logger')) {
             return;
         }
+
+        /** @var list<string> $createdLoggers */
+        $createdLoggers = ['app'];
 
         // create channels necessary for the handlers
         foreach ($container->findTaggedServiceIds('monolog.logger') as $id => $tags) {
@@ -47,7 +49,13 @@ class LoggerChannelPass implements CompilerPassInterface
 
                 $definition = $container->getDefinition($id);
                 $loggerId = \sprintf('monolog.logger.%s', $resolvedChannel);
-                $this->createLogger($resolvedChannel, $loggerId, $container);
+                $this->createLogger($resolvedChannel, $loggerId, $container, $createdLoggers);
+
+                if (isset($tag['argument'])) {
+                    $this->bindLogger($definition, LoggerInterface::class.' $'.$tag['argument'], $loggerId);
+
+                    continue;
+                }
 
                 foreach ($definition->getArguments() as $index => $argument) {
                     if ($argument instanceof Reference && 'logger' === (string) $argument) {
@@ -65,17 +73,7 @@ class LoggerChannelPass implements CompilerPassInterface
                 }
                 $definition->setMethodCalls($calls);
 
-                $binding = new BoundArgument(new Reference($loggerId));
-
-                // Mark the binding as used already, to avoid reporting it as unused if the service does not use a
-                // logger injected through the LoggerInterface alias.
-                $values = $binding->getValues();
-                $values[2] = true;
-                $binding->setValues($values);
-
-                $bindings = $definition->getBindings();
-                $bindings['Psr\Log\LoggerInterface'] = $binding;
-                $definition->setBindings($bindings);
+                $this->bindLogger($definition, LoggerInterface::class, $loggerId);
             }
         }
 
@@ -85,7 +83,7 @@ class LoggerChannelPass implements CompilerPassInterface
                 continue;
             }
             $loggerId = \sprintf('monolog.logger.%s', $chan);
-            $this->createLogger($chan, $loggerId, $container);
+            $this->createLogger($chan, $loggerId, $container, $createdLoggers);
             $container->getDefinition($loggerId)->setPublic(true);
         }
         $container->getParameterBag()->remove('monolog.additional_channels');
@@ -93,7 +91,7 @@ class LoggerChannelPass implements CompilerPassInterface
         // wire handlers to channels
         $handlersToChannels = $container->getParameter('monolog.handlers_to_channels');
         foreach ($handlersToChannels as $handler => $channels) {
-            foreach ($this->processChannels($channels) as $channel) {
+            foreach ($this->processChannels($channels, $createdLoggers) as $channel) {
                 try {
                     $logger = $container->getDefinition('app' === $channel ? 'monolog.logger' : 'monolog.logger.'.$channel);
                 } catch (InvalidArgumentException $e) {
@@ -104,43 +102,30 @@ class LoggerChannelPass implements CompilerPassInterface
         }
     }
 
-    /**
-     * @return array
-     */
-    public function getChannels()
-    {
-        return $this->channels;
-    }
-
-    /**
-     * @return array
-     */
-    protected function processChannels(?array $configuration)
+    protected function processChannels(?array $configuration, array $createdLoggers): array
     {
         if (null === $configuration) {
-            return $this->channels;
+            return $createdLoggers;
         }
 
         if ('inclusive' === $configuration['type']) {
-            return $configuration['elements'] ?: $this->channels;
+            return $configuration['elements'] ?: $createdLoggers;
         }
 
-        return array_diff($this->channels, $configuration['elements']);
+        return array_diff($createdLoggers, $configuration['elements']);
     }
 
     /**
      * Create new logger from the monolog.logger_prototype.
-     *
-     * @return void
      */
-    protected function createLogger(string $channel, string $loggerId, ContainerBuilder $container)
+    protected function createLogger(string $channel, string $loggerId, ContainerBuilder $container, array &$createdLoggers): void
     {
-        if (!\in_array($channel, $this->channels)) {
+        if (!\in_array($channel, $createdLoggers, true)) {
             $logger = new ChildDefinition('monolog.logger_prototype');
             $logger->replaceArgument(0, $channel);
             $logger->addTag('monolog.channel_logger');
             $container->setDefinition($loggerId, $logger);
-            $this->channels[] = $channel;
+            $createdLoggers[] = $channel;
         }
 
         $container->registerAliasForArgument($loggerId, LoggerInterface::class, $channel.'.logger', $channel);
@@ -152,5 +137,22 @@ class LoggerChannelPass implements CompilerPassInterface
     private function changeReference(Reference $reference, string $serviceId): Reference
     {
         return new Reference($serviceId, $reference->getInvalidBehavior());
+    }
+
+    /**
+     * Binds a channel logger to the given binding key, marking it as used so it is not
+     * reported as an unused binding when the service does not consume it through autowiring.
+     */
+    private function bindLogger(Definition $definition, string $bindingKey, string $loggerId): void
+    {
+        $binding = new BoundArgument(new Reference($loggerId));
+
+        $values = $binding->getValues();
+        $values[2] = true;
+        $binding->setValues($values);
+
+        $bindings = $definition->getBindings();
+        $bindings[$bindingKey] = $binding;
+        $definition->setBindings($bindings);
     }
 }

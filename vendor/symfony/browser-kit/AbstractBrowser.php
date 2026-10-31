@@ -46,8 +46,6 @@ abstract class AbstractBrowser
     /** @psalm-var TResponse */
     protected object $response;
     protected Crawler $crawler;
-    /** @deprecated since Symfony 7.4, to be removed in Symfony 8 */
-    protected bool $useHtml5Parser = true;
     protected string|false $wrapContentPattern = false;
     protected bool $insulated = false;
     protected ?string $redirect;
@@ -204,24 +202,6 @@ abstract class AbstractBrowser
     }
 
     /**
-     * Sets whether parsing should be done using "masterminds/html5".
-     *
-     * @deprecated since Symfony 7.4, Symfony 8 will unconditionally use the native HTML5 parser
-     *
-     * @return $this
-     */
-    public function useHtml5Parser(bool $useHtml5Parser): static
-    {
-        if (\PHP_VERSION_ID >= 80400) {
-            trigger_deprecation('symfony/browser-kit', '7.4', 'Method "%s()" is deprecated. Symfony 8 will unconditionally use the native HTML5 parser.', __METHOD__);
-        }
-
-        $this->useHtml5Parser = $useHtml5Parser;
-
-        return $this;
-    }
-
-    /**
      * Sets the content wrapper format.
      *
      * @example <table>%s</table>
@@ -230,7 +210,6 @@ abstract class AbstractBrowser
     {
         $this->wrapContentPattern = $pattern;
     }
-
 
     /**
      * Returns the current BrowserKit Response instance.
@@ -388,7 +367,7 @@ abstract class AbstractBrowser
 
         $this->request = $this->filterRequest($this->internalRequest);
 
-        if (true === $changeHistory) {
+        if ($changeHistory) {
             $this->history->add($this->internalRequest);
         }
 
@@ -437,13 +416,11 @@ abstract class AbstractBrowser
      *
      * @psalm-param TRequest $request
      *
-     * @return object
-     *
      * @psalm-return TResponse
      *
      * @throws \RuntimeException When processing returns exit code
      */
-    protected function doRequestInProcess(object $request)
+    protected function doRequestInProcess(object $request): object
     {
         $deprecationsFile = tempnam(sys_get_temp_dir(), 'deprec');
         putenv('SYMFONY_DEPRECATIONS_SERIALIZE='.$deprecationsFile);
@@ -454,7 +431,7 @@ abstract class AbstractBrowser
         if (file_exists($deprecationsFile)) {
             $deprecations = file_get_contents($deprecationsFile);
             unlink($deprecationsFile);
-            foreach ($deprecations ? unserialize($deprecations) : [] as $deprecation) {
+            foreach ($deprecations ? unserialize($deprecations, ['allowed_classes' => false]) : [] as $deprecation) {
                 if ($deprecation[0]) {
                     // unsilenced on purpose
                     trigger_error($deprecation[1], \E_USER_DEPRECATED);
@@ -465,10 +442,10 @@ abstract class AbstractBrowser
         }
 
         if (!$process->isSuccessful() || !preg_match('/^O\:\d+\:/', $process->getOutput())) {
-            throw new RuntimeException(\sprintf('OUTPUT: %s ERROR OUTPUT: %s.', $process->getOutput(), $process->getErrorOutput()));
+            throw new RuntimeException('OUTPUT: '.$process->getOutput().' ERROR OUTPUT: '.$process->getErrorOutput().'.');
         }
 
-        return unserialize($process->getOutput());
+        return unserialize($process->getOutput(), ['allowed_classes' => true]);
     }
 
     /**
@@ -476,11 +453,9 @@ abstract class AbstractBrowser
      *
      * @psalm-param TRequest $request
      *
-     * @return object
-     *
      * @psalm-return TResponse
      */
-    abstract protected function doRequest(object $request);
+    abstract protected function doRequest(object $request): object;
 
     /**
      * Returns the script to execute when the request must be insulated.
@@ -489,11 +464,9 @@ abstract class AbstractBrowser
      *
      * @psalm-param TRequest $request
      *
-     * @return string
-     *
      * @throws LogicException When this abstract class is not implemented
      */
-    protected function getScript(object $request)
+    protected function getScript(object $request): string
     {
         throw new LogicException('To insulate requests, you need to override the getScript() method.');
     }
@@ -501,11 +474,9 @@ abstract class AbstractBrowser
     /**
      * Filters the BrowserKit request to the origin one.
      *
-     * @return object
-     *
      * @psalm-return TRequest
      */
-    protected function filterRequest(Request $request)
+    protected function filterRequest(Request $request): object
     {
         return $request;
     }
@@ -514,10 +485,8 @@ abstract class AbstractBrowser
      * Filters the origin response to the BrowserKit one.
      *
      * @psalm-param TResponse $response
-     *
-     * @return Response
      */
-    protected function filterResponse(object $response)
+    protected function filterResponse(object $response): Response
     {
         return $response;
     }
@@ -533,7 +502,7 @@ abstract class AbstractBrowser
             return null;
         }
 
-        $crawler = new Crawler(null, $uri, null, $this->useHtml5Parser);
+        $crawler = new Crawler(null, $uri, null);
         $crawler->addContent($content, $type);
 
         return $crawler;
@@ -652,8 +621,8 @@ abstract class AbstractBrowser
     protected function getAbsoluteUri(string $uri): string
     {
         // already absolute?
-        if (str_starts_with($uri, 'http://') || str_starts_with($uri, 'https://')) {
-            return $uri;
+        if (preg_match('{^https?://}i', $uri, $m)) {
+            return strtolower($m[0]).substr($uri, \strlen($m[0]));
         }
 
         if (!$this->history->isEmpty()) {
@@ -676,7 +645,7 @@ abstract class AbstractBrowser
         }
 
         if ('/' !== $uri[0]) {
-            $path = parse_url($currentUri, \PHP_URL_PATH);
+            $path = parse_url($currentUri, \PHP_URL_PATH) ?? '/';
 
             if (!str_ends_with($path, '/')) {
                 $path = substr($path, 0, strrpos($path, '/') + 1);
@@ -685,7 +654,7 @@ abstract class AbstractBrowser
             $uri = $path.$uri;
         }
 
-        return preg_replace('#^(.*?//[^/?]+)[/?].*$#', '$1', $currentUri).$uri;
+        return preg_replace('{^(.*?//[^/?#]+)[/?#].*$}', '$1', $currentUri).$uri;
     }
 
     /**
@@ -719,3 +688,5 @@ abstract class AbstractBrowser
         return $host;
     }
 }
+
+// @php-cs-fixer-ignore error_suppression This file is explicitly expected to not silence each of trigger_error calls

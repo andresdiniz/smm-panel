@@ -113,9 +113,9 @@ class Deprecation
             return;
         }
 
-        set_error_handler(function () {});
+        set_error_handler(static function () {});
         try {
-            $parsedMsg = unserialize($this->message);
+            $parsedMsg = unserialize($this->message, ['allowed_classes' => false]);
         } finally {
             restore_error_handler();
         }
@@ -213,13 +213,24 @@ class Deprecation
         }
 
         $method = $this->originatingMethod();
-        $groups = class_exists(Groups::class, false) ? [new Groups(), 'groups'] : [Test::class, 'getGroups'];
 
-        return str_starts_with($method, 'testLegacy')
+        if (str_starts_with($method, 'testLegacy')
             || str_starts_with($method, 'provideLegacy')
             || str_starts_with($method, 'getLegacy')
             || strpos($this->originClass, '\Legacy')
-            || \in_array('legacy', $groups($this->originClass, $method), true);
+        ) {
+            return true;
+        }
+
+        // The method can be inherited from an internal class, in which case it has no
+        // doc block nor any file/line to read annotations or attributes from.
+        if (!method_exists($this->originClass, $method) || (new \ReflectionMethod($this->originClass, $method))->isInternal()) {
+            return false;
+        }
+
+        $groups = class_exists(Groups::class, false) ? [new Groups(), 'groups'] : [Test::class, 'getGroups'];
+
+        return \in_array('legacy', $groups($this->originClass, $method), true);
     }
 
     public function isMuted(): bool

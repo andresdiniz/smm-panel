@@ -22,12 +22,17 @@ use Symfony\Component\Messenger\Event\WorkerRateLimitedEvent;
 use Symfony\Component\Messenger\Event\WorkerRunningEvent;
 use Symfony\Component\Messenger\Event\WorkerStartedEvent;
 use Symfony\Component\Messenger\Event\WorkerStoppedEvent;
+use Symfony\Component\Messenger\Exception\DelayedMessageHandlingException;
 use Symfony\Component\Messenger\Exception\EnvelopeAwareExceptionInterface;
 use Symfony\Component\Messenger\Exception\RejectRedeliveredMessageException;
 use Symfony\Component\Messenger\Exception\RuntimeException;
+use Symfony\Component\Messenger\Execution\DeferredBatchMessageQueue;
+use Symfony\Component\Messenger\Execution\MessageExecutionStrategyInterface;
+use Symfony\Component\Messenger\Execution\SyncMessageExecutionStrategy;
 use Symfony\Component\Messenger\Stamp\AckStamp;
 use Symfony\Component\Messenger\Stamp\ConsumedByWorkerStamp;
 use Symfony\Component\Messenger\Stamp\FlushBatchHandlersStamp;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Messenger\Stamp\NoAutoAckStamp;
 use Symfony\Component\Messenger\Stamp\ReceivedStamp;
 use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
@@ -47,11 +52,13 @@ class Worker
     private bool $shouldStop = false;
     private WorkerMetadata $metadata;
     private array $acks = [];
-    private ?\SplObjectStorage $unacks = null;
+    private ?DeferredBatchMessageQueue $unacks = null;
     /**
      * @var \SplObjectStorage<object, array{0: string, 1: Envelope}>
      */
     private \SplObjectStorage $keepalives;
+
+    private readonly MessageExecutionStrategyInterface $messageExecutionStrategy;
 
     /**
      * @param ReceiverInterface[] $receivers Where the key is the transport name
@@ -63,11 +70,13 @@ class Worker
         private ?LoggerInterface $logger = null,
         private ?array $rateLimiters = null,
         private ClockInterface $clock = new Clock(),
+        ?MessageExecutionStrategyInterface $messageExecutionStrategy = null,
     ) {
         $this->metadata = new WorkerMetadata([
             'transportNames' => array_keys($receivers),
         ]);
         $this->keepalives = new \SplObjectStorage();
+        $this->messageExecutionStrategy = $messageExecutionStrategy ?? new SyncMessageExecutionStrategy($this->bus, $this->enqueueAck(...));
     }
 
     /**
@@ -89,7 +98,7 @@ class Worker
 
         $this->metadata->set(['queueNames' => $queueNames]);
 
-        $this->eventDispatcher?->dispatch(new WorkerStartedEvent($this));
+        $this->eventDispatcher?->dispatch(new WorkerStartedEvent($this, null === $endTime ? null : (float) $endTime, $options['sleep']));
 
         if ($queueNames) {
             // if queue names are specified, all receivers must implement the QueueReceiverInterface
@@ -108,11 +117,14 @@ class Worker
 
             $envelopeHandled = false;
             $envelopeHandledStart = $this->clock->now();
+            $fetchSize = max(1, $options['fetch_size'] ?? 1);
+
             foreach ($this->receivers as $transportName => $receiver) {
                 if ($queueNames) {
-                    $envelopes = $receiver->getFromQueues($queueNames);
+                    /** @var QueueReceiverInterface $receiver */
+                    $envelopes = $receiver->getFromQueues($queueNames, $fetchSize);
                 } else {
-                    $envelopes = $receiver->get();
+                    $envelopes = $receiver->get($fetchSize);
                 }
 
                 foreach ($envelopes as $envelope) {
@@ -152,7 +164,7 @@ class Worker
 
                 if (0 < $sleep = (int) ($options['sleep'] - 1e6 * ($this->clock->now()->format('U.u') - $envelopeHandledStart->format('U.u')))) {
                     if (null !== $endTime) {
-                        $sleep = min($sleep, (int) (1e6 * ($endTime - $this->clock->now()->format('U.u'))));
+                        $sleep = min($sleep, (int) ceil(1e6 * ($endTime - $this->clock->now()->format('U.u'))));
                     }
 
                     if (0 < $sleep) {
@@ -176,25 +188,27 @@ class Worker
             return;
         }
 
-        $acked = false;
-        $ack = function (Envelope $envelope, ?\Throwable $e = null) use ($transportName, &$acked) {
-            $acked = true;
-            $this->acks[] = [$transportName, $envelope, $e];
-        };
+        $this->messageExecutionStrategy->execute(
+            $envelope->with(new ReceivedStamp($transportName), new ConsumedByWorkerStamp()),
+            $transportName,
+            $this->preAck(...),
+        );
+    }
 
-        try {
-            $e = null;
-            $envelope = $this->bus->dispatch($envelope->with(new ReceivedStamp($transportName), new ConsumedByWorkerStamp(), new AckStamp($ack)));
-        } catch (\Throwable $e) {
-        }
+    private function enqueueAck(string $transportName, Envelope $envelope, ?\Throwable $e = null): void
+    {
+        $this->acks[] = [$transportName, $envelope, $e];
+    }
 
+    private function preAck(Envelope $envelope, string $transportName, bool &$acked, ?\Throwable $e = null): void
+    {
         $noAutoAckStamp = $envelope->last(NoAutoAckStamp::class);
 
         if (!$acked && !$noAutoAckStamp) {
             $this->acks[] = [$transportName, $envelope, $e];
         } elseif ($noAutoAckStamp) {
-            $this->unacks ??= new \SplObjectStorage();
-            $this->unacks[$noAutoAckStamp->getHandlerDescriptor()->getBatchHandler()] = [$envelope->withoutAll(AckStamp::class), $transportName, $this->clock->now()->format('U.u')];
+            $this->unacks ??= new DeferredBatchMessageQueue();
+            $this->unacks->add($noAutoAckStamp->getHandlerDescriptor()->getBatchHandler(), $transportName, $envelope->withoutAll(AckStamp::class), $acked, (float) $this->clock->now()->format('U.u'));
         }
 
         $this->ack();
@@ -220,6 +234,11 @@ class Worker
                     $envelope = $e->getEnvelope();
                 }
 
+                if ($e instanceof DelayedMessageHandlingException) {
+                    // a retry must run the handlers again, so that they dispatch the delayed messages that failed again
+                    $envelope = $envelope->withoutAll(HandledStamp::class);
+                }
+
                 $failedEvent = new WorkerMessageFailedEvent($envelope, $transportName, $e);
 
                 $this->eventDispatcher?->dispatch($failedEvent);
@@ -227,7 +246,12 @@ class Worker
 
                 if (!$rejectFirst) {
                     unset($this->keepalives[$envelope->getMessage()]);
-                    $receiver->reject($envelope);
+
+                    if ($failedEvent->willRetry()) {
+                        $receiver->ack($envelope);
+                    } else {
+                        $receiver->reject($envelope);
+                    }
                 }
 
                 continue;
@@ -278,45 +302,50 @@ class Worker
 
     private function flush(bool|float $force): bool
     {
-        if (!$this->unacks) {
-            return false;
+        $flushed = $this->messageExecutionStrategy->flush($this->preAck(...), $force);
+
+        if (!$this->unacks?->hasPending()) {
+            return $flushed;
         }
 
-        if (\is_bool($force)) {
-            $unacks = $this->unacks;
-            $this->unacks = null;
-        } else {
-            $now = $this->clock->now()->format('U.u');
-            $remaining = new \SplObjectStorage();
-            $unacks = new \SplObjectStorage();
-
-            foreach ($this->unacks as $handler) {
-                if ($force <= $now - $this->unacks[$handler][2]) {
-                    $unacks[$handler] = $this->unacks[$handler];
-                } else {
-                    $remaining[$handler] = $this->unacks[$handler];
-                }
-            }
-
-            $this->unacks = $remaining->count() ? $remaining : null;
-            $force = true;
-        }
+        $unacks = $this->unacks->popFlushable($force, (float) $this->clock->now()->format('U.u'));
 
         if (!$unacks->count()) {
-            return false;
+            return $flushed;
         }
 
         foreach ($unacks as $handler) {
-            [$envelope, $transportName] = $unacks[$handler];
+            $deferredMessage = $unacks[$handler];
+
+            if ($deferredMessage->acked) {
+                continue;
+            }
+            $transportName = $deferredMessage->transportName;
+            $envelope = $deferredMessage->envelope;
             try {
-                $this->bus->dispatch($envelope->with(new FlushBatchHandlersStamp($force)));
+                $e = null;
+                $this->bus->dispatch($envelope->with(new FlushBatchHandlersStamp(true === $force || !\is_bool($force))));
             } catch (\Throwable $e) {
-                $envelope = $envelope->withoutAll(NoAutoAckStamp::class);
+                if (!$deferredMessage->acked) {
+                    $this->acks[] = [$transportName, $envelope->withoutAll(NoAutoAckStamp::class), $e];
+                }
+                continue;
+            }
+
+            if ($deferredMessage->acked) {
+                continue;
+            }
+            $noAutoAckStamp = $envelope->last(NoAutoAckStamp::class);
+
+            if (!$noAutoAckStamp) {
                 $this->acks[] = [$transportName, $envelope, $e];
+            } elseif ($noAutoAckStamp) {
+                $this->unacks ??= new DeferredBatchMessageQueue();
+                $this->unacks->add($noAutoAckStamp->getHandlerDescriptor()->getBatchHandler(), $transportName, $envelope->withoutAll(AckStamp::class), $deferredMessage->acked, (float) $this->clock->now()->format('U.u'));
             }
         }
 
-        return $this->ack();
+        return $this->ack() || $flushed;
     }
 
     public function stop(): void
@@ -330,16 +359,26 @@ class Worker
     {
         foreach ($this->keepalives as $message) {
             [$transportName, $envelope] = $this->keepalives[$message];
+            $receiver = $this->receivers[$transportName];
 
-            if (!$this->receivers[$transportName] instanceof KeepaliveReceiverInterface) {
+            if (!$receiver instanceof KeepaliveReceiverInterface) {
                 throw new RuntimeException(\sprintf('Receiver for "%s" does not implement "%s".', $transportName, KeepaliveReceiverInterface::class));
             }
 
-            $this->logger?->info('Sending keepalive request.', [
+            $context = [
                 'transport' => $transportName,
                 'message_id' => $envelope->last(TransportMessageIdStamp::class)?->getId(),
-            ]);
-            $this->receivers[$transportName]->keepalive($envelope, $seconds);
+            ];
+            $this->logger?->info('Sending keepalive request.', $context);
+
+            try {
+                $receiver->keepalive($envelope, $seconds);
+            } catch (\Throwable $e) {
+                // the alarm is raised at any point of the program, so an error thrown from here
+                // surfaces wherever the worker happened to be: it stops the worker, or it is read
+                // as a failure of the message that was being handled at that moment
+                $this->logger?->warning('Keepalive request failed: {error}', $context + ['error' => $e->getMessage(), 'exception' => $e]);
+            }
         }
     }
 

@@ -20,16 +20,15 @@
             <xsd:element name="member" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="channels" type="channels" minOccurs="0" maxOccurs="1" />
             <xsd:element name="publisher" type="publisher" minOccurs="0" maxOccurs="1" />
-            <xsd:element name="mongo" type="mongo" minOccurs="0" maxOccurs="1" />
             <xsd:element name="mongodb" type="mongodb" minOccurs="0" maxOccurs="1" />
             <xsd:element name="elasticsearch" type="elasticsearch" minOccurs="0" maxOccurs="1" />
             <xsd:element name="config" type="xsd:anyType" minOccurs="0" maxOccurs="1" />
-            <xsd:element name="excluded-404" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="excluded-http-code" type="excluded-http-code" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="tag" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="accepted-level" type="level" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="to-email" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="header" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="parameter" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="process-psr-3-messages" type="process-psr-3-messages" minOccurs="0" maxOccurs="1" />
         </xsd:sequence>
         <xsd:attribute name="type" type="xsd:string" />
@@ -48,6 +47,7 @@
         <xsd:attribute name="host" type="xsd:string" />
         <xsd:attribute name="source" type="xsd:string" />
         <xsd:attribute name="port" type="xsd:integer" />
+        <xsd:attribute name="rfc" type="xsd:integer" />
         <xsd:attribute name="action-level" type="level" />
         <xsd:attribute name="passthru-level" type="level" />
         <xsd:attribute name="min-level" type="level" />
@@ -59,9 +59,6 @@
         <xsd:attribute name="from-email" type="xsd:string" />
         <xsd:attribute name="to-email" type="xsd:string" />
         <xsd:attribute name="subject" type="xsd:string" />
-        <xsd:attribute name="notify" type="xsd:boolean" />
-        <xsd:attribute name="room" type="xsd:string" />
-        <xsd:attribute name="nickname" type="xsd:string" />
         <xsd:attribute name="release" type="xsd:string" />
         <xsd:attribute name="timeout" type="xsd:string" />
         <xsd:attribute name="time" type="xsd:integer" />
@@ -88,11 +85,9 @@
         <xsd:attribute name="document_type" type="xsd:string" />
         <xsd:attribute name="document-type" type="xsd:string" />
         <xsd:attribute name="ignore-error" type="xsd:string" />
-        <xsd:attribute name="api_version" type="xsd:string" />
         <xsd:attribute name="include-stacktraces" type="xsd:string" />
         <xsd:attribute name="content-type" type="xsd:string" />
         <xsd:attribute name="webhook-url" type="xsd:string" />
-        <xsd:attribute name="slack-team" type="xsd:string" />
         <xsd:attribute name="region" type="xsd:string" />
         <xsd:attribute name="enabled" type="xsd:boolean" />
     </xsd:complexType>
@@ -153,16 +148,6 @@
             <xsd:enumeration value="exclusive" />
         </xsd:restriction>
     </xsd:simpleType>
-
-    <xsd:complexType name="mongo">
-        <xsd:attribute name="id" type="xsd:string" />
-        <xsd:attribute name="host" type="xsd:string" />
-        <xsd:attribute name="port" type="xsd:integer" />
-        <xsd:attribute name="user" type="xsd:string" />
-        <xsd:attribute name="pass" type="xsd:string" />
-        <xsd:attribute name="database" type="xsd:string" />
-        <xsd:attribute name="collection" type="xsd:string" />
-    </xsd:complexType>
 
     <xsd:complexType name="mongodb">
         <xsd:attribute name="id" type="xsd:string" />

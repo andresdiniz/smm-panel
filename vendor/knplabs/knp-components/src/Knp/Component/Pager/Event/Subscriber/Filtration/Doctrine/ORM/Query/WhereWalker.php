@@ -203,7 +203,7 @@ class WhereWalker extends TreeWalkerAdapter
      */
     private function factorContainsFilter(ConditionalFactor $node, array $filterExpressions): bool
     {
-        if ($node->conditionalPrimary instanceof ConditionalPrimary && $node->not === false) {
+        if ($node->not === false) {
             return $this->primaryContainsFilter($node->conditionalPrimary, $filterExpressions);
         }
 
@@ -221,7 +221,11 @@ class WhereWalker extends TreeWalkerAdapter
             return $this->isExpressionInFilterExpressions($node->simpleConditionalExpression, $filterExpressions);
         }
         if ($node->isConditionalExpression()) {
-            return $this->expressionContainsFilter($node->conditionalExpression, $filterExpressions);
+           if ($node->conditionalExpression instanceof ConditionalExpression) {
+                return $this->expressionContainsFilter($node->conditionalExpression, $filterExpressions);
+            } elseif ($node->conditionalExpression instanceof ConditionalTerm) {
+                return $this->termContainsFilter($node->conditionalExpression, $filterExpressions);
+            }
         }
 
         return false;
@@ -245,11 +249,11 @@ class WhereWalker extends TreeWalkerAdapter
 
     private function createPrimaryFromNode(ConditionalPrimary|ConditionalExpression $node): ConditionalPrimary
     {
-        if ($node instanceof ConditionalPrimary) {
-            $conditionalPrimary = $node;
-        } else {
+        if ($node instanceof ConditionalExpression) {
             $conditionalPrimary = new ConditionalPrimary();
             $conditionalPrimary->conditionalExpression = $node;
+        } else {
+            $conditionalPrimary = $node;
         }
 
         return $conditionalPrimary;

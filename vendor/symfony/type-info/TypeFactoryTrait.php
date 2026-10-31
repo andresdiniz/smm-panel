@@ -11,6 +11,7 @@
 
 namespace Symfony\Component\TypeInfo;
 
+use Symfony\Component\TypeInfo\Exception\InvalidArgumentException;
 use Symfony\Component\TypeInfo\Type\ArrayShapeType;
 use Symfony\Component\TypeInfo\Type\BackedEnumType;
 use Symfony\Component\TypeInfo\Type\BuiltinType;
@@ -19,6 +20,7 @@ use Symfony\Component\TypeInfo\Type\EnumType;
 use Symfony\Component\TypeInfo\Type\GenericType;
 use Symfony\Component\TypeInfo\Type\IntersectionType;
 use Symfony\Component\TypeInfo\Type\NullableType;
+use Symfony\Component\TypeInfo\Type\ObjectShapeType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 use Symfony\Component\TypeInfo\Type\TemplateType;
 use Symfony\Component\TypeInfo\Type\UnionType;
@@ -170,13 +172,9 @@ trait TypeFactoryTrait
     /**
      * @return CollectionType<BuiltinType<TypeIdentifier::ITERABLE>>
      */
-    public static function iterable(?Type $value = null, ?Type $key = null, bool $asList = false): CollectionType
+    public static function iterable(?Type $value = null, ?Type $key = null): CollectionType
     {
-        if ($asList) {
-            trigger_deprecation('symfony/type-info', '7.3', 'The third argument of "%s()" is deprecated. Use the "%s::list()" method to create a list instead.', __METHOD__, self::class);
-        }
-
-        return self::collection(self::builtin(TypeIdentifier::ITERABLE), $value, $key, $asList);
+        return self::collection(self::builtin(TypeIdentifier::ITERABLE), $value, $key);
     }
 
     /**
@@ -229,6 +227,27 @@ trait TypeFactoryTrait
     public static function object(?string $className = null): BuiltinType|ObjectType
     {
         return null !== $className ? new ObjectType($className) : new BuiltinType(TypeIdentifier::OBJECT);
+    }
+
+    /**
+     * Builds an {@see ObjectShapeType} from a string-keyed shape map.
+     *
+     * Each entry is either a bare {@see Type} (treated as a required key) or an
+     * array describing the value type and whether the key is optional; a missing
+     * `optional` key defaults to `false`. Object shapes are always sealed.
+     *
+     * @param array<string, array{type: Type, optional?: bool}|Type> $shape
+     */
+    public static function objectShape(array $shape): ObjectShapeType
+    {
+        $shape = array_map(
+            static fn (array|Type $item): array => $item instanceof Type
+                ? ['type' => $item, 'optional' => false]
+                : ['type' => $item['type'], 'optional' => $item['optional'] ?? false],
+            $shape
+        );
+
+        return new ObjectShapeType($shape);
     }
 
     /**
@@ -324,6 +343,10 @@ trait TypeFactoryTrait
         }
 
         if (1 === \count($unionTypes)) {
+            if ($unionTypes[0] instanceof BuiltinType && $unionTypes[0]->getTypeIdentifier()->isStandalone()) {
+                throw new InvalidArgumentException(\sprintf('Cannot create union with "%s" standalone type.', $unionTypes[0]));
+            }
+
             return self::nullable($unionTypes[0]);
         }
 
@@ -439,7 +462,7 @@ trait TypeFactoryTrait
 
             $valueType = $valueTypes ? CollectionType::mergeCollectionValueTypes($valueTypes) : Type::mixed();
 
-            return self::collection($type, $valueType, $keyType, \is_array($value) && [] !== $value && array_is_list($value));
+            return self::collection($type, $valueType, $keyType, \is_array($value) && $value && array_is_list($value));
         }
 
         if ($value instanceof \ArrayAccess) {

@@ -12,15 +12,13 @@ return static function (ContainerConfigurator $container): void {
     $container->services()
         ->set('doctrine.fixtures_load_command', LoadDataFixturesDoctrineCommand::class)
             ->args([
-                service('doctrine.fixtures.loader'),
+                service('doctrine.fixtures.provider'),
                 service('doctrine'),
             ])
             ->tag('console.command', ['command' => 'doctrine:fixtures:load'])
 
+        ->alias('doctrine.fixtures.provider', 'doctrine.fixtures.loader')
         ->set('doctrine.fixtures.loader', SymfonyFixturesLoader::class)
-            ->args([
-                service('service_container'),
-            ])
 
         ->set('doctrine.fixtures.purger.orm_purger_factory', ORMPurgerFactory::class)
             ->tag('doctrine.fixtures.purger_factory', ['alias' => 'default']);

@@ -29,6 +29,7 @@ use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\Compiler\ServiceLocatorTagPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
@@ -43,7 +44,6 @@ use Symfony\Component\HttpFoundation\RequestMatcher\IpsRequestMatcher;
 use Symfony\Component\HttpFoundation\RequestMatcher\MethodRequestMatcher;
 use Symfony\Component\HttpFoundation\RequestMatcher\PathRequestMatcher;
 use Symfony\Component\HttpFoundation\RequestMatcher\PortRequestMatcher;
-use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\PasswordHasher\Hasher\NativePasswordHasher;
 use Symfony\Component\PasswordHasher\Hasher\Pbkdf2PasswordHasher;
@@ -60,7 +60,6 @@ use Symfony\Component\Security\Core\User\ChainUserChecker;
 use Symfony\Component\Security\Core\User\ChainUserProvider;
 use Symfony\Component\Security\Core\User\UserCheckerInterface;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
-use Symfony\Component\Security\Http\Authentication\ExposeSecurityLevel;
 use Symfony\Component\Security\Http\Authenticator\Debug\TraceableAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Debug\TraceableAuthenticatorManagerListener;
 use Symfony\Component\Security\Http\Event\CheckPassportEvent;
@@ -138,6 +137,7 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
         // set some global scalars
         $container->setParameter('security.access.denied_url', $config['access_denied_url']);
         $container->setParameter('security.authentication.manager.erase_credentials', $config['erase_credentials']);
+        $container->deprecateParameter('security.authentication.manager.erase_credentials', 'symfony/security-bundle', '8.1', 'The "%s" parameter is deprecated since Symfony 8.1. It will be removed in Symfony 9.0, as the "eraseCredentials()" method was removed in Symfony 8.0.');
         $container->setParameter('security.authentication.session_strategy.strategy', $config['session_fixation_strategy']);
 
         if (isset($config['access_decision_manager']['service'])) {
@@ -155,9 +155,6 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
                     $config['access_decision_manager']['allow_if_equal_granted_denied']
                 ));
         }
-
-        $container->setParameter('security.authentication.hide_user_not_found', ExposeSecurityLevel::All !== $config['expose_security_errors']);
-        $container->deprecateParameter('security.authentication.hide_user_not_found', 'symfony/security-bundle', '7.4');
 
         $container->setParameter('.security.authentication.expose_security_errors', $config['expose_security_errors']);
 
@@ -207,7 +204,7 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
 
     private function createRoleHierarchy(array $config, ContainerBuilder $container): void
     {
-        if (!isset($config['role_hierarchy']) || 0 === \count($config['role_hierarchy'])) {
+        if (!isset($config['role_hierarchy']) || !$config['role_hierarchy']) {
             $container->removeDefinition('security.access.role_hierarchy_voter');
 
             return;
@@ -262,7 +259,7 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
         }
 
         // allow cache warm-up for expressions
-        if (\count($this->expressions)) {
+        if ($this->expressions) {
             $container->getDefinition('security.cache_warmer.expression')
                 ->replaceArgument(0, new IteratorArgument(array_values($this->expressions)));
         } else {
@@ -380,7 +377,7 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
         $config->replaceArgument(3, $firewall['security']);
 
         // Security disabled?
-        if (false === $firewall['security']) {
+        if (!$firewall['security']) {
             return [$matcher, [], null, null, []];
         }
 
@@ -429,7 +426,7 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
 
         $contextKey = null;
         // Context serializer listener
-        if (false === $firewall['stateless']) {
+        if (!$firewall['stateless']) {
             $contextKey = $firewall['context'] ?? $id;
             $listeners[] = new Reference($this->createContextListener($container, $contextKey, $firewallEventDispatcherId));
             $sessionStrategyId = 'security.authentication.session_strategy';
@@ -466,13 +463,13 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
             }
 
             // add session logout listener
-            if (true === $firewall['logout']['invalidate_session'] && false === $firewall['stateless']) {
+            if ($firewall['logout']['invalidate_session'] && !$firewall['stateless']) {
                 $container->setDefinition('security.logout.listener.session.'.$id, new ChildDefinition('security.logout.listener.session'))
                     ->addTag('kernel.event_subscriber', ['dispatcher' => $firewallEventDispatcherId]);
             }
 
             // add cookie logout listener
-            if (\count($firewall['logout']['delete_cookies']) > 0) {
+            if ($firewall['logout']['delete_cookies']) {
                 $container->setDefinition('security.logout.listener.cookie_clearing.'.$id, new ChildDefinition('security.logout.listener.cookie_clearing'))
                     ->addArgument($firewall['logout']['delete_cookies'])
                     ->addTag('kernel.event_subscriber', ['dispatcher' => $firewallEventDispatcherId]);
@@ -494,7 +491,7 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
                     $firewall['logout']['csrf_token_id'],
                     $firewall['logout']['csrf_parameter'],
                     isset($firewall['logout']['csrf_token_manager']) ? new Reference($firewall['logout']['csrf_token_manager']) : null,
-                    false === $firewall['stateless'] && isset($firewall['context']) ? $firewall['context'] : null,
+                    !$firewall['stateless'] && isset($firewall['context']) ? $firewall['context'] : null,
                 ])
             ;
 
@@ -518,7 +515,7 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
             ->replaceArgument(0, $authenticators)
             ->replaceArgument(2, new Reference($firewallEventDispatcherId))
             ->replaceArgument(3, $id)
-            ->replaceArgument(7, $firewall['required_badges'] ?? [])
+            ->replaceArgument(6, $firewall['required_badges'] ?? [])
             ->addTag('monolog.logger', ['channel' => 'security'])
         ;
 
@@ -599,19 +596,21 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
 
     private function createContextListener(ContainerBuilder $container, string $contextKey, ?string $firewallEventDispatcherId): string
     {
-        if (isset($this->contextListeners[$contextKey])) {
-            return $this->contextListeners[$contextKey];
-        }
-
         $listenerId = 'security.context_listener.'.\count($this->contextListeners);
         $listener = $container->setDefinition($listenerId, new ChildDefinition('security.context_listener'));
         $listener->replaceArgument(2, $contextKey);
         if (null !== $firewallEventDispatcherId) {
             $listener->replaceArgument(4, new Reference($firewallEventDispatcherId));
-            $listener->addTag('kernel.event_listener', ['event' => KernelEvents::RESPONSE, 'method' => 'onKernelResponse']);
+
+            // the firewalls sharing a context share its session key, so one listener per context is enough to write it
+            if (!\in_array($contextKey, $this->contextListeners, true)) {
+                $listener->addTag('kernel.event_listener', ['event' => KernelEvents::RESPONSE, 'method' => 'onKernelResponse']);
+            }
         }
 
-        return $this->contextListeners[$contextKey] = $listenerId;
+        $this->contextListeners[$listenerId] = $contextKey;
+
+        return $listenerId;
     }
 
     private function createAuthenticationListeners(ContainerBuilder $container, string $id, array $firewall, array &$authenticationProviders, ?string $defaultProvider, array $providerIds, ?string $defaultEntryPoint): array
@@ -717,7 +716,7 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
             $hasherMap[$class] = $this->createHasher($hasher);
             // The key is not a class, so we register an alias for argument to
             // ease getting the hasher
-            if (!class_exists($class) && !interface_exists($class)) {
+            if (!class_exists($class) && !interface_exists($class, false)) {
                 $id = 'security.password_hasher.'.$class;
                 $container
                     ->register($id, PasswordHasherInterface::class)
@@ -1041,22 +1040,6 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
     public function addUserProviderFactory(UserProviderFactoryInterface $factory): void
     {
         $this->userProviderFactories[] = $factory;
-    }
-
-    /**
-     * @deprecated since Symfony 7.4, to be removed in Symfony 8.0 together with XML support.
-     */
-    public function getXsdValidationBasePath(): string|false
-    {
-        return __DIR__.'/../Resources/config/schema';
-    }
-
-    /**
-     * @deprecated since Symfony 7.4, to be removed in Symfony 8.0 together with XML support.
-     */
-    public function getNamespace(): string
-    {
-        return 'http://symfony.com/schema/dic/security';
     }
 
     public function getConfiguration(array $config, ContainerBuilder $container): ?ConfigurationInterface

@@ -1,3 +1,22 @@
+UPGRADE to 4.0
+==============
+
+## Type declarations
+
+Type declarations have been added everywhere. Types extending or implementing
+types from this bundle need to be updated to match the new signatures.
+
+## Final classes
+
+Some classes have been marked as `final` because they are not supposed to be
+extended. Consider using composition instead of inheritance.
+
+## Mandatory `ManagerRegistry` argument
+
+It is now mandatory to pass a `ManagerRegistry` instance to the constructor of
+`Doctrine\Bundle\FixturesBundle\Command\LoadDataFixturesDoctrineCommand`.
+
+
 UPGRADE to 3.0
 ==============
 
@@ -25,7 +44,7 @@ services:
     and so no longer have a ``$this->container`` property. You *can* manually
     implement this interface. Or, a better idea is to update your fixtures
     to use dependency injection:
-    
+
 ```diff
 class MyFixture extends Fixture
 {
@@ -47,7 +66,7 @@ class MyFixture extends Fixture
 * The base ``Fixture`` class no longer implements ``DependentFixtureInterface``.
     If you want to have a ``getDependencies()`` method, be sure to implement
     this interface explicitly:
-    
+
 ```diff
 + use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 

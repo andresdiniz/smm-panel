@@ -15,10 +15,7 @@ use Symfony\Component\ExpressionLanguage\Expression;
 use Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface;
 use Symfony\Component\Security\Core\Authorization\ExpressionLanguage;
 
-/**
- * @final since Symfony 7.1
- */
-class ExpressionCacheWarmer implements CacheWarmerInterface
+final class ExpressionCacheWarmer implements CacheWarmerInterface
 {
     /**
      * @param iterable<mixed, Expression|string> $expressions
@@ -37,7 +34,7 @@ class ExpressionCacheWarmer implements CacheWarmerInterface
     public function warmUp(string $cacheDir, ?string $buildDir = null): array
     {
         foreach ($this->expressions as $expression) {
-            $this->expressionLanguage->parse($expression, ['token', 'user', 'object', 'subject', 'role_names', 'request', 'trust_resolver']);
+            $this->expressionLanguage->parse($expression, ['token', 'user', 'object', 'subject', 'role_names', 'auth_checker', 'request', 'trust_resolver']);
         }
 
         return [];

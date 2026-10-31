@@ -12,7 +12,9 @@
 namespace Symfony\Component\Scheduler\Generator;
 
 use Psr\Cache\CacheItemInterface;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\Lock\LockInterface;
+use Symfony\Component\Scheduler\Exception\RuntimeException;
 use Symfony\Contracts\Cache\CacheInterface;
 
 final class Checkpoint implements CheckpointInterface
@@ -41,10 +43,14 @@ final class Checkpoint implements CheckpointInterface
         }
 
         if ($this->cache) {
-            [$this->time, $this->index, $this->from] = $this->cache->get($this->name, static function (CacheItemInterface $item) use ($now) {
+            // When the cache lost the state, restore the local one, unless another Worker held the Lock in the meantime.
+            $state = !$this->reset && isset($this->time) ? [$this->time, $this->index, $this->from] : [$now, -1, $now];
+            $this->reset = false;
+
+            [$this->time, $this->index, $this->from] = $this->cache->get($this->name, static function (CacheItemInterface $item) use ($state) {
                 $item->expiresAfter(self::CACHE_EXPIRY);
 
-                return [$now, -1, $now];
+                return $state;
             }) + [2 => $now];
             $this->save($this->time, $this->index);
         } elseif ($this->reset) {
@@ -79,11 +85,26 @@ final class Checkpoint implements CheckpointInterface
         $this->index = $index;
         $this->from ??= $time;
         $from = $this->from;
-        $this->cache?->get($this->name, static function (CacheItemInterface $item) use ($time, $index, $from) {
-            $item->expiresAfter(self::CACHE_EXPIRY);
 
-            return [$time, $index, $from];
-        }, \INF);
+        if (!$this->cache instanceof CacheItemPoolInterface) {
+            $this->cache?->get($this->name, static function (CacheItemInterface $item) use ($time, $index, $from) {
+                $item->expiresAfter(self::CACHE_EXPIRY);
+
+                return [$time, $index, $from];
+            }, \INF);
+
+            return;
+        }
+
+        $item = $this->cache->getItem($this->name);
+        $item->set([$time, $index, $from]);
+        $item->expiresAfter(self::CACHE_EXPIRY);
+
+        // Cache pools report backend failures only through the return value of save(). Going on would
+        // load the default state on every tick and skip all runs, or dispatch runs again after a restart.
+        if (!$this->cache->save($item)) {
+            throw new RuntimeException(\sprintf('Failed to save the "%s" scheduler checkpoint, the cache backend may be unavailable.', $this->name));
+        }
     }
 
     /**
@@ -100,7 +121,10 @@ final class Checkpoint implements CheckpointInterface
         if (!$nextTime) {
             $this->lock->release();
         } elseif ($remaining = $this->lock->getRemainingLifetime()) {
-            $this->lock->refresh((float) $nextTime->format('U.u') - (float) $now->format('U.u') + $remaining);
+            // the lock might have expired during a long run; stores reject negative TTLs and some reject TTLs below one second
+            if (1 <= $ttl = (float) $nextTime->format('U.u') - (float) $now->format('U.u') + $remaining) {
+                $this->lock->refresh($ttl);
+            }
         }
     }
 }

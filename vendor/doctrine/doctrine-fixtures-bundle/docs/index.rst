@@ -68,7 +68,7 @@ Once your fixtures have been written, load them by executing this command:
 .. caution::
 
     By default the ``load`` command **purges the database**, removing all data
-    from every table. To append your fixtures' data add the ``--append`` option.
+    from every table. To append your fixtures' data, add the ``--append`` option.
 
 This command looks for all services tagged with ``doctrine.fixture.orm``. If you're
 using the `default service configuration`_, any class that implements ``ORMFixtureInterface``
@@ -298,11 +298,19 @@ You can also customize purging behavior significantly more and implement a custo
     // src/Purger/CustomPurger.php
     namespace App\Purger;
 
-    use Doctrine\Common\DataFixtures\Purger\PurgerInterface;
+    use Doctrine\Common\DataFixtures\Purger\ORMPurger;
+    use Doctrine\Common\DataFixtures\Purger\ORMPurgerInterface;
+    use Doctrine\ORM\EntityManagerInterface;
 
-    // ...
-    class CustomPurger implements PurgerInterface
+    class CustomPurger implements ORMPurgerInterface
     {
+        private EntityManagerInterface $entityManager;
+
+        public function setEntityManager(EntityManagerInterface $em): void
+        {
+            $this->entityManager = $em;
+        }
+
         public function purge(): void
         {
             // ...
@@ -318,7 +326,7 @@ You can also customize purging behavior significantly more and implement a custo
     {
         public function createForEntityManager(?string $emName, EntityManagerInterface $em, array $excluded = [], bool $purgeWithTruncate = false) : PurgerInterface
         {
-            return new CustomPurger($em);
+            return new CustomPurger();
         }
     }
 
@@ -374,6 +382,30 @@ With the ``--purger`` option we can now specify to use ``my_purger`` instead of 
 .. _`Doctrine ORM`: https://symfony.com/doc/current/doctrine.html
 .. _`DoctrineMongoDBBundle`: https://github.com/doctrine/DoctrineMongoDBBundle
 
+Loading Fixtures in Dry Run mode
+--------------------------------
+
+The ``--dry-run`` option allows you to simulate the execution of your fixtures
+and see what would happen if they were executed, without actually applying
+any changes to the database.
+
+This way, you can inspect the behavior of your fixtures safely, without modifying your database.
+
+.. code-block:: terminal
+
+    $ php bin/console doctrine:fixtures:load --dry-run
+
+You can also combine ``--dry-run`` with other options such as ``--append`` or ``--group``:
+
+.. code-block:: terminal
+
+    $ php bin/console doctrine:fixtures:load --group=group1 --append --dry-run
+
+.. note::
+
+    When using ``--dry-run`` option, all persisting operations are skipped.
+    The fixtures will be processed, and any logging or output will behave as usual,
+    but no database changes will occur.
 
 How to load Fixtures from a different Directory
 -----------------------------------------------

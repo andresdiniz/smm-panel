@@ -11,10 +11,9 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 use function dirname;
 
-class DoctrineFixturesBundle extends Bundle
+final class DoctrineFixturesBundle extends Bundle
 {
-    /** @return void */
-    public function build(ContainerBuilder $container)
+    public function build(ContainerBuilder $container): void
     {
         $container->addCompilerPass(new FixturesCompilerPass());
         $container->addCompilerPass(new PurgerFactoryCompilerPass());
