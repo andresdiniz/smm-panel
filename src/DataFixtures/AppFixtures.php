@@ -56,9 +56,9 @@ class AppFixtures extends Fixture
         $credAsaas = (new ProviderCredential())
             ->setType(ProviderCredential::TYPE_PAYMENT)
             ->setSlug('asaas')
-            ->setBaseUrl('https://sandbox.asaas.com/api/v3')
+            ->setBaseUrl('https://api-sandbox.asaas.com/v3')
             ->setApiKey('DEMO_KEY_ASAAS_SANDBOX')
-            ->setActive(true);
+            ->setActive(false);
         $em->persist($credAsaas);
 
         // ── Serviços (category = string, getPricePerThousandCents) ───────────

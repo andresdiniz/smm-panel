@@ -22,7 +22,7 @@ final class AsaasGatewayTest extends TestCase
             return new MockResponse('{"status":"PENDING"}');
         });
         $gateway = new AsaasGateway(
-            $this->createMock(EntityManagerInterface::class),
+            $this->createStub(EntityManagerInterface::class),
             $client,
             'sandbox-api-key',
             'sandbox',
@@ -32,7 +32,31 @@ final class AsaasGatewayTest extends TestCase
 
         self::assertSame(Payment::STATUS_PENDING, $gateway->fetchStatus($payment));
         self::assertSame(
-            'https://sandbox.asaas.com/api/v3/payments/pay_sandbox_1',
+            'https://api-sandbox.asaas.com/v3/payments/pay_sandbox_1',
+            $requestedUrl,
+        );
+    }
+
+    public function testProductionIsUsedForStatusRequests(): void
+    {
+        $requestedUrl = null;
+        $client = new MockHttpClient(static function (string $method, string $url) use (&$requestedUrl): MockResponse {
+            $requestedUrl = $url;
+
+            return new MockResponse('{"status":"PENDING"}');
+        });
+        $gateway = new AsaasGateway(
+            $this->createStub(EntityManagerInterface::class),
+            $client,
+            'production-api-key',
+            'production',
+            'webhook-token',
+        );
+        $payment = (new Payment())->setExternalId('pay_production_1');
+
+        self::assertSame(Payment::STATUS_PENDING, $gateway->fetchStatus($payment));
+        self::assertSame(
+            'https://api.asaas.com/v3/payments/pay_production_1',
             $requestedUrl,
         );
     }
@@ -40,7 +64,7 @@ final class AsaasGatewayTest extends TestCase
     public function testEmptyWebhookTokenNeverAuthenticates(): void
     {
         $gateway = new AsaasGateway(
-            $this->createMock(EntityManagerInterface::class),
+            $this->createStub(EntityManagerInterface::class),
             new MockHttpClient(),
             'sandbox-api-key',
             'sandbox',

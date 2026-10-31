@@ -6,11 +6,13 @@ namespace App\Controller;
 
 use App\Billing\DynamicGatewayLoader;
 use App\Billing\Exception\GatewayException;
+use App\Entity\Payment;
 use App\Entity\ProviderCredential;
 use App\Repository\PaymentRepository;
 use App\Repository\ProviderCredentialRepository;
 use App\Repository\WalletRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -133,17 +135,33 @@ class WalletController extends AbstractController
             }
 
             if ($method === 'pix') {
-                return $this->redirectToRoute('app_wallet_pix_pending', [
-                    'id' => $payment->getId(),
+                return $this->redirectToRoute('app_wallet_deposit', [
+                    'pix' => $payment->getId(),
                 ]);
             }
 
             return $this->redirectToRoute('app_wallet_index');
         }
 
+        $pixPayment = null;
+        $rawPaymentId = $request->query->get('pix');
+        if ($rawPaymentId !== null) {
+            $paymentId = filter_var($rawPaymentId, FILTER_VALIDATE_INT);
+            $pixPayment = $paymentId !== false ? $this->paymentRepository->find($paymentId) : null;
+
+            if (
+                $pixPayment === null
+                || $pixPayment->getUser() !== $user
+                || $pixPayment->getMethod() !== Payment::METHOD_PIX
+            ) {
+                throw $this->createNotFoundException('Pagamento não encontrado.');
+            }
+        }
+
         return $this->render('wallet/deposit.html.twig', [
             'wallet'      => $wallet,
             'lastDeposit' => $this->paymentRepository->findLastDepositByUser($user),
+            'pixPayment'  => $pixPayment,
         ]);
     }
 
@@ -156,10 +174,22 @@ class WalletController extends AbstractController
             throw $this->createNotFoundException('Pagamento não encontrado.');
         }
 
-        return $this->render('wallet/pix_pending.html.twig', [
-            'payment'      => $payment,
-            'qrCodeBase64' => $payment->getQrCodeBase64(),
-        ]);
+        return $this->redirectToRoute('app_wallet_deposit', ['pix' => $id]);
+    }
+
+    #[Route('/pix/{id}/status', name: 'pix_status', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function pixStatus(int $id): JsonResponse
+    {
+        $payment = $this->paymentRepository->find($id);
+
+        if (!$payment || $payment->getUser() !== $this->getUser() || $payment->getMethod() !== Payment::METHOD_PIX) {
+            throw $this->createNotFoundException('Pagamento não encontrado.');
+        }
+
+        $response = $this->json(['status' => $payment->getStatus()]);
+        $response->headers->set('Cache-Control', 'no-store, private');
+
+        return $response;
     }
 
     /**

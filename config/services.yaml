@@ -2,7 +2,7 @@
 parameters:
     admin_email: '%env(ADMIN_EMAIL)%'
     affiliate.default_rate: '%env(float:AFFILIATE_DEFAULT_RATE)%'
-    asaas.environment_default: 'sandbox'
+    asaas.environment_default: 'production'
 
 services:
     _defaults:

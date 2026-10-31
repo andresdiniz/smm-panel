@@ -280,11 +280,13 @@ REDIS_URL=redis://127.0.0.1:6379
 
 MAILER_DSN=smtp://user:pass@smtp.host:587
 
-# Asaas (sandbox por padrão; use production somente após validação)
-ASAAS_ENV=sandbox
+# Asaas (produção por padrão; use sandbox somente para homologação)
+ASAAS_ENV=production
 
 # As chaves dos gateways e tokens de webhook são gerenciados em
 # Admin > Provedores / Chaves de API. Não os inclua no repositório.
+# Use a chave da conta e o token de webhook do mesmo ambiente. Na Hostinger,
+# configure ASAAS_ENV=production nas variáveis de ambiente da aplicação.
 
 # Providers SMM compatíveis com o padrão SMM API v2 podem ser cadastrados em
 # Admin > Provedores / Chaves de API, usando uma URL HTTPS pública.

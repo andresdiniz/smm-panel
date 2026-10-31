@@ -27,13 +27,13 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
     /**
      * URLs canônicas oficiais — sem redirect.
      *   Produção : https://api.asaas.com/v3
-     *   Sandbox  : https://sandbox.asaas.com/api/v3
+     *   Sandbox  : https://api-sandbox.asaas.com/v3
      *
      * A seleção fixa evita redirects e impede que uma URL salva no banco
      * altere o destino da chave de API.
      */
     private const URL_PRODUCTION = 'https://api.asaas.com/v3';
-    private const URL_SANDBOX    = 'https://sandbox.asaas.com/api/v3';
+    private const URL_SANDBOX    = 'https://api-sandbox.asaas.com/v3';
 
     /** URL já normalizada usada em todas as requisições. */
     private readonly string $apiBaseUrl;

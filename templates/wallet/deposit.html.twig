@@ -325,10 +325,205 @@ select.dep__control { appearance: none; -webkit-appearance: none; cursor: pointe
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin .8s linear infinite; }
 
+.pix-modal {
+  width: min(94vw, 520px);
+  max-width: none;
+  max-height: min(90dvh, 760px);
+  padding: 0;
+  overflow: auto;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+}
+.pix-modal::backdrop {
+  background: rgb(10 25 28 / 72%);
+  backdrop-filter: blur(5px);
+}
+.pix-modal__panel {
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl, 18px);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+.pix-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.pix-modal__eyebrow {
+  margin: 0 0 4px;
+  color: var(--primary);
+  font-size: .72rem;
+  font-weight: 750;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.pix-modal__header h2 {
+  margin: 0;
+  color: var(--text-bright);
+  font-size: 1.35rem;
+}
+.pix-modal__close {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  text-decoration: none;
+}
+.pix-modal__close:hover {
+  color: var(--primary);
+  background: var(--primary-lo);
+}
+.pix-modal__status {
+  margin: 18px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--acc-border);
+  border-radius: var(--r-sm);
+  color: var(--primary);
+  background: var(--acc-soft);
+  font-size: .9rem;
+  font-weight: 700;
+}
+.pix-modal__details[hidden] {
+  display: none;
+}
+.pix-modal__qr {
+  display: grid;
+  width: fit-content;
+  min-width: 220px;
+  min-height: 220px;
+  margin: 0 auto 12px;
+  padding: 12px;
+  place-items: center;
+  border: 1px solid #e6ebeb;
+  border-radius: 12px;
+  background: #fff;
+}
+.pix-modal__qr img {
+  display: block;
+  width: 220px;
+  height: 220px;
+  object-fit: contain;
+}
+.pix-modal__qr--empty {
+  color: #627477;
+  font-size: .85rem;
+}
+.pix-modal__hint {
+  margin: 0 0 18px;
+  color: var(--text-muted);
+  font-size: .85rem;
+  line-height: 1.55;
+  text-align: center;
+}
+.pix-modal__label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--text-muted);
+  font-size: .75rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+.pix-modal__copy {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+.pix-modal__copy textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 11px;
+  resize: vertical;
+  border: 0;
+  color: var(--text);
+  background: transparent;
+  font: .72rem/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+.pix-modal__copy button,
+.pix-modal__check {
+  padding: 0 14px;
+  border: 0;
+  color: #fff;
+  background: var(--primary);
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+.pix-modal__copy button:hover,
+.pix-modal__check:hover {
+  background: var(--primary-hover);
+}
+.pix-modal__copy-feedback {
+  min-height: 1.2em;
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: .76rem;
+}
+.pix-modal__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: .88rem;
+}
+.pix-modal__summary strong {
+  color: var(--text-bright);
+  font-size: 1.15rem;
+}
+.pix-modal__check {
+  width: 100%;
+  min-height: 44px;
+  border-radius: var(--r-sm);
+}
+.pix-modal__error {
+  margin: 10px 0 0;
+  color: var(--error);
+  font-size: .8rem;
+}
+.pix-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  color: var(--text-muted);
+  font-size: .76rem;
+}
+.pix-modal__footer a {
+  color: var(--primary);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 /* Responsivo */
 @media (max-width: 680px) {
   .dep { grid-template-columns: 1fr; gap: 24px; }
   .dep__info { position: static; }
+}
+@media (max-width: 480px) {
+  .pix-modal__panel { padding: 18px; }
+  .pix-modal__copy { flex-direction: column; }
+  .pix-modal__copy button { min-height: 42px; }
+  .pix-modal__footer { align-items: flex-start; flex-direction: column; }
 }
 </style>
 {% endblock %}
@@ -455,6 +650,9 @@ select.dep__control { appearance: none; -webkit-appearance: none; cursor: pointe
   </div>
 
 </div>
+{% if pixPayment %}
+  {% include 'wallet/_pix_modal.html.twig' with {payment: pixPayment} only %}
+{% endif %}
 {% endblock %}
 
 {% block javascripts %}{{ parent() }}
@@ -495,5 +693,94 @@ document.getElementById('depositForm').addEventListener('submit', function() {
   btn.disabled = true;
   btn.innerHTML = '<svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Gerando...';
 });
+
+{% if pixPayment %}
+const pixModal = document.getElementById('pix-payment-modal');
+const pixStatus = document.getElementById('pix-payment-status');
+const pixStatusError = document.getElementById('pix-status-error');
+const pixDetails = document.getElementById('pix-payment-details');
+const pixCheckButton = document.getElementById('pix-check-status');
+const pixStatusLabels = {
+  pending: 'Aguardando a confirmação do pagamento.',
+  approved: 'Pix confirmado. Seu saldo já foi atualizado.',
+  failed: 'O pagamento não foi aprovado.',
+  cancelled: 'Este Pix foi cancelado e não está mais disponível.',
+  refunded: 'Este pagamento foi estornado.',
+};
+
+pixModal.showModal();
+pixModal.addEventListener('cancel', event => event.preventDefault());
+pixModal.addEventListener('click', event => {
+  if (event.target === pixModal) {
+    window.location.assign(pixModal.dataset.continueUrl);
+  }
+});
+
+const pixCopyButton = document.getElementById('pix-copy-button');
+if (pixCopyButton) {
+  pixCopyButton.addEventListener('click', async () => {
+    const pixCodeInput = document.getElementById('pix-payment-code');
+    const feedback = document.getElementById('pix-copy-feedback');
+    try {
+      await navigator.clipboard.writeText(pixCodeInput.value);
+      feedback.textContent = 'Código Pix copiado.';
+    } catch {
+      pixCodeInput.focus();
+      pixCodeInput.select();
+      feedback.textContent = document.execCommand('copy')
+        ? 'Código Pix copiado.'
+        : 'Não foi possível copiar. Selecione e copie o código manualmente.';
+    }
+  });
+}
+
+if (pixCheckButton) {
+  let polling = false;
+  const checkPixStatus = async () => {
+    if (polling) return;
+    polling = true;
+    pixCheckButton.disabled = true;
+    pixStatusError.hidden = true;
+    try {
+      const response = await fetch(pixModal.dataset.statusUrl, {
+        headers: {Accept: 'application/json'},
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        throw new Error('Falha ao consultar o pagamento.');
+      }
+
+      const result = await response.json();
+      const status = pixStatusLabels[result.status] ? result.status : null;
+      if (!status) {
+        throw new Error('O gateway retornou um status de pagamento inválido.');
+      }
+      pixStatus.textContent = pixStatusLabels[status];
+      if (status !== 'pending') {
+        pixDetails.hidden = true;
+        pixCheckButton.hidden = true;
+      }
+    } catch (error) {
+      pixStatusError.textContent = error instanceof Error
+        ? `${error.message} Tente novamente.`
+        : 'Não foi possível consultar o pagamento. Tente novamente.';
+      pixStatusError.hidden = false;
+    } finally {
+      polling = false;
+      if (!pixCheckButton.hidden) {
+        pixCheckButton.disabled = false;
+      }
+    }
+  };
+
+  pixCheckButton.addEventListener('click', checkPixStatus);
+  window.setInterval(() => {
+    if (!document.hidden && !pixCheckButton.hidden) {
+      checkPixStatus();
+    }
+  }, 8000);
+}
+{% endif %}
 </script>
 {% endblock %}

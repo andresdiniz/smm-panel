@@ -1,0 +1,69 @@
+{% set isPending = payment.status == constant('App\\Entity\\Payment::STATUS_PENDING') %}
+{% set isApproved = payment.status == constant('App\\Entity\\Payment::STATUS_APPROVED') %}
+
+<dialog
+    class="pix-modal"
+    id="pix-payment-modal"
+    aria-labelledby="pix-modal-title"
+    data-status-url="{{ path('app_wallet_pix_status', {id: payment.id}) }}"
+    data-continue-url="{{ path('app_wallet_deposit') }}"
+>
+    <section class="pix-modal__panel">
+        <header class="pix-modal__header">
+            <div>
+                <p class="pix-modal__eyebrow">Recarga da carteira</p>
+                <h2 id="pix-modal-title">Pagamento via Pix</h2>
+            </div>
+            <a class="pix-modal__close" href="{{ path('app_wallet_deposit') }}" aria-label="Fechar e voltar à recarga">&times;</a>
+        </header>
+
+        <div class="pix-modal__status" id="pix-payment-status" role="status" aria-live="polite">
+            {% if isApproved %}
+                Pix confirmado. Seu saldo já foi atualizado.
+            {% elseif isPending %}
+                Aguardando a confirmação do pagamento.
+            {% else %}
+                Este Pix não está mais disponível para pagamento.
+            {% endif %}
+        </div>
+
+        <div class="pix-modal__details" id="pix-payment-details" {% if not isPending %}hidden{% endif %}>
+            {% if payment.qrCodeBase64 %}
+                <div class="pix-modal__qr">
+                    <img src="data:image/png;base64,{{ payment.qrCodeBase64 }}" alt="QR Code Pix para pagar R$ {{ (payment.amountCents / 100)|number_format(2, ',', '.') }}" width="220" height="220">
+                </div>
+            {% else %}
+                <div class="pix-modal__qr pix-modal__qr--empty" role="img" aria-label="QR Code Pix indisponível">
+                    QR Code indisponível
+                </div>
+            {% endif %}
+
+            <p class="pix-modal__hint">Escaneie o QR Code com o app do seu banco ou use o Pix copia e cola.</p>
+
+            {% if payment.pixCode %}
+                <label class="pix-modal__label" for="pix-payment-code">Pix copia e cola</label>
+                <div class="pix-modal__copy">
+                    <textarea id="pix-payment-code" readonly rows="3" spellcheck="false">{{ payment.pixCode }}</textarea>
+                    <button type="button" id="pix-copy-button">Copiar código</button>
+                </div>
+                <p class="pix-modal__copy-feedback" id="pix-copy-feedback" aria-live="polite"></p>
+            {% endif %}
+        </div>
+
+        <div class="pix-modal__summary">
+            <span>Valor da recarga</span>
+            <strong>R$ {{ (payment.amountCents / 100)|number_format(2, ',', '.') }}</strong>
+        </div>
+
+        {% if isPending %}
+            <button type="button" class="pix-modal__check" id="pix-check-status">Verificar pagamento</button>
+        {% endif %}
+
+        <p class="pix-modal__error" id="pix-status-error" role="alert" hidden></p>
+
+        <footer class="pix-modal__footer">
+            <span>Confirmação automática após o retorno do banco.</span>
+            <a href="{{ path('app_wallet_index') }}">Ver carteira</a>
+        </footer>
+    </section>
+</dialog>
