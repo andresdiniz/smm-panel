@@ -181,11 +181,36 @@
       <div class="ord__head-name">{{ order.service.name }}</div>
     </div>
     {% set s = order.status %}
-    <span class="ord__badge ord__badge--{{ s == 'completed' ? 'completed' : (s == 'cancelled' ? 'cancelled' : (s == 'partial' ? 'partial' : (s == 'processing' ? 'processing' : 'pending'))) }}">
+    {% set statusLabels = {
+      'pending': 'Aguardando',
+      'processing': 'Processando',
+      'in_progress': 'Em andamento',
+      'completed': 'Concluído',
+      'partial': 'Parcial',
+      'cancelled': 'Cancelado',
+      'refunded': 'Estornado'
+    } %}
+    {% set statusClass = {
+      'pending': 'pending',
+      'processing': 'processing',
+      'in_progress': 'processing',
+      'completed': 'completed',
+      'partial': 'partial',
+      'cancelled': 'cancelled',
+      'refunded': 'refunded'
+    } %}
+    <span class="ord__badge ord__badge--{{ statusClass[s]|default('processing') }}">
       <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span>
-      {{ s|replace({'_': ' '})|upper }}
+      {{ statusLabels[s]|default(s|replace({'_': ' '})|capitalize) }}
     </span>
   </div>
+
+  {% if order.status in ['cancelled', 'refunded'] %}
+  <p class="ord__notice">
+    <i data-lucide="info" width="16" height="16" aria-hidden="true"></i>
+    O pedido foi encerrado pelo provedor. Confira o estorno no extrato da sua carteira.
+  </p>
+  {% endif %}
 
   {# ── GRID DE DETALHES ── #}
   <div class="ord__grid">

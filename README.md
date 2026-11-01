@@ -181,10 +181,13 @@ Acesse o admin em `http://localhost:8000/admin` com um usuário `ROLE_ADMIN`.
   após 30 s, 2 min e 5 min; após quatro tentativas no total ficam visíveis como
   falha no admin.
 - A cada 5 minutos, o agendador localiza pedidos em processamento sem log de
-  status recente (45 minutos) e enfileira `SyncOrderStatusMessage` em
+  status recente (10 minutos) e enfileira `SyncOrderStatusMessage` em
   `orders_medium`. O handler consulta o provider, registra cada tentativa,
   aplica conclusão/cancelamento e agenda o próximo polling com backoff. Pedidos
   recentes continuam usando o polling inicial e os retries já existentes.
+  O worker que consome `orders_medium` precisa permanecer ativo para aplicar os
+  status e os estornos; o comando direto `app:sync-order-status --order=ID`
+  também atualiza o status, registra o log e processa o estorno por cancelamento.
 - Para iniciar uma sincronização de serviços manualmente pela fila:
 
   ```bash

@@ -3,68 +3,80 @@
 {% block title %}Programa de Afiliados{% endblock %}
 
 {% block body %}
-<div class="container" style="max-width:900px;margin:2rem auto;padding:0 1rem">
+<main class="site-main affiliate-page">
 
-  <h1 class="mb-4">💸 Programa de Afiliados</h1>
+  <header class="cp-page-heading">
+    <div>
+      <p class="cp-eyebrow">Indique e ganhe</p>
+      <h1>Programa de afiliados</h1>
+      <p>Acompanhe suas indicações e comissões em um só lugar.</p>
+    </div>
+  </header>
 
-  {# ── KPIs ── #}
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
-    <div class="card">
-      <div class="card-body text-center">
-        <div style="font-size:2rem;font-weight:700;color:var(--color-primary)">R$ {{ paid|number_format(2,',','.') }}</div>
-        <div class="text-muted small">Total Recebido</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-body text-center">
-        <div style="font-size:2rem;font-weight:700;color:var(--color-warning)">R$ {{ pending|number_format(2,',','.') }}</div>
-        <div class="text-muted small">Aguardando Pagamento</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-body text-center">
-        <div style="font-size:2rem;font-weight:700">{{ referredCount }}</div>
-        <div class="text-muted small">Indicados cadastrados</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-body text-center">
-        <div style="font-size:2rem;font-weight:700">{{ (rate * 100)|number_format(1) }}%</div>
-        <div class="text-muted small">Sua taxa de comissão</div>
-      </div>
-    </div>
+  <div class="affiliate-kpis">
+    <article class="affiliate-kpi">
+      <span class="affiliate-kpi__icon"><i data-lucide="wallet" width="18" height="18"></i></span>
+      <div class="affiliate-kpi__label">Total recebido</div>
+      <div class="affiliate-kpi__value">R$ {{ paid|number_format(2,',','.') }}</div>
+    </article>
+    <article class="affiliate-kpi">
+      <span class="affiliate-kpi__icon affiliate-kpi__icon--gold"><i data-lucide="clock-3" width="18" height="18"></i></span>
+      <div class="affiliate-kpi__label">Aguardando pagamento</div>
+      <div class="affiliate-kpi__value">R$ {{ pending|number_format(2,',','.') }}</div>
+    </article>
+    <article class="affiliate-kpi">
+      <span class="affiliate-kpi__icon affiliate-kpi__icon--blue"><i data-lucide="users" width="18" height="18"></i></span>
+      <div class="affiliate-kpi__label">Indicados cadastrados</div>
+      <div class="affiliate-kpi__value">{{ referredCount }}</div>
+    </article>
+    <article class="affiliate-kpi">
+      <span class="affiliate-kpi__icon affiliate-kpi__icon--green"><i data-lucide="percent" width="18" height="18"></i></span>
+      <div class="affiliate-kpi__label">Sua comissão</div>
+      <div class="affiliate-kpi__value">{{ (rate * 100)|number_format(1) }}%</div>
+    </article>
   </div>
 
-  {# ── Seu link ── #}
-  <div class="card mb-4">
-    <div class="card-body">
-      <h5>🔗 Seu link de indicação</h5>
-      <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
-        <input type="text" readonly id="affLink"
-               value="{{ url('affiliate_click', {code: user.affiliateCode}) }}"
-               style="flex:1;min-width:200px;padding:.5rem .75rem;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface-offset);font-size:.9rem">
-        <button onclick="copyLink()" class="btn btn-primary btn-sm" style="white-space:nowrap">📋 Copiar</button>
+  <section class="affiliate-card">
+    <div class="affiliate-card__heading">
+      <span class="affiliate-kpi__icon"><i data-lucide="link" width="18" height="18"></i></span>
+      <div>
+        <h2>Seu link de indicação</h2>
+        <p>Compartilhe seu link para receber {{ (rate * 100)|number_format(1) }}% de comissão nos pedidos elegíveis.</p>
       </div>
-      <p class="text-muted small mt-2">Compartilhe esse link. Quando alguém se cadastrar por ele e fizer pedidos, você recebe {{ (rate * 100)|number_format(1) }}% de comissão.</p>
     </div>
-  </div>
+    <div class="affiliate-link-row">
+      <input type="text" readonly id="affLink" aria-label="Seu link de indicação"
+             value="{{ url('affiliate_click', {code: user.affiliateCode}) }}">
+      <button onclick="copyLink()" class="btn btn-primary">
+        <i data-lucide="copy" width="15" height="15" aria-hidden="true"></i> Copiar link
+      </button>
+    </div>
+  </section>
 
-  {# ── Histórico de comissões ── #}
-  <div class="card">
-    <div class="card-body">
-      <h5>📋 Histórico de comissões</h5>
-      {% if commissions is empty %}
-        <p class="text-muted">Nenhuma comissão ainda. Compartilhe seu link para começar!</p>
-      {% else %}
-        <div style="overflow-x:auto">
-          <table class="table table-sm">
+  <section class="affiliate-card">
+    <div class="affiliate-card__heading affiliate-card__heading--table">
+      <span class="affiliate-kpi__icon affiliate-kpi__icon--blue"><i data-lucide="receipt-text" width="18" height="18"></i></span>
+      <div>
+        <h2>Histórico de comissões</h2>
+        <p>Veja os pedidos que geraram comissão para você.</p>
+      </div>
+    </div>
+    {% if commissions is empty %}
+      <div class="cp-empty affiliate-empty">
+        <span class="cp-empty__icon"><i data-lucide="inbox" width="26" height="26"></i></span>
+        <h3>Nenhuma comissão ainda</h3>
+        <p>Compartilhe seu link de indicação para começar.</p>
+      </div>
+    {% else %}
+        <div class="cp-table-wrap">
+          <table class="cp-table affiliate-table">
             <thead>
               <tr>
                 <th>Data</th>
                 <th>Cliente</th>
                 <th>Pedido</th>
                 <th>Taxa</th>
-                <th class="text-end">Valor</th>
+                <th>Valor</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -75,14 +87,14 @@
                 <td>{{ c.customer.name }}</td>
                 <td>#{{ c.order.id }}</td>
                 <td>{{ (c.rate * 100)|number_format(1) }}%</td>
-                <td class="text-end">R$ {{ c.amount|number_format(2,',','.') }}</td>
+                <td class="affiliate-amount">R$ {{ c.amount|number_format(2,',','.') }}</td>
                 <td>
                   {% if c.status == 'paid' %}
-                    <span class="badge" style="background:var(--color-success);color:#fff">Pago</span>
+                    <span class="cp-status" data-status="closed">Pago</span>
                   {% elseif c.status == 'pending' %}
-                    <span class="badge" style="background:var(--color-warning);color:#fff">Pendente</span>
+                    <span class="cp-status" data-status="waiting_user">Pendente</span>
                   {% else %}
-                    <span class="badge" style="background:var(--color-error);color:#fff">Cancelado</span>
+                    <span class="cp-status" data-status="cancelled">Cancelado</span>
                   {% endif %}
                 </td>
               </tr>
@@ -90,11 +102,10 @@
             </tbody>
           </table>
         </div>
-      {% endif %}
-    </div>
-  </div>
+    {% endif %}
+  </section>
 
-</div>
+</main>
 
 <script>
 function copyLink() {

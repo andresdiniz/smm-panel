@@ -255,6 +255,7 @@
 {% endblock %}
 
 {% block body %}
+<main class="site-main customer-dashboard">
 
 {# ── KPIs ───────────────────────────────────────────────── #}
 <div class="kpi-grid" data-reveal>
@@ -337,7 +338,7 @@
     <span>Histórico</span>
   </a>
 
-  <a href="#" class="quick-action">
+  <a href="{{ path('support_index') }}" class="quick-action">
     <i data-lucide="headset" width="20" height="20"></i>
     <span>Suporte</span>
   </a>
@@ -412,10 +413,12 @@
             {% set stClass = {
               'completed':  'badge--completed',
               'cancelled':  'badge--cancelled',
+              'refunded':   'badge--refunded',
               'pending':    'badge--pending',
               'processing': 'badge--processing',
               'partial':    'badge--pending',
-              'inprogress': 'badge--processing'
+              'inprogress': 'badge--processing',
+              'in_progress': 'badge--processing'
             } %}
             <span class="badge {{ stClass[st] ?? 'badge--processing' }}">
               {{ order.status|replace({'_':' '})|capitalize }}
@@ -453,4 +456,5 @@
 
 </div>
 
+</main>
 {% endblock %}
