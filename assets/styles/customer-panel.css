@@ -1690,6 +1690,193 @@
     color: #fff;
 }
 
+.customer-panel .pro,
+.customer-panel .cfg {
+    width: 100%;
+    margin-inline: auto;
+}
+
+.customer-panel .pro {
+    max-width: 900px;
+    gap: clamp(18px, 3vw, 32px);
+}
+
+.customer-panel .cfg {
+    max-width: 720px;
+    gap: 18px;
+}
+
+.customer-panel .pro__side,
+.customer-panel .pro__card,
+.customer-panel .cfg__card {
+    border-color: var(--border);
+    border-radius: var(--r-xl);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.customer-panel .pro__side {
+    top: calc(var(--topbar-h) + 18px);
+}
+
+.customer-panel .pro__card-head,
+.customer-panel .cfg__card-head {
+    border-color: var(--border);
+    background: var(--surface-2);
+}
+
+.customer-panel .pro__card-head h2,
+.customer-panel .cfg__head-title {
+    color: var(--text-bright);
+}
+
+.customer-panel .pro__card-head p,
+.customer-panel .cfg__head-sub,
+.customer-panel .pro__hint,
+.customer-panel .cfg__hint {
+    color: var(--text-muted);
+}
+
+.customer-panel .pro__control,
+.customer-panel .cfg__control {
+    min-height: 44px;
+    border-color: var(--border-2);
+    border-radius: 10px;
+    background: var(--surface-2);
+    color: var(--text);
+}
+
+.customer-panel .pro__submit,
+.customer-panel .cfg__submit {
+    min-height: 46px;
+    border-radius: 11px;
+}
+
+.customer-panel .cfg__api-row {
+    display: flex;
+    gap: 8px;
+}
+
+.customer-panel .cfg__api-row .cfg__control {
+    min-width: 0;
+}
+
+.customer-panel .cfg__icon-btn {
+    flex: 0 0 44px;
+    min-height: 44px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-2);
+    color: var(--text-2);
+    cursor: pointer;
+}
+
+.customer-panel .cfg__theme-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.customer-panel .cfg__theme-opt {
+    display: grid;
+    min-height: 86px;
+    place-items: center;
+    gap: 7px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-2);
+    color: var(--text-2);
+    cursor: pointer;
+}
+
+.customer-panel .cfg__theme-opt.is-active {
+    border-color: var(--primary);
+    background: var(--primary-lo);
+    color: var(--primary);
+}
+
+.customer-panel .tx-table-card {
+    overflow: hidden;
+}
+
+.customer-panel .tx-table-card .card__head {
+    gap: 12px;
+}
+
+.customer-panel .tx-table-card .table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+}
+
+.customer-panel .tx-table-card .data-table {
+    min-width: 780px;
+}
+
+.customer-panel .tx-amount {
+    font-variant-numeric: tabular-nums;
+}
+
+.customer-panel .affiliate-copy-feedback {
+    min-height: 1.25em;
+    margin: -12px 22px 14px;
+    color: var(--text-muted);
+    font-size: .78rem;
+}
+
+.customer-panel .affiliate-link-row .btn.copied {
+    border-color: var(--success);
+    background: var(--success);
+}
+
+.customer-panel :is(.on-form-wrap, .on-aside__inner, .cp-form-card) {
+    box-shadow: var(--shadow-sm);
+}
+
+.customer-panel .on-form-wrap,
+.customer-panel .on-aside__inner {
+    border-color: var(--border);
+    border-radius: var(--r-xl);
+    background: var(--surface);
+}
+
+.customer-panel .on-form {
+    gap: clamp(18px, 2.4vw, 22px);
+}
+
+.customer-panel .on-control {
+    min-height: 46px;
+    border-color: var(--border-2);
+    border-radius: 10px;
+    background: var(--surface-2);
+    color: var(--text);
+}
+
+.customer-panel .on-svc-detail,
+.customer-panel .on-price {
+    border-color: var(--border);
+    border-radius: 12px;
+    background: var(--surface-2);
+}
+
+.customer-panel .on-svc-detail__row strong,
+.customer-panel .on-label {
+    color: var(--text-bright);
+}
+
+.customer-panel .on-desc,
+.customer-panel .on-tip,
+.customer-panel .on-hint {
+    color: var(--text-muted);
+}
+
+.customer-panel .quick-action:focus-visible,
+.customer-panel .cp-view-link:focus-visible,
+.customer-panel .ord__btn:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 3px;
+}
+
 @media (max-width: 560px) {
     .customer-panel .wallet-page .wh__actions {
         display: grid;
@@ -1768,5 +1955,36 @@
     .customer-panel .ord__btn {
         justify-content: center;
         min-height: 44px;
+    }
+
+    .customer-panel .cfg__theme-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+    }
+
+    .customer-panel .cfg__theme-opt {
+        min-height: 74px;
+        font-size: .78rem;
+    }
+
+    .customer-panel .affiliate-link-row {
+        padding-inline: 16px;
+    }
+
+    .customer-panel .affiliate-copy-feedback {
+        margin-inline: 16px;
+    }
+
+    .customer-panel .customer-dashboard .data-table {
+        min-width: 760px;
+    }
+
+    .customer-panel .tx-table-card .card__head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .customer-panel .tx-table-card .card__head .btn {
+        margin-left: 0 !important;
     }
 }

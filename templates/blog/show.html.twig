@@ -111,10 +111,10 @@
             </div>
 
             {# recentes #}
-            {% if recentPosts is defined and recentPosts|length > 0 %}
+            {% if recent is defined and recent|length > 0 %}
                 <div class="b-sidebar-widget">
                     <h3>Posts Recentes</h3>
-                    {% for rp in recentPosts %}
+                    {% for rp in recent %}
                         <div class="b-recent-item">
                             {% if rp.thumbnail %}
                                 <img src="{{ rp.thumbnail }}" alt="{{ rp.title }}" class="b-recent-thumb" loading="lazy" width="52" height="40">

@@ -428,7 +428,9 @@
       </div>
       <div class="pix-copy-field">
         <textarea class="pix-copy-code" id="pixCode" readonly rows="3" spellcheck="false">{{ payment.pixCode }}</textarea>
-        <button type="button" class="pix-copy-btn" id="copyPixBtn" aria-label="Copiar código Pix">
+        <button type="button" class="pix-copy-btn" id="copyPixBtn" aria-label="Copiar código Pix"
+                data-copy-target="pixCode" data-copy-feedback="copyLabel"
+                data-copy-success="Copiado!" data-copy-error="Falha ao copiar">
           <i data-lucide="copy" width="17" height="17" id="copyIcon"></i>
           <span id="copyLabel">Copiar</span>
         </button>
@@ -470,32 +472,4 @@
   </div>
 
 </div>
-{% endblock %}
-
-{% block javascripts %}{{ parent() }}
-<script>
-const copyBtn  = document.getElementById('copyPixBtn');
-const copyIcon = document.getElementById('copyIcon');
-const copyLbl  = document.getElementById('copyLabel');
-const pixCode  = document.getElementById('pixCode');
-
-copyBtn.addEventListener('click', async () => {
-  try {
-    await navigator.clipboard.writeText(pixCode.value);
-  } catch {
-    pixCode.select();
-    document.execCommand('copy');
-  }
-  copyBtn.classList.add('copied');
-  copyLbl.textContent = 'Copiado!';
-  copyIcon.setAttribute('data-lucide', 'check');
-  lucide.createIcons();
-  setTimeout(() => {
-    copyBtn.classList.remove('copied');
-    copyLbl.textContent = 'Copiar';
-    copyIcon.setAttribute('data-lucide', 'copy');
-    lucide.createIcons();
-  }, 2500);
-});
-</script>
 {% endblock %}

@@ -32,7 +32,7 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     {% block stylesheets %}{% endblock %}
 </head>
-<body{% if app.user and not is_granted('ROLE_ADMIN') %} class="customer-panel"{% endif %}>
+<body{% if app.user %} class="customer-panel"{% endif %}>
     <header class="site-header">
         <a class="site-brand" href="{{ path('home') }}" aria-label="PulseSMM — início">
             <span class="site-brand__mark" aria-hidden="true">P</span>
@@ -80,6 +80,7 @@
         </nav>
     </footer>
     {% block javascripts %}{% endblock %}
+    {{ importmap('app') }}
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {

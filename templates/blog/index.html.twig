@@ -3,10 +3,11 @@
 {% block title %}{% if searchQuery is defined and searchQuery %}Busca: {{ searchQuery }}{% else %}Blog{% endif %}{% endblock %}
 
 {% block body %}
+{% set currentPage = page|default(1) %}
 <div class="b-wrap">
 
     {# ── POST EM DESTAQUE (só na página 1 sem busca) ── #}
-    {% if posts|length > 0 and (currentPage is not defined or currentPage == 1) and (searchQuery is not defined or not searchQuery) %}
+    {% if posts|length > 0 and currentPage == 1 and (searchQuery is not defined or not searchQuery) %}
         {% set featured = posts|first %}
         <div class="b-featured">
             {% if featured.thumbnail %}
@@ -106,19 +107,19 @@
                 {% if totalPages is defined and totalPages > 1 %}
                     <nav class="b-pagination" aria-label="Paginação">
                         {% if currentPage > 1 %}
-                            <a href="{{ path('blog_index', {page: currentPage - 1}) }}">‹ Anterior</a>
+                            <a href="{{ path(searchQuery is defined and searchQuery ? 'blog_search' : 'blog_index', searchQuery is defined and searchQuery ? {q: searchQuery, page: currentPage - 1} : {page: currentPage - 1}) }}">‹ Anterior</a>
                         {% endif %}
                         {% for p in 1..totalPages %}
                             {% if p == currentPage %}
                                 <span class="current">{{ p }}</span>
                             {% elseif p == 1 or p == totalPages or (p >= currentPage - 2 and p <= currentPage + 2) %}
-                                <a href="{{ path('blog_index', {page: p}) }}">{{ p }}</a>
+                                <a href="{{ path(searchQuery is defined and searchQuery ? 'blog_search' : 'blog_index', searchQuery is defined and searchQuery ? {q: searchQuery, page: p} : {page: p}) }}">{{ p }}</a>
                             {% elseif p == currentPage - 3 or p == currentPage + 3 %}
                                 <span>…</span>
                             {% endif %}
                         {% endfor %}
                         {% if currentPage < totalPages %}
-                            <a href="{{ path('blog_index', {page: currentPage + 1}) }}">Próximo ›</a>
+                            <a href="{{ path(searchQuery is defined and searchQuery ? 'blog_search' : 'blog_index', searchQuery is defined and searchQuery ? {q: searchQuery, page: currentPage + 1} : {page: currentPage + 1}) }}">Próximo ›</a>
                         {% endif %}
                     </nav>
                 {% endif %}
@@ -130,7 +131,7 @@
             {# busca #}
             <div class="b-sidebar-widget">
                 <h3>Buscar</h3>
-                <form action="{{ path('blog_index') }}" method="get" class="b-search-form" role="search">
+                <form action="{{ path('blog_search') }}" method="get" class="b-search-form" role="search">
                     <input type="search" name="q" value="{{ searchQuery ?? '' }}" placeholder="Buscar posts…" aria-label="Buscar">
                     <button type="submit" aria-label="Pesquisar">
                         <svg viewBox="0 0 24 24" width="16" stroke="currentColor" fill="none" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -152,10 +153,10 @@
             {% endif %}
 
             {# recentes #}
-            {% if recentPosts is defined and recentPosts|length > 0 %}
+            {% if recent is defined and recent|length > 0 %}
                 <div class="b-sidebar-widget">
                     <h3>Posts Recentes</h3>
-                    {% for rp in recentPosts %}
+                    {% for rp in recent %}
                         <div class="b-recent-item">
                             {% if rp.thumbnail %}
                                 <img src="{{ rp.thumbnail }}" alt="{{ rp.title }}" class="b-recent-thumb" loading="lazy" width="52" height="40">

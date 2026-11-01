@@ -47,10 +47,13 @@
     <div class="affiliate-link-row">
       <input type="text" readonly id="affLink" aria-label="Seu link de indicação"
              value="{{ url('affiliate_click', {code: user.affiliateCode}) }}">
-      <button onclick="copyLink()" class="btn btn-primary">
+      <button type="button" class="btn btn-primary"
+              data-copy-target="affLink" data-copy-feedback="affLinkFeedback"
+              data-copy-success="Link copiado!" data-copy-error="Não foi possível copiar. Selecione o link para copiar.">
         <i data-lucide="copy" width="15" height="15" aria-hidden="true"></i> Copiar link
       </button>
     </div>
+    <p class="affiliate-copy-feedback" id="affLinkFeedback" role="status" aria-live="polite"></p>
   </section>
 
   <section class="affiliate-card">
@@ -107,12 +110,4 @@
 
 </main>
 
-<script>
-function copyLink() {
-  var inp = document.getElementById('affLink');
-  navigator.clipboard.writeText(inp.value).then(function() {
-    alert('Link copiado!');
-  });
-}
-</script>
 {% endblock %}
