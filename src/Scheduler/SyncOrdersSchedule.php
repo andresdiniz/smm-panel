@@ -27,7 +27,7 @@ final class SyncOrdersSchedule
 
     public function __invoke(): void
     {
-        $cutoff = new \DateTimeImmutable('-45 minutes');
+        $cutoff = new \DateTimeImmutable('-10 minutes');
         $qb = $this->em->createQueryBuilder()
             ->select('o')
             ->from(Order::class, 'o')
@@ -35,7 +35,6 @@ final class SyncOrdersSchedule
             ->where('o.status IN (:statuses)')
             ->andWhere('o.externalOrderId IS NOT NULL')
             ->andWhere('s.providerSlug IS NOT NULL')
-            ->andWhere('o.createdAt <= :cutoff')
             ->andWhere(sprintf(
                 'NOT EXISTS (SELECT l.id FROM %s l WHERE l.order = o AND l.action = :syncAction AND l.createdAt > :cutoff)',
                 OrderLog::class,
@@ -68,7 +67,7 @@ final class SyncOrdersSchedule
         $this->logger->info('SyncOrdersSchedule: ciclo de recuperação concluído.', [
             'found' => count($orders),
             'dispatched' => $dispatched,
-            'cutoff_minutes' => 45,
+            'cutoff_minutes' => 10,
         ]);
     }
 }

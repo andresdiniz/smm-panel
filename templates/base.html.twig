@@ -11,11 +11,12 @@
     <link rel="canonical" href="{{ app.request.uri }}">
     <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
     <link rel="stylesheet" href="{{ asset('styles/app-shell.css') }}">
+    <link rel="stylesheet" href="{{ asset('styles/customer-panel.css') }}">
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     {% block stylesheets %}{% endblock %}
 </head>
-<body>
+<body{% if app.user and not is_granted('ROLE_ADMIN') %} class="customer-panel"{% endif %}>
     <header class="site-header">
         <a class="site-brand" href="{{ path('home') }}" aria-label="PulseSMM — início">
             <span class="site-brand__mark" aria-hidden="true">P</span>

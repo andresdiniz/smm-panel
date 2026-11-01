@@ -6,9 +6,14 @@ namespace App\Service;
 
 use App\Entity\Order;
 use App\Entity\OrderLog;
+use App\Entity\WalletTransaction;
+use App\Enum\TransactionType;
+use App\Message\Order\OrderNotificationMessage;
+use App\Repository\WalletRepository;
 use App\Smm\SmmProviderRegistry;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * Lógica central de sincronização de status de pedidos com providers SMM.
@@ -19,6 +24,8 @@ final class OrderSyncService
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly SmmProviderRegistry    $registry,
+        private readonly WalletRepository       $wallets,
+        private readonly MessageBusInterface    $bus,
         private readonly LoggerInterface        $logger,
     ) {}
 
@@ -109,13 +116,17 @@ final class OrderSyncService
                         'new_status' => $newStatus,
                     ]);
                     $order->setStatus($newStatus);
+                    if ($newStatus === Order::STATUS_CANCELLED) {
+                        $this->refundCancelledOrder($order);
+                        $this->bus->dispatch(new OrderNotificationMessage($order->getId(), 'cancelled'));
+                    }
                     ++$updated;
                 }
 
                 // Grava log de sincronização (toda chamada ao provider)
                 $log = new OrderLog();
                 $log->setOrder($order);
-                $log->setAction('status');
+                $log->setAction(OrderLog::ACTION_SYNC);
                 $log->setProvider($slug);
                 $log->setHttpStatus(200);
                 $log->setElapsedMs($elapsedMs);
@@ -140,7 +151,7 @@ final class OrderSyncService
                 // Grava log de erro também
                 $log = new OrderLog();
                 $log->setOrder($order);
-                $log->setAction('status');
+                $log->setAction(OrderLog::ACTION_SYNC);
                 $log->setProvider($slug);
                 $log->setElapsedMs($elapsedMs);
                 $log->setErrorMessage($e->getMessage());
@@ -159,7 +170,7 @@ final class OrderSyncService
 
     private function mapProviderStatus(string $raw): string
     {
-        return match (strtolower($raw)) {
+        return match (strtolower(trim($raw))) {
             'pending'                => Order::STATUS_PENDING,
             'processing'             => Order::STATUS_PROCESSING,
             'in progress',
@@ -170,5 +181,36 @@ final class OrderSyncService
             'refunded'               => Order::STATUS_REFUNDED,
             default                  => Order::STATUS_PROCESSING,
         };
+    }
+
+    private function refundCancelledOrder(Order $order): void
+    {
+        $refundCents = $order->getAmountCents();
+        $wallet = $this->wallets->findOneByUser($order->getUser());
+
+        if ($refundCents <= 0 || !$wallet) {
+            $this->logger->error('OrderSyncService: não foi possível estornar pedido cancelado.', [
+                'order_id' => $order->getId(),
+                'user_id' => $order->getUser()->getId(),
+                'refund_cents' => $refundCents,
+                'wallet_found' => $wallet !== null,
+            ]);
+            return;
+        }
+
+        $wallet->credit($refundCents);
+        $transaction = (new WalletTransaction())
+            ->setWallet($wallet)
+            ->setType(TransactionType::REFUND)
+            ->setAmountCents($refundCents)
+            ->setBalanceAfterCents($wallet->getBalanceCents())
+            ->setDescription(sprintf('Reembolso automático — pedido #%d cancelado pelo provider', $order->getId()));
+        $this->em->persist($transaction);
+
+        $this->logger->info('OrderSyncService: reembolso de pedido cancelado efetuado.', [
+            'order_id' => $order->getId(),
+            'user_id' => $order->getUser()->getId(),
+            'refund_cents' => $refundCents,
+        ]);
     }
 }
