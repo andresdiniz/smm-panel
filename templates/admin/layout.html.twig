@@ -291,6 +291,18 @@
   {% block admin_content %}{% endblock %}
 </main>
 
+{% include 'partials/browser_push.html.twig' %}
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').catch(function (error) {
+        console.error('Não foi possível registrar o service worker.', error);
+      });
+    });
+  }
+</script>
+
 <script>
   const sidebar = document.getElementById('adm-sidebar');
   const overlay = document.getElementById('adm-overlay');

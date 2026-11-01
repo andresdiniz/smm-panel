@@ -202,6 +202,17 @@ Acesse o admin em `http://localhost:8000/admin` com um usuário `ROLE_ADMIN`.
   deploy; sem um worker de `scheduler_*` não há agendamento, e sem um worker de
   `orders_*` as mensagens ficam acumuladas sem executar.
 
+### Notificações push do navegador
+
+As notificações push exigem HTTPS, permissão explícita no navegador e chaves
+VAPID estáveis. Gere o par com `php bin/console app:push:generate-vapid` e
+configure `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` no ambiente
+do servidor ou no gerenciador de segredos; nunca versione a chave privada.
+Mantenha `orders_low` consumida pelo worker Messenger para entregar as
+notificações enfileiradas. Execute a migration pendente antes de habilitar o
+recurso. No iOS, o navegador pode exigir que o usuário adicione o site à tela
+inicial para receber push.
+
 ### Login e recuperação de senha
 
 O login limita tentativas a 5 por usuário/IP a cada 15 minutos. A solicitação

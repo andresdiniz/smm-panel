@@ -14,6 +14,7 @@ use App\Repository\OrderRepository;
 use App\Repository\PaymentRepository;
 use App\Repository\UserRepository;
 use App\Service\AffiliateService;
+use App\Service\BrowserPushNotificationService;
 use App\Service\MarketingEmailContent;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -40,6 +41,7 @@ class CrmController extends AbstractController
         private readonly AffiliateCommissionRepository $commissionRepo,
         private readonly MarketingEmailLogRepository  $marketingEmailLogRepository,
         private readonly AffiliateService              $affiliateService,
+        private readonly BrowserPushNotificationService $browserPush,
         private readonly MarketingEmailContent        $marketingEmailContent,
         private readonly EntityManagerInterface        $em,
         private readonly LoggerInterface               $logger,
@@ -317,6 +319,19 @@ class CrmController extends AbstractController
             'subject' => $subject,
             'campaignId' => $campaignId,
         ]);
+        if (!$previewOnly && $sent > 0) {
+            $this->browserPush->notifyMarketingSubscribers(
+                $subject,
+                sprintf('Nova comunicação da PulseSMM: %d e-mail(s) enviados.', $sent),
+                '/admin/crm',
+            );
+            $this->browserPush->notifyAdmins(
+                'marketing',
+                'Campanha de e-mail enviada',
+                sprintf('A campanha "%s" enviou %d e-mail(s).', $subject, $sent),
+                '/admin/crm',
+            );
+        }
 
         return $this->redirectToRoute('app_admin_crm_dashboard');
     }

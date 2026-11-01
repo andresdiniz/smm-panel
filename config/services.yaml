@@ -11,6 +11,10 @@ parameters:
     seo.clarity_id: '%env(default:seo.clarity_default:CLARITY_PROJECT_ID)%'
     seo.google_verification: '%env(default:seo.empty:GOOGLE_SITE_VERIFICATION)%'
     seo.bing_verification: '%env(default:seo.empty:BING_SITE_VERIFICATION)%'
+    browser_push.vapid_public_key: '%env(default:seo.empty:VAPID_PUBLIC_KEY)%'
+    browser_push.vapid_private_key: '%env(default:seo.empty:VAPID_PRIVATE_KEY)%'
+    browser_push.vapid_subject_default: 'mailto:suporte@acheireviews.com.br'
+    browser_push.vapid_subject: '%env(default:browser_push.vapid_subject_default:VAPID_SUBJECT)%'
 
 services:
     _defaults:
@@ -48,3 +52,9 @@ services:
     App\Service\AffiliateService:
         arguments:
             $defaultRate: '%affiliate.default_rate%'
+
+    App\Service\BrowserPushConfig:
+        arguments:
+            $publicKey: '%browser_push.vapid_public_key%'
+            $privateKey: '%browser_push.vapid_private_key%'
+            $subject: '%browser_push.vapid_subject%'

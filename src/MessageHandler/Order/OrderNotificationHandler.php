@@ -7,6 +7,7 @@ namespace App\MessageHandler\Order;
 use App\Entity\Order;
 use App\Message\Order\OrderNotificationMessage;
 use App\Message\SendOrderCompletedEmailMessage;
+use App\Service\BrowserPushNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
@@ -30,6 +31,7 @@ final class OrderNotificationHandler
         private readonly MessageBusInterface    $bus,
         private readonly MailerInterface        $mailer,
         private readonly LoggerInterface        $logger,
+        private readonly BrowserPushNotificationService $browserPush,
     ) {}
 
     public function __invoke(OrderNotificationMessage $message): void
@@ -66,6 +68,13 @@ final class OrderNotificationHandler
         }
 
         $this->bus->dispatch(new SendOrderCompletedEmailMessage($order->getId()));
+        $this->browserPush->notifyUser(
+            $order->getUser()->getId(),
+            'order',
+            'Pedido concluído',
+            sprintf('O pedido #%d foi concluído.', $order->getId()),
+            '/order/'.$order->getId(),
+        );
 
         $this->logger->info('OrderNotificationHandler: e-mail de pedido concluído despachado.', [
             'order_id' => $order->getId(),
@@ -75,6 +84,13 @@ final class OrderNotificationHandler
     private function notifyCancelled(Order $order): void
     {
         $user = $order->getUser();
+        $this->browserPush->notifyUser(
+            $user->getId(),
+            'order',
+            'Pedido cancelado',
+            sprintf('O pedido #%d foi cancelado e o saldo estornado.', $order->getId()),
+            '/order/'.$order->getId(),
+        );
 
         try {
             $email = (new TemplatedEmail())

@@ -1,0 +1,173 @@
+{% if app.user %}
+    <button
+        type="button"
+        data-push-toggle
+        aria-controls="browser-push-settings"
+        aria-expanded="false"
+        style="position:fixed;right:16px;bottom:16px;z-index:1099;padding:9px 12px;border:0;border-radius:20px;background:#075e64;color:#fff;box-shadow:0 6px 20px rgb(15 35 38 / 20%);font:700 13px system-ui,sans-serif;cursor:pointer"
+    >&#128276; Notificações</button>
+    <aside
+        id="browser-push-settings"
+        hidden
+        data-public-key-url="{{ path('browser_push_key') }}"
+        data-subscribe-url="{{ path('browser_push_subscribe') }}"
+        data-preferences-url="{{ path('browser_push_preferences') }}"
+        data-unsubscribe-url="{{ path('browser_push_unsubscribe') }}"
+        data-csrf-token="{{ csrf_token('browser_push') }}"
+        style="position:fixed;right:16px;bottom:16px;z-index:1100;width:min(360px,calc(100vw - 32px));padding:14px;background:#fff;color:#172a2c;border:1px solid #d5dfdf;border-radius:12px;box-shadow:0 12px 36px rgb(15 35 38 / 20%);font:13px/1.5 system-ui,sans-serif"
+    >
+        <strong>Notificações do navegador</strong>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin:8px 0">
+            {% if is_granted('ROLE_ADMIN') %}
+                <label><input type="checkbox" data-push-category value="support" checked> Suporte</label>
+                <label><input type="checkbox" data-push-category value="marketing" checked> Campanhas</label>
+            {% else %}
+                <label><input type="checkbox" data-push-category value="order" checked> Pedidos</label>
+                <label><input type="checkbox" data-push-category value="support" checked> Suporte</label>
+                <label style="grid-column:1/-1"><input type="checkbox" data-push-category value="marketing"> Ofertas e novidades</label>
+            {% endif %}
+        </div>
+        <p data-push-status role="status" style="margin:0 0 8px;color:#52666a">Ative para receber avisos mesmo com o site fechado. O navegador pode exigir que o site esteja instalado como app.</p>
+        <div style="display:flex;gap:8px">
+            <button type="button" data-push-enable style="padding:7px 10px;border:0;border-radius:7px;background:#075e64;color:#fff;font-weight:700;cursor:pointer">Ativar / salvar</button>
+            <button type="button" data-push-disable style="padding:7px 10px;border:1px solid #b8c8c9;border-radius:7px;background:#fff;color:#17464a;cursor:pointer">Desativar</button>
+            <button type="button" data-push-close aria-label="Fechar" style="margin-left:auto;border:0;background:transparent;color:#52666a;cursor:pointer">Fechar</button>
+        </div>
+    </aside>
+    <script>
+        (function () {
+            var panel = document.getElementById('browser-push-settings');
+            if (!panel) return;
+            var toggle = document.querySelector('[data-push-toggle]');
+            var status = panel.querySelector('[data-push-status]');
+            var enableButton = panel.querySelector('[data-push-enable]');
+            var disableButton = panel.querySelector('[data-push-disable]');
+            var publicKey = null;
+            var categories = Array.from(panel.querySelectorAll('[data-push-category]'));
+
+            function setStatus(message) {
+                status.textContent = message;
+            }
+
+            function decodeVapidKey(key) {
+                var padding = '='.repeat((4 - key.length % 4) % 4);
+                var base64 = (key + padding).replace(/-/g, '+').replace(/_/g, '/');
+                var raw = window.atob(base64);
+                return Uint8Array.from(raw, function (character) { return character.charCodeAt(0); });
+            }
+
+            async function getRegistration() {
+                if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+                    throw new Error('Este navegador não oferece suporte a notificações push.');
+                }
+                return navigator.serviceWorker.register('/sw.js');
+            }
+
+            async function loadPublicKey() {
+                var response = await fetch(panel.dataset.publicKeyUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+                if (!response.ok) throw new Error('Não foi possível verificar a configuração de notificações.');
+                var data = await response.json();
+                if (!data.enabled || !data.publicKey) throw new Error('O servidor ainda não configurou as chaves de notificações.');
+                publicKey = data.publicKey;
+            }
+
+            async function saveSubscription(subscription) {
+                var payload = subscription.toJSON();
+                payload.categories = categories.filter(function (checkbox) { return checkbox.checked; }).map(function (checkbox) { return checkbox.value; });
+                var response = await fetch(panel.dataset.subscribeUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': panel.dataset.csrfToken },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error('Não foi possível salvar suas preferências de notificação.');
+            }
+
+            async function loadPreferences() {
+                if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+                var registration = await navigator.serviceWorker.register('/sw.js');
+                var subscription = await registration.pushManager.getSubscription();
+                if (!subscription) return;
+                var response = await fetch(panel.dataset.preferencesUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': panel.dataset.csrfToken },
+                    body: JSON.stringify({ endpoint: subscription.endpoint })
+                });
+                if (!response.ok) throw new Error('Não foi possível carregar as preferências de notificação.');
+                var data = await response.json();
+                categories.forEach(function (checkbox) {
+                    checkbox.checked = data.categories.includes(checkbox.value);
+                });
+            }
+
+            enableButton.addEventListener('click', async function () {
+                enableButton.disabled = true;
+                try {
+                    if (Notification.permission === 'denied') throw new Error('As notificações estão bloqueadas nas permissões do navegador.');
+                    var permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+                    if (permission !== 'granted') throw new Error('Permissão de notificações não concedida.');
+                    await loadPublicKey();
+                    var registration = await getRegistration();
+                    var subscription = await registration.pushManager.getSubscription();
+                    if (!subscription) {
+                        subscription = await registration.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: decodeVapidKey(publicKey)
+                        });
+                    }
+                    await saveSubscription(subscription);
+                    setStatus('Preferências salvas. Os avisos poderão chegar mesmo quando o site não estiver aberto.');
+                } catch (error) {
+                    setStatus(error instanceof Error ? error.message : 'Falha ao configurar notificações.');
+                } finally {
+                    enableButton.disabled = false;
+                }
+            });
+
+            disableButton.addEventListener('click', async function () {
+                disableButton.disabled = true;
+                try {
+                    var registration = await getRegistration();
+                    var subscription = await registration.pushManager.getSubscription();
+                    if (subscription) {
+                        var response = await fetch(panel.dataset.unsubscribeUrl, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': panel.dataset.csrfToken },
+                            body: JSON.stringify({ endpoint: subscription.endpoint })
+                        });
+                        if (!response.ok) throw new Error('Não foi possível remover a inscrição no servidor.');
+                        await subscription.unsubscribe();
+                    }
+                    setStatus('Notificações desativadas neste navegador.');
+                } catch (error) {
+                    setStatus(error instanceof Error ? error.message : 'Falha ao desativar notificações.');
+                } finally {
+                    disableButton.disabled = false;
+                }
+            });
+
+            function setPanelVisible(visible) {
+                panel.hidden = !visible;
+                toggle.hidden = visible;
+                toggle.setAttribute('aria-expanded', visible ? 'true' : 'false');
+            }
+
+            toggle.addEventListener('click', function () {
+                setPanelVisible(true);
+            });
+            panel.querySelector('[data-push-close]').addEventListener('click', function () {
+                setPanelVisible(false);
+            });
+
+            loadPublicKey().catch(function (error) {
+                enableButton.disabled = true;
+                setStatus(error instanceof Error ? error.message : 'Notificações indisponíveis.');
+            });
+            loadPreferences().catch(function (error) {
+                setStatus(error instanceof Error ? error.message : 'Não foi possível carregar as preferências.');
+            });
+        })();
+    </script>
+{% endif %}

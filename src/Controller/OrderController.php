@@ -14,6 +14,7 @@ use App\Repository\ServiceRepository;
 use App\Repository\WalletRepository;
 use App\Smm\Exception\ProviderBusinessException;
 use App\Smm\SmmProviderRegistry;
+use App\Service\BrowserPushNotificationService;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -39,6 +40,7 @@ class OrderController extends AbstractController
         private readonly MessageBusInterface    $bus,
         private readonly SmmProviderRegistry    $registry,
         private readonly LoggerInterface        $logger,
+        private readonly BrowserPushNotificationService $browserPush,
     ) {}
 
     /**
@@ -172,6 +174,13 @@ class OrderController extends AbstractController
                 'provider'    => $slug,
                 'elapsed_ms'  => $elapsed,
             ]);
+            $this->browserPush->notifyUser(
+                $user->getId(),
+                'order',
+                'Pedido iniciado',
+                sprintf('Seu pedido #%d foi enviado para processamento.', $order->getId()),
+                '/order/'.$order->getId(),
+            );
 
             $this->addFlash('success', sprintf(
                 'Pedido #%d criado e enviado com sucesso! Acompanhe o status no painel.',

@@ -10,6 +10,7 @@ use App\Enum\SupportMessageSender;
 use App\Enum\SupportTicketPriority;
 use App\Repository\SupportMessageRepository;
 use App\Repository\SupportTicketRepository;
+use App\Service\BrowserPushNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,6 +26,7 @@ class SupportController extends AbstractController
         private readonly SupportTicketRepository  $ticketRepo,
         private readonly SupportMessageRepository $messageRepo,
         private readonly EntityManagerInterface   $em,
+        private readonly BrowserPushNotificationService $browserPush,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -62,6 +64,12 @@ class SupportController extends AbstractController
 
             $this->em->persist($ticket);
             $this->em->flush();
+            $this->browserPush->notifyAdmins(
+                'support',
+                'Novo ticket de suporte',
+                sprintf('Um cliente abriu o ticket #%d.', $ticket->getId()),
+                '/admin/suporte/'.$ticket->getId(),
+            );
 
             $this->addFlash('success', 'Ticket #' . $ticket->getId() . ' aberto com sucesso.');
             return $this->redirectToRoute('support_show', ['id' => $ticket->getId()]);
@@ -89,6 +97,12 @@ class SupportController extends AbstractController
 
                 $ticket->addMessage($message);
                 $this->em->flush();
+                $this->browserPush->notifyAdmins(
+                    'support',
+                    'Nova mensagem de cliente',
+                    sprintf('O cliente enviou uma mensagem no ticket #%d.', $ticket->getId()),
+                    '/admin/suporte/'.$ticket->getId(),
+                );
 
                 $this->addFlash('success', 'Mensagem enviada.');
             }

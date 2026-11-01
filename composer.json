@@ -16,6 +16,7 @@
         "dragonmantank/cron-expression": "^3.6",
         "easycorp/easyadmin-bundle": "^4.0",
         "knplabs/knp-paginator-bundle": "^7.0 || ^6.8",
+        "minishlink/web-push": "9.0",
         "symfony/apache-pack": "^1.0",
         "symfony/asset": "^8.0",
         "symfony/asset-mapper": "^8.0",

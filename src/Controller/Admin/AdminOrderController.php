@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\Order;
+use App\Service\BrowserPushNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -20,6 +21,7 @@ class AdminOrderController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly PaginatorInterface     $paginator,
+        private readonly BrowserPushNotificationService $browserPush,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -67,12 +69,22 @@ class AdminOrderController extends AbstractController
     public function edit(Order $order, Request $request): Response
     {
         if ($request->isMethod('POST')) {
+            $previousStatus = $order->getStatus();
             $order->setStatus($request->request->get('status', $order->getStatus()));
             $extId = $request->request->get('externalOrderId');
             if ($extId !== null) $order->setExternalOrderId($extId ?: null);
             $remains = $request->request->get('remains');
             if ($remains !== null && $remains !== '') $order->setRemains((int)$remains);
             $this->em->flush();
+            if ($previousStatus !== $order->getStatus()) {
+                $this->browserPush->notifyUser(
+                    $order->getUser()->getId(),
+                    'order',
+                    'Status do pedido atualizado',
+                    sprintf('O pedido #%d agora está: %s.', $order->getId(), $order->getStatus()),
+                    '/order/'.$order->getId(),
+                );
+            }
             $this->addFlash('success', 'Pedido #'.$order->getId().' atualizado.');
             return $this->redirectToRoute('admin_order_show', ['id' => $order->getId()]);
         }

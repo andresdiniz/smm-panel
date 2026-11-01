@@ -84,10 +84,13 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').catch(function() {});
+                navigator.serviceWorker.register('/sw.js').catch(function(error) {
+                    console.error('Não foi possível registrar o service worker.', error);
+                });
             });
         }
     </script>
+    {% include 'partials/browser_push.html.twig' %}
     {% include 'partials/analytics_consent.html.twig' %}
     {% if currentRoute == 'home' %}
         <script type="application/ld+json">

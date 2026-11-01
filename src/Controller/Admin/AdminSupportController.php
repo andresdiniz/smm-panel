@@ -11,6 +11,7 @@ use App\Enum\SupportTicketPriority;
 use App\Enum\SupportTicketStatus;
 use App\Repository\SupportMessageRepository;
 use App\Repository\SupportTicketRepository;
+use App\Service\BrowserPushNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,6 +27,7 @@ class AdminSupportController extends AbstractController
         private readonly SupportTicketRepository  $ticketRepo,
         private readonly SupportMessageRepository $messageRepo,
         private readonly EntityManagerInterface   $em,
+        private readonly BrowserPushNotificationService $browserPush,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -58,6 +60,13 @@ class AdminSupportController extends AbstractController
                     $ticket->addMessage($message);
                     $ticket->setStatus(SupportTicketStatus::WaitingUser);
                     $this->em->flush();
+                    $this->browserPush->notifyUser(
+                        $ticket->getUser()->getId(),
+                        'support',
+                        'Resposta do suporte',
+                        sprintf('A equipe respondeu ao ticket #%d.', $ticket->getId()),
+                        '/suporte/'.$ticket->getId(),
+                    );
                     $this->addFlash('success', 'Resposta enviada.');
                 }
             }
