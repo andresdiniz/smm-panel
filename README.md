@@ -162,7 +162,7 @@ php bin/console doctrine:fixtures:load --no-interaction  # opcional
 
 # 5. Workers Messenger
 # Execute estes dois processos continuamente (Supervisor/systemd ou processo gerenciado pelo hosting).
-php bin/console messenger:consume scheduler_default scheduler_smm --time-limit=3600 --memory-limit=256M -vv
+php bin/console messenger:consume scheduler_main --time-limit=3600 --memory-limit=256M -vv
 php bin/console messenger:consume orders_high orders_medium orders_low --time-limit=3600 --memory-limit=256M -vv
 
 # 6. Servidor de desenvolvimento
@@ -227,26 +227,34 @@ php bin/console doctrine:migrations:migrate --no-interaction
 php bin/console asset-map:compile
 ```
 
-### Agendamento e workers (Shared Hosting / VPS)
+### Agendamento principal e workers (Shared Hosting / VPS)
 
-O Symfony Scheduler não inicia por conta própria: os transportes `scheduler_default`
-e `scheduler_smm` precisam ser consumidos continuamente ou acionados periodicamente.
-No Shared Hosting, configure no Cron Jobs do hPanel os dois scripts abaixo para
-executarem a cada minuto, substituindo pelo caminho absoluto real do projeto:
+Todas as rotinas recorrentes implementadas são registradas em `main`. O Scheduler
+avalia o calendário continuamente; cada rotina mantém sua própria frequência:
+heartbeat a cada minuto, reconciliação de pagamentos e recuperação de pedidos a
+cada 5 minutos, sincronização de serviços a cada 6 horas e relatórios diários.
+As tarefas de serviços/pedidos são encaminhadas às filas Messenger apropriadas.
+
+No VPS, mantenha `scheduler_main` ativo pelo Supervisor. No Shared Hosting, o
+Cron Jobs do hPanel deve iniciar o consumidor principal uma vez por minuto,
+substituindo pelo caminho absoluto real do projeto:
 
 ```cron
-* * * * * /bin/bash /caminho/absoluto/do/projeto/cron-default.sh
-* * * * * /bin/bash /caminho/absoluto/do/projeto/cron-smm.sh
+* * * * * /bin/bash /caminho/absoluto/do/projeto/cron-main.sh
 ```
 
-Os scripts atualizam `var/log/scheduler_default.heartbeat` e
-`var/log/scheduler_smm.heartbeat` com o horário/status da última chamada e gravam
-a saída em `var/log/scheduler_default.log` e `var/log/scheduler_smm.log`. O
-consumidor de `orders_high`, `orders_medium` e
+Remova os antigos Cron Jobs de `cron-default.sh` e `cron-smm.sh` ao migrar, para
+manter apenas um consumidor do schedule. O script atualiza
+`var/log/scheduler_main.heartbeat` e registra saída em
+`var/log/scheduler_main.log`. O consumidor de `orders_high`, `orders_medium` e
 `orders_low` também precisa permanecer ativo para processar mensagens; prefira
 Supervisor/systemd ou um worker gerenciado pelo hosting. Não agende
 `cron-orders.sh` a cada minuto: ele consome as três filas em sequência e pode
 ultrapassar o intervalo, criando processos concorrentes.
+
+As rotinas de sincronização de saldo de providers, remarketing e limpeza de
+tokens ainda não têm handlers executáveis no projeto e, portanto, não são
+agendadas até que suas implementações estejam prontas.
 
 ### Workers (Supervisor)
 

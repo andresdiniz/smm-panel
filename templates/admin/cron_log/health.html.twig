@@ -7,6 +7,13 @@
   <h1 style="font-size:1.1rem;color:#f0f3ff">Saúde das operações</h1>
   <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">
     <article style="padding:16px;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px">
+      <small style="color:#6b708a">Main scheduler</small>
+      <strong style="display:block;margin-top:8px;font-size:1.4rem;color:{{ schedulerHeartbeatFresh ? '#22c55e' : '#f59e0b' }}">
+        {{ schedulerHeartbeatFresh ? 'Ativo' : (schedulerHeartbeat ? 'Atrasado' : 'Sem heartbeat') }}
+      </strong>
+      {% if schedulerHeartbeat %}<small style="color:#9196b0">Último sinal: {{ schedulerHeartbeat.startedAt|date('d/m/Y H:i:s') }}</small>{% endif %}
+    </article>
+    <article style="padding:16px;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px">
       <small style="color:#6b708a">Mensagens na fila de falhas</small>
       <strong style="display:block;margin-top:8px;font-size:1.4rem;color:{{ failedMessengerMessages is null ? '#f59e0b' : (failedMessengerMessages > 0 ? '#ef4444' : '#22c55e') }}">
         {{ failedMessengerMessages is null ? 'Indisponível' : failedMessengerMessages }}
@@ -36,7 +43,7 @@
           <td style="padding:8px;color:#9196b0">{{ row.lastRun ? row.lastRun|date('d/m/Y H:i') : '—' }}</td>
           <td style="padding:8px;color:#9196b0">{{ row.avgMs ? row.avgMs|number_format(0, ',', '.') : '—' }}</td>
         </tr>
-      {% else %}<tr><td colspan="5" style="padding:12px;color:#fbbf24">Nenhum heartbeat registrado. Verifique se os consumidores `scheduler_default` e `scheduler_smm` estão ativos no hosting e se a migration `cron_logs` foi aplicada.</td></tr>{% endfor %}</tbody>
+      {% else %}<tr><td colspan="5" style="padding:12px;color:#fbbf24">Nenhum heartbeat registrado. Verifique se o consumidor `scheduler_main` está ativo no hosting e se a migration `cron_logs` foi aplicada.</td></tr>{% endfor %}</tbody>
     </table>
   </section>
 

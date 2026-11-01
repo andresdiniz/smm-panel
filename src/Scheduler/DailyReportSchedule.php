@@ -17,7 +17,7 @@ use Symfony\Component\Scheduler\Attribute\AsCronTask;
  * Envia relatório financeiro diário para o administrador.
  * Executa todo dia às 07:00.
  */
-#[AsCronTask('0 7 * * *')]
+#[AsCronTask('0 7 * * *', schedule: 'main')]
 final class DailyReportSchedule
 {
     public function __construct(

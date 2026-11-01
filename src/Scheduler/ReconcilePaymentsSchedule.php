@@ -18,7 +18,7 @@ use Symfony\Component\Scheduler\Attribute\AsCronTask;
  * Reconcilia pagamentos pendentes consultando o status diretamente nos gateways.
  * Executa a cada 5 minutos para cobrir webhooks perdidos.
  */
-#[AsCronTask('*/5 * * * *')]
+#[AsCronTask('*/5 * * * *', schedule: 'main')]
 final class ReconcilePaymentsSchedule
 {
     public function __construct(

@@ -6,13 +6,13 @@ cd "$APP_DIR"
 
 mkdir -p var/log var/cache
 
-heartbeat="var/log/scheduler_default.heartbeat"
+heartbeat="var/log/scheduler_main.heartbeat"
 printf '%s started\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$heartbeat"
 
-if APP_ENV=prod /usr/bin/php bin/console messenger:consume scheduler_default \
-    --limit=5 \
+if APP_ENV=prod /usr/bin/php bin/console messenger:consume scheduler_main \
+    --limit=20 \
     --time-limit=55 \
-    >> var/log/scheduler_default.log 2>&1; then
+    >> var/log/scheduler_main.log 2>&1; then
     printf '%s completed\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$heartbeat"
 else
     status=$?

@@ -17,7 +17,7 @@ use Symfony\Component\Scheduler\Attribute\AsCronTask;
  * Recupera pedidos ativos sem consulta recente e os envia à fila Messenger.
  * O handler de status processa a resposta e agenda o próximo polling.
  */
-#[AsCronTask('*/5 * * * *')]
+#[AsCronTask('*/5 * * * *', schedule: 'main')]
 final class SyncOrdersSchedule
 {
     public function __construct(

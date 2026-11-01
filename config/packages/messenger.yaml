@@ -3,13 +3,9 @@ framework:
         failure_transport: failed
 
         transports:
-            # Schedule "smm" — SmmSchedule (#[AsSchedule('smm')])
-            scheduler_smm:
-                dsn: 'schedule://smm'
-
-            # Schedule "default" — DailyReportSchedule, ReconcilePaymentsSchedule, SyncOrdersSchedule
-            scheduler_default:
-                dsn: 'schedule://default'
+            # Main schedule consolidates all recurring application tasks.
+            scheduler_main:
+                dsn: 'schedule://main'
 
             # Transporte de alta prioridade: envio ao provider (fallback/retry via ProcessOrderMessage)
             # e webhooks de pagamento.
@@ -71,11 +67,7 @@ framework:
 
             # CRM e tarefas agendadas
             App\Message\Crm\CrmSyncMessage:                    orders_low
-            App\Message\Scheduler\SyncProviderBalanceMessage:  orders_low
             App\Scheduler\SyncServicesMessage:                  orders_low
-            App\Message\Scheduler\DailyFinanceReportMessage:   orders_low
-            App\Message\Scheduler\RemarketingEmailsMessage:    orders_low
-            App\Message\Scheduler\CleanupExpiredTokensMessage: orders_low
 
             # E-mails transacionais — fila assíncrona com retry automático (3x)
             App\Message\SendWelcomeEmailMessage:               orders_low

@@ -2,15 +2,17 @@
 
 namespace App;
 
+use App\Message\Scheduler\MainScheduleHeartbeatMessage;
 use App\Scheduler\SyncServicesMessage;
+use Symfony\Component\Console\Messenger\RunCommandMessage;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
 use Symfony\Component\Scheduler\RecurringMessage;
 use Symfony\Component\Scheduler\Schedule as SymfonySchedule;
 use Symfony\Component\Scheduler\ScheduleProviderInterface;
 use Symfony\Contracts\Cache\CacheInterface;
 
-#[AsSchedule]
-class Schedule implements ScheduleProviderInterface
+#[AsSchedule('main')]
+final class Schedule implements ScheduleProviderInterface
 {
     public function __construct(
         private CacheInterface $cache,
@@ -22,9 +24,9 @@ class Schedule implements ScheduleProviderInterface
         return (new SymfonySchedule())
             ->stateful($this->cache)
             ->processOnlyLastMissedRun(true)
-
-            // Sincroniza minQty/maxQty de todos os serviços com a API dos providers a cada 6h
+            ->add(RecurringMessage::every('1 minute', new MainScheduleHeartbeatMessage()))
             ->add(RecurringMessage::every('6 hours', new SyncServicesMessage()))
+            ->add(RecurringMessage::cron('0 8 * * *', new RunCommandMessage('smm:finance:daily-report')))
         ;
     }
 }

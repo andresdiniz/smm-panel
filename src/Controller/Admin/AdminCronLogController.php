@@ -39,6 +39,9 @@ class AdminCronLogController extends AbstractController
     {
         $connection = $this->em->getConnection();
         $schemaManager = $connection->createSchemaManager();
+        $schedulerHeartbeat = $cronLogs->findOneBy(['command' => 'scheduler:main:heartbeat']);
+        $schedulerHeartbeatFresh = $schedulerHeartbeat !== null
+            && $schedulerHeartbeat->getStartedAt() >= new \DateTimeImmutable('-3 minutes');
         $failedMessengerMessages = null;
         if ($schemaManager->tablesExist(['messenger_messages'])) {
             $failedMessengerMessages = (int) $connection->createQueryBuilder()
@@ -54,6 +57,8 @@ class AdminCronLogController extends AbstractController
             'cronErrors' => $cronLogs->findRecentErrors(24),
             'orderErrors' => $orderLogs->findRecentErrors(24),
             'cronSummary' => $cronLogs->getSummary(),
+            'schedulerHeartbeat' => $schedulerHeartbeat,
+            'schedulerHeartbeatFresh' => $schedulerHeartbeatFresh,
             'failedMessengerMessages' => $failedMessengerMessages,
         ]);
     }
