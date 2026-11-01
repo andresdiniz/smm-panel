@@ -12,9 +12,9 @@
     </style>
     <section class="cookie-consent" id="cookie-consent" role="dialog" aria-modal="false" aria-labelledby="cookie-consent-title" hidden>
         <strong id="cookie-consent-title">Sua privacidade importa</strong>
-        <p>Usamos Google Tag Manager e Microsoft Clarity para medições opcionais somente após sua autorização. Você pode aceitar ou recusar e alterar a escolha depois. <a href="{{ path('cookies') }}">Política de Cookies</a>.</p>
+        <p>Usamos Google Tag Manager e Microsoft Clarity para análise e, conforme as tags configuradas, publicidade. Ao aceitar todos, você autoriza esses recursos; também pode recusar ou alterar sua escolha depois. <a href="{{ path('cookies') }}">Política de Cookies</a>.</p>
         <div class="cookie-consent__actions">
-            <button class="cookie-consent__button cookie-consent__button--accept" type="button" data-cookie-choice="granted">Aceitar análise</button>
+            <button class="cookie-consent__button cookie-consent__button--accept" type="button" data-cookie-choice="granted">Aceitar todos</button>
             <button class="cookie-consent__button" type="button" data-cookie-choice="denied">Recusar</button>
         </div>
     </section>
@@ -51,9 +51,9 @@
                 if (!hasTagManager || !window.gtag) return;
                 window.gtag('consent', 'update', {
                     analytics_storage: choice === 'granted' ? 'granted' : 'denied',
-                    ad_storage: 'denied',
-                    ad_user_data: 'denied',
-                    ad_personalization: 'denied'
+                    ad_storage: choice === 'granted' ? 'granted' : 'denied',
+                    ad_user_data: choice === 'granted' ? 'granted' : 'denied',
+                    ad_personalization: choice === 'granted' ? 'granted' : 'denied'
                 });
             }
 
@@ -76,7 +76,7 @@
             function updateClarityConsent(choice) {
                 if (!hasClarity || typeof window.clarity !== 'function') return;
                 window.clarity('consentv2', {
-                    ad_Storage: 'denied',
+                    ad_Storage: choice === 'granted' ? 'granted' : 'denied',
                     analytics_Storage: choice === 'granted' ? 'granted' : 'denied'
                 });
             }
