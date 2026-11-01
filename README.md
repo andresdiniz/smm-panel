@@ -227,27 +227,33 @@ php bin/console doctrine:migrations:migrate --no-interaction
 php bin/console asset-map:compile
 ```
 
-### Cron jobs (cPanel / crontab)
+### Agendamento e workers (Shared Hosting / VPS)
+
+O Symfony Scheduler não inicia por conta própria: os transportes `scheduler_default`
+e `scheduler_smm` precisam ser consumidos continuamente ou acionados periodicamente.
+No Shared Hosting, configure no Cron Jobs do hPanel os dois scripts abaixo para
+executarem a cada minuto, substituindo pelo caminho absoluto real do projeto:
 
 ```cron
-# Sync de pedidos pendentes (a cada 5 min)
-*/5 * * * * /usr/bin/php /home/user/public_html/bin/console smm:orders:sync-stale >> /dev/null 2>&1
-
-# Conciliação de pagamentos (a cada 10 min)
-*/10 * * * * /usr/bin/php /home/user/public_html/bin/console smm:billing:reconcile >> /dev/null 2>&1
-
-# Relatório financeiro diário (meia-noite)
-0 0 * * * /usr/bin/php /home/user/public_html/bin/console smm:finance:daily-report >> /dev/null 2>&1
+* * * * * /bin/bash /caminho/absoluto/do/projeto/cron-default.sh
+* * * * * /bin/bash /caminho/absoluto/do/projeto/cron-smm.sh
 ```
 
-Ou use os scripts prontos em `cron-default.sh`, `cron-orders.sh` e `cron-smm.sh`.
+Os scripts atualizam `var/log/scheduler_default.heartbeat` e
+`var/log/scheduler_smm.heartbeat` com o horário/status da última chamada e gravam
+a saída em `var/log/scheduler_default.log` e `var/log/scheduler_smm.log`. O
+consumidor de `orders_high`, `orders_medium` e
+`orders_low` também precisa permanecer ativo para processar mensagens; prefira
+Supervisor/systemd ou um worker gerenciado pelo hosting. Não agende
+`cron-orders.sh` a cada minuto: ele consome as três filas em sequência e pode
+ultrapassar o intervalo, criando processos concorrentes.
 
 ### Workers (Supervisor)
 
 ```bash
 sudo cp deploy/supervisor/smm-workers.conf /etc/supervisor/conf.d/
 sudo supervisorctl reread && sudo supervisorctl update
-sudo supervisorctl start smm-workers:*
+sudo supervisorctl start smm:*
 ```
 
 ---

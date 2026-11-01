@@ -15,7 +15,8 @@
     </article>
     <article style="padding:16px;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px">
       <small style="color:#6b708a">Falhas de cron nas últimas 24h</small>
-      <strong style="display:block;margin-top:8px;font-size:1.4rem;color:{{ cronErrors is not empty ? '#ef4444' : '#22c55e' }}">{{ cronErrors|length }}</strong>
+      <strong style="display:block;margin-top:8px;font-size:1.4rem;color:{{ cronSummary is empty ? '#f59e0b' : (cronErrors is not empty ? '#ef4444' : '#22c55e') }}">{{ cronSummary is empty ? 'Sem dados' : cronErrors|length }}</strong>
+      {% if cronSummary is empty %}<small style="color:#fbbf24">Sem execuções não é possível confirmar a saúde do cron.</small>{% endif %}
     </article>
     <article style="padding:16px;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px">
       <small style="color:#6b708a">Falhas recentes de pedidos</small>
@@ -35,7 +36,7 @@
           <td style="padding:8px;color:#9196b0">{{ row.lastRun ? row.lastRun|date('d/m/Y H:i') : '—' }}</td>
           <td style="padding:8px;color:#9196b0">{{ row.avgMs ? row.avgMs|number_format(0, ',', '.') : '—' }}</td>
         </tr>
-      {% else %}<tr><td colspan="5" style="padding:12px;color:#9196b0">Ainda não há execuções registradas.</td></tr>{% endfor %}</tbody>
+      {% else %}<tr><td colspan="5" style="padding:12px;color:#fbbf24">Nenhum heartbeat registrado. Verifique se os consumidores `scheduler_default` e `scheduler_smm` estão ativos no hosting e se a migration `cron_logs` foi aplicada.</td></tr>{% endfor %}</tbody>
     </table>
   </section>
 
@@ -46,7 +47,13 @@
         <strong style="color:#f87171">{{ log.command }}</strong>
         <span style="color:#6b708a"> · {{ log.startedAt|date('d/m/Y H:i:s') }} · {{ log.errorMessage ?? 'Falha sem mensagem' }}</span>
       </article>
-    {% else %}<p style="color:#22c55e">Nenhuma falha registrada nas últimas 24 horas.</p>{% endfor %}
+    {% else %}
+      {% if cronSummary is empty %}
+        <p style="color:#fbbf24">Sem histórico de execução: zero falhas não significa que o cron esteja ativo.</p>
+      {% else %}
+        <p style="color:#22c55e">Nenhuma falha registrada nas últimas 24 horas.</p>
+      {% endif %}
+    {% endfor %}
   </section>
 
   <section style="overflow:auto;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px">
