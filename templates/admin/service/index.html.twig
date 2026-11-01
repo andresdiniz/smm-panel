@@ -11,14 +11,18 @@
   }
   .sv-title { font-size: 1.05rem; font-weight: 900; color: #f0f3ff; margin: 0; }
   .sv-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .sv-search-form { display: flex; gap: 6px; }
-  .sv-search-input {
+  .sv-search-form { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sv-search-input,
+  .sv-category-select {
     background: #0b0e14; border: 1px solid rgba(255,255,255,.08);
     border-radius: 6px; color: #dde1f0; font-size: .8rem;
-    padding: 6px 12px; width: 220px; outline: none;
+    padding: 6px 12px; outline: none;
     transition: border-color .15s;
   }
-  .sv-search-input:focus { border-color: rgba(78,204,211,.4); }
+  .sv-search-input { width: 220px; }
+  .sv-category-select { min-width: 220px; }
+  .sv-search-input:focus,
+  .sv-category-select:focus { border-color: rgba(78,204,211,.4); }
   .sv-search-input::placeholder { color: #3e4259; }
   .btn-sm {
     padding: 6px 13px; border-radius: 5px; font-size: .78rem; font-weight: 700;
@@ -107,10 +111,21 @@
       <form class="sv-search-form" method="get" action="">
         <input class="sv-search-input" type="search" name="q"
                value="{{ search }}" placeholder="Buscar nome, categoria…">
+
+        <select class="sv-category-select" name="category">
+          <option value="">Todas as categorias</option>
+          {% for cat in categories %}
+            <option value="{{ cat }}" {{ category == cat ? 'selected' : '' }}>
+              {{ cat }}
+            </option>
+          {% endfor %}
+        </select>
+
         <button type="submit" class="btn-sm btn-primary">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           Buscar
         </button>
+
         {% if search or category %}
           <a href="{{ path('admin_service_index') }}" class="btn-sm btn-ghost">Limpar</a>
         {% endif %}

@@ -45,12 +45,22 @@ class AdminServiceController extends AbstractController
                ->setParameter('cat', $category);
         }
 
+        $categories = $this->em->getRepository(Service::class)
+            ->createQueryBuilder('s')
+            ->select('DISTINCT s.category')
+            ->where('s.category IS NOT NULL')
+            ->andWhere("s.category <> ''")
+            ->orderBy('s.category', 'ASC')
+            ->getQuery()
+            ->getSingleColumnResult();
+
         $pagination = $this->paginator->paginate($qb, $request->query->getInt('page', 1), 50);
 
         return $this->render('admin/service/index.html.twig', [
             'pagination' => $pagination,
             'search'     => $search,
             'category'   => $category,
+            'categories' => $categories,
         ]);
     }
 
