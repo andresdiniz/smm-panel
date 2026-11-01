@@ -28,13 +28,17 @@ final class SyncServicesHandler
 
     public function __invoke(SyncServicesMessage $message): void
     {
-        $this->logger->info('[SyncServices] Iniciando sincronização de serviços com providers.');
+        $this->logger->info('[SyncServices] Iniciando sincronização de serviços com providers.', [
+            'provider' => $message->providerSlug,
+        ]);
 
         /** @var Service[] $services */
         $services = $this->serviceRepository->findBy(['active' => true]);
         $services = array_filter(
             $services,
-            fn(Service $s) => $s->getExternalServiceId() !== null && $s->getProviderSlug() !== null
+            fn(Service $s) => $s->getExternalServiceId() !== null
+                && $s->getProviderSlug() !== null
+                && ($message->providerSlug === null || $s->getProviderSlug() === strtolower(trim($message->providerSlug)))
         );
 
         if (empty($services)) {
@@ -49,6 +53,7 @@ final class SyncServicesHandler
         }
 
         $totalUpdated = 0;
+        $providerErrors = [];
 
         foreach ($byProvider as $slug => $providerServices) {
             try {
@@ -59,12 +64,20 @@ final class SyncServicesHandler
                     'provider' => $slug,
                     'error'    => $e->getMessage(),
                 ]);
+                $providerErrors[] = $slug;
                 continue;
             }
 
             // Indexa por service ID para lookup O(1)
             $remoteIndex = [];
             foreach ($remoteServices as $rs) {
+                if (!is_array($rs) || !isset($rs['service'], $rs['min'], $rs['max'])) {
+                    $this->logger->error('[SyncServices] Resposta inválida ao listar serviços do provider.', [
+                        'provider' => $slug,
+                    ]);
+                    $providerErrors[] = $slug;
+                    continue 2;
+                }
                 $remoteIndex[(string) $rs['service']] = $rs;
             }
 
@@ -104,6 +117,13 @@ final class SyncServicesHandler
 
         if ($totalUpdated > 0) {
             $this->em->flush();
+        }
+
+        if ($providerErrors !== []) {
+            throw new \RuntimeException(sprintf(
+                'Não foi possível sincronizar os providers: %s.',
+                implode(', ', array_unique($providerErrors)),
+            ));
         }
 
         $this->logger->info('[SyncServices] Sincronização concluída.', [

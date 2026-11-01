@@ -10,4 +10,7 @@ namespace App\Scheduler;
  */
 final class SyncServicesMessage
 {
+    public function __construct(
+        public readonly ?string $providerSlug = null,
+    ) {}
 }

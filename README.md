@@ -161,13 +161,38 @@ php bin/console doctrine:migrations:migrate
 php bin/console doctrine:fixtures:load --no-interaction  # opcional
 
 # 5. Workers Messenger
-php bin/console messenger:consume async scheduler -vv
+# Execute estes dois processos continuamente (Supervisor/systemd ou processo gerenciado pelo hosting).
+php bin/console messenger:consume scheduler_default scheduler_smm --time-limit=3600 --memory-limit=256M -vv
+php bin/console messenger:consume orders_high orders_medium orders_low --time-limit=3600 --memory-limit=256M -vv
 
 # 6. Servidor de desenvolvimento
 php -S 127.0.0.1:8000 -t public public/index.php
 ```
 
 Acesse o admin em `http://localhost:8000/admin` com um usuário `ROLE_ADMIN`.
+
+### Sincronização automática via Messenger
+
+- `SyncServicesMessage` é agendada a cada 6 horas e roteada para `orders_low`;
+  atualiza os limites min/max dos serviços ativos a partir do catálogo do provider.
+- A cada 5 minutos, o agendador localiza pedidos em processamento sem log de
+  status recente (45 minutos) e enfileira `SyncOrderStatusMessage` em
+  `orders_medium`. O handler consulta o provider, registra cada tentativa,
+  aplica conclusão/cancelamento e agenda o próximo polling com backoff. Pedidos
+  recentes continuam usando o polling inicial e os retries já existentes.
+- Para iniciar uma sincronização de serviços manualmente pela fila:
+
+  ```bash
+  php bin/console smm:services:sync-async
+  php bin/console smm:services:sync-async --provider=slug-do-provider
+  ```
+
+- Confira as filas/retries com `php bin/console messenger:stats` e falhas com
+  `php bin/console messenger:failed:show`. Reprocesse somente após corrigir a
+  causa com `php bin/console messenger:failed:retry`.
+- Em produção, mantenha os dois workers acima sempre ativos e reinicie-os após
+  deploy; sem um worker de `scheduler_*` não há agendamento, e sem um worker de
+  `orders_*` as mensagens ficam acumuladas sem executar.
 
 ### Login e recuperação de senha
 
