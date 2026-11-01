@@ -45,14 +45,23 @@ class AdminServiceController extends AbstractController
                ->setParameter('cat', $category);
         }
 
-        $categories = $this->em->getRepository(Service::class)
+        $categoryRows = $this->em->getRepository(Service::class)
             ->createQueryBuilder('s')
-            ->select('DISTINCT s.category')
+            ->select('s.category AS category, COUNT(s.id) AS total')
             ->where('s.category IS NOT NULL')
             ->andWhere("s.category <> ''")
+            ->groupBy('s.category')
             ->orderBy('s.category', 'ASC')
             ->getQuery()
-            ->getSingleColumnResult();
+            ->getArrayResult();
+
+        $categories = array_map(
+            static fn(array $row): array => [
+                'category' => (string) $row['category'],
+                'total' => (int) $row['total'],
+            ],
+            $categoryRows
+        );
 
         $pagination = $this->paginator->paginate($qb, $request->query->getInt('page', 1), 50);
 
