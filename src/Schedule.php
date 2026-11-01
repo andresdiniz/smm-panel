@@ -25,6 +25,8 @@ final class Schedule implements ScheduleProviderInterface
             ->stateful($this->cache)
             ->processOnlyLastMissedRun(true)
             ->add(RecurringMessage::every('1 minute', new MainScheduleHeartbeatMessage()))
+            ->add(RecurringMessage::every('5 minutes', new RunCommandMessage('app:sync-order-status --limit=200')))
+            ->add(RecurringMessage::every('10 minutes', new RunCommandMessage('smm:orders:sync-stale --minutes=30')))
             ->add(RecurringMessage::every('6 hours', new SyncServicesMessage()))
             ->add(RecurringMessage::cron('0 8 * * *', new RunCommandMessage('smm:finance:daily-report')))
         ;
