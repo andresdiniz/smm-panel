@@ -9,6 +9,11 @@ class Kernel extends BaseKernel
 {
     use MicroKernelTrait;
 
+    public function __construct(string $environment, bool $debug)
+    {
+        parent::__construct($environment, $environment === 'dev' && $debug);
+    }
+
     /**
      * Forca o Symfony a usar var/cache RELATIVO ao clone ativo da Hostinger.
      *
