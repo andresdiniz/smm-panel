@@ -6,6 +6,7 @@
     "require": {
         "php": ">=8.5.12",
         "ext-ctype": "*",
+        "ext-dom": "*",
         "ext-iconv": "*",
         "ext-pdo": "*",
         "ext-pdo_mysql": "*",
@@ -24,6 +25,7 @@
         "symfony/flex": "^2.4",
         "symfony/form": "^8.0",
         "symfony/framework-bundle": "^8.0",
+        "symfony/html-sanitizer": "^8.0",
         "symfony/http-client": "^8.0",
         "symfony/mailer": "^8.0",
         "symfony/messenger": "^8.0",

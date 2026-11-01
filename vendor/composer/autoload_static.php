@@ -90,6 +90,7 @@ class ComposerStaticInit574a26562dea38d30187f81900273e91
             'Symfony\\Component\\HttpKernel\\' => 29,
             'Symfony\\Component\\HttpFoundation\\' => 33,
             'Symfony\\Component\\HttpClient\\' => 29,
+            'Symfony\\Component\\HtmlSanitizer\\' => 32,
             'Symfony\\Component\\Form\\' => 23,
             'Symfony\\Component\\Finder\\' => 25,
             'Symfony\\Component\\Filesystem\\' => 29,
@@ -119,6 +120,7 @@ class ComposerStaticInit574a26562dea38d30187f81900273e91
         'P' => 
         array (
             'Psr\\Log\\' => 8,
+            'Psr\\Http\\Message\\' => 17,
             'Psr\\EventDispatcher\\' => 20,
             'Psr\\Container\\' => 14,
             'Psr\\Clock\\' => 10,
@@ -128,6 +130,10 @@ class ComposerStaticInit574a26562dea38d30187f81900273e91
         'M' => 
         array (
             'Monolog\\' => 8,
+        ),
+        'L' => 
+        array (
+            'League\\Uri\\' => 11,
         ),
         'K' => 
         array (
@@ -375,6 +381,10 @@ class ComposerStaticInit574a26562dea38d30187f81900273e91
         array (
             0 => __DIR__ . '/..' . '/symfony/http-client',
         ),
+        'Symfony\\Component\\HtmlSanitizer\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/symfony/html-sanitizer',
+        ),
         'Symfony\\Component\\Form\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/form',
@@ -479,6 +489,11 @@ class ComposerStaticInit574a26562dea38d30187f81900273e91
         array (
             0 => __DIR__ . '/..' . '/psr/log/src',
         ),
+        'Psr\\Http\\Message\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/psr/http-factory/src',
+            1 => __DIR__ . '/..' . '/psr/http-message/src',
+        ),
         'Psr\\EventDispatcher\\' => 
         array (
             0 => __DIR__ . '/..' . '/psr/event-dispatcher/src',
@@ -502,6 +517,11 @@ class ComposerStaticInit574a26562dea38d30187f81900273e91
         'Monolog\\' => 
         array (
             0 => __DIR__ . '/..' . '/monolog/monolog/src/Monolog',
+        ),
+        'League\\Uri\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/league/uri',
+            1 => __DIR__ . '/..' . '/league/uri-interfaces',
         ),
         'Knp\\Component\\' => 
         array (

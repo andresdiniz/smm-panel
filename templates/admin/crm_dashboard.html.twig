@@ -17,6 +17,9 @@
             <strong>Prévia — {{ message.recipientCount }} destinatário(s) com consentimento explícito</strong>
           {% else %}
             <strong>Campanha: {{ message.sent }} e-mail(s) enviado(s)</strong>
+            {% if message.campaignId is defined and message.sent > 0 %}
+              <a href="{{ path('app_admin_crm_campaign_show', {campaignId: message.campaignId}) }}" style="margin-left:10px;color:#4eccd3">Ver rastreamento</a>
+            {% endif %}
           {% endif %}
           {% if message.errorCount > 0 %}<p>{{ message.errorCount }} envio(s) falharam.</p>{% endif %}
           {% if message.preview %}
@@ -48,9 +51,10 @@
         <input name="subject" maxlength="180" required style="padding:10px;background:#161a24;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#dde1f0">
       </label>
       <label style="display:grid;gap:5px;color:#9196b0;font-size:.78rem">
-        Mensagem
-        <textarea name="body" maxlength="10000" rows="5" required style="padding:10px;background:#161a24;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#dde1f0"></textarea>
+        Mensagem HTML
+        <textarea name="body" maxlength="10000" rows="10" required placeholder="<h2 style=&quot;color:#01696f&quot;>Novidades PulseSMM</h2>&#10;<p style=&quot;font-size:16px&quot;>Escreva sua mensagem aqui.</p>&#10;<p><a href=&quot;https://acheireviews.com.br&quot; style=&quot;color:#01696f&quot;>Acessar a plataforma</a></p>" style="padding:10px;background:#161a24;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#dde1f0;font-family:monospace"></textarea>
       </label>
+      <p style="margin:0;color:#9196b0;font-size:.76rem">Aceita HTML para e-mail. Scripts, formulários e estilos inseguros são removidos; links HTTP/HTTPS são rastreados.</p>
       <button type="submit" style="justify-self:start;padding:9px 14px;border:0;border-radius:7px;background:#01868d;color:#fff;font-weight:700">Enviar e-mail</button>
     </form>
     {% else %}
@@ -71,10 +75,67 @@
           <option value="">Todos os segmentos autorizados</option><option value="new">Novos</option><option value="active">Ativos</option><option value="whale">Maior gasto</option>
         </select>
       </label>
-      <label style="grid-column:1/-1;display:grid;gap:5px;color:#9196b0;font-size:.78rem">Mensagem<textarea name="body" maxlength="10000" rows="5" required style="padding:10px;background:#161a24;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#dde1f0"></textarea></label>
+      <label style="grid-column:1/-1;display:grid;gap:5px;color:#9196b0;font-size:.78rem">Mensagem HTML<textarea name="body" maxlength="10000" rows="10" required placeholder="<h2 style=&quot;color:#01696f&quot;>Novidades PulseSMM</h2>&#10;<p style=&quot;font-size:16px&quot;>Escreva sua mensagem aqui.</p>&#10;<p><a href=&quot;https://acheireviews.com.br&quot; style=&quot;color:#01696f&quot;>Acessar a plataforma</a></p>" style="padding:10px;background:#161a24;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#dde1f0;font-family:monospace"></textarea></label>
+      <p style="grid-column:1/-1;margin:0;color:#9196b0;font-size:.76rem">Aceita HTML para e-mail. Scripts, formulários e estilos inseguros são removidos; links HTTP/HTTPS são rastreados. Aberturas são estimativas e podem variar conforme o aplicativo de e-mail.</p>
       <label style="grid-column:1/-1;color:#9196b0;font-size:.78rem"><input type="checkbox" name="preview_only" value="1" checked> Gerar prévia sem enviar</label>
       <button type="submit" style="justify-self:start;padding:9px 14px;border:0;border-radius:7px;background:#01868d;color:#fff;font-weight:700">Executar campanha</button>
     </form>
+  </section>
+  {% if marketingCampaigns is not empty %}
+  <section style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:18px">
+    <h2 style="margin:0 0 12px;color:#dde1f0;font-size:1rem">Campanhas e rastreamento</h2>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem;color:#dde1f0">
+        <thead><tr style="color:#9196b0;text-align:left"><th style="padding:8px">Campanha</th><th>Enviados</th><th>Abertos</th><th>Clicaram</th><th>Cliques</th><th></th></tr></thead>
+        <tbody>
+        {% for campaign in marketingCampaigns %}
+          <tr style="border-top:1px solid rgba(255,255,255,.06)">
+            <td style="padding:8px">{{ campaign.subject }}<br><small style="color:#9196b0">{{ campaign.sentAt|date('d/m/Y H:i') }}</small></td>
+            <td>{{ campaign.recipients }}</td>
+            <td>{{ campaign.opened }}</td>
+            <td>{{ campaign.clicked }}</td>
+            <td>{{ campaign.clicks }}</td>
+            <td><a href="{{ path('app_admin_crm_campaign_show', {campaignId: campaign.campaignId}) }}" style="color:#4eccd3">Detalhes</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p style="margin:10px 0 0;color:#9196b0;font-size:.74rem">Aberturas são aproximadas: clientes de e-mail podem bloquear ou pré-carregar imagens.</p>
+  </section>
+  {% endif %}
+  {% endif %}
+
+  {% if campaignEmails is not null %}
+  <section style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:18px">
+    <h2 style="margin:0 0 12px;color:#dde1f0;font-size:1rem">Destinatários — rastreamento de campanha</h2>
+    <p style="margin:0 0 12px;color:#9196b0;font-size:.8rem">{{ campaignEmails|length }} destinatário(s) · <a href="{{ path('app_admin_crm_dashboard') }}" style="color:#4eccd3">Voltar ao CRM</a></p>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem;color:#dde1f0">
+        <thead><tr style="color:#9196b0;text-align:left"><th style="padding:8px">Destinatário</th><th>Envio</th><th>Aberturas</th><th>Cliques</th><th>Links clicados</th></tr></thead>
+        <tbody>
+        {% for emailLog in campaignEmails %}
+          <tr style="border-top:1px solid rgba(255,255,255,.06);vertical-align:top">
+            <td style="padding:8px">{{ emailLog.user.name }}<br><small style="color:#9196b0">{{ emailLog.user.email }}</small></td>
+            <td>{{ emailLog.status == 'sent' ? 'Enviado' : (emailLog.status == 'failed' ? 'Falhou' : 'Pendente') }}</td>
+            <td>{{ emailLog.openCount }}{% if emailLog.openedAt %}<br><small style="color:#9196b0">{{ emailLog.openedAt|date('d/m/Y H:i') }}</small>{% endif %}</td>
+            <td>{{ emailLog.clickCount }}</td>
+            <td>
+              {% for linkId, clickedAt in emailLog.clickedLinks %}
+                {% if emailLog.links[linkId] is defined %}
+                  <a href="{{ emailLog.links[linkId] }}" target="_blank" rel="noopener noreferrer" style="display:block;max-width:320px;overflow-wrap:anywhere;color:#4eccd3">{{ emailLog.links[linkId] }}</a>
+                  <small style="color:#9196b0">{{ clickedAt|date('d/m/Y H:i') }}</small>
+                {% endif %}
+              {% else %}
+                <span style="color:#9196b0">—</span>
+              {% endfor %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p style="margin:10px 0 0;color:#9196b0;font-size:.74rem">As aberturas são estimativas; cliques nos links HTTP/HTTPS são registrados por destinatário.</p>
   </section>
   {% endif %}
 

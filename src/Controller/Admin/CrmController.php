@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\AffiliateCommission;
+use App\Entity\MarketingEmailLog;
 use App\Entity\User;
 use App\Repository\AffiliateCommissionRepository;
 use App\Repository\CrmContactRepository;
+use App\Repository\MarketingEmailLogRepository;
 use App\Repository\OrderRepository;
 use App\Repository\PaymentRepository;
 use App\Repository\UserRepository;
 use App\Service\AffiliateService;
+use App\Service\MarketingEmailContent;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,6 +26,7 @@ use Symfony\Component\HttpFoundation\UriSigner;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Uid\Uuid;
 
 #[Route('/admin/crm', name: 'app_admin_crm_')]
 #[IsGranted('ROLE_ADMIN')]
@@ -34,7 +38,9 @@ class CrmController extends AbstractController
         private readonly UserRepository                $userRepository,
         private readonly OrderRepository               $orderRepository,
         private readonly AffiliateCommissionRepository $commissionRepo,
+        private readonly MarketingEmailLogRepository  $marketingEmailLogRepository,
         private readonly AffiliateService              $affiliateService,
+        private readonly MarketingEmailContent        $marketingEmailContent,
         private readonly EntityManagerInterface        $em,
         private readonly LoggerInterface               $logger,
     ) {}
@@ -68,6 +74,17 @@ class CrmController extends AbstractController
             'orders'     => $orders,
             'totalSpent' => $totalSpent,
         ]);
+    }
+
+    #[Route('/campaign/{campaignId}', name: 'campaign_show', requirements: ['campaignId' => '[0-9a-f-]{36}'], methods: ['GET'])]
+    public function campaignShow(string $campaignId): Response
+    {
+        $emails = $this->marketingEmailLogRepository->findByCampaignId($campaignId);
+        if ($emails === []) {
+            throw $this->createNotFoundException();
+        }
+
+        return $this->renderCrm(null, $emails, $campaignId);
     }
 
     #[Route('/user/{id}/send-email', name: 'send_user_email', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -108,15 +125,22 @@ class CrmController extends AbstractController
             ),
             new \DateInterval('P90D'),
         );
+        $emailLog = new MarketingEmailLog($user, Uuid::v4()->toRfc4122(), $subject);
+        $this->em->persist($emailLog);
+        $this->em->flush();
 
         try {
             $mailer->send((new Email())
                 ->from('noreply@acheireviews.com.br')
                 ->to($user->getEmail())
                 ->subject($subject)
-                ->html($this->renderEmailHtml($user->getName(), $subject, $body, $unsubscribeUrl)));
+                ->html($this->renderEmailHtml($user->getName(), $body, $unsubscribeUrl, $emailLog)));
+            $emailLog->markSent();
+            $this->em->flush();
             $this->addFlash('success', 'E-mail enviado para o usuário.');
         } catch (\Throwable $e) {
+            $emailLog->markFailed();
+            $this->em->flush();
             $this->logger->error('Falha ao enviar e-mail de marketing individual.', [
                 'user_id' => $user->getId(),
                 'exception' => $e::class,
@@ -234,31 +258,54 @@ class CrmController extends AbstractController
 
         $sent = 0;
         $errorCount = 0;
+        $campaignId = Uuid::v4()->toRfc4122();
         if (!$previewOnly) {
+            $preparedEmails = [];
             foreach ($recipients as $r) {
+                $emailLog = new MarketingEmailLog($r['user'], $campaignId, $subject);
+                $this->em->persist($emailLog);
+                $unsubscribeUrl = $uriSigner->sign(
+                    $this->generateUrl(
+                        'app_marketing_unsubscribe',
+                        ['id' => $r['user']->getId()],
+                        UrlGeneratorInterface::ABSOLUTE_URL,
+                    ),
+                    new \DateInterval('P90D'),
+                );
+                $preparedEmails[] = [
+                    'recipient' => $r,
+                    'log' => $emailLog,
+                    'html' => $this->renderEmailHtml($r['name'], $body, $unsubscribeUrl, $emailLog),
+                ];
+            }
+
+            if ($preparedEmails !== []) {
+                $this->em->flush();
+            }
+
+            foreach ($preparedEmails as $prepared) {
+                $r = $prepared['recipient'];
+                $emailLog = $prepared['log'];
                 try {
-                    $unsubscribeUrl = $uriSigner->sign(
-                        $this->generateUrl(
-                            'app_marketing_unsubscribe',
-                            ['id' => $r['user']->getId()],
-                            UrlGeneratorInterface::ABSOLUTE_URL,
-                        ),
-                        new \DateInterval('P90D'),
-                    );
                     $email = (new Email())
                         ->from('noreply@acheireviews.com.br')
                         ->to($r['email'])
                         ->subject($subject)
-                        ->html($this->renderEmailHtml($r['name'], $subject, $body, $unsubscribeUrl));
+                        ->html($prepared['html']);
                     $mailer->send($email);
+                    $emailLog->markSent();
                     $sent++;
                 } catch (\Throwable $e) {
+                    $emailLog->markFailed();
                     ++$errorCount;
                     $this->logger->error('Falha no envio de campanha de marketing.', [
                         'user_id' => $r['user']->getId(),
                         'exception' => $e::class,
                     ]);
                 }
+            }
+            if ($preparedEmails !== []) {
+                $this->em->flush();
             }
         }
 
@@ -268,13 +315,14 @@ class CrmController extends AbstractController
             'sent' => $sent,
             'errorCount' => $errorCount,
             'subject' => $subject,
+            'campaignId' => $campaignId,
         ]);
 
         return $this->redirectToRoute('app_admin_crm_dashboard');
     }
 
     // ─── Helper: monta todos os dados e renderiza ────────────────────────
-    private function renderCrm(?array $profileUser): Response
+    private function renderCrm(?array $profileUser, ?array $campaignEmails = null, ?string $campaignId = null): Response
     {
         $now   = new \DateTimeImmutable();
         $month = new \DateTimeImmutable('first day of this month midnight');
@@ -346,6 +394,9 @@ class CrmController extends AbstractController
             'affStats'       => $globalStats,
             'affiliateRows'  => $affiliateRows,
             'defaultRate'    => $this->affiliateService->getDefaultRate(),
+            'marketingCampaigns' => $this->marketingEmailLogRepository->findRecentCampaignSummaries(),
+            'campaignEmails' => $campaignEmails,
+            'campaignId' => $campaignId,
         ]);
     }
 
@@ -391,11 +442,28 @@ class CrmController extends AbstractController
         return array_values($rows);
     }
 
-    private function renderEmailHtml(string $name, string $subject, string $body, string $unsubscribeUrl): string
+    private function renderEmailHtml(string $name, string $body, string $unsubscribeUrl, MarketingEmailLog $emailLog): string
     {
-        $safeBody = nl2br(htmlspecialchars($body));
-        $safeName = htmlspecialchars($name);
+        $safeBody = $this->marketingEmailContent->sanitize($body);
+        $links = [];
+        $safeBody = $this->marketingEmailContent->rewriteLinks(
+            $safeBody,
+            fn (string $linkId): string => $this->generateUrl(
+                'app_marketing_email_click',
+                ['token' => $emailLog->getToken(), 'linkId' => $linkId],
+                UrlGeneratorInterface::ABSOLUTE_URL,
+            ),
+            $links,
+        );
+        $emailLog->setLinks($links);
+
+        $safeName = htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $safeUnsubscribeUrl = htmlspecialchars($unsubscribeUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $openUrl = htmlspecialchars($this->generateUrl(
+            'app_marketing_email_open',
+            ['token' => $emailLog->getToken()],
+            UrlGeneratorInterface::ABSOLUTE_URL,
+        ), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         return <<<HTML
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden">
@@ -408,7 +476,9 @@ class CrmController extends AbstractController
           </div>
           <div style="background:#f5f5f5;padding:16px 32px;font-size:11px;color:#999;text-align:center">
             PulseSMM &mdash; <a href="{$safeUnsubscribeUrl}">Cancelar recebimento de e-mails de marketing</a>.
+            <p>Este e-mail pode registrar aberturas e cliques para medir o desempenho da comunicação. Aberturas são estimativas e podem variar conforme o aplicativo de e-mail.</p>
           </div>
+          <img src="{$openUrl}" width="1" height="1" alt="" style="display:none">
         </div>
         HTML;
     }
