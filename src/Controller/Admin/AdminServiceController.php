@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\Service;
+use App\Service\ServicePriceSyncService;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,8 +19,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class AdminServiceController extends AbstractController
 {
     public function __construct(
-        private readonly EntityManagerInterface $em,
-        private readonly PaginatorInterface     $paginator,
+        private readonly EntityManagerInterface  $em,
+        private readonly PaginatorInterface      $paginator,
+        private readonly ServicePriceSyncService $priceSync,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -28,8 +30,6 @@ class AdminServiceController extends AbstractController
         $search   = $request->query->get('q');
         $category = $request->query->get('category');
 
-        // category is a plain string column — NOT an ORM association.
-        // Never use leftJoin on it.
         $qb = $this->em->getRepository(Service::class)
             ->createQueryBuilder('s')
             ->orderBy('s.category', 'ASC')
@@ -76,6 +76,8 @@ class AdminServiceController extends AbstractController
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
     public function edit(Service $service, Request $request): Response
     {
+        $providerConfig = $this->priceSync->getProviderConfig($service);
+
         if ($request->isMethod('POST')) {
             $service->setName($request->request->get('name', $service->getName()));
             $service->setCategory($request->request->get('category', $service->getCategory()));
@@ -89,12 +91,24 @@ class AdminServiceController extends AbstractController
                 $service->setPricePerThousandCents((int) $priceCents);
             }
 
+            $profitPercent = $request->request->get('profitPercent');
+            if ($profitPercent !== null && $profitPercent !== '') {
+                $service->setProfitPercent((float) $profitPercent);
+            }
+
+            if ($priceCents !== null && $priceCents !== '') {
+                $this->priceSync->recalcProfitFromPrice($service);
+            }
+
             $this->em->flush();
             $this->addFlash('success', 'Serviço atualizado.');
             return $this->redirectToRoute('admin_service_index');
         }
 
-        return $this->render('admin/service/edit.html.twig', ['service' => $service]);
+        return $this->render('admin/service/edit.html.twig', [
+            'service' => $service,
+            'providerConfig' => $providerConfig,
+        ]);
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]

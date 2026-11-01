@@ -4,355 +4,237 @@
 
 {% block admin_content %}
 <style>
-  .svedit-wrap { padding: 24px; max-width: 720px; }
-  .svedit-topbar {
-    display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
-  }
+  .svedit-wrap { padding: 24px; max-width: 760px; }
+  .svedit-topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
   .svedit-back {
     display: inline-flex; align-items: center; justify-content: center;
     width: 28px; height: 28px; border-radius: 6px; text-decoration: none;
     background: rgba(255,255,255,.04); color: #6b708a;
-    border: 1px solid rgba(255,255,255,.08); transition: background .15s;
+    border: 1px solid rgba(255,255,255,.08);
   }
-  .svedit-back:hover { background: rgba(255,255,255,.08); color: #dde1f0; }
   .svedit-title { font-size: 1.05rem; font-weight: 900; color: #f0f3ff; margin: 0; }
-  .svedit-card {
-    background: #0b0e14; border: 1px solid rgba(255,255,255,.06);
-    border-radius: 8px; padding: 24px;
-  }
   .svedit-badge {
     display: inline-flex; padding: 2px 8px; border-radius: 999px;
     font-size: 9px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: .05em; margin-left: 8px; vertical-align: middle;
-    background: rgba(78,204,211,.08); color: #4eccd3;
+    background: rgba(78,204,211,.08); color: #4eccd3; margin-left: 8px;
   }
+  .svedit-card { background: #0b0e14; border: 1px solid rgba(255,255,255,.06); border-radius: 8px; padding: 24px; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .form-group { display: flex; flex-direction: column; gap: 6px; }
   .form-group.full { grid-column: 1 / -1; }
-  .form-label {
-    font-size: .72rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: .08em; color: #3e4259;
-  }
+  .form-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; color: #3e4259; }
   .form-control {
     background: #0d1018; border: 1px solid rgba(255,255,255,.08);
     border-radius: 6px; color: #dde1f0; font-size: .82rem;
-    padding: 8px 12px; outline: none; width: 100%;
-    transition: border-color .15s;
+    padding: 8px 12px; width: 100%;
   }
-  .form-control:focus { border-color: rgba(78,204,211,.4); }
-  .form-control:disabled {
-    color: #3e4259; background: #0b0d12; cursor: not-allowed;
-  }
-  textarea.form-control { resize: vertical; min-height: 80px; }
-  .form-hint { font-size: .7rem; color: #3e4259; margin-top: 2px; }
-  .toggle-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 0;
-  }
-  .toggle-label { font-size: .82rem; color: #9196b0; cursor: pointer; user-select: none; }
-  .toggle-switch { position: relative; display: inline-block; width: 36px; height: 20px; }
+  textarea.form-control { min-height: 80px; resize: vertical; }
+  .form-hint { font-size: .7rem; color: #3e4259; }
+  .toggle-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+  .toggle-label { font-size: .82rem; color: #9196b0; }
+  .toggle-switch { position: relative; width: 36px; height: 20px; display: inline-block; }
   .toggle-switch input { opacity: 0; width: 0; height: 0; }
-  .toggle-slider {
-    position: absolute; inset: 0; border-radius: 999px;
-    background: rgba(255,255,255,.1); cursor: pointer;
-    transition: background .2s;
-  }
-  .toggle-slider:before {
-    content: ''; position: absolute;
-    width: 14px; height: 14px; border-radius: 50%;
-    background: #9196b0; left: 3px; top: 3px;
-    transition: transform .2s, background .2s;
-  }
+  .toggle-slider { position: absolute; inset: 0; border-radius: 999px; background: rgba(255,255,255,.1); cursor: pointer; }
+  .toggle-slider:before { content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #9196b0; left: 3px; top: 3px; transition: .2s; }
   .toggle-switch input:checked + .toggle-slider { background: rgba(90,170,42,.3); }
   .toggle-switch input:checked + .toggle-slider:before { transform: translateX(16px); background: #5aaa2a; }
   .divider { border: none; border-top: 1px solid rgba(255,255,255,.05); margin: 20px 0; }
-  .meta-row {
-    display: flex; flex-wrap: wrap; gap: 24px;
-    background: rgba(255,255,255,.02); border-radius: 6px;
-    padding: 12px 14px; margin-top: 4px;
-  }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 24px; background: rgba(255,255,255,.02); padding: 12px 14px; border-radius: 6px; }
   .meta-item { display: flex; flex-direction: column; gap: 3px; }
-  .meta-key { font-size: .65rem; text-transform: uppercase; letter-spacing: .08em; color: #3e4259; font-weight: 700; }
+  .meta-key { font-size: .65rem; text-transform: uppercase; color: #3e4259; font-weight: 700; }
   .meta-val { font-size: .78rem; color: #9196b0; font-family: monospace; }
-  .provider-price-box {
-    background: rgba(78,204,211,.05);
-    border: 1px solid rgba(78,204,211,.18);
-    border-radius: 8px;
-    padding: 16px;
-    margin-top: 18px;
-  }
-  .provider-price-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 14px; margin-bottom: 14px;
-  }
-  .provider-price-actions {
-    display: flex; gap: 10px; align-items: end; flex-wrap: wrap;
-  }
+  .currency-box { background: rgba(78,204,211,.05); border: 1px solid rgba(78,204,211,.18); border-radius: 8px; padding: 16px; margin-top: 18px; }
+  .currency-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 14px; }
+  .currency-actions { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
   .btn-provider {
     padding: 8px 16px; border-radius: 6px; font-size: .78rem; font-weight: 700;
     background: rgba(90,170,42,.12); color: #7ed957;
     border: 1px solid rgba(90,170,42,.3); cursor: pointer;
-    transition: background .15s;
   }
-  .btn-provider:hover { background: rgba(90,170,42,.22); }
   .btn-provider:disabled { opacity: .5; cursor: not-allowed; }
   .provider-status { font-size: .75rem; color: #9196b0; margin-top: 8px; }
   .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
-  .btn-save {
-    padding: 8px 20px; border-radius: 6px; font-size: .82rem; font-weight: 700;
-    background: rgba(78,204,211,.15); color: #4eccd3;
-    border: 1px solid rgba(78,204,211,.3); cursor: pointer;
-    transition: background .15s;
-  }
-  .btn-save:hover { background: rgba(78,204,211,.28); }
-  .btn-cancel {
-    padding: 8px 16px; border-radius: 6px; font-size: .82rem; font-weight: 700;
-    background: transparent; color: #6b708a;
-    border: 1px solid rgba(255,255,255,.08); text-decoration: none;
-    display: inline-flex; align-items: center; transition: background .15s;
-  }
-  .btn-cancel:hover { background: rgba(255,255,255,.04); color: #dde1f0; }
+  .btn-save { padding: 8px 20px; border-radius: 6px; font-size: .82rem; font-weight: 700; background: rgba(78,204,211,.15); color: #4eccd3; border: 1px solid rgba(78,204,211,.3); cursor: pointer; }
+  .btn-cancel { padding: 8px 16px; border-radius: 6px; font-size: .82rem; font-weight: 700; background: transparent; color: #6b708a; border: 1px solid rgba(255,255,255,.08); text-decoration: none; }
   @media(max-width:600px){ .form-grid { grid-template-columns: 1fr; } }
 </style>
 
 <div class="svedit-wrap">
   <div class="svedit-topbar">
-    <a href="{{ path('admin_service_index') }}" class="svedit-back" title="Voltar">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-    </a>
-    <h1 class="svedit-title">
-      Editar Serviço
-      <span class="svedit-badge">#{{ service.id }}</span>
-    </h1>
+    <a href="{{ path('admin_service_index') }}" class="svedit-back">←</a>
+    <h1 class="svedit-title">Editar Serviço <span class="svedit-badge">#{{ service.id }}</span></h1>
   </div>
 
   <div class="svedit-card">
-    <form method="post" action="{{ path('admin_service_edit', {id: service.id}) }}">
-
+    <form method="post">
       <div class="form-grid">
-
         <div class="form-group full">
-          <label class="form-label" for="f-name">Nome do Serviço</label>
-          <input class="form-control" type="text" id="f-name" name="name"
-                 value="{{ service.name }}" required>
+          <label class="form-label">Nome</label>
+          <input class="form-control" name="name" value="{{ service.name }}" required>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="f-category">Categoria</label>
-          <input class="form-control" type="text" id="f-category" name="category"
-                 value="{{ service.category ?? '' }}" placeholder="Ex: Instagram, YouTube…">
+          <label class="form-label">Categoria</label>
+          <input class="form-control" name="category" value="{{ service.category ?? '' }}">
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="f-price">Preço por 1.000 (centavos)</label>
-          <input class="form-control" type="number" id="f-price" name="pricePerThousandCents"
-                 value="{{ service.pricePerThousandCents }}" min="0" required>
-          <span class="form-hint">
-            = R$&nbsp;{{ (service.pricePerThousandCents / 100)|number_format(2, ',', '.') }} por 1.000
-          </span>
+          <label class="form-label">Preço por 1.000 (centavos)</label>
+          <input class="form-control" type="number" id="f-price" name="pricePerThousandCents" value="{{ service.pricePerThousandCents }}" min="0" required>
+          <span class="form-hint">R$ {{ (service.pricePerThousandCents / 100)|number_format(2, ',', '.') }}</span>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="f-min">Quantidade mínima</label>
-          <input class="form-control" type="number" id="f-min" name="minQty"
-                 value="{{ service.minQty }}" min="1" required>
+          <label class="form-label">Lucro individual (%)</label>
+          <input class="form-control" type="number" step="0.001" id="f-profit" name="profitPercent" value="{{ service.profitPercent ?? providerConfig.default_profit_percent }}">
+          <span class="form-hint">Usado para calcular o preço a partir do custo convertido.</span>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="f-max">Quantidade máxima</label>
-          <input class="form-control" type="number" id="f-max" name="maxQty"
-                 value="{{ service.maxQty }}" min="1" required>
+          <label class="form-label">Qtd. mínima</label>
+          <input class="form-control" type="number" name="minQty" value="{{ service.minQty }}" min="1" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Qtd. máxima</label>
+          <input class="form-control" type="number" name="maxQty" value="{{ service.maxQty }}" min="1" required>
         </div>
 
         <div class="form-group full">
-          <label class="form-label" for="f-desc">Descrição</label>
-          <textarea class="form-control" id="f-desc" name="description"
-                    placeholder="Descrição opcional do serviço…">{{ service.description ?? '' }}</textarea>
+          <label class="form-label">Descrição</label>
+          <textarea class="form-control" name="description">{{ service.description ?? '' }}</textarea>
         </div>
 
         <div class="form-group full">
           <div class="toggle-row">
             <label class="toggle-switch">
-              <input type="checkbox" name="active" value="1"
-                     {{ service.active ? 'checked' : '' }}>
+              <input type="checkbox" name="active" value="1" {{ service.active ? 'checked' }}>
               <span class="toggle-slider"></span>
             </label>
-            <label class="toggle-label">Serviço ativo (visível para clientes)</label>
+            <span class="toggle-label">Serviço ativo</span>
           </div>
-        </div>
-
-      </div>{# /form-grid #}
-
-      <hr class="divider">
-
-      {# Campos somente-leitura do provider #}
-      <p class="form-label" style="margin-bottom:8px;">Dados do provider (somente leitura)</p>
-      <div class="meta-row">
-        <div class="meta-item">
-          <span class="meta-key">Provider</span>
-          <span class="meta-val">{{ service.providerSlug ?? '—' }}</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-key">ID Externo</span>
-          <span class="meta-val">{{ service.externalServiceId ?? '—' }}</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-key">ID interno</span>
-          <span class="meta-val">#{{ service.id }}</span>
         </div>
       </div>
 
+      <hr class="divider">
+
+      <p class="form-label">Dados do provedor</p>
+      <div class="meta-row">
+        <div class="meta-item"><span class="meta-key">Provider</span><span class="meta-val">{{ service.providerSlug ?? '—' }}</span></div>
+        <div class="meta-item"><span class="meta-key">ID externo</span><span class="meta-val">{{ service.externalServiceId ?? '—' }}</span></div>
+        <div class="meta-item"><span class="meta-key">Moeda</span><span class="meta-val">{{ providerConfig.currency }}</span></div>
+        <div class="meta-item"><span class="meta-key">Cotação</span><span class="meta-val">{{ providerConfig.exchange_rate|number_format(6, ',', '.') }}</span></div>
+      </div>
+
       {% if service.providerSlug and service.externalServiceId %}
-      <div class="provider-price-box">
-        <p class="form-label" style="margin-bottom:10px;">Preço no provedor</p>
-
-        <div class="provider-price-grid">
-          <div class="meta-item">
-            <span class="meta-key">Preço atual no provedor</span>
-            <span class="meta-val" id="provider-rate">Consultando…</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-key">Preço local atual</span>
-            <span class="meta-val">R$&nbsp;{{ (service.pricePerThousandCents / 100)|number_format(2, ',', '.') }}</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-key">Novo preço com markup</span>
-            <span class="meta-val" id="provider-suggested">—</span>
-          </div>
+      <div class="currency-box">
+        <p class="form-label">Custo e preço pelo provedor</p>
+        <div class="currency-grid">
+          <div class="meta-item"><span class="meta-key">Rate no provedor</span><span class="meta-val" id="provider-rate">Consultando…</span></div>
+          <div class="meta-item"><span class="meta-key">Custo em BRL</span><span class="meta-val" id="provider-cost">—</span></div>
+          <div class="meta-item"><span class="meta-key">Preço atual local</span><span class="meta-val">R$ {{ (service.pricePerThousandCents / 100)|number_format(2, ',', '.') }}</span></div>
+          <div class="meta-item"><span class="meta-key">Novo preço com lucro</span><span class="meta-val" id="provider-suggested">—</span></div>
         </div>
 
-        <div class="provider-price-actions">
-          <div class="form-group" style="max-width:160px">
-            <label class="form-label" for="provider-markup">Markup (%)</label>
-            <input class="form-control" type="number" id="provider-markup"
-                   value="0" min="0" max="9999" step="0.1">
-          </div>
-
-          <button type="button" class="btn-provider" id="btn-refresh-provider-price">
-            Consultar preço
-          </button>
-
-          <button type="button" class="btn-provider" id="btn-update-provider-price" disabled>
-            Atualizar preço pelo provedor
-          </button>
+        <div class="currency-actions">
+          <button type="button" class="btn-provider" id="btn-refresh">Consultar preço</button>
+          <button type="button" class="btn-provider" id="btn-update" disabled>Atualizar preço pelo provedor</button>
         </div>
-
         <div class="provider-status" id="provider-status"></div>
       </div>
       {% endif %}
 
       <div class="form-actions">
         <a href="{{ path('admin_service_index') }}" class="btn-cancel">Cancelar</a>
-        <button type="submit" class="btn-save">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:5px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          Salvar alterações
-        </button>
+        <button type="submit" class="btn-save">Salvar alterações</button>
       </div>
-
     </form>
   </div>
 </div>
 
 <script>
 (function () {
-  'use strict';
-
   const serviceId = {{ service.id }};
-  const csrfToken = '{{ csrf_token('admin_api_sync') }}';
+  const csrf = '{{ csrf_token('admin_api_sync') }}';
   const priceInput = document.getElementById('f-price');
+  const profitInput = document.getElementById('f-profit');
   const rateEl = document.getElementById('provider-rate');
+  const costEl = document.getElementById('provider-cost');
   const suggestedEl = document.getElementById('provider-suggested');
   const statusEl = document.getElementById('provider-status');
-  const markupInput = document.getElementById('provider-markup');
-  const refreshBtn = document.getElementById('btn-refresh-provider-price');
-  const updateBtn = document.getElementById('btn-update-provider-price');
+  const refreshBtn = document.getElementById('btn-refresh');
+  const updateBtn = document.getElementById('btn-update');
 
-  if (!serviceId || !rateEl) return;
+  if (!rateEl) return;
 
-  let providerRate = null;
+  let costCents = null;
 
-  function brl(cents) {
-    return 'R$ ' + (Number(cents || 0) / 100).toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
+  const brl = cents => 'R$ ' + (cents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  function recalc() {
+    if (costCents === null) return;
+    const profit = parseFloat(profitInput.value) || 0;
+    const suggested = Math.ceil(costCents * (1 + profit / 100));
+    suggestedEl.textContent = brl(suggested);
   }
 
-  function updateSuggested() {
-    if (providerRate === null) return;
-    const markup = parseFloat(markupInput.value) || 0;
-    const cents = Math.ceil(providerRate * (1 + markup / 100) * 100);
-    suggestedEl.textContent = brl(cents);
+  function recalcProfitFromPrice() {
+    if (costCents === null || costCents <= 0) return;
+    const price = parseInt(priceInput.value, 10) || 0;
+    const profit = ((price / costCents) - 1) * 100;
+    profitInput.value = profit.toFixed(3);
+    recalc();
   }
 
-  async function loadProviderPrice() {
+  async function load() {
     refreshBtn.disabled = true;
     statusEl.textContent = 'Consultando provedor…';
-
     try {
-      const res = await fetch(`/admin/api/services/${serviceId}/provider-price`, {
-        headers: { 'Accept': 'application/json' }
-      });
+      const res = await fetch(`/admin/api/services/${serviceId}/provider-price`);
       const json = await res.json();
-
-      if (!res.ok || json.error) {
-        throw new Error(json.error || `HTTP ${res.status}`);
-      }
-
-      providerRate = Number(json.result.provider_rate);
-      rateEl.textContent = brl(Math.ceil(providerRate * 100));
-      updateSuggested();
+      if (!res.ok || json.error) throw new Error(json.error || res.status);
+      const r = json.result;
+      costCents = r.cost_brl_cents;
+      rateEl.textContent = `${r.provider_rate} ${r.provider_currency}`;
+      costEl.textContent = brl(costCents);
+      profitInput.value = r.profit_percent.toFixed(3);
+      recalc();
       updateBtn.disabled = false;
-      statusEl.textContent = 'Preço consultado com sucesso.';
-    } catch (error) {
-      rateEl.textContent = '—';
-      suggestedEl.textContent = '—';
-      updateBtn.disabled = true;
-      statusEl.textContent = 'Erro: ' + error.message;
+      statusEl.textContent = 'Preço consultado.';
+    } catch (e) {
+      statusEl.textContent = 'Erro: ' + e.message;
     } finally {
       refreshBtn.disabled = false;
     }
   }
 
-  async function updateFromProvider() {
-    if (providerRate === null) return;
-
-    if (!confirm('Atualizar o preço local deste serviço com o preço do provedor?')) return;
-
+  async function updatePrice() {
+    if (costCents === null) return;
+    if (!confirm('Atualizar o preço usando a cotação atual e o lucro individual?')) return;
     updateBtn.disabled = true;
-    statusEl.textContent = 'Atualizando preço…';
-
     try {
       const res = await fetch(`/admin/api/services/${serviceId}/sync`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken
-        },
-        body: JSON.stringify({
-          markup_percent: parseFloat(markupInput.value) || 0
-        })
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+        body: JSON.stringify({ profit_percent: parseFloat(profitInput.value) || 0 })
       });
-
       const json = await res.json();
-      if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
-
+      if (!res.ok || json.error) throw new Error(json.error || res.status);
       priceInput.value = json.result.new_price_cents;
-      statusEl.textContent = `Preço atualizado: ${brl(json.result.new_price_cents)}. Clique em Salvar alterações se desejar manter os demais dados.`;
-      providerRate = Number(json.result.provider_rate);
-      updateSuggested();
-    } catch (error) {
-      statusEl.textContent = 'Erro: ' + error.message;
+      profitInput.value = json.result.profit_percent.toFixed(3);
+      statusEl.textContent = 'Preço atualizado. Clique em Salvar alterações para confirmar os demais dados.';
+    } catch (e) {
+      statusEl.textContent = 'Erro: ' + e.message;
     } finally {
       updateBtn.disabled = false;
     }
   }
 
-  markupInput.addEventListener('input', updateSuggested);
-  refreshBtn.addEventListener('click', loadProviderPrice);
-  updateBtn.addEventListener('click', updateFromProvider);
-
-  loadProviderPrice();
+  priceInput.addEventListener('input', recalcProfitFromPrice);
+  profitInput.addEventListener('input', recalc);
+  refreshBtn.addEventListener('click', load);
+  updateBtn.addEventListener('click', updatePrice);
+  load();
 })();
 </script>
 {% endblock %}

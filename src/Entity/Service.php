@@ -16,7 +16,6 @@ class Service
     #[ORM\Column]
     private ?int $id = null;
 
-    /** Categoria do serviço (nome livre ou nome da ServiceCategory) */
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $category = null;
 
@@ -26,7 +25,6 @@ class Service
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $description = null;
 
-    /** Preço em centavos por 1000 unidades */
     #[ORM\Column(type: 'bigint')]
     private int $pricePerThousandCents;
 
@@ -39,17 +37,14 @@ class Service
     #[ORM\Column(options: ['default' => true])]
     private bool $active = true;
 
-    /** ID do serviço no provider externo SMM */
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $externalServiceId = null;
 
-    /**
-     * Slug do provider: smmkings, justanother, peakerr, etc.
-     * Sempre armazenado e retornado em lowercase para garantir
-     * consistência com o SmmProviderRegistry.
-     */
     #[ORM\Column(length: 60, nullable: true)]
     private ?string $providerSlug = null;
+
+    #[ORM\Column(type: 'decimal', precision: 8, scale: 3, nullable: true)]
+    private ?string $profitPercent = null;
 
     public function __toString(): string
     {
@@ -74,11 +69,6 @@ class Service
     public function getExternalServiceId(): ?string { return $this->externalServiceId; }
     public function setExternalServiceId(?string $id): static { $this->externalServiceId = $id; return $this; }
 
-    /**
-     * Retorna o providerSlug normalizado (lowercase) ou null.
-     * A normalização garante match com o SmmProviderRegistry
-     * independente de como o valor foi salvo no banco.
-     */
     public function getProviderSlug(): ?string
     {
         return $this->providerSlug !== null
@@ -92,7 +82,20 @@ class Service
         return $this;
     }
 
-    /** Calcula preço para uma quantidade específica */
+    public function getProfitPercent(): ?float
+    {
+        return $this->profitPercent !== null ? (float) $this->profitPercent : null;
+    }
+
+    public function setProfitPercent(?float $percent): static
+    {
+        $this->profitPercent = $percent === null
+            ? null
+            : number_format($percent, 3, '.', '');
+
+        return $this;
+    }
+
     public function calculatePriceCents(int $quantity): int
     {
         return (int) ceil($this->pricePerThousandCents * $quantity / 1000);

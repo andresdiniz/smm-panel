@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\ProviderCredential;
 use App\Entity\Service;
 use App\Smm\SmmProviderRegistry;
 use Doctrine\ORM\EntityManagerInterface;
@@ -17,54 +18,48 @@ final class ServicePriceSyncService
         private readonly LoggerInterface        $logger,
     ) {}
 
-    /**
-     * Consulta o preço atual do serviço no provider sem alterar o banco.
-     *
-     * @return array{
-     *     service_id: int,
-     *     provider: string,
-     *     external_service_id: string,
-     *     provider_rate: float,
-     *     provider_price_cents: int,
-     *     current_price_cents: int,
-     *     suggested_price_cents: int,
-     *     difference_cents: int
-     * }
-     */
+    public function getProviderConfig(Service $service): array
+    {
+        $slug = $service->getProviderSlug();
+        $credential = $slug
+            ? $this->em->getRepository(ProviderCredential::class)->findOneBy([
+                'type' => ProviderCredential::TYPE_SMM,
+                'slug' => $slug,
+            ])
+            : null;
+
+        return [
+            'currency' => $credential?->getCurrency() ?? 'BRL',
+            'exchange_rate' => $credential?->getExchangeRate() ?? 1.0,
+            'default_profit_percent' => $credential?->getDefaultProfitPercent() ?? 0.0,
+        ];
+    }
+
     public function getProviderPrice(Service $service): array
     {
         $providerService = $this->findProviderService($service);
+        $config = $this->getProviderConfig($service);
+
         $providerRate = (float) $providerService['rate'];
-        $providerPriceCents = (int) ceil($providerRate * 100);
-        $currentPriceCents = $service->getPricePerThousandCents();
+        $exchangeRate = (float) $config['exchange_rate'];
+        $costCents = (int) ceil($providerRate * $exchangeRate * 100);
+        $profitPercent = $this->resolveProfitPercent($service, $config);
 
         return [
             'service_id' => (int) $service->getId(),
             'provider' => (string) $service->getProviderSlug(),
             'external_service_id' => (string) $service->getExternalServiceId(),
+            'provider_currency' => $config['currency'],
+            'exchange_rate' => $exchangeRate,
             'provider_rate' => $providerRate,
-            'provider_price_cents' => $providerPriceCents,
-            'current_price_cents' => $currentPriceCents,
-            'suggested_price_cents' => $providerPriceCents,
-            'difference_cents' => $providerPriceCents - $currentPriceCents,
+            'cost_brl_cents' => $costCents,
+            'current_price_cents' => $service->getPricePerThousandCents(),
+            'profit_percent' => $profitPercent,
+            'suggested_price_cents' => $this->calculatePriceCents($costCents, $profitPercent),
         ];
     }
 
-    /**
-     * Atualiza o preço local de um serviço com base no rate atual do provider.
-     *
-     * @return array{
-     *     service_id: int,
-     *     provider: string,
-     *     external_service_id: string,
-     *     provider_rate: float,
-     *     markup_percent: float,
-     *     old_price_cents: int,
-     *     new_price_cents: int,
-     *     changed: bool
-     * }
-     */
-    public function syncOne(int $serviceId, float $markupPercent = 0.0): array
+    public function syncOne(int $serviceId, ?float $profitOverride = null): array
     {
         $service = $this->em->find(Service::class, $serviceId);
 
@@ -73,37 +68,71 @@ final class ServicePriceSyncService
         }
 
         $providerService = $this->findProviderService($service);
+        $config = $this->getProviderConfig($service);
         $providerRate = (float) $providerService['rate'];
-        $newPriceCents = (int) ceil($providerRate * (1 + ($markupPercent / 100)) * 100);
+        $exchangeRate = (float) $config['exchange_rate'];
+        $costCents = (int) ceil($providerRate * $exchangeRate * 100);
+        $profitPercent = $profitOverride ?? $this->resolveProfitPercent($service, $config);
+        $newPriceCents = $this->calculatePriceCents($costCents, $profitPercent);
         $oldPriceCents = $service->getPricePerThousandCents();
 
         $service->setPricePerThousandCents($newPriceCents);
+        $service->setProfitPercent($profitPercent);
         $this->em->flush();
 
-        $this->logger->info('ServicePriceSyncService: preço atualizado.', [
+        $this->logger->info('ServicePriceSyncService: preço atualizado com câmbio.', [
             'service_id' => $serviceId,
             'provider' => $service->getProviderSlug(),
+            'currency' => $config['currency'],
+            'exchange_rate' => $exchangeRate,
+            'provider_rate' => $providerRate,
+            'profit_percent' => $profitPercent,
             'old_price_cents' => $oldPriceCents,
             'new_price_cents' => $newPriceCents,
-            'provider_rate' => $providerRate,
-            'markup_percent' => $markupPercent,
         ]);
 
         return [
             'service_id' => $serviceId,
             'provider' => (string) $service->getProviderSlug(),
-            'external_service_id' => (string) $service->getExternalServiceId(),
+            'provider_currency' => $config['currency'],
+            'exchange_rate' => $exchangeRate,
             'provider_rate' => $providerRate,
-            'markup_percent' => $markupPercent,
+            'cost_brl_cents' => $costCents,
+            'profit_percent' => $profitPercent,
             'old_price_cents' => $oldPriceCents,
             'new_price_cents' => $newPriceCents,
             'changed' => $oldPriceCents !== $newPriceCents,
         ];
     }
 
-    /**
-     * @return array{id: string|int, rate: float|string}
-     */
+    public function recalcProfitFromPrice(Service $service): void
+    {
+        $providerService = $this->findProviderService($service);
+        $config = $this->getProviderConfig($service);
+        $providerRate = (float) $providerService['rate'];
+        $exchangeRate = (float) $config['exchange_rate'];
+        $costCents = (int) ceil($providerRate * $exchangeRate * 100);
+
+        if ($costCents <= 0) {
+            return;
+        }
+
+        $priceCents = $service->getPricePerThousandCents();
+        $profitPercent = (($priceCents / $costCents) - 1) * 100;
+        $service->setProfitPercent(round($profitPercent, 3));
+    }
+
+    private function resolveProfitPercent(Service $service, array $config): float
+    {
+        return $service->getProfitPercent()
+            ?? $config['default_profit_percent'];
+    }
+
+    private function calculatePriceCents(int $costCents, float $profitPercent): int
+    {
+        return (int) ceil($costCents * (1 + ($profitPercent / 100)));
+    }
+
     private function findProviderService(Service $service): array
     {
         $slug = $service->getProviderSlug();

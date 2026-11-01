@@ -65,10 +65,12 @@ class AdminApiSyncController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
-        $markupPercent = isset($data['markup_percent']) ? (float) $data['markup_percent'] : 0.0;
+        $profitOverride = isset($data['profit_percent']) && $data['profit_percent'] !== ''
+            ? (float) $data['profit_percent']
+            : null;
 
         try {
-            $result = $this->serviceSync->syncOne($id, $markupPercent);
+            $result = $this->serviceSync->syncOne($id, $profitOverride);
 
             return $this->json([
                 'ok' => true,
