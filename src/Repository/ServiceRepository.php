@@ -25,6 +25,7 @@ class ServiceRepository extends ServiceEntityRepository
             ->orderBy('s.category', 'ASC')
             ->addOrderBy('s.name', 'ASC')
             ->getQuery()
+            ->enableResultCache(30, 'active_services_catalog_v1')
             ->getResult();
 
         $grouped = [];
@@ -45,6 +46,7 @@ class ServiceRepository extends ServiceEntityRepository
             ->orderBy('s.category', 'ASC')
             ->addOrderBy('s.name', 'ASC')
             ->getQuery()
+            ->enableResultCache(30, 'active_services_order_form_v1')
             ->getResult();
     }
 }

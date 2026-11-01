@@ -25,7 +25,7 @@ class UserDashboardController extends AbstractController
             ?? (new Wallet())->setBalanceCents(0);
 
         $orders = $em->createQueryBuilder()
-            ->select('o')
+            ->select('o', 's')
             ->from(Order::class, 'o')
             ->join('o.service', 's')
             ->where('o.user = :user')

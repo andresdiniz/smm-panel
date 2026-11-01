@@ -28,7 +28,7 @@
     <div class="kpi__icon kpi__icon--teal">
       <i data-lucide="repeat" width="18" height="18"></i>
     </div>
-    <div class="kpi__label">Total de registros</div>
+    <div class="kpi__label">Registros nesta página</div>
     <div class="kpi__value">{{ feed|length }}</div>
   </div>
 
@@ -36,7 +36,7 @@
     <div class="kpi__icon kpi__icon--green">
       <i data-lucide="arrow-down-left" width="18" height="18"></i>
     </div>
-    <div class="kpi__label">Total entradas</div>
+    <div class="kpi__label">Entradas nesta página</div>
     <div class="kpi__value" style="color:var(--success)">
       R$&nbsp;{{ (total_entradas / 100)|number_format(2, ',', '.') }}
     </div>
@@ -46,7 +46,7 @@
     <div class="kpi__icon kpi__icon--error">
       <i data-lucide="arrow-up-right" width="18" height="18"></i>
     </div>
-    <div class="kpi__label">Total saídas</div>
+    <div class="kpi__label">Saídas nesta página</div>
     <div class="kpi__value" style="color:var(--error)">
       R$&nbsp;{{ (total_saidas / 100)|number_format(2, ',', '.') }}
     </div>
@@ -56,7 +56,7 @@
     <div class="kpi__icon kpi__icon--yellow">
       <i data-lucide="clock" width="18" height="18"></i>
     </div>
-    <div class="kpi__label">Pagamentos pendentes</div>
+    <div class="kpi__label">Pendentes nesta página</div>
     <div class="kpi__value" style="color:var(--warning)">
       R$&nbsp;{{ (total_pendente / 100)|number_format(2, ',', '.') }}
     </div>
@@ -118,12 +118,12 @@
             {% elseif row.type == 'payment' %}
               <span class="origin-badge origin-badge--pix">
                 <i data-lucide="qr-code" width="12" height="12"></i>
-                {{ row.source.method|upper }}
+                {{ row.method|upper }}
               </span>
             {% elseif row.type == 'order' %}
               <span class="origin-badge origin-badge--order">
                 <i data-lucide="shopping-bag" width="12" height="12"></i>
-                Pedido #{{ row.source.id }}
+                Pedido #{{ row.sourceId }}
               </span>
             {% endif %}
           </td>
@@ -256,6 +256,18 @@
       </tbody>
     </table>
   </div>
+
+  {% if page > 1 or hasNextPage %}
+    <nav aria-label="Paginação do histórico" style="display:flex;justify-content:center;align-items:center;gap:12px;padding:16px">
+      {% if page > 1 %}
+        <a class="btn btn--ghost btn--sm" href="{{ path('app_transaction_index', {page: page - 1}) }}">Mais recentes</a>
+      {% endif %}
+      <span class="cell-muted">Página {{ page }}</span>
+      {% if hasNextPage %}
+        <a class="btn btn--ghost btn--sm" href="{{ path('app_transaction_index', {page: page + 1}) }}">Mais antigos</a>
+      {% endif %}
+    </nav>
+  {% endif %}
 
 </div>
 

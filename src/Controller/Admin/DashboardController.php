@@ -29,18 +29,18 @@ class DashboardController extends AbstractController
     #[Route('', name: 'dashboard', methods: ['GET'])]
     public function index(): Response
     {
+        $finance = $this->txRepo->getDashboardSummary();
+
         return $this->render('admin/dashboard.html.twig', [
             'usersCount'     => $this->userRepo->count([]),
             'newUsersToday'  => $this->userRepo->countCreatedToday(),
             'ordersTotal'    => $this->orderRepo->countThisMonth(),
             'ordersToday'    => $this->orderRepo->countToday(),
-            'revenueCents'   => $this->txRepo->sumCreditThisMonth(),
-            'revenueToday'   => $this->txRepo->sumCreditToday(),
-            'expensesCents'  => $this->txRepo->sumDebitThisMonth(),
-            'feesCents'      => $this->txRepo->sumFeesThisMonth(),
-            'netProfitCents' => $this->txRepo->sumCreditThisMonth()
-                                - $this->txRepo->sumDebitThisMonth()
-                                - $this->txRepo->sumFeesThisMonth(),
+            'revenueCents'   => $finance['credit_month'],
+            'revenueToday'   => $finance['credit_today'],
+            'expensesCents'  => $finance['debit_month'],
+            'feesCents'      => $finance['fees_month'],
+            'netProfitCents' => $finance['credit_month'] - $finance['debit_month'] - $finance['fees_month'],
             'statusCounts'   => $this->orderRepo->countAllByStatus(),
             'credentials'    => $this->credRepo->findAll(),
             'recentOrders'   => $this->orderRepo->findRecent(10),

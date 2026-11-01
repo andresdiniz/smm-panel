@@ -10,7 +10,9 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: OrderRepository::class)]
-#[ORM\Table(name: 'orders')]
+#[ORM\Table(name: 'orders', indexes: [
+    new ORM\Index(columns: ['user_id', 'created_at', 'id'], name: 'idx_orders_user_created_id'),
+])]
 #[ORM\HasLifecycleCallbacks]
 class Order
 {

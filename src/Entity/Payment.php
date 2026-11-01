@@ -8,7 +8,9 @@ use App\Repository\PaymentRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: PaymentRepository::class)]
-#[ORM\Table(name: 'payments')]
+#[ORM\Table(name: 'payments', indexes: [
+    new ORM\Index(columns: ['user_id', 'created_at', 'id'], name: 'idx_payments_user_created_id'),
+])]
 #[ORM\HasLifecycleCallbacks]
 class Payment
 {

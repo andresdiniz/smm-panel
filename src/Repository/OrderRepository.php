@@ -22,6 +22,8 @@ class OrderRepository extends ServiceEntityRepository
     public function findRecentByUser(User $user, int $limit = 10): array
     {
         return $this->createQueryBuilder('o')
+            ->join('o.service', 's')
+            ->addSelect('s')
             ->andWhere('o.user = :user')
             ->setParameter('user', $user)
             ->orderBy('o.createdAt', 'DESC')
@@ -48,6 +50,9 @@ class OrderRepository extends ServiceEntityRepository
     public function findRecent(int $limit = 10): array
     {
         return $this->createQueryBuilder('o')
+            ->join('o.user', 'u')
+            ->join('o.service', 's')
+            ->addSelect('u', 's')
             ->orderBy('o.createdAt', 'DESC')
             ->setMaxResults($limit)
             ->getQuery()

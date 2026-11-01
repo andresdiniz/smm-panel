@@ -10,7 +10,10 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: WalletTransactionRepository::class)]
-#[ORM\Table(name: 'wallet_transactions')]
+#[ORM\Table(name: 'wallet_transactions', indexes: [
+    new ORM\Index(columns: ['wallet_id', 'created_at', 'id'], name: 'idx_wallet_tx_wallet_created_id'),
+    new ORM\Index(columns: ['created_at', 'type'], name: 'idx_wallet_tx_created_type'),
+])]
 class WalletTransaction
 {
     #[ORM\Id]
