@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\String\Slugger\AsciiSlugger;
 
 #[Route('/admin/servicos/categorias', name: 'admin_service_category_')]
 #[IsGranted('ROLE_ADMIN')]
@@ -51,8 +52,19 @@ class AdminServiceCategoryController extends AbstractController
     public function new(Request $request): Response
     {
         if ($request->isMethod('POST')) {
+            $name = $request->request->get('name');
+            if (!is_string($name) || trim($name) === '' || mb_strlen(trim($name)) > 100) {
+                $this->addFlash('error', 'Informe um nome de categoria com até 100 caracteres.');
+
+                return $this->render('admin/service_category/edit.html.twig', [
+                    'category' => null,
+                    'name' => is_string($name) ? trim($name) : '',
+                ]);
+            }
+
             $cat = new ServiceCategory();
-            $cat->setName($request->request->get('name', ''));
+            $cat->setName(trim($name));
+            $cat->setSlug($this->makeUniqueSlug($name));
             $this->em->persist($cat);
             $this->em->flush();
             $this->addFlash('success', 'Categoria criada.');
@@ -65,12 +77,44 @@ class AdminServiceCategoryController extends AbstractController
     public function edit(ServiceCategory $category, Request $request): Response
     {
         if ($request->isMethod('POST')) {
-            $category->setName($request->request->get('name', $category->getName()));
+            $name = $request->request->get('name', $category->getName());
+            $slug = $request->request->get('slug', '');
+            if (!is_string($name) || trim($name) === '' || mb_strlen(trim($name)) > 100 || !is_string($slug)) {
+                $this->addFlash('error', 'Informe um nome válido para a categoria.');
+
+                return $this->render('admin/service_category/edit.html.twig', ['category' => $category]);
+            }
+
+            $category->setName(trim($name));
+            $category->setSlug($this->makeUniqueSlug(trim($slug) !== '' ? $slug : $name, $category));
             $this->em->flush();
             $this->addFlash('success', 'Categoria atualizada.');
             return $this->redirectToRoute('admin_service_category_index');
         }
         return $this->render('admin/service_category/edit.html.twig', ['category' => $category]);
+    }
+
+    private function makeUniqueSlug(string $value, ?ServiceCategory $currentCategory = null): string
+    {
+        $slugger = new AsciiSlugger();
+        $baseSlug = $slugger->slug(trim($value))->lower()->toString();
+        if ($baseSlug === '') {
+            $baseSlug = 'categoria';
+        }
+
+        $baseSlug = mb_substr($baseSlug, 0, 120);
+        $slug = $baseSlug;
+        $suffix = 2;
+        $repository = $this->em->getRepository(ServiceCategory::class);
+        $existing = $repository->findOneBy(['slug' => $slug]);
+
+        while ($existing !== null && ($currentCategory === null || $existing->getId() !== $currentCategory->getId())) {
+            $suffixText = '-'.$suffix++;
+            $slug = mb_substr($baseSlug, 0, 120 - mb_strlen($suffixText)).$suffixText;
+            $existing = $repository->findOneBy(['slug' => $slug]);
+        }
+
+        return $slug;
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]

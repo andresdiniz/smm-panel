@@ -95,7 +95,7 @@
       <div class="form-group">
         <label class="form-label" for="f-name">Nome da Categoria</label>
         <input class="form-control" type="text" id="f-name" name="name"
-               value="{{ category is not null ? category.name : '' }}"
+               value="{{ category is not null ? category.name : (name|default('')) }}"
                placeholder="Ex: Instagram, YouTube, TikTok…" required autofocus>
       </div>
 
