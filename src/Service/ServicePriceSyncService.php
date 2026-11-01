@@ -18,6 +18,39 @@ final class ServicePriceSyncService
     ) {}
 
     /**
+     * Consulta o preço atual do serviço no provider sem alterar o banco.
+     *
+     * @return array{
+     *     service_id: int,
+     *     provider: string,
+     *     external_service_id: string,
+     *     provider_rate: float,
+     *     provider_price_cents: int,
+     *     current_price_cents: int,
+     *     suggested_price_cents: int,
+     *     difference_cents: int
+     * }
+     */
+    public function getProviderPrice(Service $service): array
+    {
+        $providerService = $this->findProviderService($service);
+        $providerRate = (float) $providerService['rate'];
+        $providerPriceCents = (int) ceil($providerRate * 100);
+        $currentPriceCents = $service->getPricePerThousandCents();
+
+        return [
+            'service_id' => (int) $service->getId(),
+            'provider' => (string) $service->getProviderSlug(),
+            'external_service_id' => (string) $service->getExternalServiceId(),
+            'provider_rate' => $providerRate,
+            'provider_price_cents' => $providerPriceCents,
+            'current_price_cents' => $currentPriceCents,
+            'suggested_price_cents' => $providerPriceCents,
+            'difference_cents' => $providerPriceCents - $currentPriceCents,
+        ];
+    }
+
+    /**
      * Atualiza o preço local de um serviço com base no rate atual do provider.
      *
      * @return array{
@@ -39,6 +72,40 @@ final class ServicePriceSyncService
             throw new \InvalidArgumentException("Serviço #{$serviceId} não encontrado.");
         }
 
+        $providerService = $this->findProviderService($service);
+        $providerRate = (float) $providerService['rate'];
+        $newPriceCents = (int) ceil($providerRate * (1 + ($markupPercent / 100)) * 100);
+        $oldPriceCents = $service->getPricePerThousandCents();
+
+        $service->setPricePerThousandCents($newPriceCents);
+        $this->em->flush();
+
+        $this->logger->info('ServicePriceSyncService: preço atualizado.', [
+            'service_id' => $serviceId,
+            'provider' => $service->getProviderSlug(),
+            'old_price_cents' => $oldPriceCents,
+            'new_price_cents' => $newPriceCents,
+            'provider_rate' => $providerRate,
+            'markup_percent' => $markupPercent,
+        ]);
+
+        return [
+            'service_id' => $serviceId,
+            'provider' => (string) $service->getProviderSlug(),
+            'external_service_id' => (string) $service->getExternalServiceId(),
+            'provider_rate' => $providerRate,
+            'markup_percent' => $markupPercent,
+            'old_price_cents' => $oldPriceCents,
+            'new_price_cents' => $newPriceCents,
+            'changed' => $oldPriceCents !== $newPriceCents,
+        ];
+    }
+
+    /**
+     * @return array{id: string|int, rate: float|string}
+     */
+    private function findProviderService(Service $service): array
+    {
         $slug = $service->getProviderSlug();
         $externalId = $service->getExternalServiceId();
 
@@ -49,43 +116,12 @@ final class ServicePriceSyncService
         $provider = $this->registry->get($slug);
         $services = $provider->listServices();
 
-        $providerService = null;
         foreach ($services as $item) {
             if ((string) ($item['id'] ?? '') === (string) $externalId) {
-                $providerService = $item;
-                break;
+                return $item;
             }
         }
 
-        if (!$providerService || !isset($providerService['rate'])) {
-            throw new \RuntimeException("Serviço externo #{$externalId} não encontrado no provider {$slug}.");
-        }
-
-        $providerRate = (float) $providerService['rate'];
-        $newPriceCents = (int) ceil($providerRate * (1 + ($markupPercent / 100)) * 100);
-        $oldPriceCents = $service->getPricePerThousandCents();
-
-        $service->setPricePerThousandCents($newPriceCents);
-        $this->em->flush();
-
-        $this->logger->info('ServicePriceSyncService: preço atualizado.', [
-            'service_id' => $serviceId,
-            'provider' => $slug,
-            'old_price_cents' => $oldPriceCents,
-            'new_price_cents' => $newPriceCents,
-            'provider_rate' => $providerRate,
-            'markup_percent' => $markupPercent,
-        ]);
-
-        return [
-            'service_id' => $serviceId,
-            'provider' => $slug,
-            'external_service_id' => $externalId,
-            'provider_rate' => $providerRate,
-            'markup_percent' => $markupPercent,
-            'old_price_cents' => $oldPriceCents,
-            'new_price_cents' => $newPriceCents,
-            'changed' => $oldPriceCents !== $newPriceCents,
-        ];
+        throw new \RuntimeException("Serviço externo #{$externalId} não encontrado no provider {$slug}.");
     }
 }

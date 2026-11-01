@@ -50,7 +50,6 @@
     padding: 10px 0;
   }
   .toggle-label { font-size: .82rem; color: #9196b0; cursor: pointer; user-select: none; }
-  /* toggle switch */
   .toggle-switch { position: relative; display: inline-block; width: 36px; height: 20px; }
   .toggle-switch input { opacity: 0; width: 0; height: 0; }
   .toggle-slider {
@@ -75,6 +74,29 @@
   .meta-item { display: flex; flex-direction: column; gap: 3px; }
   .meta-key { font-size: .65rem; text-transform: uppercase; letter-spacing: .08em; color: #3e4259; font-weight: 700; }
   .meta-val { font-size: .78rem; color: #9196b0; font-family: monospace; }
+  .provider-price-box {
+    background: rgba(78,204,211,.05);
+    border: 1px solid rgba(78,204,211,.18);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 18px;
+  }
+  .provider-price-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px; margin-bottom: 14px;
+  }
+  .provider-price-actions {
+    display: flex; gap: 10px; align-items: end; flex-wrap: wrap;
+  }
+  .btn-provider {
+    padding: 8px 16px; border-radius: 6px; font-size: .78rem; font-weight: 700;
+    background: rgba(90,170,42,.12); color: #7ed957;
+    border: 1px solid rgba(90,170,42,.3); cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-provider:hover { background: rgba(90,170,42,.22); }
+  .btn-provider:disabled { opacity: .5; cursor: not-allowed; }
+  .provider-status { font-size: .75rem; color: #9196b0; margin-top: 8px; }
   .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
   .btn-save {
     padding: 8px 20px; border-radius: 6px; font-size: .82rem; font-weight: 700;
@@ -180,6 +202,45 @@
         </div>
       </div>
 
+      {% if service.providerSlug and service.externalServiceId %}
+      <div class="provider-price-box">
+        <p class="form-label" style="margin-bottom:10px;">Preço no provedor</p>
+
+        <div class="provider-price-grid">
+          <div class="meta-item">
+            <span class="meta-key">Preço atual no provedor</span>
+            <span class="meta-val" id="provider-rate">Consultando…</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-key">Preço local atual</span>
+            <span class="meta-val">R$&nbsp;{{ (service.pricePerThousandCents / 100)|number_format(2, ',', '.') }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-key">Novo preço com markup</span>
+            <span class="meta-val" id="provider-suggested">—</span>
+          </div>
+        </div>
+
+        <div class="provider-price-actions">
+          <div class="form-group" style="max-width:160px">
+            <label class="form-label" for="provider-markup">Markup (%)</label>
+            <input class="form-control" type="number" id="provider-markup"
+                   value="0" min="0" max="9999" step="0.1">
+          </div>
+
+          <button type="button" class="btn-provider" id="btn-refresh-provider-price">
+            Consultar preço
+          </button>
+
+          <button type="button" class="btn-provider" id="btn-update-provider-price" disabled>
+            Atualizar preço pelo provedor
+          </button>
+        </div>
+
+        <div class="provider-status" id="provider-status"></div>
+      </div>
+      {% endif %}
+
       <div class="form-actions">
         <a href="{{ path('admin_service_index') }}" class="btn-cancel">Cancelar</a>
         <button type="submit" class="btn-save">
@@ -191,4 +252,107 @@
     </form>
   </div>
 </div>
+
+<script>
+(function () {
+  'use strict';
+
+  const serviceId = {{ service.id }};
+  const csrfToken = '{{ csrf_token('admin_api_sync') }}';
+  const priceInput = document.getElementById('f-price');
+  const rateEl = document.getElementById('provider-rate');
+  const suggestedEl = document.getElementById('provider-suggested');
+  const statusEl = document.getElementById('provider-status');
+  const markupInput = document.getElementById('provider-markup');
+  const refreshBtn = document.getElementById('btn-refresh-provider-price');
+  const updateBtn = document.getElementById('btn-update-provider-price');
+
+  if (!serviceId || !rateEl) return;
+
+  let providerRate = null;
+
+  function brl(cents) {
+    return 'R$ ' + (Number(cents || 0) / 100).toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  function updateSuggested() {
+    if (providerRate === null) return;
+    const markup = parseFloat(markupInput.value) || 0;
+    const cents = Math.ceil(providerRate * (1 + markup / 100) * 100);
+    suggestedEl.textContent = brl(cents);
+  }
+
+  async function loadProviderPrice() {
+    refreshBtn.disabled = true;
+    statusEl.textContent = 'Consultando provedor…';
+
+    try {
+      const res = await fetch(`/admin/api/services/${serviceId}/provider-price`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      const json = await res.json();
+
+      if (!res.ok || json.error) {
+        throw new Error(json.error || `HTTP ${res.status}`);
+      }
+
+      providerRate = Number(json.result.provider_rate);
+      rateEl.textContent = brl(Math.ceil(providerRate * 100));
+      updateSuggested();
+      updateBtn.disabled = false;
+      statusEl.textContent = 'Preço consultado com sucesso.';
+    } catch (error) {
+      rateEl.textContent = '—';
+      suggestedEl.textContent = '—';
+      updateBtn.disabled = true;
+      statusEl.textContent = 'Erro: ' + error.message;
+    } finally {
+      refreshBtn.disabled = false;
+    }
+  }
+
+  async function updateFromProvider() {
+    if (providerRate === null) return;
+
+    if (!confirm('Atualizar o preço local deste serviço com o preço do provedor?')) return;
+
+    updateBtn.disabled = true;
+    statusEl.textContent = 'Atualizando preço…';
+
+    try {
+      const res = await fetch(`/admin/api/services/${serviceId}/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
+        },
+        body: JSON.stringify({
+          markup_percent: parseFloat(markupInput.value) || 0
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+
+      priceInput.value = json.result.new_price_cents;
+      statusEl.textContent = `Preço atualizado: ${brl(json.result.new_price_cents)}. Clique em Salvar alterações se desejar manter os demais dados.`;
+      providerRate = Number(json.result.provider_rate);
+      updateSuggested();
+    } catch (error) {
+      statusEl.textContent = 'Erro: ' + error.message;
+    } finally {
+      updateBtn.disabled = false;
+    }
+  }
+
+  markupInput.addEventListener('input', updateSuggested);
+  refreshBtn.addEventListener('click', loadProviderPrice);
+  updateBtn.addEventListener('click', updateFromProvider);
+
+  loadProviderPrice();
+})();
+</script>
 {% endblock %}

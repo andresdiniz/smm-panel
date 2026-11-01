@@ -44,6 +44,19 @@ class AdminApiSyncController extends AbstractController
         }
     }
 
+    #[Route('/services/{id}/provider-price', name: 'service_provider_price', requirements: ['id' => '\\d+'], methods: ['GET'])]
+    public function providerPrice(Service $service): JsonResponse
+    {
+        try {
+            return $this->json([
+                'ok' => true,
+                'result' => $this->serviceSync->getProviderPrice($service),
+            ]);
+        } catch (\Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], 422);
+        }
+    }
+
     #[Route('/services/{id}/sync', name: 'service_sync', requirements: ['id' => '\\d+'], methods: ['POST'])]
     public function syncService(int $id, Request $request): JsonResponse
     {
