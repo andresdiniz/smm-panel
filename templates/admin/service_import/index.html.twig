@@ -1,11 +1,14 @@
 {% extends 'admin/layout.html.twig' %}
 
+
 {% block page_title %}Importar Serviços{% endblock %}
+
 
 {% block admin_content %}
 <style>
 /* ── Page shell ── */
 .imp-page { padding: 24px 28px; min-height: 100vh; background: #0d1016; color: #dde1f0; }
+
 
 /* ── Steps ── */
 .imp-step { background: #12151c; border: 1px solid rgba(255,255,255,.07); border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
@@ -16,6 +19,7 @@
 .imp-badge.green { background: rgba(1,134,141,.18); color: #4eccd3; }
 .imp-step-body { padding: 20px; }
 
+
 /* ── Provider buttons ── */
 .prov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 10px; }
 .prov-btn { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); border-radius: 9px; padding: 12px 14px; cursor: pointer; text-align: left; transition: border-color .15s, background .15s; }
@@ -24,9 +28,11 @@
 .prov-btn .prov-slug { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #eef0ff; }
 .prov-btn .prov-url { font-size: .68rem; color: #4e5271; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+
 /* ── Config row ── */
 .cfg-row { display: grid; grid-template-columns: 1fr 160px 180px 120px; gap: 12px; align-items: end; }
 @media(max-width:900px){ .cfg-row { grid-template-columns: 1fr 1fr; } }
+
 
 /* ── Form controls (dark) ── */
 .imp-label { display: block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #4e5271; margin-bottom: 6px; }
@@ -36,6 +42,7 @@
 .imp-input-group .imp-input { border-radius: 7px 0 0 7px; }
 .imp-input-group .imp-addon { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-left: none; border-radius: 0 7px 7px 0; padding: 8px 10px; font-size: .82rem; color: #4e5271; }
 
+
 /* ── Buttons ── */
 .btn-imp-primary { background: #01868d; color: #fff; border: none; border-radius: 7px; padding: 9px 18px; font-size: .82rem; font-weight: 700; cursor: pointer; transition: background .15s; white-space: nowrap; }
 .btn-imp-primary:hover { background: #0c6b72; }
@@ -44,20 +51,24 @@
 .btn-imp-ghost:hover { background: rgba(255,255,255,.09); color: #dde1f0; }
 .btn-imp-danger { background: rgba(220,60,60,.15); color: #e06060; border: 1px solid rgba(220,60,60,.3); border-radius: 7px; padding: 7px 14px; font-size: .78rem; font-weight: 600; cursor: pointer; }
 
+
 /* ── Toolbar ── */
 .svc-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .svc-toolbar .sep { flex: 1; }
-.imp-search { background: #0b0e14; border: 1px solid rgba(255,255,255,.1); border-radius: 7px; padding: 7px 12px; font-size: .8rem; color: #dde1f0; outline: none; width: 200px; }
+.imp-search { background: #0b0e14; border: 1px solid rgba(255,255,255,.1); border-radius: 7px; padding: 7px 12px; font-size: .8rem; color: #dde1f0; outline: none; width: 260px; }
 .imp-search:focus { border-color: #01868d; }
+
 
 /* ── Service cards grid ── */
 .svc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr)); gap: 10px; padding: 16px; }
+
 
 /* ── Service card ── */
 .svc-card { background: #0f1219; border: 1px solid rgba(255,255,255,.07); border-radius: 10px; overflow: hidden; transition: border-color .15s; }
 .svc-card.selected { border-color: #01868d; }
 .svc-card.is-new { border-left: 3px solid #01868d; }
 .svc-card.is-update { border-left: 3px solid #d4a017; }
+
 
 .svc-card-top { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; cursor: pointer; }
 .svc-card-check { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; accent-color: #01868d; cursor: pointer; }
@@ -75,6 +86,7 @@
 .svc-card-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .btn-edit-toggle { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09); border-radius: 6px; padding: 5px 10px; font-size: .72rem; color: #9196b0; cursor: pointer; transition: background .15s; }
 .btn-edit-toggle:hover, .btn-edit-toggle.open { background: rgba(1,134,141,.18); color: #4eccd3; border-color: #01868d; }
+
 
 /* ── Inline edit panel ── */
 .svc-edit-panel { border-top: 1px solid rgba(255,255,255,.06); background: #0b0e14; padding: 14px 14px 16px; display: none; }
@@ -96,20 +108,24 @@
 .toggle-sw input:checked + .slider::before { transform: translateX(16px); }
 .toggle-label { font-size: .78rem; font-weight: 600; color: #9196b0; }
 
+
 /* ── Footer bar ── */
 .svc-footer { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-top: 1px solid rgba(255,255,255,.06); flex-wrap: wrap; }
 .svc-count-txt { font-size: .78rem; color: #4e5271; }
 .svc-count-txt strong { color: #dde1f0; }
+
 
 /* ── Loader ── */
 .imp-loader { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 48px 0; }
 .imp-spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,.08); border-top-color: #01868d; border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+
 /* ── Alert ── */
 .imp-alert { border-radius: 9px; padding: 12px 16px; font-size: .82rem; margin-bottom: 16px; }
 .imp-alert.danger { background: rgba(220,60,60,.12); border: 1px solid rgba(220,60,60,.3); color: #e08080; }
 .imp-alert.warning { background: rgba(212,160,23,.1); border: 1px solid rgba(212,160,23,.25); color: #d4a017; }
+
 
 /* ── Toast ── */
 .imp-toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
@@ -119,7 +135,9 @@
 @keyframes toastIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 </style>
 
+
 <div class="imp-page">
+
 
 {# ── STEP 1: Provedor ── #}
 <div class="imp-step">
@@ -145,6 +163,7 @@
     {% endif %}
   </div>
 </div>
+
 
 {# ── STEP 2: Config ── #}
 <div class="imp-step" id="card-step2" style="display:none">
@@ -189,11 +208,13 @@
   </div>
 </div>
 
+
 {# ── Loader ── #}
 <div class="imp-loader" id="loader" style="display:none">
   <div class="imp-spinner"></div>
   <span style="font-size:.82rem;color:#4e5271">Consultando API do provedor…</span>
 </div>
+
 
 {# ── Fetch error ── #}
 <div class="imp-alert danger" id="fetch-error" style="display:none">
@@ -201,14 +222,16 @@
   <pre id="fetch-error-detail" style="margin-top:6px;font-size:.72rem;white-space:pre-wrap;color:#c06060"></pre>
 </div>
 
+
 {# ── STEP 3: Serviços ── #}
 <div class="imp-step" id="card-step3" style="display:none">
   <div class="imp-step-head">
     <span class="imp-step-num">3</span>
     <span class="imp-step-title">Serviços Disponíveis</span>
     <span class="imp-badge" id="count-badge">0</span>
+    <span class="imp-badge green" id="visible-badge">0 visíveis</span>
     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
-      <input type="text" class="imp-search" id="search-services" placeholder="Filtrar por nome…">
+      <input type="text" class="imp-search" id="search-services" placeholder="Buscar por nome, categoria ou ID…">
       <select class="imp-select" id="filter-status" style="width:150px">
         <option value="all">Todos</option>
         <option value="new">Novos</option>
@@ -217,13 +240,19 @@
     </div>
   </div>
 
+
   {# Services grid #}
   <div class="svc-grid" id="svc-grid"></div>
+
 
   {# Footer #}
   <div class="svc-footer">
     <span class="svc-count-txt"><strong id="selected-count">0</strong> selecionados de <strong id="total-count">0</strong></span>
     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn-imp-ghost" id="btn-select-filtered">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-.1em;margin-right:4px"><polyline points="20 6 9 17 4 12"/></svg>
+        Selecionar filtrados
+      </button>
       <button type="button" class="btn-imp-ghost" id="btn-select-new">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-.1em;margin-right:4px"><polyline points="20 6 9 17 4 12"/></svg>
         Selecionar novos
@@ -240,14 +269,18 @@
   </div>
 </div>
 
+
 {# ── Toast container ── #}
 <div class="imp-toast-wrap" id="toast-wrap"></div>
 
+
 </div>{# /imp-page #}
+
 
 <script>
 (function(){
 'use strict';
+
 
 const FETCH_URL = {{ path('admin_service_import_fetch')|json_encode|raw }};
 const SAVE_URL  = {{ path('admin_service_import_save')|json_encode|raw }};
@@ -255,9 +288,11 @@ const FETCH_TOKEN = {{ csrf_token('provider_services_fetch')|json_encode|raw }};
 const SAVE_TOKEN = {{ csrf_token('provider_services_save')|json_encode|raw }};
 const CATS = {{ categories|map(c => {id: c.id, name: c.name})|json_encode|raw }};
 
+
 let allServices = [], existingIds = [], currentSlug = '', currentMode = 'batch';
 // Per-service overrides: keyed by external_id
 const overrides = {};
+
 
 // ── Provider select ──
 document.querySelectorAll('.prov-btn').forEach(btn => {
@@ -271,6 +306,7 @@ document.querySelectorAll('.prov-btn').forEach(btn => {
     document.getElementById('fetch-error').style.display = 'none';
   });
 });
+
 
 // ── Fetch services ──
 document.getElementById('btn-fetch').addEventListener('click', async () => {
@@ -305,24 +341,30 @@ document.getElementById('btn-fetch').addEventListener('click', async () => {
   }
 });
 
+
 // ── Render card grid ──
 function renderGrid(services) {
   const markup = parseInt(document.getElementById('default-markup').value) || 30;
   const grid = document.getElementById('svc-grid');
   grid.innerHTML = '';
 
+
   services.forEach(svc => {
     const isExisting = existingIds.includes(String(svc.external_id));
     const ov = overrides[String(svc.external_id)] || {};
     const sellPrice = ((ov.provider_price ?? svc.provider_price) * (1 + (ov.markup ?? markup) / 100)).toFixed(4);
+
 
     const card = document.createElement('div');
     card.className = 'svc-card' + (isExisting ? ' is-update' : ' is-new') + (!isExisting ? ' selected' : '');
     card.dataset.id = String(svc.external_id);
     card.dataset.existing = isExisting ? '1' : '0';
     card.dataset.name = (ov.name ?? svc.name).toLowerCase();
+    card.dataset.category = (ov.category_name ?? svc.category ?? '').toLowerCase();
+
 
     const catName = ov.category_name ?? svc.category ?? '—';
+
 
     card.innerHTML = `
       <div class="svc-card-top">
@@ -394,20 +436,25 @@ function renderGrid(services) {
         </div>
       </div>`;
 
+
     grid.appendChild(card);
     initCard(card, svc);
   });
+
 
   document.getElementById('card-step3').style.display = '';
   document.getElementById('count-badge').textContent = services.length;
   document.getElementById('total-count').textContent = services.length;
   updateCounts();
+  applyFilters();
   document.getElementById('card-step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
 
 // ── Per-card logic ──
 function initCard(card, svc) {
   const id = String(svc.external_id);
+
 
   // Checkbox
   const cb = card.querySelector('.row-check');
@@ -416,6 +463,7 @@ function initCard(card, svc) {
     updateCounts();
   });
   card.classList.toggle('selected', cb.checked);
+
 
   // Edit toggle
   const editBtn = card.querySelector('.btn-edit-toggle');
@@ -428,6 +476,7 @@ function initCard(card, svc) {
       ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg> Fechar`
       : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editar`;
   });
+
 
   // Live update helpers
   function saveOv() {
@@ -442,6 +491,8 @@ function initCard(card, svc) {
     card.querySelector('[data-field="display-cat"]').textContent = cat;
     const min = card.querySelector('.ef-min').value;
     card.querySelector('[data-field="display-min"]').textContent = min;
+    card.dataset.name = name.toLowerCase();
+    card.dataset.category = cat.toLowerCase();
     overrides[id] = {
       name, description: card.querySelector('.ef-desc').value,
       provider_price: provPrice, markup,
@@ -450,7 +501,9 @@ function initCard(card, svc) {
       category_name: card.querySelector('.ef-cat').value || svc.category,
       active: card.querySelector('.ef-active').checked,
     };
+    applyFilters();
   }
+
 
   // Sell price ↔ markup sync
   card.querySelector('.ef-markup').addEventListener('input', saveOv);
@@ -472,22 +525,58 @@ function initCard(card, svc) {
   card.querySelector('.ef-desc').addEventListener('input', saveOv);
 }
 
+
 // ── Filters ──
 document.getElementById('search-services').addEventListener('input', applyFilters);
 document.getElementById('filter-status').addEventListener('change', applyFilters);
 function applyFilters() {
-  const q = document.getElementById('search-services').value.toLowerCase();
-  const s = document.getElementById('filter-status').value;
+  const normalize = value => String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  const terms = normalize(
+    document.getElementById('search-services').value
+  ).split(/\s+/).filter(Boolean);
+
+  const status = document.getElementById('filter-status').value;
+  let visible = 0;
+
   document.querySelectorAll('#svc-grid .svc-card').forEach(card => {
-    const ex = card.dataset.existing === '1';
-    const match = (!q || card.dataset.name.includes(q)) &&
-      (s === 'all' || (s === 'new' && !ex) || (s === 'existing' && ex));
+    const haystack = normalize([
+      card.dataset.name,
+      card.dataset.category,
+      card.dataset.id,
+    ].join(' '));
+
+    const isExisting = card.dataset.existing === '1';
+    const matchesQuery = terms.every(term => haystack.includes(term));
+    const matchesStatus = status === 'all'
+      || (status === 'new' && !isExisting)
+      || (status === 'existing' && isExisting);
+    const match = matchesQuery && matchesStatus;
+
     card.style.display = match ? '' : 'none';
+    if (match) visible++;
   });
+
+  document.getElementById('visible-badge').textContent = `${visible} visíveis`;
   updateCounts();
 }
 
+
 // ── Select helpers ──
+document.getElementById('btn-select-filtered').addEventListener('click', () => {
+  document.querySelectorAll('#svc-grid .svc-card').forEach(card => {
+    if (card.style.display !== 'none') {
+      const cb = card.querySelector('.row-check');
+      cb.checked = true;
+      card.classList.add('selected');
+    }
+  });
+  updateCounts();
+});
+
 document.getElementById('btn-select-new').addEventListener('click', () => {
   document.querySelectorAll('#svc-grid .svc-card').forEach(card => {
     if (card.dataset.existing !== '1' && card.style.display !== 'none') {
@@ -507,12 +596,14 @@ function updateCounts() {
     document.querySelectorAll('.row-check:checked').length;
 }
 
+
 // ── Save ──
 document.getElementById('btn-save').addEventListener('click', async () => {
   const markup  = parseInt(document.getElementById('default-markup').value) || 30;
   const catId   = document.getElementById('default-category').value || null;
   const checked = document.querySelectorAll('.row-check:checked');
   if (!checked.length) { showToast('Selecione pelo menos um serviço.', 'danger'); return; }
+
 
   const selected = [];
   checked.forEach(cb => {
@@ -534,6 +625,7 @@ document.getElementById('btn-save').addEventListener('click', async () => {
       active:         ov.active         !== undefined ? ov.active : true,
     });
   });
+
 
   const btn = document.getElementById('btn-save');
   btn.disabled = true;
@@ -560,6 +652,7 @@ document.getElementById('btn-save').addEventListener('click', async () => {
   }
 });
 
+
 // ── Toast ──
 function showToast(msg, type = 'success') {
   const wrap = document.getElementById('toast-wrap');
@@ -570,11 +663,13 @@ function showToast(msg, type = 'success') {
   setTimeout(() => el.remove(), 7000);
 }
 
+
 function esc(s) {
   return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    .replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>')
+    .replace(/"/g,'"').replace(/'/g,'&#39;');
 }
+
 
 }());
 </script>
