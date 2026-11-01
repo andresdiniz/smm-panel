@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Cancelar e-mails de marketing{% endblock %}
+
+{% block body %}
+  <main class="container" style="max-width:680px;margin:4rem auto;padding:2rem">
+    <h1>Cancelar e-mails de marketing</h1>
+    <p>Confirme para parar de receber novidades e ofertas em {{ user.email }}. E-mails transacionais da sua conta não serão afetados.</p>
+    <form method="post">
+      <input type="hidden" name="_token" value="{{ csrf_token('marketing_unsubscribe_' ~ user.id) }}">
+      <button type="submit">Confirmar cancelamento</button>
+    </form>
+  </main>
+{% endblock %}

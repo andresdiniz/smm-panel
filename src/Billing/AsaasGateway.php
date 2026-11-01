@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Billing;
 
 use App\Entity\Payment;
+use App\Entity\PaymentRefundRequest;
 use App\Entity\User;
 use App\Billing\Exception\GatewayException;
 use App\Billing\Exception\WebhookAuthenticationException;
@@ -22,7 +23,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  *
  * Docs: https://docs.asaas.com/reference
  */
-final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterface, PixQrCodeRefreshInterface, PixPaymentCancellationInterface
+final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterface, PixQrCodeRefreshInterface, PixPaymentCancellationInterface, PaymentRefundInterface
 {
     /** CPF genérico válido para o sandbox Asaas (somente quando nenhum CPF real é fornecido). */
     private const SANDBOX_CPF = '00000000191';
@@ -222,6 +223,29 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         });
     }
 
+    public function requestRefund(Payment $payment): void
+    {
+        if (
+            $payment->getType() !== Payment::TYPE_DEPOSIT
+            || $payment->getStatus() !== Payment::STATUS_APPROVED
+        ) {
+            throw new GatewayException(
+                'Somente depósitos aprovados podem ter estorno solicitado.',
+                context: ['operation' => 'request_refund', 'reason' => 'payment_not_approved'],
+            );
+        }
+
+        $externalId = $payment->getExternalId();
+        if ($externalId === null || $externalId === '') {
+            throw new GatewayException(
+                'Pagamento sem identificador externo.',
+                context: ['operation' => 'request_refund', 'reason' => 'missing_payment_id'],
+            );
+        }
+
+        $this->requestJson('POST', '/payments/'.rawurlencode($externalId).'/refund');
+    }
+
     public function processWebhook(Request $request): Payment
     {
         $token = $request->headers->get('asaas-access-token', '');
@@ -296,6 +320,13 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
                 $this->em->flush();
             } elseif (in_array($event, self::EVENTS_REFUND, true)) {
                 $payment->setStatus(Payment::STATUS_REFUNDED);
+                if ($event === 'PAYMENT_REFUNDED') {
+                    $refundRequest = $this->em->getRepository(PaymentRefundRequest::class)
+                        ->findOneBy(['payment' => $payment]);
+                    if ($refundRequest?->getStatus() === PaymentRefundRequest::STATUS_PROCESSING) {
+                        $refundRequest->markCompleted();
+                    }
+                }
                 $this->em->flush();
             } else {
                 $this->em->flush();

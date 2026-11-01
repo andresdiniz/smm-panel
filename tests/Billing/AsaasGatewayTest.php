@@ -295,6 +295,80 @@ final class AsaasGatewayTest extends TestCase
         }
     }
 
+    public function testApprovedDepositRefundIsRequestedFromAsaas(): void
+    {
+        $client = new MockHttpClient(static function (string $method, string $url, array $options): MockResponse {
+            self::assertSame('POST', $method);
+            self::assertSame('https://api.asaas.com/v3/payments/pay_approved_123/refund', $url);
+            self::assertContains('access_token: api-key', $options['normalized_headers']['access_token']);
+
+            return new MockResponse('{}');
+        });
+        $gateway = new AsaasGateway(
+            $this->createStub(EntityManagerInterface::class),
+            $client,
+            'api-key',
+            'production',
+            'webhook-token',
+        );
+        $payment = (new Payment())
+            ->setType(Payment::TYPE_DEPOSIT)
+            ->setStatus(Payment::STATUS_APPROVED)
+            ->setExternalId('pay_approved_123');
+
+        $gateway->requestRefund($payment);
+    }
+
+    public function testUnapprovedPaymentCannotBeRefunded(): void
+    {
+        $client = new MockHttpClient(static function (): MockResponse {
+            self::fail('Asaas must not be called for a non-approved payment.');
+        });
+        $gateway = new AsaasGateway(
+            $this->createStub(EntityManagerInterface::class),
+            $client,
+            'api-key',
+            'production',
+            'webhook-token',
+        );
+        $payment = (new Payment())
+            ->setType(Payment::TYPE_DEPOSIT)
+            ->setStatus(Payment::STATUS_PENDING)
+            ->setExternalId('pay_pending');
+
+        try {
+            $gateway->requestRefund($payment);
+            self::fail('Expected non-approved payment to be rejected.');
+        } catch (GatewayException $exception) {
+            self::assertSame('payment_not_approved', $exception->getContext()['reason']);
+        }
+    }
+
+    public function testReconciliationDoesNotCreditAnAlreadyApprovedPaymentAgain(): void
+    {
+        $payment = (new Payment())
+            ->setType(Payment::TYPE_DEPOSIT)
+            ->setStatus(Payment::STATUS_APPROVED)
+            ->setExternalId('pay_already_approved');
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::once())
+            ->method('refresh')
+            ->with($payment, LockMode::PESSIMISTIC_WRITE);
+        $entityManager->expects(self::once())
+            ->method('wrapInTransaction')
+            ->willReturnCallback(static fn (callable $callback): mixed => $callback());
+
+        $gateway = new AsaasGateway(
+            $entityManager,
+            new MockHttpClient(),
+            'api-key',
+            'production',
+            'webhook-token',
+        );
+
+        self::assertFalse($gateway->reconcileApprovedPayment($payment));
+    }
+
     private function createUser(): User
     {
         return (new User())

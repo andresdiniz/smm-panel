@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\CronLog;
+use App\Repository\CronLogRepository;
+use App\Repository\OrderLogRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -30,5 +32,29 @@ class AdminCronLogController extends AbstractController
             ->orderBy('c.startedAt', 'DESC');
         $pagination = $this->paginator->paginate($qb, $request->query->getInt('page', 1), 50);
         return $this->render('admin/cron_log/index.html.twig', ['pagination' => $pagination]);
+    }
+
+    #[Route('/saude', name: 'health', methods: ['GET'])]
+    public function health(CronLogRepository $cronLogs, OrderLogRepository $orderLogs): Response
+    {
+        $connection = $this->em->getConnection();
+        $schemaManager = $connection->createSchemaManager();
+        $failedMessengerMessages = null;
+        if ($schemaManager->tablesExist(['messenger_messages'])) {
+            $failedMessengerMessages = (int) $connection->createQueryBuilder()
+                ->select('COUNT(*)')
+                ->from('messenger_messages')
+                ->where('queue_name = :queueName')
+                ->setParameter('queueName', 'failed')
+                ->executeQuery()
+                ->fetchOne();
+        }
+
+        return $this->render('admin/cron_log/health.html.twig', [
+            'cronErrors' => $cronLogs->findRecentErrors(24),
+            'orderErrors' => $orderLogs->findRecentErrors(24),
+            'cronSummary' => $cronLogs->getSummary(),
+            'failedMessengerMessages' => $failedMessengerMessages,
+        ]);
     }
 }

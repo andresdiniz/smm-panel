@@ -58,6 +58,10 @@ class RegistrationFormType extends AbstractType
                 'constraints' => [
                     new IsTrue(message: 'Você precisa aceitar os termos para continuar.'),
                 ],
+            ])
+            ->add('marketingConsent', CheckboxType::class, [
+                'required' => false,
+                'label' => 'Quero receber novidades e ofertas por e-mail.',
             ]);
     }
 

@@ -21,15 +21,19 @@ class ProfileController extends AbstractController
         $user = $this->getUser();
 
         if ($request->isMethod('POST')) {
-            $this->isCsrfTokenValid('profile_edit', $request->request->get('_token'))
-                ?: throw $this->createAccessDeniedException('Token inválido.');
+            $token = $request->request->get('_token');
+            if (!is_string($token) || !$this->isCsrfTokenValid('profile_edit', $token)) {
+                throw $this->createAccessDeniedException('Token inválido.');
+            }
 
             $name = trim($request->request->getString('name'));
             if ($name !== '') {
                 $user->setName($name);
-                $em->flush();
-                $this->addFlash('success', 'Perfil atualizado com sucesso.');
             }
+
+            $user->setMarketingConsent($request->request->getBoolean('marketing_consent'));
+            $em->flush();
+            $this->addFlash('success', 'Perfil atualizado com sucesso.');
 
             return $this->redirectToRoute('app_profile');
         }

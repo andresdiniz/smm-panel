@@ -6,6 +6,7 @@ namespace App\Scheduler;
 
 use App\Entity\Order;
 use App\Entity\OrderLog;
+use App\Entity\CronLog;
 use App\Message\Order\SyncOrderStatusMessage;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -27,6 +28,7 @@ final class SyncOrdersSchedule
 
     public function __invoke(): void
     {
+        $startedAt = hrtime(true);
         $cutoff = new \DateTimeImmutable('-10 minutes');
         $qb = $this->em->createQueryBuilder()
             ->select('o')
@@ -51,18 +53,36 @@ final class SyncOrdersSchedule
 
         $orders = $qb->getQuery()->getResult();
         $dispatched = 0;
+        $failedOrderIds = [];
 
         foreach ($orders as $order) {
             try {
                 $this->bus->dispatch(new SyncOrderStatusMessage($order->getId()));
                 ++$dispatched;
             } catch (\Throwable $e) {
+                if (count($failedOrderIds) < 100) {
+                    $failedOrderIds[] = $order->getId();
+                }
                 $this->logger->error('SyncOrdersSchedule: falha ao enfileirar sincronização.', [
                     'order_id' => $order->getId(),
+                    'exception' => $e::class,
                     'error' => $e->getMessage(),
                 ]);
             }
         }
+
+        $cronLog = (new CronLog('orders:sync-dispatch'))
+            ->setItemsProcessed($dispatched)
+            ->setContext([
+                'found' => count($orders),
+                'dispatched' => $dispatched,
+                'failed_order_ids' => $failedOrderIds,
+                'cutoff_minutes' => 10,
+            ])
+            ->finish($failedOrderIds === [], $failedOrderIds !== [] ? 'Falha ao enfileirar pedidos; consulte os logs do aplicativo.' : null)
+            ->setDurationMs((int) ((hrtime(true) - $startedAt) / 1_000_000));
+        $this->em->persist($cronLog);
+        $this->em->flush();
 
         $this->logger->info('SyncOrdersSchedule: ciclo de recuperação concluído.', [
             'found' => count($orders),

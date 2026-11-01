@@ -1,0 +1,62 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block page_title %}Saúde das operações{% endblock %}
+
+{% block admin_content %}
+<main style="padding:24px;display:grid;gap:18px">
+  <h1 style="font-size:1.1rem;color:#f0f3ff">Saúde das operações</h1>
+  <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">
+    <article style="padding:16px;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px">
+      <small style="color:#6b708a">Mensagens na fila de falhas</small>
+      <strong style="display:block;margin-top:8px;font-size:1.4rem;color:{{ failedMessengerMessages is null ? '#f59e0b' : (failedMessengerMessages > 0 ? '#ef4444' : '#22c55e') }}">
+        {{ failedMessengerMessages is null ? 'Indisponível' : failedMessengerMessages }}
+      </strong>
+      {% if failedMessengerMessages is null %}<small style="color:#9196b0">Tabela messenger_messages não encontrada.</small>{% endif %}
+    </article>
+    <article style="padding:16px;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px">
+      <small style="color:#6b708a">Falhas de cron nas últimas 24h</small>
+      <strong style="display:block;margin-top:8px;font-size:1.4rem;color:{{ cronErrors is not empty ? '#ef4444' : '#22c55e' }}">{{ cronErrors|length }}</strong>
+    </article>
+    <article style="padding:16px;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px">
+      <small style="color:#6b708a">Falhas recentes de pedidos</small>
+      <strong style="display:block;margin-top:8px;font-size:1.4rem;color:{{ orderErrors is not empty ? '#ef4444' : '#22c55e' }}">{{ orderErrors|length }}</strong>
+    </article>
+  </section>
+
+  <section style="overflow:auto;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px">
+    <h2 style="margin:0 0 12px;color:#dde1f0;font-size:.95rem">Execuções por rotina</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+      <thead><tr>{% for col in ['Rotina','Execuções','Falhas','Última execução','Média (ms)'] %}<th style="padding:8px;text-align:left;color:#6b708a">{{ col }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for row in cronSummary %}
+        <tr style="border-top:1px solid rgba(255,255,255,.05)">
+          <td style="padding:8px;color:#dde1f0">{{ row.command }}</td>
+          <td style="padding:8px;color:#9196b0">{{ row.total }}</td>
+          <td style="padding:8px;color:{{ row.errors > 0 ? '#ef4444' : '#22c55e' }}">{{ row.errors }}</td>
+          <td style="padding:8px;color:#9196b0">{{ row.lastRun ? row.lastRun|date('d/m/Y H:i') : '—' }}</td>
+          <td style="padding:8px;color:#9196b0">{{ row.avgMs ? row.avgMs|number_format(0, ',', '.') : '—' }}</td>
+        </tr>
+      {% else %}<tr><td colspan="5" style="padding:12px;color:#9196b0">Ainda não há execuções registradas.</td></tr>{% endfor %}</tbody>
+    </table>
+  </section>
+
+  <section style="overflow:auto;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px">
+    <h2 style="margin:0 0 12px;color:#dde1f0;font-size:.95rem">Falhas dos crons</h2>
+    {% for log in cronErrors %}
+      <article style="padding:10px 0;border-top:1px solid rgba(255,255,255,.05)">
+        <strong style="color:#f87171">{{ log.command }}</strong>
+        <span style="color:#6b708a"> · {{ log.startedAt|date('d/m/Y H:i:s') }} · {{ log.errorMessage ?? 'Falha sem mensagem' }}</span>
+      </article>
+    {% else %}<p style="color:#22c55e">Nenhuma falha registrada nas últimas 24 horas.</p>{% endfor %}
+  </section>
+
+  <section style="overflow:auto;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px">
+    <h2 style="margin:0 0 12px;color:#dde1f0;font-size:.95rem">Falhas recentes na sincronização de pedidos</h2>
+    {% for log in orderErrors %}
+      <article style="padding:10px 0;border-top:1px solid rgba(255,255,255,.05)">
+        <strong style="color:#f87171">Pedido #{{ log.order.id }}</strong>
+        <span style="color:#6b708a"> · {{ log.createdAt|date('d/m/Y H:i:s') }} · {{ log.errorMessage }}</span>
+      </article>
+    {% else %}<p style="color:#22c55e">Nenhuma falha de sincronização registrada nas últimas 24 horas.</p>{% endfor %}
+  </section>
+</main>
+{% endblock %}

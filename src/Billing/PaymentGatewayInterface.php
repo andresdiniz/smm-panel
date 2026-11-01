@@ -27,4 +27,10 @@ interface PaymentGatewayInterface
     public function processWebhook(Request $request): Payment;
 
     public function fetchStatus(Payment $payment): string;
+
+    /**
+     * Idempotently approve a reconciled payment and credit its wallet.
+     * Returns true only when this call performed the transition.
+     */
+    public function reconcileApprovedPayment(Payment $payment): bool;
 }

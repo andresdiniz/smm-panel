@@ -6,10 +6,7 @@ namespace App\Service;
 
 use App\Entity\Order;
 use App\Entity\OrderLog;
-use App\Entity\WalletTransaction;
-use App\Enum\TransactionType;
 use App\Message\Order\OrderNotificationMessage;
-use App\Repository\WalletRepository;
 use App\Smm\SmmProviderRegistry;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -24,7 +21,7 @@ final class OrderSyncService
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly SmmProviderRegistry    $registry,
-        private readonly WalletRepository       $wallets,
+        private readonly OrderCancellationService $cancellations,
         private readonly MessageBusInterface    $bus,
         private readonly LoggerInterface        $logger,
     ) {}
@@ -115,12 +112,18 @@ final class OrderSyncService
                         'old_status' => $order->getStatus(),
                         'new_status' => $newStatus,
                     ]);
-                    $order->setStatus($newStatus);
                     if ($newStatus === Order::STATUS_CANCELLED) {
-                        $this->refundCancelledOrder($order);
-                        $this->bus->dispatch(new OrderNotificationMessage($order->getId(), 'cancelled'));
+                        if ($this->cancellations->cancelAndRefund($order->getId(), 'Cancelado pelo provider')) {
+                            $this->bus->dispatch(new OrderNotificationMessage($order->getId(), 'cancelled'));
+                            ++$updated;
+                        }
+                    } else {
+                        $order->setStatus($newStatus);
+                        ++$updated;
                     }
-                    ++$updated;
+                    if ($newStatus === Order::STATUS_COMPLETED) {
+                        $this->bus->dispatch(new OrderNotificationMessage($order->getId(), 'completed'));
+                    }
                 }
 
                 // Grava log de sincronização (toda chamada ao provider)
@@ -145,8 +148,17 @@ final class OrderSyncService
                 ++$errors;
                 $this->logger->error('OrderSyncService: erro ao sincronizar.', [
                     'order_id' => $order->getId(),
+                    'exception' => $e::class,
                     'error'    => $e->getMessage(),
                 ]);
+
+                if (!$this->em->isOpen()) {
+                    $this->logger->critical('OrderSyncService: EntityManager fechado; a execução precisa ser reiniciada.', [
+                        'order_id' => $order->getId(),
+                        'exception' => $e::class,
+                    ]);
+                    throw $e;
+                }
 
                 // Grava log de erro também
                 $log = new OrderLog();
@@ -183,34 +195,4 @@ final class OrderSyncService
         };
     }
 
-    private function refundCancelledOrder(Order $order): void
-    {
-        $refundCents = $order->getAmountCents();
-        $wallet = $this->wallets->findOneByUser($order->getUser());
-
-        if ($refundCents <= 0 || !$wallet) {
-            $this->logger->error('OrderSyncService: não foi possível estornar pedido cancelado.', [
-                'order_id' => $order->getId(),
-                'user_id' => $order->getUser()->getId(),
-                'refund_cents' => $refundCents,
-                'wallet_found' => $wallet !== null,
-            ]);
-            return;
-        }
-
-        $wallet->credit($refundCents);
-        $transaction = (new WalletTransaction())
-            ->setWallet($wallet)
-            ->setType(TransactionType::REFUND)
-            ->setAmountCents($refundCents)
-            ->setBalanceAfterCents($wallet->getBalanceCents())
-            ->setDescription(sprintf('Reembolso automático — pedido #%d cancelado pelo provider', $order->getId()));
-        $this->em->persist($transaction);
-
-        $this->logger->info('OrderSyncService: reembolso de pedido cancelado efetuado.', [
-            'order_id' => $order->getId(),
-            'user_id' => $order->getUser()->getId(),
-            'refund_cents' => $refundCents,
-        ]);
-    }
 }

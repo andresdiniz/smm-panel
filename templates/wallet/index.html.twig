@@ -356,6 +356,7 @@
           <th class="col-method">Método</th>
           <th class="col-status">Status</th>
           <th class="col-val">Valor</th>
+          <th>Ações</th>
         </tr>
       </thead>
       <tbody>
@@ -423,9 +424,25 @@
             {% endif %}
           </td>
 
+          <td>
+            {% set refundRequest = refundRequestsByPaymentId[tx.id] ?? null %}
+            {% if refundRequest %}
+              <span class="bs bs--pend">Estorno: {{ refundRequest.status|capitalize }}</span>
+            {% elseif tx.id in asaasRefundEligiblePaymentIds %}
+              <form method="post" action="{{ path('app_wallet_refund_request', {id: tx.id}) }}" style="display:grid;gap:6px;min-width:180px">
+                <input type="hidden" name="_token" value="{{ csrf_token('wallet_refund_' ~ tx.id) }}">
+                <input name="reason" maxlength="2000" required placeholder="Motivo do pedido" aria-label="Motivo da solicitação de estorno"
+                       style="width:100%;padding:7px;border:1px solid rgba(255,255,255,.12);border-radius:7px;background:var(--surface-2,#fff);color:inherit">
+                <button type="submit" class="bs bs--pend">Solicitar análise</button>
+              </form>
+            {% else %}
+              <span aria-hidden="true">—</span>
+            {% endif %}
+          </td>
+
         </tr>
       {% else %}
-        <tr><td colspan="5">
+        <tr><td colspan="6">
           <div class="wempty">
             <i data-lucide="credit-card" width="42" height="42"></i>
             <h3>Nenhuma transação ainda</h3>

@@ -994,6 +994,15 @@
             {% endif %}
           </div>
 
+          <div class="terms-card">
+            <label class="terms-inner">
+              {{ form_widget(registrationForm.marketingConsent, {attr: {class: 'terms-checkbox'}}) }}
+              <span class="terms-text">
+                Quero receber novidades e ofertas por e-mail. A autorização é opcional e pode ser retirada no perfil.
+              </span>
+            </label>
+          </div>
+
         </div>
 
         <button type="submit" class="btn-submit" id="submitBtn">

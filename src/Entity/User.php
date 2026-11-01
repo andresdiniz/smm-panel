@@ -36,6 +36,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(options: ['default' => true])]
     private bool $active = true;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $marketingConsent = false;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $marketingConsentAt = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -101,6 +107,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setEmail(string $email): static { $this->email = $email; return $this; }
     public function isActive(): bool { return $this->active; }
     public function setActive(bool $active): static { $this->active = $active; return $this; }
+    public function hasMarketingConsent(): bool { return $this->marketingConsent; }
+    public function setMarketingConsent(bool $consent): static
+    {
+        if ($this->marketingConsent === $consent) {
+            return $this;
+        }
+
+        $this->marketingConsent = $consent;
+        $this->marketingConsentAt = $consent ? new \DateTimeImmutable() : null;
+
+        return $this;
+    }
+    public function getMarketingConsentAt(): ?\DateTimeImmutable { return $this->marketingConsentAt; }
     public function getName(): string { return $this->name; }
     public function setName(string $name): static { $this->name = $name; return $this; }
     public function getUserIdentifier(): string { return $this->email; }

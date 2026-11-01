@@ -40,9 +40,14 @@ abstract class AbstractGateway
         $this->em->flush();
     }
 
-    protected function approveAndCredit(Payment $payment): void
+    public function reconcileApprovedPayment(Payment $payment): bool
     {
-        $this->em->wrapInTransaction(function () use ($payment): void {
+        return $this->approveAndCredit($payment);
+    }
+
+    protected function approveAndCredit(Payment $payment): bool
+    {
+        return $this->em->wrapInTransaction(function () use ($payment): bool {
             $gatewayResponse = $payment->getGatewayResponse();
             $this->em->refresh($payment, LockMode::PESSIMISTIC_WRITE);
             if ($gatewayResponse !== null) {
@@ -50,7 +55,7 @@ abstract class AbstractGateway
             }
 
             if ($payment->getStatus() !== Payment::STATUS_PENDING) {
-                return;
+                return false;
             }
 
             $net = $payment->getAmountCents() - $payment->getFeeCents();
@@ -83,6 +88,8 @@ abstract class AbstractGateway
 
             $payment->approve();
             $this->em->persist($transaction);
+
+            return true;
         });
     }
 

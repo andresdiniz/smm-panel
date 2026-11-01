@@ -6,12 +6,10 @@ namespace App\MessageHandler\Order;
 
 use App\Entity\Order;
 use App\Entity\OrderLog;
-use App\Entity\WalletTransaction;
-use App\Enum\TransactionType;
 use App\Message\Order\OrderNotificationMessage;
 use App\Message\Order\SyncOrderStatusMessage;
 use App\Repository\OrderRepository;
-use App\Repository\WalletRepository;
+use App\Service\OrderCancellationService;
 use App\Smm\Dto\ProviderStatus;
 use App\Smm\SmmProviderRegistry;
 use Doctrine\ORM\EntityManagerInterface;
@@ -35,7 +33,7 @@ final class SyncOrderStatusHandler
 {
     public function __construct(
         private readonly OrderRepository        $orders,
-        private readonly WalletRepository       $wallets,
+        private readonly OrderCancellationService $cancellations,
         private readonly SmmProviderRegistry    $providers,
         private readonly EntityManagerInterface $em,
         private readonly MessageBusInterface    $bus,
@@ -148,41 +146,15 @@ final class SyncOrderStatusHandler
 
     private function handleCancelled(Order $order, string $reason): void
     {
-        $order->markAsFailed($reason);
-
-        $refundCents = $order->getAmountCents();
-
-        if ($refundCents > 0) {
-            $wallet = $this->wallets->findOneBy(['user' => $order->getUser()]);
-
-            if ($wallet) {
-                $wallet->credit($refundCents);
-
-                $tx = (new WalletTransaction())
-                    ->setWallet($wallet)
-                    ->setType(TransactionType::REFUND)
-                    ->setAmountCents($refundCents)
-                    ->setBalanceAfterCents($wallet->getBalanceCents())
-                    ->setDescription(sprintf(
-                        'Reembolso automático — pedido #%d cancelado pelo provider (%s)',
-                        $order->getId(),
-                        mb_substr($reason, 0, 150)
-                    ));
-
-                $this->em->persist($tx);
-
-                $this->logger->info('SyncOrderStatusHandler: reembolso efetuado.', [
-                    'order_id' => $order->getId(), 'user_id' => $order->getUser()->getId(),
-                    'refund_cents' => $refundCents, 'reason' => $reason,
-                ]);
-            } else {
-                $this->logger->error('SyncOrderStatusHandler: carteira não encontrada, reembolso não realizado.', [
-                    'order_id' => $order->getId(), 'user_id' => $order->getUser()->getId(),
-                ]);
-            }
+        if ($this->cancellations->cancelAndRefund($order->getId(), $reason)) {
+            $this->bus->dispatch(new OrderNotificationMessage($order->getId(), 'cancelled'));
+            $this->logger->info('SyncOrderStatusHandler: pedido cancelado e reembolsado.', [
+                'order_id' => $order->getId(),
+                'user_id' => $order->getUser()->getId(),
+                'refund_cents' => $order->getAmountCents(),
+                'reason' => $reason,
+            ]);
         }
-
-        $this->bus->dispatch(new OrderNotificationMessage($order->getId(), 'cancelled'));
 
         $this->logger->warning('SyncOrderStatusHandler: pedido cancelado pelo provider.', [
             'order_id' => $order->getId(), 'reason' => $reason,

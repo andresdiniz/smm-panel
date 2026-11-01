@@ -9,6 +9,75 @@
     <h1 style="font-size:1.1rem;font-weight:800;color:#f0f3ff">CRM Dashboard</h1>
   </div>
 
+  {% for type, messages in app.flashes %}
+    {% if type == 'crm_campaign' %}
+      {% for message in messages %}
+        <section style="padding:14px;background:#0b0e14;border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#dde1f0">
+          {% if message.preview %}
+            <strong>Prévia — {{ message.recipientCount }} destinatário(s) com consentimento explícito</strong>
+          {% else %}
+            <strong>Campanha: {{ message.sent }} e-mail(s) enviado(s)</strong>
+          {% endif %}
+          {% if message.errorCount > 0 %}<p>{{ message.errorCount }} envio(s) falharam.</p>{% endif %}
+          {% if message.preview %}
+            <p>Assunto: {{ message.subject }}</p>
+            <p>Destinatários limitados aos 500 usuários selecionados pelo CRM.</p>
+          {% endif %}
+        </section>
+      {% endfor %}
+    {% else %}
+      {% for message in messages %}
+        <div role="status" style="padding:10px 14px;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#dde1f0">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+
+  {% if profileUser is not null %}
+  {% set contactUser = profileUser.user %}
+  <section style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:18px">
+    <h2 style="margin:0 0 8px;color:#dde1f0;font-size:1rem">Contato individual</h2>
+    <p style="color:#9196b0;font-size:.82rem;margin:0 0 14px">
+      {{ contactUser.name }} · {{ contactUser.email }} ·
+      {% if contactUser.marketingConsent %}autorizou marketing{% else %}não autorizou marketing{% endif %}
+    </p>
+    {% if contactUser.marketingConsent and contactUser.active %}
+    <form method="post" action="{{ path('app_admin_crm_send_user_email', {id: contactUser.id}) }}" style="display:grid;gap:10px">
+      <input type="hidden" name="_token" value="{{ csrf_token('crm_user_email_' ~ contactUser.id) }}">
+      <label style="display:grid;gap:5px;color:#9196b0;font-size:.78rem">
+        Assunto
+        <input name="subject" maxlength="180" required style="padding:10px;background:#161a24;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#dde1f0">
+      </label>
+      <label style="display:grid;gap:5px;color:#9196b0;font-size:.78rem">
+        Mensagem
+        <textarea name="body" maxlength="10000" rows="5" required style="padding:10px;background:#161a24;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#dde1f0"></textarea>
+      </label>
+      <button type="submit" style="justify-self:start;padding:9px 14px;border:0;border-radius:7px;background:#01868d;color:#fff;font-weight:700">Enviar e-mail</button>
+    </form>
+    {% else %}
+      <p style="margin:0;color:#f59e0b;font-size:.82rem">O envio de marketing está indisponível sem consentimento explícito.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if profileUser is null %}
+  <section style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:18px">
+    <h2 style="margin:0 0 12px;color:#dde1f0;font-size:1rem">Campanha por e-mail</h2>
+    <p style="margin:0 0 14px;color:#9196b0;font-size:.8rem">Somente usuários ativos que autorizaram marketing recebem estas mensagens. Faça uma prévia antes de enviar.</p>
+    <form method="post" action="{{ path('app_admin_crm_send_marketing') }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+      <input type="hidden" name="_token" value="{{ csrf_token('crm_send_marketing') }}">
+      <label style="display:grid;gap:5px;color:#9196b0;font-size:.78rem">Assunto<input name="subject" maxlength="180" required style="padding:10px;background:#161a24;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#dde1f0"></label>
+      <label style="display:grid;gap:5px;color:#9196b0;font-size:.78rem">Segmento
+        <select name="segment" style="padding:10px;background:#161a24;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#dde1f0">
+          <option value="">Todos os segmentos autorizados</option><option value="new">Novos</option><option value="active">Ativos</option><option value="whale">Maior gasto</option>
+        </select>
+      </label>
+      <label style="grid-column:1/-1;display:grid;gap:5px;color:#9196b0;font-size:.78rem">Mensagem<textarea name="body" maxlength="10000" rows="5" required style="padding:10px;background:#161a24;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#dde1f0"></textarea></label>
+      <label style="grid-column:1/-1;color:#9196b0;font-size:.78rem"><input type="checkbox" name="preview_only" value="1" checked> Gerar prévia sem enviar</label>
+      <button type="submit" style="justify-self:start;padding:9px 14px;border:0;border-radius:7px;background:#01868d;color:#fff;font-weight:700">Executar campanha</button>
+    </form>
+  </section>
+  {% endif %}
+
   {# ── KPIs ── #}
   {% if stats is defined %}
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px">
@@ -123,7 +192,7 @@
       <table style="width:100%;border-collapse:collapse;font-size:.8rem">
         <thead>
           <tr>
-            {% for col in ['#','E-mail','Saldo','Pedidos','Cadastro'] %}
+            {% for col in ['#','E-mail','Saldo','Pedidos','Cadastro','Marketing','Contato'] %}
             <th style="background:#0d1016;color:#3e4259;font-weight:700;font-size:.65rem;letter-spacing:.05em;text-transform:uppercase;padding:8px 13px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)">{{ col }}</th>
             {% endfor %}
           </tr>
@@ -137,6 +206,8 @@
             <td style="padding:9px 13px;color:#22c55e;font-variant-numeric:tabular-nums">R$ {{ ((user.wallet ? user.wallet.balanceCents : 0) / 100)|number_format(2,',','.') }}</td>
             <td style="padding:9px 13px;color:#9196b0">{{ row.orderCount }}</td>
             <td style="padding:9px 13px;color:#3e4259;font-size:.75rem">{{ user.createdAt|date('d/m/Y') }}</td>
+            <td style="padding:9px 13px;color:{{ user.marketingConsent ? '#22c55e' : '#f59e0b' }};font-size:.75rem">{{ user.marketingConsent ? 'Autorizado' : 'Sem autorização' }}</td>
+            <td style="padding:9px 13px"><a href="{{ path('app_admin_crm_user_profile', {id: user.id}) }}" style="color:#4eccd3;text-decoration:none">Abrir CRM</a></td>
           </tr>
           {% endfor %}
         </tbody>

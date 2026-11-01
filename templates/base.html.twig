@@ -7,7 +7,7 @@
     <meta name="description" content="{% block description %}{{ description|default('Plataforma profissional de SMM Panel com automação, integração e foco em performance.') }}{% endblock %}">
     {% set currentRoute = app.request.attributes.get('_route')|default('') %}
     {% set noIndexRoutes = ['app_login', 'app_logout', 'app_register', 'app_forgot_password', 'app_reset_password'] %}
-    {% set privatePage = app.user or currentRoute starts with 'admin_' or currentRoute starts with 'app_dashboard' or currentRoute starts with 'app_wallet_' or currentRoute starts with 'app_order_' or currentRoute starts with 'app_profile' or currentRoute starts with 'app_transaction_' or currentRoute starts with 'support_' or currentRoute starts with 'affiliate_' or currentRoute in noIndexRoutes %}
+    {% set privatePage = app.user or currentRoute starts with 'admin_' or currentRoute starts with 'app_dashboard' or currentRoute starts with 'app_wallet_' or currentRoute starts with 'app_order_' or currentRoute starts with 'app_profile' or currentRoute starts with 'app_transaction_' or currentRoute starts with 'support_' or currentRoute starts with 'affiliate_' or currentRoute == 'app_marketing_unsubscribe' or currentRoute in noIndexRoutes %}
     {% set canonicalPath = currentRoute == 'app_privacy' ? '/politica-de-privacidade' : app.request.pathInfo %}
     <meta name="robots" content="{{ privatePage ? 'noindex,nofollow' : 'index,follow' }}">
     <meta name="theme-color" content="#087f86">

@@ -8,12 +8,15 @@ use App\Billing\DynamicGatewayLoader;
 use App\Billing\Exception\GatewayException;
 use App\Billing\PixPaymentCancellationInterface;
 use App\Billing\PixQrCodeRefreshInterface;
+use App\Entity\PaymentRefundRequest;
 use App\Entity\Payment;
 use App\Entity\ProviderCredential;
 use App\Entity\Wallet;
 use App\Repository\PaymentRepository;
+use App\Repository\PaymentRefundRequestRepository;
 use App\Repository\ProviderCredentialRepository;
 use App\Repository\WalletRepository;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,6 +26,8 @@ use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Psr\Log\LoggerInterface;
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
 
 #[IsGranted('ROLE_USER')]
 #[Route('/wallet', name: 'app_wallet_')]
@@ -37,6 +42,8 @@ class WalletController extends AbstractController
         private readonly LoggerInterface $logger,
         #[Autowire(service: 'limiter.wallet_pix_qr_refresh')]
         private readonly RateLimiterFactory $pixQrRefreshLimiter,
+        private readonly PaymentRefundRequestRepository $refundRequests,
+        private readonly EntityManagerInterface $em,
     ) {}
 
     #[Route('', name: 'index')]
@@ -46,11 +53,76 @@ class WalletController extends AbstractController
         $wallet = $this->walletRepository->findOneByUser($user)
             ?? (new Wallet())->setUser($user);
         $transactions = $this->paymentRepository->findRecentByUser($user, 20);
+        $refundRequestsByPaymentId = [];
+        foreach ($this->refundRequests->findRecentByUser($user, 50) as $refundRequest) {
+            $refundRequestsByPaymentId[$refundRequest->getPayment()->getId()] = $refundRequest;
+        }
+        $asaasRefundEligiblePaymentIds = [];
+        foreach ($transactions as $transaction) {
+            if ($transaction->getType() === Payment::TYPE_DEPOSIT
+                && $transaction->getStatus() === Payment::STATUS_APPROVED
+                && $this->isAsaasPayment($transaction)
+            ) {
+                $asaasRefundEligiblePaymentIds[] = $transaction->getId();
+            }
+        }
 
         return $this->render('wallet/index.html.twig', [
-            'wallet'       => $wallet,
+            'wallet' => $wallet,
             'transactions' => $transactions,
+            'refundRequestsByPaymentId' => $refundRequestsByPaymentId,
+            'asaasRefundEligiblePaymentIds' => $asaasRefundEligiblePaymentIds,
         ]);
+    }
+
+    #[Route('/payments/{id}/refund-request', name: 'refund_request', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function requestRefund(int $id, Request $request): Response
+    {
+        $payment = $this->paymentRepository->find($id);
+        if (!$payment || $payment->getUser() !== $this->getUser()) {
+            throw $this->createNotFoundException('Pagamento não encontrado.');
+        }
+
+        $token = $request->request->get('_token');
+        if (!is_string($token) || !$this->isCsrfTokenValid('wallet_refund_'.$id, $token)) {
+            $this->addFlash('error', 'Solicitação inválida.');
+            return $this->redirectToRoute('app_wallet_index');
+        }
+
+        $reason = trim($request->request->getString('reason'));
+        if ($payment->getType() !== Payment::TYPE_DEPOSIT
+            || $payment->getStatus() !== Payment::STATUS_APPROVED
+            || !$this->isAsaasPayment($payment)
+            || $reason === ''
+            || mb_strlen($reason) > 2000
+        ) {
+            $this->addFlash('error', 'Este pagamento não pode receber uma solicitação de estorno ou o motivo é inválido.');
+            return $this->redirectToRoute('app_wallet_index');
+        }
+
+        try {
+            $this->em->wrapInTransaction(function () use ($payment, $reason): void {
+                $this->em->refresh($payment, LockMode::PESSIMISTIC_WRITE);
+                if ($payment->getType() !== Payment::TYPE_DEPOSIT || $payment->getStatus() !== Payment::STATUS_APPROVED) {
+                    throw new \DomainException('O status do pagamento mudou.');
+                }
+                if ($this->refundRequests->findOneByPayment($payment) !== null) {
+                    throw new \DomainException('Já existe uma solicitação de estorno para este pagamento.');
+                }
+
+                $this->em->persist(new PaymentRefundRequest($payment, $reason));
+            });
+        } catch (\DomainException $e) {
+            $this->addFlash('error', $e->getMessage());
+            return $this->redirectToRoute('app_wallet_index');
+        } catch (UniqueConstraintViolationException) {
+            $this->addFlash('error', 'Já existe uma solicitação de estorno para este pagamento.');
+            return $this->redirectToRoute('app_wallet_index');
+        }
+
+        $this->addFlash('success', 'Solicitação enviada. Ela será analisada pela equipe antes de qualquer ação no gateway.');
+
+        return $this->redirectToRoute('app_wallet_index');
     }
 
     #[Route('/deposit', name: 'deposit', methods: ['GET', 'POST'])]
@@ -426,6 +498,13 @@ class WalletController extends AbstractController
         $response->headers->set('Cache-Control', 'no-store, private');
 
         return $response;
+    }
+
+    private function isAsaasPayment(Payment $payment): bool
+    {
+        $metadata = json_decode($payment->getGatewayResponse() ?? '{}', true);
+
+        return is_array($metadata) && ($metadata['gateway'] ?? null) === 'asaas';
     }
 
     /**

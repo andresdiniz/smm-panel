@@ -86,6 +86,11 @@ final class StubPaymentGateway implements PaymentGatewayInterface
         return $payment->getStatus();
     }
 
+    public function reconcileApprovedPayment(Payment $payment): bool
+    {
+        return false;
+    }
+
     private function creditWallet(User $user, int $cents): void
     {
         $wallet = $this->em->getRepository(Wallet::class)->findOneBy(['user' => $user]);

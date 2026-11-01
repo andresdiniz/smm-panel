@@ -1,0 +1,55 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block page_title %}Solicitações de estorno{% endblock %}
+
+{% block admin_content %}
+<main style="padding:24px;display:grid;gap:18px">
+  <h1 style="font-size:1.1rem;color:#f0f3ff">Solicitações de estorno</h1>
+  <p style="color:#9196b0;font-size:.82rem">A aprovação reserva o saldo líquido na carteira e solicita o estorno ao Asaas. O resultado depende da confirmação do gateway via webhook. Solicitações em processamento exigem conferência manual no Asaas.</p>
+  {% for type, messages in app.flashes %}
+    {% for message in messages %}
+      <div role="status" style="padding:10px 14px;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#dde1f0">{{ message }}</div>
+    {% endfor %}
+  {% endfor %}
+  <div style="overflow:auto;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px">
+    <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+      <thead><tr>
+        {% for heading in ['Pedido de estorno','Pagamento','Usuário','Valor líquido','Motivo','Status','Revisão'] %}
+          <th style="padding:11px;text-align:left;color:#9196b0;border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap">{{ heading }}</th>
+        {% endfor %}
+      </tr></thead>
+      <tbody>
+      {% for refund in refundRequests %}
+        {% set payment = refund.payment %}
+        <tr style="border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top">
+          <td style="padding:11px;color:#dde1f0">#{{ refund.id }}<br><small style="color:#6b708a">{{ refund.requestedAt|date('d/m/Y H:i') }}</small></td>
+          <td style="padding:11px;color:#dde1f0">#{{ payment.id }}<br><small style="color:#6b708a">{{ payment.status }} · {{ payment.externalId ?? 'sem ID externo' }}</small></td>
+          <td style="padding:11px;color:#dde1f0">{{ refund.user.name }}<br><small style="color:#6b708a">{{ refund.user.email }}</small></td>
+          <td style="padding:11px;color:#dde1f0">R$ {{ ((payment.amountCents - payment.feeCents) / 100)|number_format(2, ',', '.') }}</td>
+          <td style="padding:11px;color:#9196b0;max-width:260px;white-space:pre-wrap">{{ refund.reason }}</td>
+          <td style="padding:11px;color:#f59e0b">{{ refund.status|capitalize }}{% if refund.adminNote %}<br><small style="color:#9196b0">{{ refund.adminNote }}</small>{% endif %}</td>
+          <td style="padding:11px;min-width:220px">
+            {% if refund.status == 'pending' %}
+              <form method="post" action="{{ path('admin_payment_refund_approve', {id: refund.id}) }}" style="display:grid;gap:7px;margin-bottom:8px">
+                <input type="hidden" name="_token" value="{{ csrf_token('approve_refund_' ~ refund.id) }}">
+                <input name="admin_note" maxlength="2000" placeholder="Observação (opcional)" style="padding:7px;background:#161a24;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#dde1f0">
+                <button type="submit" style="padding:7px;border:0;border-radius:6px;background:#01868d;color:white">Aprovar e solicitar ao Asaas</button>
+              </form>
+              <form method="post" action="{{ path('admin_payment_refund_reject', {id: refund.id}) }}" style="display:grid;gap:7px">
+                <input type="hidden" name="_token" value="{{ csrf_token('reject_refund_' ~ refund.id) }}">
+                <input name="admin_note" maxlength="2000" required placeholder="Motivo da recusa" style="padding:7px;background:#161a24;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#dde1f0">
+                <button type="submit" style="padding:7px;border:0;border-radius:6px;background:#7f1d1d;color:white">Recusar</button>
+              </form>
+            {% else %}
+              <span style="color:#6b708a">{{ refund.reviewedAt ? refund.reviewedAt|date('d/m/Y H:i') : '—' }}</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" style="padding:28px;text-align:center;color:#6b708a">Nenhuma solicitação de estorno registrada.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</main>
+{% endblock %}

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\AffiliateCommission;
+use App\Entity\User;
 use App\Repository\AffiliateCommissionRepository;
 use App\Repository\CrmContactRepository;
 use App\Repository\OrderRepository;
@@ -17,6 +18,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
+use Symfony\Component\HttpFoundation\UrlGeneratorInterface;
+use Symfony\Component\HttpFoundation\UriSigner;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -32,6 +36,7 @@ class CrmController extends AbstractController
         private readonly AffiliateCommissionRepository $commissionRepo,
         private readonly AffiliateService              $affiliateService,
         private readonly EntityManagerInterface        $em,
+        private readonly LoggerInterface               $logger,
     ) {}
 
     // ─── Dashboard principal ─────────────────────────────────────────────
@@ -63,6 +68,64 @@ class CrmController extends AbstractController
             'orders'     => $orders,
             'totalSpent' => $totalSpent,
         ]);
+    }
+
+    #[Route('/user/{id}/send-email', name: 'send_user_email', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function sendUserEmail(
+        int $id,
+        Request $request,
+        MailerInterface $mailer,
+        UriSigner $uriSigner,
+    ): Response {
+        $user = $this->userRepository->find($id);
+        if (!$user) {
+            throw $this->createNotFoundException();
+        }
+
+        $token = $request->request->get('_token');
+        if (!is_string($token) || !$this->isCsrfTokenValid('crm_user_email_'.$id, $token)) {
+            $this->addFlash('error', 'Token inválido.');
+            return $this->redirectToRoute('app_admin_crm_user_profile', ['id' => $id]);
+        }
+
+        if (!$user->isActive() || !$user->hasMarketingConsent()) {
+            $this->addFlash('error', 'Este usuário não autorizou o recebimento de comunicações de marketing.');
+            return $this->redirectToRoute('app_admin_crm_user_profile', ['id' => $id]);
+        }
+
+        $subject = trim($request->request->getString('subject'));
+        $body = trim($request->request->getString('body'));
+        if ($subject === '' || mb_strlen($subject) > 180 || preg_match('/[\r\n]/', $subject) || $body === '' || mb_strlen($body) > 10000) {
+            $this->addFlash('error', 'Informe um assunto de até 180 caracteres e uma mensagem de até 10.000 caracteres.');
+            return $this->redirectToRoute('app_admin_crm_user_profile', ['id' => $id]);
+        }
+
+        $unsubscribeUrl = $uriSigner->sign(
+            $this->generateUrl(
+                'app_marketing_unsubscribe',
+                ['id' => $user->getId()],
+                UrlGeneratorInterface::ABSOLUTE_URL,
+            ),
+            new \DateInterval('P90D'),
+        );
+
+        try {
+            $mailer->send((new Email())
+                ->from('noreply@acheireviews.com.br')
+                ->to($user->getEmail())
+                ->subject($subject)
+                ->html($this->renderEmailHtml($user->getName(), $subject, $body, $unsubscribeUrl)));
+            $this->addFlash('success', 'E-mail enviado para o usuário.');
+        } catch (\Throwable $e) {
+            $this->logger->error('Falha ao enviar e-mail de marketing individual.', [
+                'user_id' => $user->getId(),
+                'exception' => $e::class,
+            ]);
+            $this->addFlash('error', 'Não foi possível enviar o e-mail. Verifique o log do sistema.');
+            throw $e;
+        }
+
+        return $this->redirectToRoute('app_admin_crm_user_profile', ['id' => $id]);
     }
 
     // ─── Pagar comissões pendentes de um afiliado ────────────────────────
@@ -100,7 +163,7 @@ class CrmController extends AbstractController
 
     // ─── Envio de campanha de e-mail ─────────────────────────────────────
     #[Route('/send-marketing', name: 'send_marketing', methods: ['POST'])]
-    public function sendMarketing(Request $request, MailerInterface $mailer): Response
+    public function sendMarketing(Request $request, MailerInterface $mailer, UriSigner $uriSigner): Response
     {
         $token = $request->request->get('_token');
         if (!is_string($token) || !$this->isCsrfTokenValid('crm_send_marketing', $token)) {
@@ -108,14 +171,49 @@ class CrmController extends AbstractController
             return $this->redirectToRoute('app_admin_crm_dashboard');
         }
 
-        $subject     = trim($request->request->get('subject', ''));
-        $body        = trim($request->request->get('body', ''));
-        $minSpent    = (int) (((float) $request->request->get('min_spent', 0)) * 100);
-        $maxSpent    = $request->request->get('max_spent') !== ''
-            ? (int) (((float) $request->request->get('max_spent', 0)) * 100)
-            : null;
-        $utmSource   = $request->request->get('utm_source') ?: null;
-        $segment     = $request->request->get('segment') ?: null;
+        $rawSubject = $request->request->get('subject', '');
+        $rawBody = $request->request->get('body', '');
+        if (!is_string($rawSubject) || !is_string($rawBody)) {
+            $this->addFlash('error', 'Assunto ou mensagem inválidos.');
+            return $this->redirectToRoute('app_admin_crm_dashboard');
+        }
+        $subject = trim($rawSubject);
+        $body = trim($rawBody);
+        if ($subject === '' || mb_strlen($subject) > 180 || preg_match('/[\r\n]/', $subject) || $body === '' || mb_strlen($body) > 10000) {
+            $this->addFlash('error', 'Informe um assunto de até 180 caracteres e uma mensagem de até 10.000 caracteres.');
+            return $this->redirectToRoute('app_admin_crm_dashboard');
+        }
+
+        $rawMinSpent = $request->request->get('min_spent', '0');
+        $rawMaxSpent = $request->request->get('max_spent', '');
+        if (!is_string($rawMinSpent) || !is_string($rawMaxSpent)
+            || !is_numeric($rawMinSpent)
+            || ($rawMaxSpent !== '' && !is_numeric($rawMaxSpent))
+            || (float) $rawMinSpent < 0
+            || ($rawMaxSpent !== '' && (float) $rawMaxSpent < 0)
+        ) {
+            $this->addFlash('error', 'Os valores mínimos e máximos da segmentação são inválidos.');
+            return $this->redirectToRoute('app_admin_crm_dashboard');
+        }
+        $minSpent = (int) round((float) $rawMinSpent * 100);
+        $maxSpent = $rawMaxSpent !== '' ? (int) round((float) $rawMaxSpent * 100) : null;
+        if ($maxSpent !== null && $maxSpent < $minSpent) {
+            $this->addFlash('error', 'O gasto máximo não pode ser menor que o mínimo.');
+            return $this->redirectToRoute('app_admin_crm_dashboard');
+        }
+
+        $rawUtmSource = $request->request->get('utm_source');
+        $rawSegment = $request->request->get('segment');
+        if (($rawUtmSource !== null && !is_string($rawUtmSource)) || ($rawSegment !== null && !is_string($rawSegment))) {
+            $this->addFlash('error', 'Filtro de campanha inválido.');
+            return $this->redirectToRoute('app_admin_crm_dashboard');
+        }
+        $utmSource = $rawUtmSource ?: null;
+        $segment = $rawSegment ?: null;
+        if ($segment !== null && !in_array($segment, ['new', 'active', 'whale'], true)) {
+            $this->addFlash('error', 'Segmento de campanha inválido.');
+            return $this->redirectToRoute('app_admin_crm_dashboard');
+        }
         $previewOnly = $request->request->getBoolean('preview_only');
 
         $allUsers   = $this->userRepository->findCrmUsers(500);
@@ -129,36 +227,47 @@ class CrmController extends AbstractController
             if ($maxSpent !== null && $spent > $maxSpent) continue;
             if ($utmSource && $row['utmSource'] !== $utmSource) continue;
             if ($segment   && $seg !== $segment) continue;
-            if (!$row['user']->isActive()) continue;
+            if (!$row['user']->isActive() || !$row['user']->hasMarketingConsent()) continue;
 
-            $recipients[] = ['name' => $row['user']->getName(), 'email' => $row['user']->getEmail()];
+            $recipients[] = ['user' => $row['user'], 'name' => $row['user']->getName(), 'email' => $row['user']->getEmail()];
         }
 
         $sent = 0;
-        $errors = [];
-        if (!$previewOnly && $subject && $body) {
+        $errorCount = 0;
+        if (!$previewOnly) {
             foreach ($recipients as $r) {
                 try {
+                    $unsubscribeUrl = $uriSigner->sign(
+                        $this->generateUrl(
+                            'app_marketing_unsubscribe',
+                            ['id' => $r['user']->getId()],
+                            UrlGeneratorInterface::ABSOLUTE_URL,
+                        ),
+                        new \DateInterval('P90D'),
+                    );
                     $email = (new Email())
                         ->from('noreply@acheireviews.com.br')
                         ->to($r['email'])
                         ->subject($subject)
-                        ->html($this->renderEmailHtml($r['name'], $subject, $body));
+                        ->html($this->renderEmailHtml($r['name'], $subject, $body, $unsubscribeUrl));
                     $mailer->send($email);
                     $sent++;
                 } catch (\Throwable $e) {
-                    $errors[] = $r['email'] . ': ' . $e->getMessage();
+                    ++$errorCount;
+                    $this->logger->error('Falha no envio de campanha de marketing.', [
+                        'user_id' => $r['user']->getId(),
+                        'exception' => $e::class,
+                    ]);
                 }
             }
         }
 
         $this->addFlash('crm_campaign', [
-            'preview'    => $previewOnly,
-            'recipients' => $recipients,
-            'sent'       => $sent,
-            'errors'     => $errors,
-            'subject'    => $subject,
-            'body'       => $body,
+            'preview' => $previewOnly,
+            'recipientCount' => count($recipients),
+            'sent' => $sent,
+            'errorCount' => $errorCount,
+            'subject' => $subject,
         ]);
 
         return $this->redirectToRoute('app_admin_crm_dashboard');
@@ -218,6 +327,10 @@ class CrmController extends AbstractController
             'revenueMonthCents' => $this->paymentRepository->sumApprovedSince($month),
             'newThisMonth'      => $newThisMonth,
             'activeContacts'    => count($this->contactRepository->findRecentlyActive(30, 999)),
+            'marketingOptIns'   => count(array_filter(
+                $crmUsers,
+                static fn (array $row): bool => $row['user']->isActive() && $row['user']->hasMarketingConsent(),
+            )),
         ];
 
         $globalStats   = $this->commissionRepo->globalStats();
@@ -278,10 +391,11 @@ class CrmController extends AbstractController
         return array_values($rows);
     }
 
-    private function renderEmailHtml(string $name, string $subject, string $body): string
+    private function renderEmailHtml(string $name, string $subject, string $body, string $unsubscribeUrl): string
     {
         $safeBody = nl2br(htmlspecialchars($body));
         $safeName = htmlspecialchars($name);
+        $safeUnsubscribeUrl = htmlspecialchars($unsubscribeUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         return <<<HTML
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden">
@@ -293,7 +407,7 @@ class CrmController extends AbstractController
             <div style="font-size:15px;color:#444;line-height:1.7">{$safeBody}</div>
           </div>
           <div style="background:#f5f5f5;padding:16px 32px;font-size:11px;color:#999;text-align:center">
-            PulseSMM &mdash; Para cancelar o recebimento, entre em contato conosco.
+            PulseSMM &mdash; <a href="{$safeUnsubscribeUrl}">Cancelar recebimento de e-mails de marketing</a>.
           </div>
         </div>
         HTML;

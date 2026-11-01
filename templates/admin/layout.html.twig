@@ -203,6 +203,14 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
       Histórico de Pagamentos
     </a>
+    <a href="{{ path('admin_payment_refund_index') }}" class="{{ route starts with 'admin_payment_refund' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+      Solicitações de estorno
+    </a>
+    <a href="{{ path('admin_cron_log_health') }}" class="{{ route == 'admin_cron_log_health' ? 'active' }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+      Saúde das operações
+    </a>
     <a href="{{ path('admin_wallet_transaction_index') }}" class="{{ route starts with 'admin_wallet' ? 'active' }}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
       Carteiras / Transações

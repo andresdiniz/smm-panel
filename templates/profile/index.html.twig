@@ -302,6 +302,15 @@
         <span class="pro__hint">Para alterar o e-mail entre em contato com o suporte.</span>
       </div>
 
+      <label class="pro__field">
+        <span class="pro__label">Comunicações de marketing</span>
+        <span class="pro__hint">Receba novidades e ofertas. Você pode retirar sua autorização quando quiser.</span>
+        <span>
+          <input type="checkbox" name="marketing_consent" value="1" {% if user.marketingConsent %}checked{% endif %}>
+          Quero receber e-mails com novidades e ofertas
+        </span>
+      </label>
+
       <button type="submit" class="pro__submit">
         <i data-lucide="save" width="15" height="15"></i>
         Salvar alterações

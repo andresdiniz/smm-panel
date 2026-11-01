@@ -14,6 +14,7 @@ use App\Repository\ServiceRepository;
 use App\Repository\WalletRepository;
 use App\Smm\Exception\ProviderBusinessException;
 use App\Smm\SmmProviderRegistry;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -114,8 +115,6 @@ class OrderController extends AbstractController
         }
 
         // ── Debita saldo e persiste pedido (STATUS_PENDING) ──────────────
-        $wallet->debit($amountCents);
-
         $order = new Order();
         $order->setUser($user);
         $order->setService($service);
@@ -124,9 +123,21 @@ class OrderController extends AbstractController
         $order->setAmountCents($amountCents);
         $order->setStatus(Order::STATUS_PENDING);
 
-        $this->em->persist($order);
-        $this->em->persist($wallet);
-        $this->em->flush(); // <-- pedido + débito persistidos; a partir daqui o ID existe
+        try {
+            $this->em->wrapInTransaction(function () use ($wallet, $amountCents, $order): void {
+                $this->em->refresh($wallet, LockMode::PESSIMISTIC_WRITE);
+                if ($wallet->getBalanceCents() < $amountCents) {
+                    throw new \DomainException('Saldo insuficiente. Recarregue sua carteira.');
+                }
+
+                $wallet->debit($amountCents);
+                $this->em->persist($order);
+                $this->em->persist($wallet);
+            });
+        } catch (\DomainException) {
+            $this->addFlash('error', 'Saldo insuficiente. Recarregue sua carteira.');
+            return $this->redirectToRoute('app_order_new');
+        }
 
         // ── Envia ao provider AGORA (síncrono) ────────────────────────
         $provider = $this->registry->get($slug);
