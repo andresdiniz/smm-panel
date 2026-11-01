@@ -3,6 +3,7 @@ twig:
     globals:
         site_url: '%seo.site_url%'
         google_tag_manager_id: '%seo.gtm_id%'
+        clarity_project_id: '%seo.clarity_id%'
         google_site_verification: '%seo.google_verification%'
         bing_site_verification: '%seo.bing_verification%'
     # Recompila o cache Twig sempre que o .twig for mais novo que o .php compilado

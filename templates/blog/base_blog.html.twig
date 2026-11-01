@@ -397,7 +397,7 @@
 <footer class="b-footer">
     © {{ 'now'|date('Y') }} SMM Panel — Todos os direitos reservados
     &nbsp;·&nbsp; <a href="{{ path('blog_index') }}">Blog</a>
-    {% if google_tag_manager_id starts with 'GTM-' %}
+    {% if google_tag_manager_id starts with 'GTM-' or clarity_project_id is not empty %}
         &nbsp;·&nbsp; <button class="cookie-preferences-link" type="button" data-cookie-preferences>Preferências de cookies</button>
     {% endif %}
 </footer>

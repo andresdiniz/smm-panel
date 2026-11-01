@@ -1,6 +1,6 @@
 {% set currentRoute = app.request.attributes.get('_route')|default('') %}
 {% set privateAnalyticsPage = app.user or currentRoute starts with 'admin_' or currentRoute starts with 'app_dashboard' or currentRoute starts with 'app_wallet_' or currentRoute starts with 'app_order_' or currentRoute starts with 'app_profile' or currentRoute starts with 'app_transaction_' or currentRoute starts with 'support_' or currentRoute starts with 'affiliate_' or currentRoute in ['app_login', 'app_logout', 'app_register', 'app_forgot_password', 'app_reset_password'] %}
-{% if not privateAnalyticsPage and google_tag_manager_id starts with 'GTM-' %}
+{% if not privateAnalyticsPage and (google_tag_manager_id starts with 'GTM-' or clarity_project_id is not empty) %}
     <style>
         .cookie-preferences-link { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
         .cookie-consent { position: fixed; z-index: 1000; right: 16px; bottom: 16px; width: min(440px, calc(100vw - 32px)); padding: 20px; border: 1px solid #d5dfdf; border-radius: 16px; background: #fff; color: #172a2c; box-shadow: 0 16px 48px rgb(15 35 38 / 20%); font: 14px/1.55 system-ui, sans-serif; }
@@ -14,7 +14,7 @@
     </style>
     <section class="cookie-consent" id="cookie-consent" role="dialog" aria-modal="false" aria-labelledby="cookie-consent-title" hidden>
         <strong id="cookie-consent-title">Sua privacidade importa</strong>
-        <p>Usamos o Google Tag Manager para medições opcionais somente após sua autorização. Você pode aceitar ou recusar e alterar a escolha depois. <a href="{{ path('cookies') }}">Política de Cookies</a>.</p>
+        <p>Usamos Google Tag Manager e Microsoft Clarity para medições opcionais somente após sua autorização. Você pode aceitar ou recusar e alterar a escolha depois. <a href="{{ path('cookies') }}">Política de Cookies</a>.</p>
         <div class="cookie-consent__actions">
             <button class="cookie-consent__button cookie-consent__button--accept" type="button" data-cookie-choice="granted">Aceitar análise</button>
             <button class="cookie-consent__button" type="button" data-cookie-choice="denied">Recusar</button>
@@ -23,15 +23,19 @@
     <script>
         (function () {
             var containerId = {{ google_tag_manager_id|json_encode(constant('JSON_HEX_TAG'))|raw }};
-            if (!/^GTM-[A-Z0-9]+$/.test(containerId)) return;
+            var clarityId = {{ clarity_project_id|json_encode(constant('JSON_HEX_TAG'))|raw }};
+            var hasTagManager = /^GTM-[A-Z0-9]+$/.test(containerId);
+            var hasClarity = /^[A-Za-z0-9]+$/.test(clarityId);
+            if (!hasTagManager && !hasClarity) return;
 
             var banner = document.getElementById('cookie-consent');
             var preferenceButton = document.querySelector('[data-cookie-preferences]');
-            var loaded = false;
+            var tagManagerLoaded = false;
+            var clarityLoaded = false;
 
             function loadTagManager() {
-                if (loaded) return;
-                loaded = true;
+                if (!hasTagManager || tagManagerLoaded) return;
+                tagManagerLoaded = true;
                 window.dataLayer = window.dataLayer || [];
                 window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
                 window.gtag('consent', 'default', {
@@ -47,8 +51,27 @@
                 script.async = true;
                 script.src = 'https://www.googletagmanager.com/gtm.js?id=' + containerId;
                 script.onerror = function () {
-                    loaded = false;
+                    tagManagerLoaded = false;
                     console.error('Não foi possível carregar o Google Tag Manager.');
+                };
+                document.head.appendChild(script);
+            }
+
+            function loadClarity() {
+                if (!hasClarity) return;
+                window.clarity = window.clarity || function () {
+                    (window.clarity.q = window.clarity.q || []).push(arguments);
+                };
+                window.clarity('consentv2', {ad_Storage: 'granted', analytics_Storage: 'granted'});
+                if (clarityLoaded) return;
+                clarityLoaded = true;
+
+                var script = document.createElement('script');
+                script.async = true;
+                script.src = 'https://www.clarity.ms/tag/' + clarityId + '?ref=bwt';
+                script.onerror = function () {
+                    clarityLoaded = false;
+                    console.error('Não foi possível carregar o Microsoft Clarity.');
                 };
                 document.head.appendChild(script);
             }
@@ -61,18 +84,24 @@
                 }
                 banner.hidden = true;
                 if (choice === 'granted') {
-                    if (loaded && window.gtag) {
+                    if (tagManagerLoaded && window.gtag) {
                         window.gtag('consent', 'update', {analytics_storage: 'granted'});
                     } else {
                         loadTagManager();
                     }
-                } else if (window.gtag) {
-                    window.gtag('consent', 'update', {
-                        analytics_storage: 'denied',
-                        ad_storage: 'denied',
-                        ad_user_data: 'denied',
-                        ad_personalization: 'denied'
-                    });
+                    loadClarity();
+                } else {
+                    if (window.gtag) {
+                        window.gtag('consent', 'update', {
+                            analytics_storage: 'denied',
+                            ad_storage: 'denied',
+                            ad_user_data: 'denied',
+                            ad_personalization: 'denied'
+                        });
+                    }
+                    if (window.clarity) {
+                        window.clarity('consentv2', {ad_Storage: 'denied', analytics_Storage: 'denied'});
+                    }
                 }
             }
 
@@ -93,7 +122,10 @@
             } catch (error) {
                 console.warn('Não foi possível ler a preferência de cookies neste navegador.', error);
             }
-            if (choice === 'granted') loadTagManager();
+            if (choice === 'granted') {
+                loadTagManager();
+                loadClarity();
+            }
             if (choice !== 'granted' && choice !== 'denied') banner.hidden = false;
         })();
     </script>

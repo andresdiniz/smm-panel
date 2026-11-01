@@ -5,7 +5,10 @@ parameters:
     asaas.environment_default: 'production'
     seo.empty: ''
     seo.site_url: 'https://acheireviews.com.br'
-    seo.gtm_id: '%env(default:seo.empty:GOOGLE_TAG_MANAGER_ID)%'
+    seo.gtm_default: 'GTM-KJFFVP98'
+    seo.gtm_id: '%env(default:seo.gtm_default:GOOGLE_TAG_MANAGER_ID)%'
+    seo.clarity_default: 'z6lreso6da'
+    seo.clarity_id: '%env(default:seo.clarity_default:CLARITY_PROJECT_ID)%'
     seo.google_verification: '%env(default:seo.empty:GOOGLE_SITE_VERIFICATION)%'
     seo.bing_verification: '%env(default:seo.empty:BING_SITE_VERIFICATION)%'
 
