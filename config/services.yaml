@@ -3,6 +3,11 @@ parameters:
     admin_email: '%env(ADMIN_EMAIL)%'
     affiliate.default_rate: '%env(float:AFFILIATE_DEFAULT_RATE)%'
     asaas.environment_default: 'production'
+    seo.empty: ''
+    seo.site_url: 'https://acheireviews.com.br'
+    seo.gtm_id: '%env(default:seo.empty:GOOGLE_TAG_MANAGER_ID)%'
+    seo.google_verification: '%env(default:seo.empty:GOOGLE_SITE_VERIFICATION)%'
+    seo.bing_verification: '%env(default:seo.empty:BING_SITE_VERIFICATION)%'
 
 services:
     _defaults:

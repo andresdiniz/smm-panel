@@ -1,5 +1,10 @@
 twig:
     file_name_pattern: '*.twig'
+    globals:
+        site_url: '%seo.site_url%'
+        google_tag_manager_id: '%seo.gtm_id%'
+        google_site_verification: '%seo.google_verification%'
+        bing_site_verification: '%seo.bing_verification%'
     # Recompila o cache Twig sempre que o .twig for mais novo que o .php compilado
     # Necessario na Hostinger onde o deploy cria novos git_clones com timestamps frescos
     auto_reload: true

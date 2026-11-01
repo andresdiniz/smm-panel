@@ -5,10 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{{ title|default('PulseSMM') }}{% endblock %}</title>
     <meta name="description" content="{% block description %}{{ description|default('Plataforma profissional de SMM Panel com automação, integração e foco em performance.') }}{% endblock %}">
-    <meta name="robots" content="index,follow">
+    {% set currentRoute = app.request.attributes.get('_route')|default('') %}
+    {% set noIndexRoutes = ['app_login', 'app_logout', 'app_register', 'app_forgot_password', 'app_reset_password'] %}
+    {% set privatePage = app.user or currentRoute starts with 'admin_' or currentRoute starts with 'app_dashboard' or currentRoute starts with 'app_wallet_' or currentRoute starts with 'app_order_' or currentRoute starts with 'app_profile' or currentRoute starts with 'app_transaction_' or currentRoute starts with 'support_' or currentRoute starts with 'affiliate_' or currentRoute in noIndexRoutes %}
+    {% set canonicalPath = currentRoute == 'app_privacy' ? '/politica-de-privacidade' : app.request.pathInfo %}
+    <meta name="robots" content="{{ privatePage ? 'noindex,nofollow' : 'index,follow' }}">
     <meta name="theme-color" content="#087f86">
     <meta name="color-scheme" content="light dark">
-    <link rel="canonical" href="{{ app.request.uri }}">
+    {% if not privatePage %}
+        <link rel="canonical" href="{{ site_url }}{{ canonicalPath }}">
+    {% endif %}
+    <meta property="og:site_name" content="PulseSMM">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ block('title')|striptags|trim }}">
+    <meta property="og:description" content="{{ block('description')|striptags|trim }}">
+    {% if google_site_verification %}
+        <meta name="google-site-verification" content="{{ google_site_verification|e('html_attr') }}">
+    {% endif %}
+    {% if bing_site_verification %}
+        <meta name="msvalidate.01" content="{{ bing_site_verification|e('html_attr') }}">
+    {% endif %}
     <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
     <link rel="stylesheet" href="{{ asset('styles/app-shell.css') }}">
     <link rel="stylesheet" href="{{ asset('styles/customer-panel.css') }}">
@@ -55,6 +71,9 @@
         <nav aria-label="Links institucionais">
             <a href="{{ path('app_terms') }}">Termos</a>
             <a href="{{ path('app_privacy') }}">Privacidade</a>
+            {% if not app.user and google_tag_manager_id starts with 'GTM-' %}
+                <button class="cookie-preferences-link" type="button" data-cookie-preferences>Preferências de cookies</button>
+            {% endif %}
             {% if app.user %}
                 <a href="{{ path('support_index') }}">Suporte</a>
             {% endif %}
@@ -68,5 +87,11 @@
             });
         }
     </script>
+    {% include 'partials/analytics_consent.html.twig' %}
+    {% if currentRoute == 'home' %}
+        <script type="application/ld+json">
+            {"@context":"https://schema.org","@type":"WebSite","name":"PulseSMM","url":"{{ site_url }}/","inLanguage":"pt-BR"}
+        </script>
+    {% endif %}
 </body>
 </html>

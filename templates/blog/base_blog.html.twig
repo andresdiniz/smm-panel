@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Blog{% endblock %} — SMM Panel</title>
     <meta name="description" content="{% block meta_description %}Dicas, tutoriais e novidades sobre SMM e marketing digital.{% endblock %}">
+    {% set currentRoute = app.request.attributes.get('_route')|default('') %}
+    {% set noIndexBlogPage = currentRoute == 'blog_search' %}
+    <meta name="robots" content="{{ noIndexBlogPage ? 'noindex,follow' : 'index,follow' }}">
+    {% if not noIndexBlogPage %}
+        <link rel="canonical" href="{{ site_url }}{{ app.request.pathInfo }}">
+    {% endif %}
+    <meta property="og:site_name" content="PulseSMM">
+    <meta property="og:type" content="{% block social_type %}website{% endblock %}">
+    <meta property="og:title" content="{% block social_title %}{{ block('title')|striptags|trim }}{% endblock %}">
+    <meta property="og:description" content="{{ block('meta_description')|striptags|trim }}">
+    {% if google_site_verification %}
+        <meta name="google-site-verification" content="{{ google_site_verification|e('html_attr') }}">
+    {% endif %}
+    {% if bing_site_verification %}
+        <meta name="msvalidate.01" content="{{ bing_site_verification|e('html_attr') }}">
+    {% endif %}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Lora:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -347,6 +363,9 @@
 <footer class="b-footer">
     © {{ 'now'|date('Y') }} SMM Panel — Todos os direitos reservados
     &nbsp;·&nbsp; <a href="{{ path('blog_index') }}">Blog</a>
+    {% if google_tag_manager_id starts with 'GTM-' %}
+        &nbsp;·&nbsp; <button class="cookie-preferences-link" type="button" data-cookie-preferences>Preferências de cookies</button>
+    {% endif %}
 </footer>
 
 <button id="back-top" aria-label="Voltar ao topo">
@@ -382,6 +401,7 @@
     if(bTop) bTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 })();
 </script>
+{% include 'partials/analytics_consent.html.twig' %}
 {% block scripts %}{% endblock %}
 </body>
 </html>

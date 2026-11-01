@@ -1,6 +1,4 @@
 User-agent: *
 Allow: /
-Disallow: /login
 Disallow: /admin
-Disallow: /dashboard
-Sitemap: /sitemap.xml
+Sitemap: https://acheireviews.com.br/sitemap.xml

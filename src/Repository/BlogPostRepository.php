@@ -92,6 +92,15 @@ class BlogPostRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /** @return list<BlogPost> */
+    public function findPublishedForSitemap(): array
+    {
+        return $this->findBy(
+            ['status' => BlogPostStatus::Published],
+            ['publishedAt' => 'DESC'],
+        );
+    }
+
     public function search(string $query, int $page = 1, int $limit = 10): Paginator
     {
         $qb = $this->createQueryBuilder('p')

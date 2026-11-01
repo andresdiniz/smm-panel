@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url><loc>{{ site_url }}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+    <url><loc>{{ site_url }}/servicos</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+    <url><loc>{{ site_url }}/como-funciona</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+    <url><loc>{{ site_url }}/blog</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+    <url><loc>{{ site_url }}/politica-de-privacidade</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+    <url><loc>{{ site_url }}/politica-de-cookies</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+    <url><loc>{{ site_url }}/termos</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+    {% for post in posts %}
+        <url>
+            <loc>{{ site_url }}/blog/{{ post.slug|url_encode }}</loc>
+            {% if post.publishedAt %}<lastmod>{{ post.publishedAt|date('Y-m-d') }}</lastmod>{% endif %}
+        </url>
+    {% endfor %}
+</urlset>
