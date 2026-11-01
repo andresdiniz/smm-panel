@@ -53,8 +53,7 @@
                  placeholder="ex: smmkings, justanother, asaas…"
                  required
                  style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
-                        padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none"
-                 onfocus="this.style.borderColor='#01868d'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
+                        padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none">
           <span style="font-size:.7rem;color:#3e4259">Identificador único (lowercase). Ex: smmkings, asaas, mercadopago.</span>
         </div>
 
@@ -66,8 +65,7 @@
                  placeholder="https://painel.exemplo.com/api/v2"
                  required
                  style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
-                        padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none"
-                 onfocus="this.style.borderColor='#01868d'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
+                        padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none">
         </div>
 
         {# API Key #}
@@ -80,16 +78,7 @@
                    {{ not credential ? 'required' : '' }}
                    style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
                           padding:9px 40px 9px 13px;border-radius:8px;font-size:.85rem;
-                          width:100%;outline:none;font-family:monospace"
-                   onfocus="this.style.borderColor='#01868d'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
-            <button type="button"
-                    onclick="var i=document.getElementById('f_key');i.type=i.type==='password'?'text':'password'"
-                    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
-                           background:none;border:none;color:#3e4259;cursor:pointer;padding:2px">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-              </svg>
-            </button>
+                          width:100%;outline:none;font-family:monospace">
           </div>
           {% if credential and apiKeyConfigured %}
             <span style="font-size:.7rem;color:#3e4259">Chave configurada. O valor não é exibido; deixe vazio para mantê-la.</span>
@@ -103,11 +92,42 @@
                  value=""
                  placeholder="{{ credential and credential.secretToken ? 'Deixe vazio para manter o token atual' : 'Webhook secret, bearer token…' }}"
                  style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
-                        padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none;font-family:monospace"
-                 onfocus="this.style.borderColor='#01868d'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
+                        padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none;font-family:monospace">
           {% if credential and credential.secretToken %}
             <span style="font-size:.7rem;color:#3e4259">Token configurado. O valor não é exibido; deixe vazio para mantê-lo.</span>
           {% endif %}
+        </div>
+
+        {# Moeda #}
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label for="f_currency" style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#3e4259">Moeda do provedor *</label>
+          <input id="f_currency" type="text" name="currency" maxlength="3"
+                 value="{{ credential ? credential.currency : 'BRL' }}"
+                 placeholder="BRL, USD, EUR, GBP…"
+                 required
+                 style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
+                        padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none;text-transform:uppercase">
+          <span style="font-size:.7rem;color:#3e4259">Use o código ISO de 3 letras. Ex: BRL, USD, EUR, GBP, CAD, AUD, MXN, ARS.</span>
+        </div>
+
+        {# Cotação #}
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label for="f_rate" style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#3e4259">Cotação para BRL</label>
+          <input id="f_rate" type="number" name="exchangeRate" step="0.000001" min="0"
+                 value="{{ credential ? credential.exchangeRate : 1 }}"
+                 style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
+                        padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none">
+          <span style="font-size:.7rem;color:#3e4259">Quantos reais vale 1 unidade da moeda do provedor. Ex: USD 5,40 = 5.400000.</span>
+        </div>
+
+        {# Lucro padrão #}
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label for="f_profit" style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#3e4259">Lucro padrão (%)</label>
+          <input id="f_profit" type="number" name="defaultProfitPercent" step="0.001" min="0"
+                 value="{{ credential ? credential.defaultProfitPercent : 0 }}"
+                 style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
+                        padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none">
+          <span style="font-size:.7rem;color:#3e4259">Usado quando um serviço não tiver percentual de ganho individual.</span>
         </div>
 
         <div id="asaas-webhook-help" hidden style="padding:13px 15px;border:1px solid rgba(1,134,141,.3);border-radius:8px;background:rgba(1,134,141,.08);color:#cbd5e1;font-size:.78rem;line-height:1.6">
@@ -116,8 +136,6 @@
             <code>{{ absolute_url(path('app_webhook_receive', {gateway: 'asaas'})) }}</code>,
             API versão 3, ativo e envio sequencial. O token cadastrado no webhook deve ser o mesmo campo
             <strong>Token Secreto</strong> acima (32–255 caracteres, sem espaços), nunca a chave de API.
-            Eventos recomendados: <code>PAYMENT_RECEIVED</code>, <code>PAYMENT_DELETED</code>,
-            <code>PAYMENT_CREDIT_CARD_CAPTURE_REFUSED</code> e <code>PAYMENT_REPROVED_BY_RISK_ANALYSIS</code>.
         </div>
 
         {# Ativo #}
@@ -136,7 +154,6 @@
                 style="display:inline-flex;align-items:center;gap:6px;padding:9px 22px;
                        border-radius:8px;background:#01868d;color:#fff;border:none;
                        font-size:.85rem;font-weight:600;cursor:pointer">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           {{ credential ? 'Salvar Alterações' : 'Cadastrar Provedor' }}
         </button>
         <a href="{{ path('admin_provider_credential_index') }}"

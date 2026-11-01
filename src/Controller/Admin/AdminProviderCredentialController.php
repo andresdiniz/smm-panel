@@ -150,6 +150,15 @@ class AdminProviderCredentialController extends AbstractController
             $credential->setSecretToken($secretToken);
         }
 
+        $currency = strtoupper(substr((string) ($request->request->get('currency') ?? 'BRL'), 0, 3));
+        $credential->setCurrency($currency !== '' ? $currency : 'BRL');
+
+        $exchangeRate = (float) ($request->request->get('exchangeRate') ?: 1);
+        $credential->setExchangeRate($exchangeRate > 0 ? $exchangeRate : 1.0);
+
+        $defaultProfit = (float) ($request->request->get('defaultProfitPercent') ?: 0);
+        $credential->setDefaultProfitPercent($defaultProfit);
+
         $this->em->persist($credential);
         $this->em->flush();
         $this->addFlash('success', 'Provedor atualizado.');
