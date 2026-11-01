@@ -35,6 +35,7 @@
   {% if ticket.isOpen() %}
   <div class="cp-form-card cp-reply-card">
     <form method="POST" class="cp-form">
+      <input type="hidden" name="_token" value="{{ csrf_token('support_reply_' ~ ticket.id) }}">
       <label for="body">Responder</label>
       <textarea id="body" name="body" rows="4" required maxlength="4000"
                 placeholder="Digite sua mensagem..."></textarea>

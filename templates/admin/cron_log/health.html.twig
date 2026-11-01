@@ -32,6 +32,58 @@
   </section>
 
   <section style="overflow:auto;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px">
+    <h2 style="margin:0 0 12px;color:#dde1f0;font-size:.95rem">Filas Messenger</h2>
+    {% if queueDepths is empty %}
+      <p style="color:#fbbf24">Não foi possível ler a tabela de filas.</p>
+    {% else %}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+        {% for queue, depth in queueDepths %}
+          <article style="padding:12px;background:#0d1016;border-radius:8px">
+            <small style="color:#6b708a">{{ queue }}</small>
+            <strong style="display:block;margin-top:5px;color:{{ queue == 'failed' and depth > 0 ? '#ef4444' : '#dde1f0' }}">{{ depth }}</strong>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+  <section style="overflow:auto;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px">
+    <h2 style="margin:0 0 12px;color:#dde1f0;font-size:.95rem">Workers Messenger</h2>
+    {% if workerHeartbeats is empty %}
+      <p style="color:#fbbf24">Nenhum heartbeat de worker registrado. Aplique a migration de monitoramento e reinicie os consumidores.</p>
+    {% else %}
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <thead><tr>{% for col in ['Transporte','Processo','Estado','Último sinal','Última mensagem processada','Mensagens','Última falha'] %}<th style="padding:8px;text-align:left;color:#6b708a">{{ col }}</th>{% endfor %}</tr></thead>
+        <tbody>
+          {% for worker in workerHeartbeats %}
+            <tr style="border-top:1px solid rgba(255,255,255,.05)">
+              <td style="padding:8px;color:#dde1f0">{{ worker.transport }}</td>
+              <td style="padding:8px;color:#9196b0">{{ worker.host }} · {{ worker.pid }}</td>
+              <td style="padding:8px;color:{{ worker.is_fresh ? '#22c55e' : '#f59e0b' }}">{{ worker.is_fresh ? 'Ativo' : 'Sem sinal' }}</td>
+              <td style="padding:8px;color:#9196b0">{{ worker.last_seen_at|date('d/m/Y H:i:s') }}</td>
+              <td style="padding:8px;color:#9196b0">{{ worker.last_processed_at ? worker.last_processed_at|date('d/m/Y H:i:s') : 'Ainda não processou' }}</td>
+              <td style="padding:8px;color:#9196b0">{{ worker.message_count }}</td>
+              <td style="padding:8px;color:#f87171">{{ worker.last_error_at ? worker.last_error_at|date('d/m/Y H:i:s') ~ ' · ' ~ worker.last_error_class : '—' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </section>
+
+  <section style="overflow:auto;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px">
+    <h2 style="margin:0 0 12px;color:#dde1f0;font-size:.95rem">Pagamentos pendentes há mais de 30 minutos</h2>
+    {% for payment in stalePayments %}
+      <article style="padding:10px 0;border-top:1px solid rgba(255,255,255,.05)">
+        <strong style="color:#fbbf24">Pagamento #{{ payment.id }} · {{ payment.method|upper }}</strong>
+        <span style="color:#9196b0"> · criado {{ payment.createdAt|date('d/m/Y H:i:s') }} · tentativas de reconciliação: {{ payment.reconciliationAttempts }} · última tentativa: {{ payment.lastReconciledAt ? payment.lastReconciledAt|date('d/m/Y H:i:s') : 'ainda não consultado' }}</span>
+      </article>
+    {% else %}
+      <p style="color:#22c55e">Nenhum pagamento externo pendente há mais de 30 minutos.</p>
+    {% endfor %}
+  </section>
+
+  <section style="overflow:auto;background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px">
     <h2 style="margin:0 0 12px;color:#dde1f0;font-size:.95rem">Execuções por rotina</h2>
     <table style="width:100%;border-collapse:collapse;font-size:.8rem">
       <thead><tr>{% for col in ['Rotina','Execuções','Falhas','Última execução','Média (ms)'] %}<th style="padding:8px;text-align:left;color:#6b708a">{{ col }}</th>{% endfor %}</tr></thead>

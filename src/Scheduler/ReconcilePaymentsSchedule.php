@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace App\Scheduler;
 
-use App\Billing\DynamicGatewayLoader;
 use App\Entity\CronLog;
-use App\Entity\Payment;
-use App\Message\SendDepositConfirmedEmailMessage;
-use Doctrine\DBAL\LockMode;
+use App\Repository\PaymentRepository;
+use App\Service\PaymentReconciliationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Scheduler\Attribute\AsCronTask;
 
 /**
@@ -23,8 +20,8 @@ final class ReconcilePaymentsSchedule
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly DynamicGatewayLoader   $gatewayLoader,
-        private readonly MessageBusInterface    $bus,
+        private readonly PaymentRepository $payments,
+        private readonly PaymentReconciliationService $reconciliation,
         private readonly LoggerInterface        $logger,
     ) {}
 
@@ -38,40 +35,15 @@ final class ReconcilePaymentsSchedule
 
         try {
             $cutoffMin = new \DateTimeImmutable('-2 minutes');
-            $cutoffMax = new \DateTimeImmutable('-48 hours');
-
-            $payments = $this->em->createQueryBuilder()
-                ->select('p')
-                ->from(Payment::class, 'p')
-                ->where('p.status = :status')
-                ->andWhere('p.createdAt <= :cutoffMin')
-                ->andWhere('p.createdAt >= :cutoffMax')
-                ->andWhere('p.externalId IS NOT NULL')
-                ->setParameter('status', Payment::STATUS_PENDING)
-                ->setParameter('cutoffMin', $cutoffMin)
-                ->setParameter('cutoffMax', $cutoffMax)
-                ->orderBy('p.createdAt', 'ASC')
-                ->setMaxResults(50)
-                ->getQuery()
-                ->getResult();
+            $retryBefore = new \DateTimeImmutable('-10 minutes');
+            $payments = $this->payments->findPendingForReconciliation($cutoffMin, $retryBefore);
 
             foreach ($payments as $payment) {
                 ++$processed;
                 try {
-                    $gateway = $this->gatewayLoader->load($this->resolveGatewaySlug($payment));
-                    $newStatus = $gateway->fetchStatus($payment);
-
-                    if ($newStatus === Payment::STATUS_APPROVED) {
-                        if ($gateway->reconcileApprovedPayment($payment)) {
-                            $this->bus->dispatch(new SendDepositConfirmedEmailMessage($payment->getId()));
-                            ++$approved;
-                        }
-                    } elseif (in_array($newStatus, [
-                        Payment::STATUS_FAILED,
-                        Payment::STATUS_CANCELLED,
-                        Payment::STATUS_REFUNDED,
-                    ], true)) {
-                        $this->updatePendingPaymentStatus($payment, $newStatus);
+                    $result = $this->reconciliation->reconcile($payment);
+                    if ($result === 'approved') {
+                        ++$approved;
                     }
                 } catch (\Throwable $e) {
                     ++$errors;
@@ -124,23 +96,4 @@ final class ReconcilePaymentsSchedule
         }
     }
 
-    private function resolveGatewaySlug(Payment $payment): string
-    {
-        $metadata = json_decode($payment->getGatewayResponse() ?? '{}', true);
-        $gateway = is_array($metadata) ? ($metadata['gateway'] ?? null) : null;
-
-        return is_string($gateway) && preg_match('/^[a-z0-9][a-z0-9_-]{0,63}$/i', $gateway) === 1
-            ? strtolower($gateway)
-            : 'asaas';
-    }
-
-    private function updatePendingPaymentStatus(Payment $payment, string $status): void
-    {
-        $this->em->wrapInTransaction(function () use ($payment, $status): void {
-            $this->em->refresh($payment, LockMode::PESSIMISTIC_WRITE);
-            if ($payment->getStatus() === Payment::STATUS_PENDING) {
-                $payment->setStatus($status);
-            }
-        });
-    }
 }

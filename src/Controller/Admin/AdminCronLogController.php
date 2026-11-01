@@ -6,7 +6,9 @@ namespace App\Controller\Admin;
 
 use App\Entity\CronLog;
 use App\Repository\CronLogRepository;
+use App\Repository\MessengerHealthRepository;
 use App\Repository\OrderLogRepository;
+use App\Repository\PaymentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -35,13 +37,23 @@ class AdminCronLogController extends AbstractController
     }
 
     #[Route('/saude', name: 'health', methods: ['GET'])]
-    public function health(CronLogRepository $cronLogs, OrderLogRepository $orderLogs): Response
-    {
+    public function health(
+        CronLogRepository $cronLogs,
+        OrderLogRepository $orderLogs,
+        MessengerHealthRepository $messengerHealth,
+        PaymentRepository $payments,
+    ): Response {
         $connection = $this->em->getConnection();
         $schemaManager = $connection->createSchemaManager();
         $schedulerHeartbeat = $cronLogs->findOneBy(['command' => 'scheduler:main:heartbeat']);
         $schedulerHeartbeatFresh = $schedulerHeartbeat !== null
             && $schedulerHeartbeat->getStartedAt() >= new \DateTimeImmutable('-3 minutes');
+        $workerHeartbeats = array_map(
+            static fn (array $worker): array => $worker + [
+                'is_fresh' => new \DateTimeImmutable($worker['last_seen_at']) >= new \DateTimeImmutable('-3 minutes'),
+            ],
+            $messengerHealth->getWorkerHeartbeats(),
+        );
         $failedMessengerMessages = null;
         if ($schemaManager->tablesExist(['messenger_messages'])) {
             $failedMessengerMessages = (int) $connection->createQueryBuilder()
@@ -60,6 +72,9 @@ class AdminCronLogController extends AbstractController
             'schedulerHeartbeat' => $schedulerHeartbeat,
             'schedulerHeartbeatFresh' => $schedulerHeartbeatFresh,
             'failedMessengerMessages' => $failedMessengerMessages,
+            'queueDepths' => $messengerHealth->getQueueDepths(),
+            'workerHeartbeats' => $workerHeartbeats,
+            'stalePayments' => $payments->findPendingOlderThan(new \DateTimeImmutable('-30 minutes'), 20),
         ]);
     }
 }

@@ -136,6 +136,33 @@ final class ProtectedWorkflowsTest extends WebTestCase
         self::assertRedirectPath('/admin/crm', $client);
     }
 
+    public function testSupportTicketCreationRejectsMissingCsrfToken(): void
+    {
+        $client = $this->createIsolatedClient();
+        $this->authenticate($client, $this->createUser());
+
+        $client->request('POST', '/suporte/novo', [
+            'subject' => 'Ajuda com pedido',
+            'body' => 'Preciso de ajuda.',
+        ]);
+
+        self::assertRedirectPath('/suporte/novo', $client);
+    }
+
+    public function testSupportTicketCreationRejectsNonScalarCsrfToken(): void
+    {
+        $client = $this->createIsolatedClient();
+        $this->authenticate($client, $this->createUser());
+
+        $client->request('POST', '/suporte/novo', [
+            '_token' => ['invalid'],
+            'subject' => 'Ajuda com pedido',
+            'body' => 'Preciso de ajuda.',
+        ]);
+
+        self::assertSame(400, $client->getResponse()->getStatusCode(), self::responseTitle($client));
+    }
+
     private function createIsolatedClient(): AbstractBrowser
     {
         static::ensureKernelShutdown();

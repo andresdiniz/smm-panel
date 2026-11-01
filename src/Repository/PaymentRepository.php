@@ -51,6 +51,71 @@ class PaymentRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
+    /**
+     * @return list<Payment>
+     */
+    public function findPendingForReconciliation(
+        \DateTimeImmutable $eligibleBefore,
+        \DateTimeImmutable $retryBefore,
+        int $limit = 50,
+    ): array {
+        return $this->createQueryBuilder('p')
+            ->where('p.status = :status')
+            ->andWhere('p.type = :type')
+            ->andWhere('p.createdAt <= :eligible_before')
+            ->andWhere('p.externalId IS NOT NULL')
+            ->andWhere('(p.lastReconciledAt IS NULL OR p.lastReconciledAt <= :retry_before)')
+            ->setParameter('status', Payment::STATUS_PENDING)
+            ->setParameter('type', Payment::TYPE_DEPOSIT)
+            ->setParameter('eligible_before', $eligibleBefore)
+            ->setParameter('retry_before', $retryBefore)
+            ->orderBy('p.lastReconciledAt', 'ASC')
+            ->addOrderBy('p.createdAt', 'ASC')
+            ->setMaxResults(max(1, min($limit, 100)))
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @return list<Payment>
+     */
+    public function findExpiredPix(int $minutes = 30, int $limit = 50): array
+    {
+        return $this->createQueryBuilder('p')
+            ->where('p.type = :type')
+            ->andWhere('p.method = :method')
+            ->andWhere('p.status = :status')
+            ->andWhere('p.externalId IS NOT NULL')
+            ->andWhere('p.createdAt <= :cutoff')
+            ->setParameter('type', Payment::TYPE_DEPOSIT)
+            ->setParameter('method', Payment::METHOD_PIX)
+            ->setParameter('status', Payment::STATUS_PENDING)
+            ->setParameter('cutoff', new \DateTimeImmutable(sprintf('-%d minutes', max(1, $minutes))))
+            ->orderBy('p.createdAt', 'ASC')
+            ->setMaxResults(max(1, min($limit, 100)))
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @return list<Payment>
+     */
+    public function findPendingOlderThan(\DateTimeImmutable $cutoff, int $limit = 20): array
+    {
+        return $this->createQueryBuilder('p')
+            ->where('p.type = :type')
+            ->andWhere('p.status = :status')
+            ->andWhere('p.externalId IS NOT NULL')
+            ->andWhere('p.createdAt <= :cutoff')
+            ->setParameter('type', Payment::TYPE_DEPOSIT)
+            ->setParameter('status', Payment::STATUS_PENDING)
+            ->setParameter('cutoff', $cutoff)
+            ->orderBy('p.createdAt', 'ASC')
+            ->setMaxResults(max(1, min($limit, 50)))
+            ->getQuery()
+            ->getResult();
+    }
+
     public function sumApprovedSince(\DateTimeImmutable $since): int
     {
         return (int) $this->createQueryBuilder('p')

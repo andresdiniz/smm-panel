@@ -44,15 +44,21 @@ class AdminSupportController extends AbstractController
     #[Route('/{id}', name: 'show', methods: ['GET', 'POST'])]
     public function show(SupportTicket $ticket, Request $request): Response
     {
-        // Marca mensagens do usuário como lidas pelo admin
-        $this->messageRepo->markAllReadByAdmin($ticket);
-
         if ($request->isMethod('POST')) {
+            $token = $request->request->get('_token');
+            if (!is_string($token) || !$this->isCsrfTokenValid('admin_support_'.$ticket->getId(), $token)) {
+                $this->addFlash('error', 'Sessão expirada. Recarregue a página e tente novamente.');
+
+                return $this->redirectToRoute('admin_support_show', ['id' => $ticket->getId()]);
+            }
+
+            $this->messageRepo->markAllReadByAdmin($ticket);
             $action = $request->request->get('action');
 
             if ($action === 'reply') {
-                $body = trim((string) $request->request->get('body', ''));
-                if ($body !== '' && $ticket->isOpen()) {
+                $body = $request->request->get('body');
+                $body = is_string($body) ? trim($body) : '';
+                if ($body !== '' && mb_strlen($body) <= 4000 && $ticket->isOpen()) {
                     $message = (new SupportMessage())
                         ->setSender(SupportMessageSender::Admin)
                         ->setBody($body);
@@ -68,18 +74,32 @@ class AdminSupportController extends AbstractController
                         '/suporte/'.$ticket->getId(),
                     );
                     $this->addFlash('success', 'Resposta enviada.');
+                } elseif ($body === '' || mb_strlen($body) > 4000) {
+                    $this->addFlash('error', 'A mensagem deve ter entre 1 e 4.000 caracteres.');
                 }
             }
 
             if ($action === 'status') {
-                $status = SupportTicketStatus::from($request->request->get('status'));
+                $statusValue = $request->request->get('status');
+                $status = is_string($statusValue) ? SupportTicketStatus::tryFrom($statusValue) : null;
+                if ($status === null) {
+                    $this->addFlash('error', 'Status inválido.');
+
+                    return $this->redirectToRoute('admin_support_show', ['id' => $ticket->getId()]);
+                }
                 $ticket->setStatus($status);
                 $this->em->flush();
                 $this->addFlash('success', 'Status atualizado para: ' . $status->label());
             }
 
             if ($action === 'priority') {
-                $priority = SupportTicketPriority::from($request->request->get('priority'));
+                $priorityValue = $request->request->get('priority');
+                $priority = is_string($priorityValue) ? SupportTicketPriority::tryFrom($priorityValue) : null;
+                if ($priority === null) {
+                    $this->addFlash('error', 'Prioridade inválida.');
+
+                    return $this->redirectToRoute('admin_support_show', ['id' => $ticket->getId()]);
+                }
                 $ticket->setPriority($priority);
                 $this->em->flush();
                 $this->addFlash('success', 'Prioridade atualizada para: ' . $priority->label());
@@ -87,6 +107,8 @@ class AdminSupportController extends AbstractController
 
             return $this->redirectToRoute('admin_support_show', ['id' => $ticket->getId()]);
         }
+
+        $this->messageRepo->markAllReadByAdmin($ticket);
 
         return $this->render('admin/support/show.html.twig', [
             'ticket'     => $ticket,

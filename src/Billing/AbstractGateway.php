@@ -40,6 +40,12 @@ abstract class AbstractGateway
         $this->em->flush();
     }
 
+    protected function storeGatewayResponse(Payment $payment, array $response, string $gateway): void
+    {
+        $response['gateway'] = $gateway;
+        $payment->setGatewayResponse(json_encode($response, JSON_THROW_ON_ERROR));
+    }
+
     public function reconcileApprovedPayment(Payment $payment): bool
     {
         return $this->approveAndCredit($payment);

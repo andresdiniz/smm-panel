@@ -70,7 +70,7 @@ final class MercadoPagoGateway extends AbstractGateway implements PaymentGateway
 
         $payment = $this->buildPayment($user, $amountCents, $method, $feeCents);
         $payment->setExternalId((string) ($data['id'] ?? ''));
-        $payment->setGatewayResponse(json_encode($data));
+        $this->storeGatewayResponse($payment, $data, 'mercadopago');
 
         if ($method === Payment::METHOD_PIX) {
             $txInfo = $data['point_of_interaction']['transaction_data'] ?? [];
@@ -100,7 +100,7 @@ final class MercadoPagoGateway extends AbstractGateway implements PaymentGateway
         ])->toArray(false);
 
         $payment = $this->findByExternalId($mpId);
-        $payment->setGatewayResponse(json_encode($detail));
+        $this->storeGatewayResponse($payment, $detail, 'mercadopago');
 
         $status = $detail['status'] ?? 'pending';
 

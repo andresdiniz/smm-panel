@@ -86,6 +86,38 @@
   grid-template-columns: repeat(auto-fill, minmax(min(160px, 100%), 1fr));
   gap: 12px;
 }
+.ord__tracking {
+  background: var(--_bg2);
+  border: 1px solid var(--_border);
+  border-radius: 10px;
+  padding: 16px;
+}
+.ord__tracking h2 {
+  margin: 0 0 12px;
+  color: var(--_text);
+  font-size: 14px;
+}
+.ord__tracking ol {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ord__tracking li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--_text2);
+  font-size: 13px;
+}
+.ord__tracking li strong { color: var(--_text); }
+.ord__tracking p {
+  margin: 12px 0 0;
+  color: var(--_text2);
+  font-size: 13px;
+  line-height: 1.5;
+}
 .ord__item {
   background: var(--_bg2);
   border: 1px solid var(--_border);
@@ -212,6 +244,31 @@
   </p>
   {% endif %}
 
+  <section class="ord__tracking" aria-labelledby="order-tracking-title">
+    <h2 id="order-tracking-title">Acompanhamento do pedido</h2>
+    <ol>
+      <li><strong>Pedido recebido</strong><time datetime="{{ order.createdAt|date('c') }}">{{ order.createdAt|date('d/m/Y H:i') }}</time></li>
+      <li>
+        <strong>{{ order.externalOrderId ? 'Enviado ao provedor' : 'Aguardando envio ao provedor' }}</strong>
+      </li>
+      <li>
+        <strong>Status atual: {{ statusLabels[s]|default(s|replace({'_': ' '})|capitalize) }}</strong>
+        {% if order.updatedAt %}<time datetime="{{ order.updatedAt|date('c') }}">{{ order.updatedAt|date('d/m/Y H:i') }}</time>{% endif %}
+      </li>
+    </ol>
+    {% if s == 'pending' %}
+      <p>O pedido ainda não foi confirmado pelo provedor. Se continuar assim por mais de 30 minutos, fale com o suporte antes de criar outro pedido.</p>
+    {% elseif s in ['processing', 'in_progress'] %}
+      <p>O status é sincronizado automaticamente. Evite enviar um pedido duplicado enquanto este estiver em andamento.</p>
+    {% elseif s == 'partial' %}
+      <p>O provedor informou uma entrega parcial. Se precisar de ajuda, abra um ticket com este pedido já identificado.</p>
+    {% elseif s in ['cancelled', 'refunded'] %}
+      <p>Confira o extrato da carteira para ver o crédito do estorno. Se não localizar o lançamento, abra um ticket.</p>
+    {% elseif s == 'completed' %}
+      <p>O provedor marcou este pedido como concluído.</p>
+    {% endif %}
+  </section>
+
   {# ── GRID DE DETALHES ── #}
   <div class="ord__grid">
     <div class="ord__item">
@@ -270,6 +327,10 @@
     <a href="{{ path('app_order_new') }}" class="ord__btn ord__btn--primary">
       <i data-lucide="plus" width="15" height="15"></i>
       Novo pedido
+    </a>
+    <a href="{{ path('support_new', {order: order.id}) }}" class="ord__btn ord__btn--ghost">
+      <i data-lucide="life-buoy" width="15" height="15" aria-hidden="true"></i>
+      Ajuda com este pedido
     </a>
   </div>
 

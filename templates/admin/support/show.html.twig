@@ -46,6 +46,7 @@
       <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px;">
         <form method="POST">
           <input type="hidden" name="action" value="reply">
+          <input type="hidden" name="_token" value="{{ csrf_token('admin_support_' ~ ticket.id) }}">
           <label for="body" style="display:block;font-size:.8rem;font-weight:600;margin-bottom:8px;color:#dde1f0;">Responder ao usuário</label>
           <textarea id="body" name="body" rows="4" required maxlength="4000"
                     placeholder="Digite sua resposta..."
@@ -69,6 +70,7 @@
         <p style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;margin:0 0 10px;">Status</p>
         <form method="POST" style="display:flex;flex-direction:column;gap:8px;">
           <input type="hidden" name="action" value="status">
+          <input type="hidden" name="_token" value="{{ csrf_token('admin_support_' ~ ticket.id) }}">
           <select name="status" style="width:100%;padding:7px 10px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.03);color:#dde1f0;font-size:.875rem;outline:none;">
             {% for s in statuses %}
             <option value="{{ s.value }}" {% if ticket.status == s %}selected{% endif %}>{{ s.label() }}</option>
@@ -82,6 +84,7 @@
         <p style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#3e4259;margin:0 0 10px;">Prioridade</p>
         <form method="POST" style="display:flex;flex-direction:column;gap:8px;">
           <input type="hidden" name="action" value="priority">
+          <input type="hidden" name="_token" value="{{ csrf_token('admin_support_' ~ ticket.id) }}">
           <select name="priority" style="width:100%;padding:7px 10px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.03);color:#dde1f0;font-size:.875rem;outline:none;">
             {% for p in priorities %}
             <option value="{{ p.value }}" {% if ticket.priority == p %}selected{% endif %}>{{ p.label() }}</option>

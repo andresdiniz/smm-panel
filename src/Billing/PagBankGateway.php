@@ -74,12 +74,15 @@ final class PagBankGateway extends AbstractGateway implements PaymentGatewayInte
 
         $payment = $this->buildPayment($user, $amountCents, Payment::METHOD_PIX, $feeCents);
         $payment->setExternalId($data['id'] ?? $data['reference_id'] ?? '');
-        $payment->setGatewayResponse(json_encode($data));
 
         $qr = $data['qr_codes'][0] ?? [];
         $payment->setPixCode($qr['text'] ?? null);
         $payment->setQrCodeBase64(null);
-        $payment->setGatewayResponse(json_encode(array_merge($data, ['_qr_image' => $qr['links'][0]['href'] ?? null])));
+        $this->storeGatewayResponse(
+            $payment,
+            array_merge($data, ['_qr_image' => $qr['links'][0]['href'] ?? null]),
+            'pagbank',
+        );
 
         $this->persist($payment);
         return $payment;
@@ -121,7 +124,7 @@ final class PagBankGateway extends AbstractGateway implements PaymentGatewayInte
 
         $payment = $this->buildPayment($user, $amountCents, $method, $feeCents);
         $payment->setExternalId($data['id'] ?? '');
-        $payment->setGatewayResponse(json_encode($data));
+        $this->storeGatewayResponse($payment, $data, 'pagbank');
 
         if ($status === 'PAID' || $status === 'AUTHORIZED') {
             $this->persist($payment);
@@ -143,7 +146,7 @@ final class PagBankGateway extends AbstractGateway implements PaymentGatewayInte
         $orderId = $data['id'] ?? throw new \InvalidArgumentException('Webhook sem ID.');
 
         $payment = $this->findByExternalId($orderId);
-        $payment->setGatewayResponse(json_encode($data));
+        $this->storeGatewayResponse($payment, $data, 'pagbank');
 
         $charges = $data['charges'] ?? [];
         $status  = strtoupper($charges[0]['status'] ?? $data['status'] ?? 'WAITING');

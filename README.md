@@ -290,14 +290,22 @@ php bin/console smm:billing:reconcile
 php bin/console smm:finance:daily-report
 
 # Inspecionar fila de mortos
-php bin/console messenger:failed:show
+php bin/console messenger:failed:show --transport=failed --stats
+php bin/console messenger:failed:show --transport=failed --max=50
 
-# Reprocessar mensagem falha
-php bin/console messenger:failed:retry
+# Reprocessar somente após identificar e corrigir a causa
+php bin/console messenger:failed:retry --transport=failed
 
 # Verificar estado das migrations
 php bin/console doctrine:migrations:status
 ```
+
+O painel **Admin > Saúde das operações** mostra o heartbeat dos workers,
+profundidade das filas e pagamentos externos pendentes há mais de 30 minutos.
+Após aplicar as migrations e reiniciar os consumidores, confirme que cada
+transporte apresenta sinais recentes. A fila `failed` deve ser inspecionada
+antes de qualquer reprocessamento; não faça retry em massa sem verificar se
+as mensagens ainda correspondem a registros ativos.
 
 ---
 

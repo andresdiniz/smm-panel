@@ -10,6 +10,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: PaymentRepository::class)]
 #[ORM\Table(name: 'payments', indexes: [
     new ORM\Index(columns: ['user_id', 'created_at', 'id'], name: 'idx_payments_user_created_id'),
+    new ORM\Index(columns: ['status', 'type', 'last_reconciled_at', 'created_at'], name: 'idx_payments_reconcile'),
 ])]
 #[ORM\HasLifecycleCallbacks]
 class Payment
@@ -70,6 +71,12 @@ class Payment
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $paidAt = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $lastReconciledAt = null;
+
+    #[ORM\Column(options: ['default' => 0])]
+    private int $reconciliationAttempts = 0;
+
     #[ORM\PrePersist]
     public function onPrePersist(): void { $this->createdAt = new \DateTimeImmutable(); }
 
@@ -97,5 +104,12 @@ class Payment
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
     public function getPaidAt(): ?\DateTimeImmutable { return $this->paidAt; }
     public function setPaidAt(?\DateTimeImmutable $dt): static { $this->paidAt = $dt; return $this; }
+    public function getLastReconciledAt(): ?\DateTimeImmutable { return $this->lastReconciledAt; }
+    public function getReconciliationAttempts(): int { return $this->reconciliationAttempts; }
+    public function recordReconciliationAttempt(): void
+    {
+        $this->lastReconciledAt = new \DateTimeImmutable();
+        ++$this->reconciliationAttempts;
+    }
     public function approve(): static { $this->status = self::STATUS_APPROVED; $this->paidAt = new \DateTimeImmutable(); return $this; }
 }

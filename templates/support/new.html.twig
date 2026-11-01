@@ -9,21 +9,27 @@
     </a>
     <p class="cp-eyebrow">Suporte</p>
     <h1>Abrir novo ticket</h1>
-    <p>Descreva sua dúvida ou problema com o máximo de detalhes possível.</p>
+    {% if relatedOrder %}
+      <p>Este ticket ficará contextualizado com o pedido #{{ relatedOrder.id }}.</p>
+    {% else %}
+      <p>Descreva sua dúvida ou problema com o máximo de detalhes possível.</p>
+    {% endif %}
   </header>
 
   <div class="cp-form-card">
-    <form method="POST" action="{{ path('support_new') }}" class="cp-form">
+    <form method="POST" action="{{ path('support_new', relatedOrder ? {order: relatedOrder.id} : {}) }}" class="cp-form">
+      <input type="hidden" name="_token" value="{{ csrf_token('support_new') }}">
       <div class="cp-field">
         <label for="subject">Assunto <span>*</span></label>
         <input type="text" id="subject" name="subject" required maxlength="180"
+               value="{{ relatedOrder ? 'Ajuda com pedido #' ~ relatedOrder.id : '' }}"
                placeholder="Ex.: Pedido #32 travado em processamento">
       </div>
 
       <div class="cp-field">
         <label for="body">Mensagem <span>*</span></label>
         <textarea id="body" name="body" required rows="6" maxlength="4000"
-                  placeholder="Descreva o problema e inclua o número do pedido, se necessário."></textarea>
+                  placeholder="Descreva o problema e inclua o número do pedido, se necessário.">{% if relatedOrder %}Olá, preciso de ajuda com o pedido #{{ relatedOrder.id }}.{% endif %}</textarea>
       </div>
 
       <div class="cp-form-actions">
