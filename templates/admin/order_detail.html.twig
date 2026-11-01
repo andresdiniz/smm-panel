@@ -97,7 +97,16 @@
             </tbody>
           </table>
         </div>
-        <div class="card-footer text-end">
+        <div class="card-footer d-flex justify-content-end gap-2">
+          {% if order.externalOrderId and order.service.providerSlug %}
+          <form method="post" action="{{ path('admin_order_sync', {id: order.id}) }}"
+                onsubmit="return confirm('Forçar atualização deste pedido com o provider?')">
+            <input type="hidden" name="_token" value="{{ csrf_token('sync_order_' ~ order.id) }}">
+            <button type="submit" class="btn btn-sm btn-outline-success">
+              <i class="fa fa-rotate me-1"></i>Forçar atualização
+            </button>
+          </form>
+          {% endif %}
           <a href="{{ path('admin_order_show', {id: order.id}) }}"
              class="btn btn-sm btn-outline-primary">
             <i class="fa fa-external-link-alt me-1"></i>Abrir pedido
