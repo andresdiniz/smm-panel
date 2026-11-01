@@ -99,15 +99,21 @@
         </div>
 
         {# Moeda #}
+        {% set currencies = ['BRL','USD','EUR','GBP','CAD','AUD','MXN','ARS','CLP','COP','PEN','UYU','INR','PKR','NGN','ZAR','TRY','JPY','CNY'] %}
+        {% set currentCurrency = credential ? credential.currency : 'BRL' %}
         <div style="display:flex;flex-direction:column;gap:5px">
           <label for="f_currency" style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#3e4259">Moeda do provedor *</label>
-          <input id="f_currency" type="text" name="currency" maxlength="3"
-                 value="{{ credential ? credential.currency : 'BRL' }}"
-                 placeholder="BRL, USD, EUR, GBP…"
-                 required
-                 style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
-                        padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none;text-transform:uppercase">
-          <span style="font-size:.7rem;color:#3e4259">Use o código ISO de 3 letras. Ex: BRL, USD, EUR, GBP, CAD, AUD, MXN, ARS.</span>
+          <select id="f_currency" name="currency" required
+                  style="background:#0d1016;border:1px solid rgba(255,255,255,.08);color:#dde1f0;
+                         padding:9px 13px;border-radius:8px;font-size:.85rem;width:100%;outline:none">
+            {% for code in currencies %}
+              <option value="{{ code }}" {{ currentCurrency == code ? 'selected' : '' }}>{{ code }}</option>
+            {% endfor %}
+            {% if currentCurrency not in currencies %}
+              <option value="{{ currentCurrency }}" selected>{{ currentCurrency }}</option>
+            {% endif %}
+          </select>
+          <span style="font-size:.7rem;color:#3e4259">Selecione a moeda usada pelo provedor. A cotação será aplicada para converter o custo para BRL.</span>
         </div>
 
         {# Cotação #}
