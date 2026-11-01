@@ -6,13 +6,19 @@ namespace App\Tests\Billing;
 
 use App\Billing\AsaasGateway;
 use App\Billing\Exception\GatewayException;
+use App\Billing\Exception\WebhookAuthenticationException;
 use App\Entity\Payment;
 use App\Entity\User;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Driver;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
+use Symfony\Component\HttpFoundation\Request;
 
 final class AsaasGatewayTest extends TestCase
 {
@@ -91,16 +97,88 @@ final class AsaasGatewayTest extends TestCase
             '',
         );
 
-        $this->expectException(\InvalidArgumentException::class);
-        $gateway->processWebhook(new \Symfony\Component\HttpFoundation\Request(
-            [],
-            [],
-            [],
-            [],
-            [],
-            ['CONTENT_TYPE' => 'application/json'],
-            '{"event":"PAYMENT_RECEIVED","payment":{"id":"pay_1"}}',
-        ));
+        $this->expectException(WebhookAuthenticationException::class);
+        $gateway->processWebhook($this->webhookRequest('valid-token'));
+    }
+
+    public function testWrongWebhookTokenIsRejectedBeforeDatabaseAccess(): void
+    {
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::never())->method('wrapInTransaction');
+
+        $gateway = new AsaasGateway(
+            $entityManager,
+            new MockHttpClient(),
+            'sandbox-api-key',
+            'sandbox',
+            'valid-token',
+        );
+
+        $this->expectException(WebhookAuthenticationException::class);
+        $gateway->processWebhook($this->webhookRequest('wrong-token'));
+    }
+
+    public function testReplayedWebhookEventDoesNotReprocessPayment(): void
+    {
+        $duplicate = new UniqueConstraintViolationException(
+            $this->createStub(Driver\Exception::class),
+            null,
+        );
+        $connection = $this->createMock(Connection::class);
+        $connection->expects(self::once())
+            ->method('insert')
+            ->with(
+                'asaas_webhook_events',
+                self::callback(static fn (array $row): bool => $row['event_id'] === 'evt_replayed_1'),
+            )
+            ->willThrowException($duplicate);
+
+        $payment = (new Payment())
+            ->setStatus(Payment::STATUS_APPROVED)
+            ->setExternalId('pay_replayed_1');
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->expects(self::once())
+            ->method('findOneBy')
+            ->with(['externalId' => 'pay_replayed_1'])
+            ->willReturn($payment);
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::once())->method('getConnection')->willReturn($connection);
+        $entityManager->expects(self::once())->method('getRepository')->with(Payment::class)->willReturn($repository);
+        $entityManager->expects(self::once())
+            ->method('wrapInTransaction')
+            ->willReturnCallback(static fn (callable $callback): mixed => $callback());
+        $entityManager->expects(self::never())->method('refresh');
+
+        $gateway = new AsaasGateway($entityManager, new MockHttpClient(), 'api-key', 'production', 'valid-token');
+
+        self::assertSame($payment, $gateway->processWebhook($this->webhookRequest('valid-token')));
+    }
+
+    public function testConcurrentApprovalCannotCreditAfterPaymentIsLockedAsApproved(): void
+    {
+        $payment = (new Payment())
+            ->setType(Payment::TYPE_DEPOSIT)
+            ->setAmountCents(2500)
+            ->setFeeCents(0)
+            ->setStatus(Payment::STATUS_PENDING)
+            ->setExternalId('pay_concurrent_1');
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::once())
+            ->method('refresh')
+            ->with($payment, LockMode::PESSIMISTIC_WRITE)
+            ->willReturnCallback(static function (Payment $payment): void {
+                $payment->setStatus(Payment::STATUS_APPROVED);
+            });
+        $entityManager->expects(self::once())
+            ->method('wrapInTransaction')
+            ->willReturnCallback(static fn (callable $callback): mixed => $callback());
+        $entityManager->expects(self::never())->method('createQueryBuilder');
+        $entityManager->expects(self::never())->method('persist');
+
+        $gateway = new AsaasGateway($entityManager, new MockHttpClient(), 'api-key', 'production', 'valid-token');
+
+        self::assertFalse($gateway->reconcileApprovedPayment($payment));
     }
 
     public function testPixQrRequestRetriesTransientNotFoundResponse(): void
@@ -375,5 +453,18 @@ final class AsaasGatewayTest extends TestCase
             ->setEmail('customer@example.test')
             ->setName('Test Customer')
             ->setPassword('not-used');
+    }
+
+    private function webhookRequest(string $token): Request
+    {
+        $request = Request::create(
+            '/webhook/asaas',
+            'POST',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: '{"id":"evt_replayed_1","event":"PAYMENT_RECEIVED","payment":{"id":"pay_replayed_1","status":"RECEIVED"}}',
+        );
+        $request->headers->set('asaas-access-token', $token);
+
+        return $request;
     }
 }

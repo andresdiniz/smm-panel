@@ -21,19 +21,34 @@ jobs:
       - name: Validate Composer files
         run: composer validate --strict
 
+      - name: Audit Composer dependencies
+        run: composer audit --no-interaction
+
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
         env:
           APP_ENV: test
+          APP_SECRET: security-test-only-secret
+          AFFILIATE_DEFAULT_RATE: "0.10"
           DATABASE_URL: mysql://smm:smm@127.0.0.1:3306/smm_test
 
       - name: Check PHP syntax
         run: find src bin public -name "*.php" -print0 | xargs -0 -n1 php -l
 
+      - name: Run test suite
+        run: vendor/bin/phpunit
+        env:
+          APP_ENV: test
+          APP_SECRET: security-test-only-secret
+          AFFILIATE_DEFAULT_RATE: "0.10"
+          DATABASE_URL: mysql://ci:ci@127.0.0.1:1/smm_ci
+
       - name: Validate Symfony container and templates
         run: |
-          php bin/console lint:container
+          php bin/console lint:container --env=test
           php bin/console lint:twig templates
         env:
           APP_ENV: test
+          APP_SECRET: security-test-only-secret
+          AFFILIATE_DEFAULT_RATE: "0.10"
           DATABASE_URL: mysql://smm:smm@127.0.0.1:3306/smm_test
