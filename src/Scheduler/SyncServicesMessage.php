@@ -12,5 +12,6 @@ final class SyncServicesMessage
 {
     public function __construct(
         public readonly ?string $providerSlug = null,
+        public readonly int $attempt = 0,
     ) {}
 }

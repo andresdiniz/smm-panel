@@ -175,6 +175,11 @@ Acesse o admin em `http://localhost:8000/admin` com um usuário `ROLE_ADMIN`.
 
 - `SyncServicesMessage` é agendada a cada 6 horas e roteada para `orders_low`;
   atualiza os limites min/max dos serviços ativos a partir do catálogo do provider.
+  Cada execução e tentativa é persistida em `cron_logs`, visível em
+  **Admin > Logs de tarefas agendadas**, com quantidade processada, quantidade
+  atualizada, providers e erros. Falhas específicas do provider são reenfileiradas
+  após 30 s, 2 min e 5 min; após quatro tentativas no total ficam visíveis como
+  falha no admin.
 - A cada 5 minutos, o agendador localiza pedidos em processamento sem log de
   status recente (45 minutos) e enfileira `SyncOrderStatusMessage` em
   `orders_medium`. O handler consulta o provider, registra cada tentativa,

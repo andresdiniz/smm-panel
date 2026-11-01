@@ -4,44 +4,45 @@
 
 {% block admin_content %}
 <style>
-  .uf-wrap { padding: 24px; max-width: 680px; }
+  .uf-wrap { padding: clamp(16px, 2.4vw, 32px); max-width: 760px; margin:0 auto; }
   .uf-topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
   .uf-back {
     display: inline-flex; align-items: center; gap: 5px;
-    font-size: .78rem; color: #6b708a; text-decoration: none;
-    padding: 5px 10px; border: 1px solid rgba(255,255,255,.07);
-    border-radius: 5px; transition: background .12s;
+    font-size: .78rem; color: #a7aec1; text-decoration: none;
+    padding: 8px 11px; border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px; transition: background .12s;
   }
   .uf-back:hover { background: rgba(255,255,255,.04); color: #dde1f0; }
-  .uf-title { font-size: 1.05rem; font-weight: 900; color: #f0f3ff; margin: 0; }
+  .uf-title { font-size: clamp(1.1rem, 2vw, 1.4rem); font-weight: 850; color: #f0f3ff; margin: 0; letter-spacing:-.02em; }
   .uf-card {
-    background: #0b0e14; border: 1px solid rgba(255,255,255,.06);
-    border-radius: 8px; padding: 24px;
+    background: linear-gradient(145deg, rgba(15,19,29,.98), rgba(9,12,18,.98));
+    border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: clamp(18px, 3vw, 28px);
+    box-shadow:0 14px 40px rgba(0,0,0,.18);
   }
   .uf-field { margin-bottom: 18px; }
   .uf-label {
     display: block; font-size: .72rem; font-weight: 700;
     text-transform: uppercase; letter-spacing: .08em;
-    color: #3e4259; margin-bottom: 6px;
+    color: #8992aa; margin-bottom: 7px;
   }
   .uf-input {
-    width: 100%; background: #070910; border: 1px solid rgba(255,255,255,.08);
-    border-radius: 6px; color: #dde1f0; font-size: .85rem;
-    padding: 8px 12px; outline: none; transition: border-color .15s;
+    width: 100%; background: #090c13; border: 1px solid rgba(255,255,255,.1);
+    border-radius: 9px; color: #dde1f0; font-size: .88rem;
+    padding: 10px 13px; outline: none; transition: border-color .15s, box-shadow .15s;
   }
-  .uf-input:focus { border-color: rgba(78,204,211,.4); }
-  .uf-hint { font-size: .72rem; color: #3e4259; margin-top: 4px; }
+  .uf-input:focus { border-color: rgba(78,204,211,.65); box-shadow:0 0 0 3px rgba(78,204,211,.1); }
+  .uf-hint { font-size: .74rem; color: #8992aa; margin-top: 5px; }
   .uf-roles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
   .uf-role-label {
     display: inline-flex; align-items: center; gap: 6px;
     font-size: .8rem; color: #9196b0; cursor: pointer;
-    padding: 5px 10px; border: 1px solid rgba(255,255,255,.07);
-    border-radius: 5px; transition: background .12s;
+    padding: 8px 11px; border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px; transition: background .12s, border-color .12s;
   }
   .uf-role-label:has(input:checked) { background: rgba(78,204,211,.1); color: #4eccd3; border-color: rgba(78,204,211,.3); }
   .uf-actions { display: flex; gap: 8px; margin-top: 24px; }
   .btn {
-    padding: 8px 18px; border-radius: 5px; font-size: .82rem; font-weight: 700;
+    padding: 9px 16px; border-radius: 8px; font-size: .82rem; font-weight: 700;
     border: 1px solid; display: inline-flex; align-items: center; gap: 5px;
     text-decoration: none; cursor: pointer; transition: background .15s;
   }
@@ -49,6 +50,8 @@
   .btn-primary:hover { background: rgba(78,204,211,.25); }
   .btn-ghost { background: transparent; color: #6b708a; border-color: rgba(255,255,255,.08); }
   .btn-ghost:hover { background: rgba(255,255,255,.04); color: #dde1f0; }
+  .uf-wrap :focus-visible { outline:2px solid #4eccd3; outline-offset:3px; }
+  @media(max-width:520px){ .uf-actions { flex-direction:column; } .uf-actions .btn { justify-content:center; } }
 </style>
 
 <div class="uf-wrap">

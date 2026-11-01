@@ -4,24 +4,24 @@
 
 {% block admin_content %}
 <style>
-  .ub-wrap { padding: 24px; }
+  .ub-wrap { padding: clamp(16px, 2.4vw, 32px); }
   .ub-topbar {
     display: flex; align-items: center; justify-content: space-between;
-    flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+    flex-wrap: wrap; gap: 16px; margin-bottom: 22px;
   }
-  .ub-title { font-size: 1.05rem; font-weight: 900; color: #f0f3ff; margin: 0; }
-  .ub-actions { display: flex; gap: 8px; align-items: center; }
-  .ub-search-form { display: flex; gap: 6px; }
+  .ub-title { font-size: clamp(1.15rem, 2vw, 1.45rem); font-weight: 850; color: #f0f3ff; margin: 0; letter-spacing: -.025em; }
+  .ub-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .ub-search-form { display: flex; gap: 7px; flex-wrap: wrap; }
   .ub-search-input {
-    background: #0b0e14; border: 1px solid rgba(255,255,255,.08);
-    border-radius: 6px; color: #dde1f0; font-size: .8rem;
-    padding: 6px 12px; width: 220px; outline: none;
-    transition: border-color .15s;
+    background: #0b0e14; border: 1px solid rgba(255,255,255,.1);
+    border-radius: 9px; color: #dde1f0; font-size: .84rem;
+    padding: 9px 13px; width: min(280px, 65vw); outline: none;
+    transition: border-color .15s, box-shadow .15s;
   }
-  .ub-search-input:focus { border-color: rgba(78,204,211,.4); }
+  .ub-search-input:focus { border-color: rgba(78,204,211,.65); box-shadow: 0 0 0 3px rgba(78,204,211,.1); }
   .ub-search-input::placeholder { color: #3e4259; }
   .btn-sm {
-    padding: 6px 13px; border-radius: 5px; font-size: .78rem; font-weight: 700;
+    padding: 8px 13px; border-radius: 8px; font-size: .78rem; font-weight: 700;
     border: 1px solid; display: inline-flex; align-items: center; gap: 5px;
     text-decoration: none; cursor: pointer; transition: background .15s;
   }
@@ -30,28 +30,29 @@
   .btn-ghost   { background: transparent; color: #6b708a; border-color: rgba(255,255,255,.08); }
   .btn-ghost:hover { background: rgba(255,255,255,.04); color: #dde1f0; }
   .ub-card {
-    background: #0b0e14; border: 1px solid rgba(255,255,255,.06);
-    border-radius: 8px; overflow: hidden;
+    background: linear-gradient(145deg, rgba(15,19,29,.98), rgba(9,12,18,.98));
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px; overflow-x: auto; box-shadow: 0 14px 40px rgba(0,0,0,.18);
   }
-  .ub-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .ub-table { width: 100%; min-width: 880px; border-collapse: separate; border-spacing: 0; font-size: .82rem; }
   .ub-table thead tr { border-bottom: 1px solid rgba(255,255,255,.06); }
   .ub-table th {
-    padding: 10px 14px; text-align: left;
+    padding: 13px 15px; text-align: left; background:#0d111a; position:sticky; top:0; z-index:1;
     font-size: 9px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: .1em; color: #3e4259; white-space: nowrap;
+    letter-spacing: .1em; color: #8992aa; white-space: nowrap;
   }
   .ub-table tbody tr {
     border-bottom: 1px solid rgba(255,255,255,.03);
-    transition: background .12s;
+    transition: background .15s, transform .15s;
   }
   .ub-table tbody tr:last-child { border-bottom: none; }
-  .ub-table tbody tr:hover { background: rgba(255,255,255,.02); }
-  .ub-table td { padding: 10px 14px; vertical-align: middle; color: #9196b0; }
+  .ub-table tbody tr:hover { background: rgba(78,204,211,.045); }
+  .ub-table td { padding: 12px 15px; vertical-align: middle; color: #aab1c5; }
   .ub-table td.td-name { color: #dde1f0; font-weight: 600; }
   .ub-table td.td-mono { font-family: monospace; font-size: .74rem; }
   .role-badge {
     display: inline-flex; padding: 2px 7px; border-radius: 999px;
-    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    font-size: 10px; font-weight: 750; text-transform: uppercase;
     letter-spacing: .05em; margin-right: 3px;
   }
   .role-admin  { background: rgba(176,48,48,.18); color: #cc4444; }
@@ -66,7 +67,7 @@
     padding: 2px 6px; border-radius: 4px; }
   .row-actions { display: flex; gap: 6px; align-items: center; }
   .ra {
-    width: 26px; height: 26px; border-radius: 5px; display: flex;
+    width: 32px; height: 32px; border-radius: 8px; display: flex;
     align-items: center; justify-content: center;
     text-decoration: none; transition: background .12s;
   }
@@ -79,22 +80,30 @@
   .pag-wrap {
     display: flex; align-items: center; justify-content: space-between;
     flex-wrap: wrap; gap: 10px;
-    padding: 14px 16px; border-top: 1px solid rgba(255,255,255,.04);
+    padding: 15px 17px; border-top: 1px solid rgba(255,255,255,.06);
     font-size: .75rem; color: #6b708a;
   }
   .pag-links { display: flex; gap: 4px; }
   .pag-links a, .pag-links span {
     display: inline-flex; align-items: center; justify-content: center;
-    min-width: 28px; height: 28px; padding: 0 6px;
-    border-radius: 5px; border: 1px solid rgba(255,255,255,.06);
+    min-width: 32px; height: 32px; padding: 0 7px;
+    border-radius: 8px; border: 1px solid rgba(255,255,255,.08);
     text-decoration: none; font-size: .75rem; transition: background .12s;
   }
   .pag-links a { color: #9196b0; }
   .pag-links a:hover { background: rgba(255,255,255,.05); color: #dde1f0; }
   .pag-links span.current { background: rgba(78,204,211,.15); color: #4eccd3; border-color: rgba(78,204,211,.3); font-weight: 700; }
   .pag-links span.disabled { color: #3e4259; cursor: default; }
-  .ub-empty { text-align: center; padding: 48px 16px; color: #3e4259; font-size: .85rem; }
-  @media(max-width:900px){ .ub-table .col-hide { display: none; } }
+  .ub-empty { text-align: center; padding: 58px 20px; color: #8e97ad; font-size: .9rem; }
+  .ub-wrap :focus-visible { outline: 2px solid #4eccd3; outline-offset: 3px; }
+  @media(max-width:900px){ .ub-table .col-hide { display: none; } .ub-table { min-width: 620px; } }
+  @media(max-width:600px){
+    .ub-topbar { align-items: stretch; }
+    .ub-actions, .ub-search-form { width:100%; }
+    .ub-search-input { flex:1; width:auto; }
+    .ub-actions > a { justify-content:center; }
+    .pag-wrap { align-items:flex-start; flex-direction:column; }
+  }
 </style>
 
 <div class="ub-wrap">

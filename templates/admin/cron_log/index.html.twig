@@ -3,30 +3,58 @@
 {% block page_title %}Logs de tarefas agendadas{% endblock %}
 
 {% block admin_content %}
-<div style="padding:24px;display:flex;flex-direction:column;gap:18px">
+<div style="padding:clamp(16px,2.4vw,32px);display:flex;flex-direction:column;gap:18px">
   <h1 style="font-size:1.1rem;font-weight:800;color:#f0f3ff;margin:0">Logs de tarefas agendadas</h1>
 
-  <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:auto">
+  <div style="background:#0b0e14;border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:auto;box-shadow:0 12px 34px rgba(0,0,0,.16)">
     {% if pagination.items is empty %}
       <p style="padding:24px;color:#9196b0;margin:0">Nenhuma execução registrada.</p>
     {% else %}
       <table style="width:100%;border-collapse:collapse;font-size:.8rem">
         <thead>
           <tr>
-            {% for label in ['Início','Comando','Resultado','Duração','Itens','Erro'] %}
-              <th style="padding:10px 13px;background:#0d1016;color:#9196b0;text-align:left;white-space:nowrap">{{ label }}</th>
+            {% for label in ['Início','Tarefa','Resultado','Duração','Serviços','Resumo','Erro'] %}
+              <th style="padding:12px 14px;background:#0d1016;color:#9196b0;text-align:left;white-space:nowrap">{{ label }}</th>
             {% endfor %}
           </tr>
         </thead>
         <tbody>
           {% for log in pagination %}
-            <tr style="border-top:1px solid rgba(255,255,255,.05)">
+            {% set context = log.context ?? {} %}
+            <tr style="border-top:1px solid rgba(255,255,255,.05);transition:background .15s">
               <td style="padding:10px 13px;color:#9196b0;white-space:nowrap">{{ log.startedAt|date('d/m/Y H:i:s') }}</td>
               <td style="padding:10px 13px;color:#dde1f0">{{ log.command }}</td>
-              <td style="padding:10px 13px;color:{{ log.success ? '#4ade80' : '#f87171' }}">{{ log.success ? 'Sucesso' : 'Falha' }}</td>
+              <td style="padding:10px 13px;color:{{ log.success ? '#4ade80' : '#f87171' }};font-weight:700">{{ log.success ? 'Sucesso' : 'Falha' }}</td>
               <td style="padding:10px 13px;color:#9196b0">{{ log.durationMs is not null ? log.durationMs ~ ' ms' : '-' }}</td>
               <td style="padding:10px 13px;color:#9196b0">{{ log.itemsProcessed ?? '-' }}</td>
-              <td style="padding:10px 13px;color:#f87171">{{ log.errorMessage ?? '-' }}</td>
+              <td style="padding:10px 13px;color:#aab1c5;min-width:190px">
+                {% if log.command == 'smm:services:sync' %}
+                  {{ context.updated ?? 0 }} atualizados
+                  {% if context.provider_filter %}
+                    <span style="color:#7c879e">· {{ context.provider_filter }}</span>
+                  {% else %}
+                    <span style="color:#7c879e">· todos providers</span>
+                  {% endif %}
+                  {% if context.attempt is defined and context.attempt > 0 %}
+                    <span style="color:#fbbf24">· tentativa {{ context.attempt + 1 }}</span>
+                  {% endif %}
+                  {% if context.unmatched_services|default(0) > 0 %}
+                    <span style="color:#fbbf24">· {{ context.unmatched_services }} não encontrados</span>
+                  {% endif %}
+                {% else %}
+                  {{ log.output ?? '-' }}
+                {% endif %}
+              </td>
+              <td style="padding:10px 13px;color:#f87171;min-width:220px">
+                {% set errorDetails = context.provider_error_details|default({}) %}
+                {% if errorDetails is not empty %}
+                  {% for provider, detail in errorDetails %}
+                    <div><strong>{{ provider }}</strong>: {{ detail }}</div>
+                  {% endfor %}
+                {% else %}
+                  {{ log.errorMessage ?? '-' }}
+                {% endif %}
+              </td>
             </tr>
           {% endfor %}
         </tbody>
