@@ -61,6 +61,445 @@
     display: block;
 }
 
+.customer-panel .wallet-page {
+    width: 100%;
+    max-width: 1120px;
+    margin-inline: auto;
+}
+
+.customer-panel .wallet-page .wh {
+    min-height: 210px;
+    padding: clamp(24px, 4vw, 42px);
+    border: 1px solid rgb(255 255 255 / 12%);
+    border-radius: var(--r-xl);
+    background:
+        radial-gradient(ellipse at 82% 10%, rgb(91 218 210 / 18%), transparent 42%),
+        linear-gradient(130deg, #075e64 0%, #084b51 52%, #10383e 100%);
+    box-shadow: 0 18px 40px rgb(3 74 79 / 18%);
+}
+
+.customer-panel .wallet-page .wh__badge {
+    position: relative;
+    z-index: 1;
+    color: #f0ffff;
+}
+
+.customer-panel .wallet-page .wh__label {
+    color: rgb(255 255 255 / 86%);
+    opacity: 1;
+}
+
+.customer-panel .wallet-page .wh__amount {
+    position: relative;
+    z-index: 1;
+    color: #fff;
+    line-height: 1.08;
+    overflow-wrap: anywhere;
+}
+
+.customer-panel .wallet-page .wh__actions {
+    min-width: 190px;
+}
+
+.customer-panel .wallet-page .wh__btn-solid,
+.customer-panel .wallet-page .wh__btn-ghost {
+    min-height: 46px;
+    justify-content: center;
+    border-radius: 12px;
+    transition: transform var(--fast) var(--ease), background var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+}
+
+.customer-panel .wallet-page .wh__btn-solid {
+    color: #075e64;
+}
+
+.customer-panel .wallet-page .wh__btn-solid:hover,
+.customer-panel .wallet-page .wh__btn-ghost:hover {
+    transform: translateY(-2px);
+    text-decoration: none;
+}
+
+.customer-panel .wallet-page .wkpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(10px, 1.4vw, 16px);
+    margin-bottom: 22px;
+}
+
+.customer-panel .wallet-page .wkpi {
+    min-width: 0;
+    min-height: 142px;
+    padding: 18px;
+    border-radius: var(--r-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-xs);
+}
+
+.customer-panel .wallet-page .wkpi__icon {
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.customer-panel .wallet-page .wkpi__icon--teal {
+    background: var(--primary-lo);
+    color: var(--primary);
+}
+
+.customer-panel .wallet-page .wkpi__icon--blue {
+    background: var(--blue-soft);
+    color: var(--blue);
+}
+
+.customer-panel .wallet-page .wkpi__icon--gold {
+    background: var(--gold-soft);
+    color: var(--gold);
+}
+
+.customer-panel .wallet-page .wkpi__icon--green {
+    background: var(--green-soft, rgb(35 132 93 / 12%));
+    color: var(--success);
+}
+
+.customer-panel .wallet-page .wkpi__label {
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.customer-panel .wallet-page .wkpi__val {
+    color: var(--text-bright);
+    font-size: clamp(1.05rem, 1.4vw, 1.4rem);
+    overflow-wrap: anywhere;
+}
+
+.customer-panel .wallet-page .wkpi__val--green {
+    color: var(--success);
+}
+
+.customer-panel .wallet-page .wtcard {
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.customer-panel .wallet-page .wtcard__head {
+    min-height: 64px;
+    padding: 16px clamp(16px, 2.4vw, 24px);
+    background: var(--surface);
+}
+
+.customer-panel .wallet-page .wtcard__head h2 {
+    margin: 0;
+    color: var(--text-bright);
+    font-size: 1rem;
+}
+
+.customer-panel .wallet-page .wtcard__badge {
+    min-height: 28px;
+    background: var(--surface-2);
+    color: var(--text-muted);
+}
+
+.customer-panel .wallet-page .wtcard__wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-color: var(--border-2) transparent;
+}
+
+.customer-panel .wallet-page .wt {
+    min-width: 650px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.customer-panel .wallet-page .wt thead th {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-muted);
+}
+
+.customer-panel .wallet-page .wt td {
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--divider);
+    color: var(--text-2);
+}
+
+.customer-panel .wallet-page .wt tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.customer-panel .wallet-page .wt tbody tr:hover {
+    background: var(--surface-off);
+}
+
+.customer-panel .wallet-page .wt tbody tr.row--pending {
+    background: var(--gold-soft);
+}
+
+.customer-panel .wallet-page .wt tbody tr.row--pending:hover {
+    background: color-mix(in srgb, var(--gold-soft) 72%, var(--surface));
+}
+
+.customer-panel .wallet-page .td-date-main {
+    color: var(--text);
+    font-weight: 650;
+}
+
+.customer-panel .wallet-page .td-date-sub {
+    color: var(--text-muted);
+    opacity: 1;
+}
+
+.customer-panel .wallet-page .bt {
+    min-height: 25px;
+    align-items: center;
+    border: 1px solid transparent;
+    font-weight: 750;
+}
+
+.customer-panel .wallet-page .bt--deposit {
+    border-color: var(--acc-border);
+    background: var(--primary-lo);
+    color: var(--primary);
+}
+
+.customer-panel .wallet-page .bt--expense {
+    border-color: var(--danger-border);
+    background: var(--danger-lo);
+    color: var(--danger);
+}
+
+.customer-panel .wallet-page .bt--refund {
+    border-color: var(--blue-soft);
+    background: var(--blue-soft);
+    color: var(--blue);
+}
+
+.customer-panel .wallet-page .td-method {
+    color: var(--text-2);
+}
+
+.customer-panel .wallet-page .bs {
+    min-height: 27px;
+    border: 1px solid transparent;
+    font-weight: 750;
+}
+
+.customer-panel .wallet-page .bs--ok {
+    background: var(--green-soft, rgb(35 132 93 / 12%));
+    color: var(--success);
+}
+
+.customer-panel .wallet-page .bs--pend {
+    background: var(--gold-soft);
+    color: var(--gold);
+}
+
+.customer-panel .wallet-page .bs--cancel {
+    background: var(--red-soft);
+    color: var(--danger);
+}
+
+.customer-panel .wallet-page .td-val {
+    color: var(--text-2);
+    white-space: nowrap;
+}
+
+.customer-panel .wallet-page .td-val--credit {
+    color: var(--success);
+}
+
+.customer-panel .wallet-page .td-val--debit {
+    color: var(--danger);
+}
+
+.customer-panel .wallet-page .wempty {
+    min-height: 240px;
+    padding: 34px 22px;
+    color: var(--text-muted);
+}
+
+.customer-panel .wallet-page .wempty svg {
+    color: var(--primary);
+    opacity: .8;
+}
+
+.customer-panel .wallet-page .wempty h3 {
+    margin: 0;
+    color: var(--text-bright);
+}
+
+.customer-panel .wallet-page .wempty p {
+    margin: 0 0 8px;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.customer-panel .wallet-page .wempty .btn--ghost {
+    border: 1px solid var(--acc-border);
+    background: var(--primary-lo);
+    color: var(--primary);
+}
+
+.customer-panel .customer-dashboard .kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(10px, 1.5vw, 18px);
+    margin-bottom: 20px;
+}
+
+.customer-panel .customer-dashboard .kpi {
+    min-width: 0;
+    min-height: 152px;
+    border-radius: var(--r-lg);
+    background:
+        linear-gradient(155deg, var(--surface), color-mix(in srgb, var(--surface-2) 58%, var(--surface)));
+}
+
+.customer-panel .customer-dashboard .kpi__label {
+    color: var(--text-muted);
+}
+
+.customer-panel .customer-dashboard .kpi__value {
+    font-size: clamp(1.2rem, 1.1rem + .8vw, 1.8rem);
+    overflow-wrap: anywhere;
+}
+
+.customer-panel .customer-dashboard .kpi__icon--blue {
+    --kpi-accent: var(--blue);
+}
+
+.customer-panel .customer-dashboard .kpi__icon--green {
+    --kpi-accent: var(--success);
+}
+
+.customer-panel .customer-dashboard .kpi__icon--gold {
+    --kpi-accent: var(--gold);
+}
+
+.customer-panel .customer-dashboard .quick-actions {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(10px, 1.3vw, 16px);
+    margin-bottom: 22px;
+}
+
+.customer-panel .customer-dashboard .card--padded {
+    border-radius: var(--r-xl);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.customer-panel .customer-dashboard .card__head {
+    min-height: 64px;
+    flex-wrap: wrap;
+    padding-inline: clamp(16px, 2.4vw, 24px);
+    background: var(--surface);
+}
+
+.customer-panel .customer-dashboard .card__head h2 {
+    margin: 0;
+    color: var(--text-bright);
+    font-size: 1rem;
+}
+
+.customer-panel .customer-dashboard .data-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.customer-panel .customer-dashboard .data-table th {
+    padding: 12px 13px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.customer-panel .customer-dashboard .data-table td {
+    padding: 13px;
+    border-bottom: 1px solid var(--divider);
+    color: var(--text-2);
+    vertical-align: middle;
+}
+
+.customer-panel .customer-dashboard .data-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.customer-panel .customer-dashboard .data-table tbody tr:hover {
+    background: var(--surface-off);
+}
+
+.customer-panel .customer-dashboard .data-table .cell-muted {
+    color: var(--text-muted);
+}
+
+.customer-panel .customer-dashboard .data-table .svc-name {
+    color: var(--text-bright);
+}
+
+.customer-panel .customer-dashboard .data-table .svc-cat {
+    color: var(--text-muted);
+}
+
+.customer-panel .customer-dashboard .url-cell {
+    color: var(--primary);
+}
+
+.customer-panel .customer-dashboard .card__foot {
+    min-height: 54px;
+    padding-inline: clamp(16px, 2.4vw, 24px);
+    border-top-color: var(--border);
+    background: var(--surface-2);
+}
+
+.customer-panel .customer-dashboard .card__foot-info {
+    color: var(--text-muted);
+}
+
+.customer-panel .customer-dashboard .page-btn {
+    min-height: 36px;
+    align-items: center;
+    border-color: var(--border);
+    color: var(--primary);
+}
+
+.customer-panel .customer-dashboard .empty-state {
+    margin: 0;
+    padding: clamp(28px, 5vw, 52px) 20px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.customer-panel .customer-dashboard .empty-state h3 {
+    margin: 10px 0 4px;
+    color: var(--text-bright);
+}
+
+.customer-panel .customer-dashboard .empty-state p {
+    margin: 0 0 12px;
+    color: var(--text-muted);
+}
+
+.customer-panel .customer-dashboard .kpi__delta--up {
+    background: var(--green-soft, rgb(35 132 93 / 12%));
+    color: var(--success);
+}
+
+.customer-panel .customer-dashboard .kpi__delta--neutral {
+    background: var(--surface-off);
+    color: var(--text-muted);
+}
+
 .customer-panel .cp-page,
 .customer-panel .cp-form-page,
 .customer-panel .cp-ticket-page,
@@ -866,6 +1305,20 @@
     .customer-panel .affiliate-kpis {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    .customer-panel .customer-dashboard .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .customer-panel .customer-dashboard .quick-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 801px) and (max-width: 960px) {
+    .customer-panel .customer-dashboard .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 560px) {
@@ -962,6 +1415,45 @@
     .customer-panel .wkpis {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
+    }
+
+    .customer-panel .wallet-page .wh {
+        min-height: 0;
+        gap: 20px;
+        padding: 24px 20px;
+    }
+
+    .customer-panel .wallet-page .wh__actions {
+        min-width: 0;
+    }
+
+    .customer-panel .wallet-page .wh__btn-solid,
+    .customer-panel .wallet-page .wh__btn-ghost {
+        min-width: 0;
+        padding-inline: 12px;
+        font-size: .8rem;
+    }
+
+    .customer-panel .wallet-page .wkpi {
+        min-height: 128px;
+        padding: 14px;
+    }
+
+    .customer-panel .wallet-page .wtcard__head {
+        align-items: center;
+    }
+
+    .customer-panel .wallet-page .wt {
+        min-width: 600px;
+    }
+
+    .customer-panel .customer-dashboard .kpi {
+        min-height: 138px;
+        padding: 16px;
+    }
+
+    .customer-panel .customer-dashboard .data-table {
+        min-width: 700px;
     }
 
     .customer-panel .wkpi {

@@ -277,6 +277,7 @@
 {% endblock %}
 
 {% block content %}
+<section class="wallet-page">
 
 {# Fuso horário: usa timezone do usuário se disponivel, senão UTC-3 (Brasília) #}
 {% set tz = app.user.timezone is defined and app.user.timezone ? app.user.timezone : 'America/Sao_Paulo' %}
@@ -438,4 +439,5 @@
   </div>
 </div>
 
+</section>
 {% endblock %}
