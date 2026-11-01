@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Tests\Billing;
 
 use App\Billing\AsaasGateway;
+use App\Billing\Exception\GatewayException;
 use App\Entity\Payment;
 use App\Entity\User;
-use App\Billing\Exception\GatewayException;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -218,6 +219,80 @@ final class AsaasGatewayTest extends TestCase
         self::assertSame('cmVmcmVzaGVkLWltYWdl', $payment->getQrCodeBase64());
         self::assertSame('asaas', $response['gateway']);
         self::assertFalse($response['pixQrUnavailable']);
+    }
+
+    public function testPendingPixCanBeCancelledInAsaasAndLocally(): void
+    {
+        $payment = (new Payment())
+            ->setType(Payment::TYPE_DEPOSIT)
+            ->setMethod(Payment::METHOD_PIX)
+            ->setExternalId('pay_pending_123')
+            ->setGatewayResponse('{"gateway":"asaas"}');
+        $client = new MockHttpClient(static function (string $method, string $url, array $options): MockResponse {
+            self::assertSame('DELETE', $method);
+            self::assertSame('https://api.asaas.com/v3/payments/pay_pending_123', $url);
+            self::assertContains('access_token: api-key', $options['normalized_headers']['access_token']);
+
+            return new MockResponse('{"deleted":true,"id":"pay_pending_123"}');
+        });
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::once())
+            ->method('refresh')
+            ->with($payment, LockMode::PESSIMISTIC_WRITE);
+        $entityManager->expects(self::once())
+            ->method('wrapInTransaction')
+            ->willReturnCallback(static fn (callable $callback): mixed => $callback());
+
+        $gateway = new AsaasGateway($entityManager, $client, 'api-key', 'production', 'webhook-token');
+        $gateway->cancelPix($payment);
+
+        self::assertSame(Payment::STATUS_CANCELLED, $payment->getStatus());
+    }
+
+    public function testFailedAsaasCancellationDoesNotChangeLocalPaymentStatus(): void
+    {
+        $client = new MockHttpClient(static fn (): MockResponse => new MockResponse(
+            '{"errors":[{"description":"Payment cannot be deleted"}]}',
+            ['http_code' => 400],
+        ));
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::never())->method('wrapInTransaction');
+
+        $gateway = new AsaasGateway($entityManager, $client, 'api-key', 'production', 'webhook-token');
+        $payment = (new Payment())
+            ->setType(Payment::TYPE_DEPOSIT)
+            ->setMethod(Payment::METHOD_PIX)
+            ->setExternalId('pay_already_paid');
+
+        try {
+            $gateway->cancelPix($payment);
+            self::fail('Expected Asaas to reject cancellation of a payment that cannot be deleted.');
+        } catch (GatewayException $exception) {
+            self::assertSame(400, $exception->getContext()['http_status']);
+        }
+
+        self::assertSame(Payment::STATUS_PENDING, $payment->getStatus());
+    }
+
+    public function testNonPendingPixCannotBeCancelled(): void
+    {
+        $entityManager = $this->createStub(EntityManagerInterface::class);
+        $client = new MockHttpClient(static function (): MockResponse {
+            self::fail('Asaas must not be called for a non-pending payment.');
+        });
+        $gateway = new AsaasGateway($entityManager, $client, 'api-key', 'production', 'webhook-token');
+        $payment = (new Payment())
+            ->setType(Payment::TYPE_DEPOSIT)
+            ->setMethod(Payment::METHOD_PIX)
+            ->setStatus(Payment::STATUS_APPROVED)
+            ->setExternalId('pay_already_paid');
+
+        try {
+            $gateway->cancelPix($payment);
+            self::fail('Expected non-pending payment to be rejected.');
+        } catch (GatewayException $exception) {
+            self::assertSame('payment_not_pending', $exception->getContext()['reason']);
+        }
     }
 
     private function createUser(): User

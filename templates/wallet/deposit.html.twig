@@ -524,6 +524,26 @@ select.dep__control { appearance: none; -webkit-appearance: none; cursor: pointe
   cursor: pointer;
   transition: background .18s, transform .12s, opacity .18s;
 }
+.pix-modal__cancel-form { margin-top: 10px; }
+.pix-modal__cancel {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid color-mix(in oklab, var(--error) 45%, transparent);
+  border-radius: var(--r-sm);
+  color: var(--error);
+  background: transparent;
+  font: inherit;
+  font-size: .84rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+.pix-modal__cancel:hover { background: color-mix(in oklab, var(--error) 8%, transparent); }
+.pix-modal__cancel-hint {
+  margin: 7px 0 0;
+  color: var(--text-muted);
+  font-size: .74rem;
+  line-height: 1.5;
+}
 .pix-modal__refresh:hover { background: var(--primary-lo); }
 .pix-modal__refresh:active { transform: translateY(1px); }
 .pix-modal__refresh:disabled,
@@ -694,7 +714,7 @@ select.dep__control { appearance: none; -webkit-appearance: none; cursor: pointe
 
 </div>
 {% if pixPayment %}
-  {% include 'wallet/_pix_modal.html.twig' with {payment: pixPayment, canRefreshPix: canRefreshPix} only %}
+  {% include 'wallet/_pix_modal.html.twig' with {payment: pixPayment, canRefreshPix: canRefreshPix, canCancelPix: canCancelPix} only %}
 {% endif %}
 {% endblock %}
 
@@ -739,6 +759,7 @@ document.getElementById('depositForm').addEventListener('submit', function() {
 
 {% if pixPayment %}
 const pixModal = document.getElementById('pix-payment-modal');
+const pixCancelForm = document.getElementById('pix-cancel-form');
 const pixStatus = document.getElementById('pix-payment-status');
 const pixStatusError = document.getElementById('pix-status-error');
 const pixDetails = document.getElementById('pix-payment-details');
@@ -756,6 +777,13 @@ const pixStatusLabels = {
 
 pixModal.showModal();
 pixModal.addEventListener('cancel', event => event.preventDefault());
+if (pixCancelForm) {
+  pixCancelForm.addEventListener('submit', event => {
+    if (!window.confirm('Deseja cancelar esta cobrança Pix pendente?')) {
+      event.preventDefault();
+    }
+  });
+}
 pixModal.addEventListener('click', event => {
   if (event.target === pixModal) {
     window.location.assign(pixModal.dataset.continueUrl);

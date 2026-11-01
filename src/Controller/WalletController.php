@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Billing\DynamicGatewayLoader;
 use App\Billing\Exception\GatewayException;
+use App\Billing\PixPaymentCancellationInterface;
 use App\Billing\PixQrCodeRefreshInterface;
 use App\Entity\Payment;
 use App\Entity\ProviderCredential;
@@ -194,6 +195,7 @@ class WalletController extends AbstractController
             'lastDeposit' => $this->paymentRepository->findLastDepositByUser($user),
             'pixPayment'  => $pixPayment,
             'canRefreshPix' => $canRefreshPix,
+            'canCancelPix' => $canRefreshPix,
         ]);
     }
 
@@ -207,6 +209,83 @@ class WalletController extends AbstractController
         }
 
         return $this->redirectToRoute('app_wallet_deposit', ['pix' => $id]);
+    }
+
+    #[Route('/pix/{id}/cancel', name: 'pix_cancel', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function cancelPix(int $id, Request $request): Response
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+
+        $payment = $this->paymentRepository->find($id);
+        if (
+            !$payment
+            || $payment->getUser() !== $this->getUser()
+            || $payment->getType() !== Payment::TYPE_DEPOSIT
+            || $payment->getMethod() !== Payment::METHOD_PIX
+        ) {
+            throw $this->createNotFoundException('Pagamento não encontrado.');
+        }
+
+        $token = $request->request->get('_token');
+        if (!is_string($token) || !$this->isCsrfTokenValid('wallet_pix_cancel_'.$id, $token)) {
+            $this->addFlash('error', 'Não foi possível validar a solicitação. Tente novamente.');
+
+            return $this->redirectToRoute('app_wallet_deposit', ['pix' => $id]);
+        }
+
+        if ($payment->getStatus() !== Payment::STATUS_PENDING) {
+            $this->addFlash('error', 'Este Pix não está mais pendente e não pode ser cancelado.');
+
+            return $this->redirectToRoute('app_wallet_deposit', ['pix' => $id]);
+        }
+
+        $gatewayResponse = json_decode($payment->getGatewayResponse() ?? '{}', true);
+        if (!$this->isAsaasPixPayment($payment, $gatewayResponse)) {
+            $this->addFlash('error', 'O cancelamento pelo painel está disponível somente para cobranças Pix do Asaas.');
+
+            return $this->redirectToRoute('app_wallet_deposit', ['pix' => $id]);
+        }
+
+        try {
+            $gateway = $this->gatewayLoader->load('asaas');
+        } catch (\InvalidArgumentException|\RuntimeException) {
+            $this->addFlash('error', 'O gateway Asaas não está disponível no momento.');
+
+            return $this->redirectToRoute('app_wallet_deposit', ['pix' => $id]);
+        }
+
+        if (!$gateway instanceof PixPaymentCancellationInterface) {
+            $this->addFlash('error', 'O cancelamento de Pix não está disponível no momento.');
+
+            return $this->redirectToRoute('app_wallet_deposit', ['pix' => $id]);
+        }
+
+        try {
+            $gateway->cancelPix($payment);
+        } catch (GatewayException $e) {
+            $context = $e->getContext();
+            $this->logger->warning('Falha ao cancelar cobrança Pix.', [
+                'gateway' => 'asaas',
+                'payment_id' => $payment->getId(),
+                'operation' => $context['operation'] ?? 'cancel_pix',
+                'reason' => $context['reason'] ?? 'gateway_error',
+                'http_status' => $context['http_status'] ?? null,
+                'exception' => $e::class,
+            ]);
+
+            $this->addFlash(
+                'error',
+                ($context['reason'] ?? null) === 'payment_not_pending'
+                    ? 'O status deste Pix mudou. Atualize a carteira para conferir.'
+                    : 'Não foi possível cancelar o Pix no Asaas. A cobrança continua disponível até a confirmação do cancelamento.',
+            );
+
+            return $this->redirectToRoute('app_wallet_deposit', ['pix' => $id]);
+        }
+
+        $this->addFlash('success', 'Cobrança Pix cancelada com sucesso. Nenhum valor foi estornado ou debitado.');
+
+        return $this->redirectToRoute('app_wallet_index');
     }
 
     #[Route('/pix/{id}/status', name: 'pix_status', requirements: ['id' => '\d+'], methods: ['GET'])]

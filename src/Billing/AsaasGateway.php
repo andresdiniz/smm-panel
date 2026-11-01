@@ -10,6 +10,7 @@ use App\Billing\Exception\GatewayException;
 use App\Billing\Exception\WebhookAuthenticationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\DBAL\LockMode;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,7 +22,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  *
  * Docs: https://docs.asaas.com/reference
  */
-final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterface, PixQrCodeRefreshInterface
+final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterface, PixQrCodeRefreshInterface, PixPaymentCancellationInterface
 {
     /** CPF genérico válido para o sandbox Asaas (somente quando nenhum CPF real é fornecido). */
     private const SANDBOX_CPF = '00000000191';
@@ -183,6 +184,42 @@ final class AsaasGateway extends AbstractGateway implements PaymentGatewayInterf
         $payment->setGatewayResponse(json_encode($gatewayResponse, JSON_THROW_ON_ERROR));
 
         $this->em->flush();
+    }
+
+    public function cancelPix(Payment $payment): void
+    {
+        if (
+            $payment->getType() !== Payment::TYPE_DEPOSIT
+            || $payment->getMethod() !== Payment::METHOD_PIX
+            || $payment->getStatus() !== Payment::STATUS_PENDING
+        ) {
+            throw new GatewayException(
+                'Somente depósitos Pix pendentes podem ser cancelados.',
+                context: ['operation' => 'cancel_pix', 'reason' => 'payment_not_pending'],
+            );
+        }
+
+        $externalId = $payment->getExternalId();
+        if ($externalId === null || $externalId === '') {
+            throw new GatewayException(
+                'Pagamento sem identificador externo.',
+                context: ['operation' => 'cancel_pix', 'reason' => 'missing_payment_id'],
+            );
+        }
+
+        $this->requestJson('DELETE', '/payments/'.rawurlencode($externalId));
+
+        $this->em->wrapInTransaction(function () use ($payment): void {
+            $this->em->refresh($payment, LockMode::PESSIMISTIC_WRITE);
+            if ($payment->getStatus() !== Payment::STATUS_PENDING) {
+                throw new GatewayException(
+                    'O status do Pix mudou durante o cancelamento.',
+                    context: ['operation' => 'cancel_pix', 'reason' => 'payment_not_pending'],
+                );
+            }
+
+            $payment->setStatus(Payment::STATUS_CANCELLED);
+        });
     }
 
     public function processWebhook(Request $request): Payment

@@ -70,6 +70,13 @@
                 </button>
             {% endif %}
             <button type="button" class="pix-modal__check" id="pix-check-status">Verificar pagamento</button>
+            {% if canCancelPix %}
+                <form class="pix-modal__cancel-form" id="pix-cancel-form" method="post" action="{{ path('app_wallet_pix_cancel', {id: payment.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('wallet_pix_cancel_' ~ payment.id) }}">
+                    <button type="submit" class="pix-modal__cancel">Cancelar cobrança Pix</button>
+                    <p class="pix-modal__cancel-hint">O cancelamento só funciona enquanto a cobrança estiver pendente. Se já foi paga, fale com o suporte para solicitar estorno.</p>
+                </form>
+            {% endif %}
         {% endif %}
 
         <p class="pix-modal__error" id="pix-status-error" role="alert" hidden></p>
