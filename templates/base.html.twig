@@ -71,7 +71,7 @@
         <nav aria-label="Links institucionais">
             <a href="{{ path('app_terms') }}">Termos</a>
             <a href="{{ path('app_privacy') }}">Privacidade</a>
-            {% if not app.user and (google_tag_manager_id starts with 'GTM-' or clarity_project_id is not empty) %}
+            {% if google_tag_manager_id starts with 'GTM-' or (not app.user and clarity_project_id is not empty) %}
                 <button class="cookie-preferences-link" type="button" data-cookie-preferences>Preferências de cookies</button>
             {% endif %}
             {% if app.user %}
