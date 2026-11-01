@@ -32,19 +32,37 @@
             var preferenceButton = document.querySelector('[data-cookie-preferences]');
             var tagManagerLoaded = false;
             var clarityLoaded = false;
+            var tagManagerConsentInitialized = false;
 
-            function loadTagManager() {
-                if (!hasTagManager || tagManagerLoaded) return;
-                tagManagerLoaded = true;
+            function initializeTagManagerConsent() {
+                if (!hasTagManager) return;
                 window.dataLayer = window.dataLayer || [];
                 window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+                if (tagManagerConsentInitialized) return;
+                tagManagerConsentInitialized = true;
                 window.gtag('consent', 'default', {
                     analytics_storage: 'denied',
                     ad_storage: 'denied',
                     ad_user_data: 'denied',
                     ad_personalization: 'denied'
                 });
-                window.gtag('consent', 'update', {analytics_storage: 'granted'});
+            }
+
+            function updateTagManagerConsent(choice) {
+                initializeTagManagerConsent();
+                if (!hasTagManager || !window.gtag) return;
+                window.gtag('consent', 'update', {
+                    analytics_storage: choice === 'granted' ? 'granted' : 'denied',
+                    ad_storage: 'denied',
+                    ad_user_data: 'denied',
+                    ad_personalization: 'denied'
+                });
+            }
+
+            function loadTagManager() {
+                if (!hasTagManager || tagManagerLoaded) return;
+                initializeTagManagerConsent();
+                tagManagerLoaded = true;
                 window.dataLayer.push({'gtm.start': Date.now(), event: 'gtm.js'});
 
                 var script = document.createElement('script');
@@ -57,12 +75,20 @@
                 document.head.appendChild(script);
             }
 
+            function updateClarityConsent(choice) {
+                if (!hasClarity || typeof window.clarity !== 'function') return;
+                window.clarity('consentv2', {
+                    ad_Storage: 'denied',
+                    analytics_Storage: choice === 'granted' ? 'granted' : 'denied'
+                });
+            }
+
             function loadClarity() {
                 if (!hasClarity) return;
                 window.clarity = window.clarity || function () {
                     (window.clarity.q = window.clarity.q || []).push(arguments);
                 };
-                window.clarity('consentv2', {ad_Storage: 'granted', analytics_Storage: 'granted'});
+                updateClarityConsent('granted');
                 if (clarityLoaded) return;
                 clarityLoaded = true;
 
@@ -76,32 +102,22 @@
                 document.head.appendChild(script);
             }
 
+            initializeTagManagerConsent();
+
             function saveChoice(choice) {
+                if (choice !== 'granted' && choice !== 'denied') return;
                 try {
                     window.localStorage.setItem('pulse_analytics_consent', choice);
                 } catch (error) {
                     console.warn('Não foi possível salvar a preferência de cookies neste navegador.', error);
                 }
                 banner.hidden = true;
+                updateTagManagerConsent(choice);
                 if (choice === 'granted') {
-                    if (tagManagerLoaded && window.gtag) {
-                        window.gtag('consent', 'update', {analytics_storage: 'granted'});
-                    } else {
-                        loadTagManager();
-                    }
+                    loadTagManager();
                     loadClarity();
                 } else {
-                    if (window.gtag) {
-                        window.gtag('consent', 'update', {
-                            analytics_storage: 'denied',
-                            ad_storage: 'denied',
-                            ad_user_data: 'denied',
-                            ad_personalization: 'denied'
-                        });
-                    }
-                    if (window.clarity) {
-                        window.clarity('consentv2', {ad_Storage: 'denied', analytics_Storage: 'denied'});
-                    }
+                    updateClarityConsent('denied');
                 }
             }
 
@@ -123,8 +139,12 @@
                 console.warn('Não foi possível ler a preferência de cookies neste navegador.', error);
             }
             if (choice === 'granted') {
+                updateTagManagerConsent('granted');
                 loadTagManager();
                 loadClarity();
+            } else if (choice === 'denied') {
+                updateTagManagerConsent('denied');
+                updateClarityConsent('denied');
             }
             if (choice !== 'granted' && choice !== 'denied') banner.hidden = false;
         })();
