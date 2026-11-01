@@ -38,6 +38,10 @@ framework:
     #esi: true
     #fragments: true
 
+when@prod:
+    framework:
+        disallow_search_engine_index: false
+
 when@test:
     framework:
         test: true
