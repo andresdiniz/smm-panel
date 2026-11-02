@@ -3,7 +3,7 @@
         'name' => 'andresdiniz/smm-panel',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '17c096cac1433f180e62480e7963ba8af2b0f73b',
+        'reference' => 'ef9d0b173989ecca6675f99050469c5ccc040020',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'andresdiniz/smm-panel' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '17c096cac1433f180e62480e7963ba8af2b0f73b',
+            'reference' => 'ef9d0b173989ecca6675f99050469c5ccc040020',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -763,6 +763,15 @@
             'install_path' => __DIR__ . '/../symfony/css-selector',
             'aliases' => array(),
             'dev_requirement' => true,
+        ),
+        'symfony/debug-bundle' => array(
+            'pretty_version' => 'v8.1.0',
+            'version' => '8.1.0.0',
+            'reference' => '2da1f202b38f646dbee032529cfd8e727cd12cd1',
+            'type' => 'symfony-bundle',
+            'install_path' => __DIR__ . '/../symfony/debug-bundle',
+            'aliases' => array(),
+            'dev_requirement' => false,
         ),
         'symfony/dependency-injection' => array(
             'pretty_version' => 'v8.1.10',
