@@ -1,0 +1,23 @@
+# PulseSMM
+
+> PulseSMM é uma plataforma SMM Panel brasileira para compra e gestão de serviços de marketing digital (seguidores, curtidas, visualizações, etc.) com automação, integração de gateways de pagamento e painel de afiliados.
+
+PulseSMM permite que clientes criem pedidos de serviços de mídia social, acompanhem o progresso em tempo real, gerenciem carteira/saldo e participem do programa de afiliados. O site também publica um blog com dicas e tutoriais sobre SMM e marketing digital.
+
+## Páginas principais
+
+- [Início](https://acheireviews.com.br/): Página inicial da plataforma
+- [Serviços](https://acheireviews.com.br/servicos): Catálogo de serviços SMM disponíveis
+- [Como funciona](https://acheireviews.com.br/como-funciona): Explicação do fluxo de pedidos e entrega
+- [Blog](https://acheireviews.com.br/blog): Artigos, dicas e tutoriais sobre SMM e marketing digital
+- [Termos de uso](https://acheireviews.com.br/termos): Condições de uso da plataforma
+- [Política de privacidade](https://acheireviews.com.br/politica-de-privacidade): Tratamento de dados e privacidade
+
+## Recursos para agentes
+
+- [Catálogo de recursos para IA](https://acheireviews.com.br/.well-known/ai-catalog.json): Manifesto ARD descrevendo os recursos da plataforma para agentes autônomos
+
+## Observações
+
+- Áreas de painel do cliente, carteira, pedidos, perfil e administração exigem autenticação e não são indexáveis.
+- Páginas de login, registro e recuperação de senha não são indexadas.
