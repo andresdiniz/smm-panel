@@ -21,6 +21,10 @@ services:
         autowire: true
         autoconfigure: true
 
+        # Desativa o header X-Robots-Tag: noindex adicionado pelo Symfony
+    Symfony\Component\HttpKernel\EventListener\DisallowRobotsIndexingListener:
+        tags: []
+
     App\:
         resource: '../src/'
         exclude:
